@@ -2366,6 +2366,18 @@ anonymous/missing-id/unknown-id/generation-alias/wrong-kind: 401/400/404/409/409
 - [x] API 与两地 Edge Control Guardian 均 stable，local/dependency/route health 均 healthy；health/ready 200，shadow ReleaseSet、route lineage 和 policy LKG 查询与发布前一致。policy LKG 仍为 404，候选配置未 promotion。证据：[dns-placement-capture-2026-09-15.json](verification/dns-placement-capture-2026-09-15.json)。
 - [ ] 完成平台 DNS placement、真实 release facts/sticky 策略和全量输出等价验证，再执行 artifact consumer apply、gray/full 与 rollback 恢复验收；当前 `migration_ready=false`。
 
+### P0-BN：显式 DNS 到 route 引用与别名编译
+
+- [x] 新增强类型 `DNSRouteIntent` / `FUGUE_ROUTE`：DNS 名称显式引用 1..128 个实际 HTTP/TLS hostname，Values 为空，owner 与每个引用的全部路径一致；平台 route 使用空 app/tenant owner，托管目标使用明确应用 owner。
+- [x] compiler v13 对每个引用的所有路径绑定完整 route/policy input digest；复用现有 placement readiness、排除、quorum、IP family、freshness、绝对租期和 DNS wire 校验，编译结果只保留 A/AAAA，不把符号引用交给 consumer。
+- [x] 拒绝缺失/重复/非法/wildcard 引用、跨 owner、混合 app/flatten、字面 IP、冲突地址来源、过期或不匹配证据；修改任意引用路径或 upstream 不能重用旧事实。归一化深拷贝并排序引用，顺序不影响 digest。
+- [x] placement collector 对引用的真实 route hostname 发起 TLS/Host/path proof，而不是探测 DNS 别名；所有引用通过才能生成该地址候选，不扩大发布权限。
+- [x] 定向与 race 测试通过；全量测试首次在同机并发压力下出现两个外部命令超时，降低包并发后完整 `GOFLAGS=-p=2 GOMAXPROCS=4 make test` 通过；精确发布计划通过。
+- [x] backend `adddaf8be95573749ad8ace26e7b0526ea660d2e`、CI `34887674602` 成功；API 与美/德 Edge worker 已部署。web `cbeff8e7125909acc4e8398cd96c17bf43642bd7`、contract-drift `34887743440` 成功。
+- [x] 生产 compiler v13 合成多 hostname/path 编译重放 3 次 digest 一致，双栈 alias 带 30 秒绝对租期；14 类非法输入返回 400，DNS/ReleaseSet 的 gray/full/rollback 共 6 个保护入口返回 409；候选未 promotion。
+- [x] 3 个活跃 Edge worker 镜像均匹配本次 receipt，Ready 且零重启；公网 proof 摘要与已加载 bundle 一致，API 2/2 Ready、两地 Guardian stable；真实应用 placement 仍有 3 个候选，shadow ReleaseSet、lineage 和 policy LKG 查询不变。证据：[dns-route-references-2026-09-15.json](verification/dns-route-references-2026-09-15.json)。
+- [ ] 将平台入口、应用默认域名和托管自定义域名 target 的 DNS 期望投影到这些显式引用；处理 protected/static 优先级和共享 target 关系，完成全量输出等价。当前 `dns_route_placement_not_projected` 仍保留，不宣称平台 DNS 已迁移。
+
 证据：[dns-placement-compiler-2026-09-15.json](verification/dns-placement-compiler-2026-09-15.json)。
 
 P0-BK 验收范围说明：管理 SSH 通道在本轮核查时于密钥交换前关闭，实际镜像与 readiness 改由已授权 cluster API 和 CI 收据交叉核对。policy LKG 查询仍是原有 404，不等于已验证 policy 恢复。发布前全平台 release guard 已报告 152 项失败（以该次观测为准）；这些旧应用/运行态问题仍需后续调查修复，本步骤的通过不能证明全平台无故障。
