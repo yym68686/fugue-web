@@ -10687,6 +10687,7 @@ export interface components {
           path_prefix?: string;
         }[];
       intent: components["schemas"]["PlatformConfigIntent"];
+      policy: components["schemas"]["PlatformConfigPolicySnapshot"];
       runtime_snapshot: components["schemas"]["PlatformRuntimeSnapshot"];
       source_generation: string;
       /** Format: date-time */
