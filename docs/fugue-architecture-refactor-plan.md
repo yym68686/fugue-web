@@ -2268,3 +2268,15 @@ anonymous/missing-id/unknown-id/generation-alias/wrong-kind: 401/400/404/409/409
 - [ ] `empty_noerror` 在消费者具备空权威名称语义后启用；真实业务 flatten 端到端 serving 验证仍未完成（当前生产草稿的 flatten record 数为 0）。
 
 证据：[dns-flatten-2026-09-14.json](verification/dns-flatten-2026-09-14.json)。
+
+### P0-BF：ACME challenge 到期语义与发布隔离
+
+- [x] `PlatformIntent.ACMEChallenges` 保存 challenge ID、zone、hostname、TXT value、TTL 和绝对 `expires_at`；challenge 由同一业务事务快照投影，过期判断只使用固定 `captured_at`。
+- [x] compiler v11 将多个 challenge 合并为同一 TXT RRset，为每个 value 保留独立 expiration；永久 TXT 不会被 challenge 生命周期覆盖，过期 value 在编译时删除，空 RRset 不输出。
+- [x] challenge identity、zone 边界、TTL、空值、重复 ID、缺失 captured_at 和到期时间均 fail-closed；runtime facts 改变只改变 input snapshot/artifact digest，不改 intent/policy digest。
+- [x] DNS artifact 与包含它的 ReleaseSet 在 DNS consumer 尚未支持逐值 expiration 前，gray/full 发布和 rollback 均返回 409；shadow 编译可用于验证，soft override 不能绕过该兼容性门。
+- [x] backend commit `966c2fc8ab7465017823156207d150bac94572cf`、CI `34849354452` 成功；web `ccb9cf65`、contract-drift `34845570785` 成功。
+- [x] 生产 API generation 1004、2/2 Ready、Guardian stable、健康/就绪 200；3 次 replay digest 一致，两个值独立到期，首值到期后只剩第二值；5 类非法输入返回 400，6 类 traffic promotion/rollback 入口返回 409，shadow/route/policy LKG 未变化。
+- [ ] DNS consumer 支持逐值 expiration、空权威 RRset 和 ACME serving 后，才可解除 gray/full 门并完成真实业务 challenge 的端到端验证；当前生产草稿 challenge 数为 0。
+
+证据：[acme-expiration-2026-09-14.json](verification/acme-expiration-2026-09-14.json)。

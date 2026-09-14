@@ -1,0 +1,38 @@
+{
+  "observed_at": "2026-09-14T13:38:22.215702Z",
+  "commit": "966c2fc8ab7465017823156207d150bac94572cf",
+  "api_generation": 1004,
+  "image": "ghcr.io/yym68686/fugue-api@sha256:7d7167c55c809537b6cda73c6a13567c315216118ad34f6262187c51e42cf3d2",
+  "compiler_version": "platform-config-compiler/v11",
+  "replay_count": 3,
+  "same_digest": true,
+  "merged_TXT_value_count": 2,
+  "value_expirations_preserved": true,
+  "first_value_expires_independently": true,
+  "intent_policy_digests_unchanged": true,
+  "runtime_digest_changed": true,
+  "negative_cases": {
+    "wrong_zone": 400,
+    "empty_value": 400,
+    "invalid_ttl": 400,
+    "missing_capture": 400,
+    "duplicate": 400
+  },
+  "traffic_promotion_guards": {
+    "dns_artifact_gray": 409,
+    "dns_artifact_full": 409,
+    "dns_artifact_rollback": 409,
+    "release_artifact_gray": 409,
+    "release_artifact_full": 409,
+    "release_artifact_rollback": 409
+  },
+  "draft_acme_challenge_count": 0,
+  "migration_ready": false,
+  "shadow_route_policy_lkg_unchanged": true,
+  "candidate_artifacts_persisted": true,
+  "candidate_promoted": false,
+  "ready_replicas": 2,
+  "guardian_state": "stable",
+  "health_status": 200,
+  "ready_status": 200
+}
