@@ -368,7 +368,7 @@ export interface paths {
   "/v1/admin/platform-config/routes/project": {
     /**
      * Project Business Routes into PlatformIntent
-     * @description Read-only migration draft from captured business routes. Returns explicit migration issues; migration_ready remains false until policy, DNS, TLS and transaction snapshot support is complete. Origin observation timestamps are retained from the captured runtime evidence and may be zero when evidence is absent. This draft is not authorization to compile or promote serving traffic. Writes no serving state.
+     * @description Read-only migration draft from one consistent business snapshot. PostgreSQL uses a read-only repeatable-read transaction; file storage reads under one lock. Returns the business snapshot revision/time and explicit migration issues. Runtime observations retain their own evidence timestamps and are not part of the database transaction. migration_ready remains false until policy, DNS, TLS and release target projection is complete. Writes no serving state.
      */
     get: operations["projectPlatformIntent"];
   };
@@ -10644,6 +10644,9 @@ export interface components {
       snapshot_differences: ("tls_allowlist" | "cache_policies")[];
     };
     PlatformIntentProjectionResponse: {
+      business_snapshot_revision: string;
+      /** Format: date-time */
+      business_snapshot_at: string;
       /** @enum {boolean} */
       migration_ready: false;
       issues: {
@@ -12925,7 +12928,7 @@ export interface operations {
   };
   /**
    * Project Business Routes into PlatformIntent
-   * @description Read-only migration draft from captured business routes. Returns explicit migration issues; migration_ready remains false until policy, DNS, TLS and transaction snapshot support is complete. Origin observation timestamps are retained from the captured runtime evidence and may be zero when evidence is absent. This draft is not authorization to compile or promote serving traffic. Writes no serving state.
+   * @description Read-only migration draft from one consistent business snapshot. PostgreSQL uses a read-only repeatable-read transaction; file storage reads under one lock. Returns the business snapshot revision/time and explicit migration issues. Runtime observations retain their own evidence timestamps and are not part of the database transaction. migration_ready remains false until policy, DNS, TLS and release target projection is complete. Writes no serving state.
    */
   projectPlatformIntent: {
     responses: {
