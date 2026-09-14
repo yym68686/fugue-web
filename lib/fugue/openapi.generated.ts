@@ -4213,7 +4213,7 @@ export interface components {
       records: components["schemas"]["EdgeDNSRecord"][];
     };
     EdgeDNSRecord: {
-      /** @description Signed absolute expiry per TXT value. DNS consumers remove expired values and cap response TTL at query time, including after cache reload and LKG fallback. */
+      /** @description Signed absolute expiry per TXT, A or AAAA value. DNS consumers remove expired values and cap response TTL at query time, including after cache reload and LKG fallback. Leased records cannot also contain dynamic candidates or scoped candidates. */
       value_expirations?: {
         [key: string]: string;
       };
@@ -10557,13 +10557,13 @@ export interface components {
     };
     PlatformConfigDNSIntent: {
       application?: components["schemas"]["PlatformDNSApplicationIntent"];
-      /** @description Absolute expiration per TXT value. Values not in this map remain permanent. Compiler requires a fixed captured_at; consumers must filter expired values and cap TTL at each query. Empty resulting RRsets are omitted. */
+      /** @description Absolute expiration per TXT, A or AAAA value. Values not in this map remain permanent. Compiler requires a fixed captured_at; consumers must filter expired values and cap TTL at each query. Empty resulting RRsets are omitted. Application placement addresses always have expirations. */
       value_expirations?: {
         [key: string]: string;
       };
       flatten?: components["schemas"]["PlatformDNSFlattenIntent"];
       hostname: string;
-      /** @description Wire DNS types, ALIAS/ANAME with typed flatten configuration, or FUGUE_APP with typed application configuration. FUGUE_APP requires app_id, tenant_id, values containing that exact app_id, and an owned route at the same hostname. Application configuration may be validated and versioned, but compilation remains rejected until placement resolution is supported. */
+      /** @description Wire DNS types, ALIAS/ANAME with typed flatten configuration, or FUGUE_APP with typed application configuration. FUGUE_APP requires app_id, tenant_id, values containing that exact app_id, owned routes at the same hostname, and fixed dns_placements evidence bound to the DNS configuration, compiled routes and policy. */
       type: string;
       values: string[];
       /** Format: int32 */
@@ -10750,6 +10750,7 @@ export interface components {
       omitted_runtime_fields: string[];
     };
     PlatformRuntimeSnapshot: {
+      dns_placements?: components["schemas"]["PlatformDNSPlacementObservation"][];
       /**
        * Format: date-time
        * @description Fixed freshness reference for origin and release observations, required when either is present. Compiler wall clock is never used.
@@ -10793,6 +10794,30 @@ export interface components {
       ttl: number;
       /** Format: date-time */
       expires_at: string;
+    };
+    /** @description Fixed application DNS evidence. input_digest is the canonical digest of {dns, routes, policy}, with compiled routes restricted to the DNS hostname, sorted by normalized path, including resolved origin and release upstreams and exclusions. Candidate health and readiness must come from the corresponding serving observations. Compilation binds data and checks freshness; a caller submitting runtime facts is responsible for their authenticity. A stale observation is usable only with stale_if_error. Missing evidence and insufficient eligible edges reject compilation; disabled routes produce no application DNS answers. Ready route and TLS evidence are mandatory for every published address regardless of optional policy flags. */
+    PlatformDNSPlacementObservation: {
+      input_digest: string;
+      /** Format: date-time */
+      checked_at: string;
+      /** @enum {string} */
+      status: "resolved" | "stale";
+      target_ttl: number;
+      candidates: components["schemas"]["PlatformDNSPlacementCandidate"][];
+    };
+    PlatformDNSPlacementCandidate: {
+      edge_id: string;
+      edge_group_id: string;
+      serving_generation: string;
+      /** Format: date-time */
+      observed_at: string;
+      /** Format: date-time */
+      valid_until: string;
+      healthy: boolean;
+      route_ready: boolean;
+      tls_ready: boolean;
+      a?: string[];
+      aaaa?: string[];
     };
     /** @description Fixed DNS resolution facts. input_digest binds the complete normalized DNSIntent. checked_at is the last query time and observed_at is the last successful result time, never renewed after a failed query. target_ttl is the original answer TTL, or zero when unavailable; non-record TTL policies require it. */
     PlatformDNSFlattenObservation: {
