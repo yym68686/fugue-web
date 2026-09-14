@@ -368,7 +368,7 @@ export interface paths {
   "/v1/admin/platform-config/routes/project": {
     /**
      * Project Business Routes into PlatformIntent
-     * @description Read-only migration projection of current business routes into a canonical PlatformIntent and fixed runtime origin observations. Writes no serving state.
+     * @description Read-only migration draft from captured business routes. Returns explicit migration issues; migration_ready remains false until policy, DNS, TLS and transaction snapshot support is complete. Origin observation timestamps are retained from the captured runtime evidence and may be zero when evidence is absent. This draft is not authorization to compile or promote serving traffic. Writes no serving state.
      */
     get: operations["projectPlatformIntent"];
   };
@@ -10644,6 +10644,13 @@ export interface components {
       snapshot_differences: ("tls_allowlist" | "cache_policies")[];
     };
     PlatformIntentProjectionResponse: {
+      /** @enum {boolean} */
+      migration_ready: false;
+      issues: {
+          code: string;
+          hostname?: string;
+          path_prefix?: string;
+        }[];
       intent: components["schemas"]["PlatformConfigIntent"];
       runtime_snapshot: components["schemas"]["PlatformRuntimeSnapshot"];
       source_generation: string;
@@ -12918,11 +12925,11 @@ export interface operations {
   };
   /**
    * Project Business Routes into PlatformIntent
-   * @description Read-only migration projection of current business routes into a canonical PlatformIntent and fixed runtime origin observations. Writes no serving state.
+   * @description Read-only migration draft from captured business routes. Returns explicit migration issues; migration_ready remains false until policy, DNS, TLS and transaction snapshot support is complete. Origin observation timestamps are retained from the captured runtime evidence and may be zero when evidence is absent. This draft is not authorization to compile or promote serving traffic. Writes no serving state.
    */
   projectPlatformIntent: {
     responses: {
-      /** @description Projected PlatformIntent and RuntimeSnapshot. */
+      /** @description Draft intent, captured origin observations and unresolved migration issues. */
       200: {
         content: {
           "application/json": components["schemas"]["PlatformIntentProjectionResponse"];
