@@ -10557,13 +10557,14 @@ export interface components {
     };
     PlatformConfigDNSIntent: {
       application?: components["schemas"]["PlatformDNSApplicationIntent"];
+      route?: components["schemas"]["PlatformDNSRouteIntent"];
       /** @description Absolute expiration per TXT, A or AAAA value. Values not in this map remain permanent. Compiler requires a fixed captured_at; consumers must filter expired values and cap TTL at each query. Empty resulting RRsets are omitted. Application placement addresses always have expirations. */
       value_expirations?: {
         [key: string]: string;
       };
       flatten?: components["schemas"]["PlatformDNSFlattenIntent"];
       hostname: string;
-      /** @description Wire DNS types, ALIAS/ANAME with typed flatten configuration, or FUGUE_APP with typed application configuration. FUGUE_APP requires app_id, tenant_id, values containing that exact app_id, owned routes at the same hostname, and fixed dns_placements evidence bound to the DNS configuration, compiled routes and policy. */
+      /** @description Wire DNS types, ALIAS/ANAME with typed flatten configuration, FUGUE_APP with typed application configuration, or FUGUE_ROUTE with typed route references. FUGUE_APP requires app_id, tenant_id, values containing that exact app_id and owned routes at the same hostname. FUGUE_ROUTE requires empty values and explicit owned route hostnames. Both require fixed dns_placements evidence bound to the DNS configuration, compiled routes and policy. */
       type: string;
       values: string[];
       /** Format: int32 */
@@ -10579,6 +10580,18 @@ export interface components {
     };
     /** @description Desired application DNS behavior; no selected IP addresses, route readiness or TLS readiness. Only valid for a FUGUE_APP record. Requires placement resolution before compilation. */
     PlatformDNSApplicationIntent: {
+      /** @enum {string} */
+      ipv4_policy: "auto" | "ipv4_only" | "ipv6_only" | "dual_stack_required";
+      /** @enum {string} */
+      ipv6_policy: "auto" | "ipv4_only" | "ipv6_only" | "dual_stack_required";
+      /** @enum {string} */
+      ttl_policy: "record" | "target" | "min" | "bounded";
+      /** @enum {string} */
+      fallback_policy: "fail_closed" | "stale_if_error" | "empty_noerror";
+    };
+    /** @description Symbolic FUGUE_ROUTE address source with an empty values array. Each referenced hostname must have routes with the same app/tenant owner as the DNS record; platform routes use empty app/tenant IDs. Every path at every referenced hostname must be proved on a candidate edge. References may differ from the DNS owner name for managed custom-domain targets. Selected addresses and readiness are runtime facts, never intent. */
+    PlatformDNSRouteIntent: {
+      hostnames: string[];
       /** @enum {string} */
       ipv4_policy: "auto" | "ipv4_only" | "ipv6_only" | "dual_stack_required";
       /** @enum {string} */
