@@ -2202,5 +2202,5 @@ anonymous/missing-id/unknown-id/generation-alias/wrong-kind: 401/400/404/409/409
 - [x] 新增 `PolicySnapshotGeneration`，按规范化策略内容计算稳定 generation；runtime observation 时间变化不会伪造 policy 版本。
 - [x] declarative release predecessor 解析支持多个失败 preflight atom 后回到声明的祖先 verified LKG，仍要求精确 intent atom、祖先关系和部署时 Guardian LKG/image CAS 校验。
 - [x] backend commits `9d07dfb8`、`c4310f67`、`c619120a` 已推送；最终 CI `34827857272` 成功，生产 commit `c619120a822637c8c8b8c7153d84ecb690b238a5`、API generation `997`。
-- [x] 生产验证：草稿 130 route、128 app route/origin；TLS intent 已投影，issues 为 `constraint_policy_not_projected`、`dns_not_projected`、`release_weights_not_projected`；原始 observation 时间保留，route LKG/shadow ReleaseSet 未变化；2 Pod 零重启、Guardian stable、健康/就绪 200。证据：[business-intent-tls-projection-2026-09-14.json](verification/business-intent-tls-projection-2026-09-14.json)。
+- [x] 生产验证：草稿 130 route、128 app route/origin；TLS intent 已投影，issues 仅为 `dns_not_projected`、`release_weights_not_projected`；原始 observation 时间保留，route LKG/shadow ReleaseSet 未变化；2 Pod 零重启、Guardian stable、健康/就绪 200。证据：[business-intent-tls-projection-2026-09-14.json](verification/business-intent-tls-projection-2026-09-14.json)。
 - [ ] 完成 typed DNS record projection 与 weighted release fact resolver 后，才可移除对应 migration issues 并进入 ReleaseSet shadow。
