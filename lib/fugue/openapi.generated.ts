@@ -10490,7 +10490,16 @@ export interface components {
     };
     PlatformConfigRouteIntent: {
       hostname: string;
+      /** @description Canonical route path, defaults to /. Different paths on the same hostname are distinct routes. */
+      path_prefix?: string;
       upstream_url: string;
+      /**
+       * Format: int32
+       * @description Explicit service port; zero preserves the legacy projection default.
+       */
+      service_port?: number;
+      /** @description Explicit streaming preference; omitted preserves legacy streaming behavior. */
+      streaming?: boolean;
       enabled: boolean;
       edge_group_id?: string;
       kind?: string;
