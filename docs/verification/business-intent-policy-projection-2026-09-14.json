@@ -1,16 +1,15 @@
 {
-  "observed_at": "2026-09-14T08:11:22.354962+00:00",
-  "commit": "c0ba659a3ff1c8051be6a797babf4434fe67f618",
-  "api_generation": 995,
-  "image": "ghcr.io/yym68686/fugue-api@sha256:c3407eb7539b05178c0f36fa9b7f0a8b095607e225150eecc6ef3adb414def1b",
+  "observed_at": "2026-09-14T09:32:30.105891+00:00",
+  "commit": "c619120a822637c8c8b8c7153d84ecb690b238a5",
+  "api_generation": 997,
+  "image": "ghcr.io/yym68686/fugue-api@sha256:a3c4a3cbd070a80f041a9445af8bce3800635fa1637a5f39428181dfef18a868",
   "route_count": 130,
   "app_route_count": 128,
   "origin_count": 128,
-  "intent_generation": "intent_31334d8024e418f48b05559c3fa32713376732deea7774fbb293badc115923fa",
+  "intent_generation": "intent_2d355190a3b0f91aabd16ea74983cde409f591d75dcfc246af9a76f1512000b7",
   "migration_ready": false,
   "issues_by_code": {
-    "constraint_policy_not_projected": 1,
-    "dns_tls_not_projected": 1,
+    "dns_not_projected": 1,
     "release_weights_not_projected": 7
   },
   "original_observation_times_retained": true,
@@ -20,43 +19,43 @@
   "shadow_release_unchanged": true,
   "api_pods": [
     {
-      "pod": "fugue-fugue-api-cb7c468f7-6n6mn",
+      "pod": "fugue-fugue-api-677477ccb4-pdls9",
       "restarts": 0
     },
     {
-      "pod": "fugue-fugue-api-cb7c468f7-dv8sg",
+      "pod": "fugue-fugue-api-677477ccb4-w78bg",
       "restarts": 0
     }
   ],
   "guardian": {
     "apiVersion": "release.fugue.dev/v1",
     "component": "api",
-    "currentRecordDigest": "sha256:4d72ad5ee58c983acc847f7feba5ea1c5c103c5ad18ac0e6e80f2c8731499dca",
+    "currentRecordDigest": "sha256:028c5162c62963bb90c1b11fdcef11bece4a332325c1adac0f0f229b0fa70f10",
     "group": "global",
     "health": {
       "dependency": {
         "evidenceDigest": "sha256:6423d5f713c2197229df9a2f259d0d859e0852143df96334e2ffbae8c4db8b13",
-        "observedAt": "2026-09-14T08:11:17.729525105Z",
+        "observedAt": "2026-09-14T09:32:23.791453748Z",
         "state": "healthy"
       },
       "local": {
-        "evidenceDigest": "sha256:627207c94adf6010ecb4a394c5e37295ad45925ce9d2c617c2589580d919b493",
-        "observedAt": "2026-09-14T08:11:17.729525105Z",
+        "evidenceDigest": "sha256:c33a6eb1807e689360f4a9870072501e654d173afb8f29deb158d7ede0f13039",
+        "observedAt": "2026-09-14T09:32:23.791453748Z",
         "state": "healthy"
       },
       "route": {
         "evidenceDigest": "sha256:4003ef5e72051996b2da7f5dd081f162c31f9964547363a0b3b523ed510371da",
-        "observedAt": "2026-09-14T08:11:13.439008008Z",
+        "observedAt": "2026-09-14T09:32:23.234709336Z",
         "state": "healthy"
       }
     },
     "kind": "ReleaseStatus",
-    "lastSuccessfulLkg": "sha256:4d72ad5ee58c983acc847f7feba5ea1c5c103c5ad18ac0e6e80f2c8731499dca",
-    "observedAt": "2026-09-14T08:11:19.729346846Z",
+    "lastSuccessfulLkg": "sha256:028c5162c62963bb90c1b11fdcef11bece4a332325c1adac0f0f229b0fa70f10",
+    "observedAt": "2026-09-14T09:32:25.66719092Z",
     "reason": "local, dependency, and route health are verified",
     "state": "stable",
-    "statusDigest": "sha256:00053b004939b0b7b28ce8d93e7fde4ca9d3f406ad1badc458412d90555940d6",
-    "targetRecordDigest": "sha256:4d72ad5ee58c983acc847f7feba5ea1c5c103c5ad18ac0e6e80f2c8731499dca"
+    "statusDigest": "sha256:e26ea1c6e64660f15027d534f914d32483cf9cb0566da13dfc19777d8340bee2",
+    "targetRecordDigest": "sha256:028c5162c62963bb90c1b11fdcef11bece4a332325c1adac0f0f229b0fa70f10"
   },
   "health_status": 200,
   "ready_status": 200,
