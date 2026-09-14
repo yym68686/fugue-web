@@ -10551,7 +10551,7 @@ export interface components {
     PlatformConfigDNSIntent: {
       flatten?: components["schemas"]["PlatformDNSFlattenIntent"];
       hostname: string;
-      /** @description Only wire DNS types can be compiled. Symbolic FUGUE_APP, ALIAS and ANAME records require a resolver and are rejected. */
+      /** @description Wire DNS types or ALIAS/ANAME with typed flatten configuration and matching fixed observations. FUGUE_APP still requires placement resolution. */
       type: string;
       values: string[];
       /** Format: int32 */
@@ -10565,14 +10565,20 @@ export interface components {
       edge_group_id?: string;
       fallback_edge_group_id?: string;
     };
-    /** @description Desired flatten configuration. Compilation requires a flatten resolver; unresolved configuration is rejected. */
+    /** @description Desired flatten configuration, resolved only from matching fixed runtime observations. Apex mode requires zone to equal the record hostname. Empty-noerror remains unsupported until consumers can preserve empty authoritative names. */
     PlatformDNSFlattenIntent: {
-      mode: string;
+      /** @enum {string} */
+      mode: "always" | "apex";
       target: string;
-      ipv4_policy: string;
-      ipv6_policy: string;
-      ttl_policy: string;
-      fallback_policy: string;
+      zone?: string;
+      /** @enum {string} */
+      ipv4_policy: "auto" | "ipv4_only" | "ipv6_only" | "dual_stack_required";
+      /** @enum {string} */
+      ipv6_policy: "auto" | "ipv4_only" | "ipv6_only" | "dual_stack_required";
+      /** @enum {string} */
+      ttl_policy: "record" | "target" | "min" | "bounded";
+      /** @enum {string} */
+      fallback_policy: "fail_closed" | "stale_if_error" | "empty_noerror";
     };
     PlatformConfigTLSIntent: {
       hostname: string;
@@ -10727,6 +10733,7 @@ export interface components {
       captured_at?: string;
       origins?: components["schemas"]["PlatformOriginObservation"][];
       releases?: components["schemas"]["PlatformReleaseObservation"][];
+      dns_flatten?: components["schemas"]["PlatformDNSFlattenObservation"][];
       intent_generation: string;
       policy_generation: string;
       facts?: {
@@ -10752,6 +10759,20 @@ export interface components {
       runtime_type?: string;
       runtime_edge_group_id?: string;
       runtime_cluster_node?: string;
+    };
+    /** @description Fixed DNS resolution facts. input_digest binds the complete normalized DNSIntent. checked_at is the last query time and observed_at is the last successful result time, never renewed after a failed query. target_ttl is the original answer TTL, or zero when unavailable; non-record TTL policies require it. */
+    PlatformDNSFlattenObservation: {
+      input_digest: string;
+      tenant_id: string;
+      /** Format: date-time */
+      checked_at: string;
+      /** Format: date-time */
+      observed_at: string;
+      /** @enum {string} */
+      status: "resolved" | "stale" | "error";
+      a?: string[];
+      aaaa?: string[];
+      target_ttl: number;
     };
     PlatformReleaseObservation: {
       id: string;
