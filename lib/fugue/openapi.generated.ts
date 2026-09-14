@@ -4165,7 +4165,7 @@ export interface components {
     CachePolicy: {
       id: string;
       /** @enum {string} */
-      kind: "static-assets" | "disabled";
+      kind: "static-assets" | "html-documents" | "disabled";
       hostname_scope?: string;
       path_patterns?: string[];
       method_allowlist?: string[];
@@ -10500,6 +10500,10 @@ export interface components {
       service_port?: number;
       /** @description Explicit streaming preference; omitted preserves legacy streaming behavior. */
       streaming?: boolean;
+      cache_policy_id?: string;
+      cache_namespace?: string;
+      deployment_generation?: string;
+      request_body_policies?: components["schemas"]["EdgeRequestBodyPolicy"][];
       /** @description Ordered desired weighted targets. Weights are percentages and must total 100. The existing upstream_url remains the explicit fallback. Observed health/status is not accepted as intent. */
       upstreams?: components["schemas"]["PlatformConfigUpstreamIntent"][];
       enabled: boolean;
@@ -10557,6 +10561,7 @@ export interface components {
       routes?: components["schemas"]["PlatformConfigRouteIntent"][];
       dns?: components["schemas"]["PlatformConfigDNSIntent"][];
       tls?: components["schemas"]["PlatformConfigTLSIntent"][];
+      cache_policies?: components["schemas"]["CachePolicy"][];
     };
     PlatformConfigPolicySnapshot: {
       schema_version?: string;
