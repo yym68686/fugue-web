@@ -2024,3 +2024,27 @@ API image: sha256:6bbb73a5e995acb43e0801fa9afe9f95e6318dcd1b5005f52eee6444a216d2
 web contract commit: d2ce907b
 web contract-drift: 34790143695, success
 ```
+
+
+### P0-AN：DNS consumer shadow 接入
+
+- [x] DNS Pod 使用受控 `fugue.pro/consumer-identity` 注解和短期 projected ServiceAccount token。
+- [x] DNS consumer 通过 Pod 身份交换获取 component identity，按 assignment 下载 DNS artifact。
+- [x] consumer 在本地 shadow LKG 文件中持久化 artifact、assignment、digest、sequence 和 verified-at。
+- [x] 严格验证签名、content hash、ReleaseSet、expected consumer set、generation、fencing 和 DNS payload schema。
+- [x] shadow candidate 验证成功后上报 trusted heartbeat；普通 DNS heartbeat 没有被当作 ACK。
+- [x] 两个生产 DNS Pod 均持续 `shadow_verified`，记录数 13，当前 serving generation 保持不变，容器无重启。
+- [x] 后端 CI `34792924445` 的两个 edge-client build 和两个 deploy 均成功；API `/healthz`、`/readyz` 正常。
+- [ ] DNS apply、probe 和 full convergence 尚未执行；当前 ReleaseSet 仍为 shadow，不能据此推进 full serving。
+
+生产证据见 [dns-platform-shadow-2026-09-14.json](verification/dns-platform-shadow-2026-09-14.json)。
+
+```text
+backend commit: d8d3ddcd17c26ccc3e12f66099ffa24ff9fcd2ea
+workflow: ci / 34792924445 / success
+release_set: artifact_1789290147_22038f948fad (shadow)
+dns artifact: artifact_1789290147_a04df449b074
+artifact digest: sha256:219aa35e3085818a3ff8e5bb996205b433b320bf60f0993c0967bcfe6ad5ce7c
+trusted DNS observations: 2/9 observed, 0 passing (shadow_validated)
+serving: unchanged on both DNS pods
+```
