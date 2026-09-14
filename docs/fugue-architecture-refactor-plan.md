@@ -2382,11 +2382,21 @@ anonymous/missing-id/unknown-id/generation-alias/wrong-kind: 401/400/404/409/409
 
 - [x] 将配置范围内的显式平台 route 入口投影为 `FUGUE_ROUTE` DNS intent；API 与 mesh 入口保留 route owner、TTL、状态和 route hostname 引用，不复制 runtime 地址或健康状态。
 - [x] 同名静态 A/AAAA/CNAME 只有在内容完全匹配静态来源时才被替换，并写入 `static_address_replaced_by_platform_entry` 审计排除；MX/TXT/NS 等其他 RRset 保留。同名租户记录不会被误删，而是保留并阻止发布。
-- [x] 缺少 route、重复入口、业务 owner 冲突和跨 authoritative zone 均 fail-closed；投影完成后重新计算 intent generation 和 policy generation，placement facts 重新绑定完整 route/policy digest。
+- [x] 缺少 route、重复入口和业务 owner 冲突被拒绝；配置 authoritative base domain 之外的入口不投影。投影完成后重新计算 intent generation，placement facts 绑定完整 route/policy digest。
 - [x] 定向 API、DNS route、placement 和全量 `GOFLAGS=-p=2 GOMAXPROCS=4 make test` 通过；精确 release plan 仅选择 API lane。一次 amend 造成错误 ancestry 被 release planner 拒绝后，已重建 successor，未绕过前驱检查。
 - [x] backend `9560b9099e2d38cbac6601c33898ae4daa16177d` 以生产 `ef47c27e` 为真实前驱推送，CI `34895066459` 成功，API 2/2 Ready、health/ready 200；旧 Edge/DNS serving、shadow ReleaseSet、route lineage 和 policy LKG 保持不变。
-- [x] 生产 migration draft 返回 `api.fugue.pro`、`mesh.fugue.pro` 两个 `FUGUE_ROUTE` intent；静态 api A 覆盖保留审计记录；三个 placement observation 各含 3 个已证明候选，`dns_placement_evidence_requires_repair` 已消除。API route 的既有最小健康门槛 2 已冻结到迁移 policy，修复后摘要与加载 bundle 一致。
+- [x] 生产 migration draft 返回 `api.fugue.pro`、`mesh.fugue.pro` 两个 `FUGUE_ROUTE` intent；静态 api A 覆盖保留审计记录；三份 placement observation 的候选数随采集时的证据变化，已观察到各 3 个，落盘证据为各 2 个，均满足当次门槛。API route 的既有最小健康门槛 2 已冻结到迁移 policy，修复后摘要与加载 bundle 一致；当次没有 placement repair issue。
 - [ ] 真实平台 DNS answer 与旧 Edge/DNS 全量输出仍未完成；平台 route placement issue 保持阻塞，不能解除 DNS consumer gray/full 或声明公网平台入口已迁移。证据：[platform-entry-dns-projection-2026-09-15.json](verification/platform-entry-dns-projection-2026-09-15.json)。
+
+### P0-BP：默认应用域名 DNS 投影与并发采集
+
+- [x] app base domain 内的应用根 route 投影为同 owner 的 `FUGUE_ROUTE`；同名现有 DNS 配置保持原来源，子路径不重复生成 RRset，但全部参与 proof；缺失/冲突 owner 不会被伪造成平台路由。TTL 读取现有 DNS 配置并沿用其规范化规则。
+- [x] collector 使用最多 8 个 hostname worker、共享 4096 次探测预算和 30 秒总时限；worker 读取固定输入，主线程按 intent 顺序合并事实，全部 worker 结束后按最终 captured_at 重验，不续期 heartbeat、证书或 bundle lease。
+- [x] 200 hostname/800 次成功探测回归验证并发上限、完整事实及取消后 join；相关 race 与低并发完整 `make test` 通过。route proof canonicalization 保持 v1，冗余 policy、deployment generation 和 cache namespace 继续参与摘要；未发布的放宽摘要尝试已撤回。
+- [x] backend `91419a0a778b6af9e8ec9025b32b79f608ebd22b` 首次投影触发采集预算问题，后续 `2967affb194d7a52eea3a822e4adcfb7b7e65ad9` 修复；CI `34901096311` 成功且只发布 API。Web 契约同步 commit `7145bc1b`，本地 contract:check 通过。
+- [x] 生产最终证据为 133 routes、136 DNS intents、122 个 route DNS 引用、110 份 placement observation / 189 个候选，capture_limit 为 0；API 镜像匹配 `2967affb`、2/2 Ready、零重启、Guardian stable、health/ready 200，配置基线未变化。
+- [x] 13 个 `dns_placement_route_inputs_invalid` 明确保留：包括尚未支持的 edge-group policy、陈旧 release facts 和 sticky release 策略；不能把这些都称为 origin 故障。其他时刻采集仍可能因真实 generation/freshness 变化出现 repair issue，单次通过不代表全平台无故障。证据：[default-dns-concurrent-placement-2026-09-15.json](verification/default-dns-concurrent-placement-2026-09-15.json)。
+- [ ] 补齐自定义域名/共享 target 投影、上述 policy/release 缺口和全量 DNS 等价校验；当前 migration_ready=false，旧 artifact 继续 serving，DNS gray/full 保护未解除。
 
 证据：[dns-placement-compiler-2026-09-15.json](verification/dns-placement-compiler-2026-09-15.json)。
 

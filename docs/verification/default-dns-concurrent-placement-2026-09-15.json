@@ -1,0 +1,130 @@
+{
+  "observed_at": "2026-09-14T22:27:32.149143+00:00",
+  "backend_commit": "2967affb194d7a52eea3a822e4adcfb7b7e65ad9",
+  "ci_run": 34901096311,
+  "route_count": 133,
+  "dns_intent_count": 136,
+  "fugue_route_intent_count": 122,
+  "placement_observation_count": 110,
+  "placement_candidate_count": 189,
+  "capture_limit_issues": 0,
+  "issues": [
+    {
+      "code": "dns_route_placement_not_projected"
+    },
+    {
+      "code": "release_target_equivalence_not_verified"
+    },
+    {
+      "code": "release_observations_require_repair"
+    },
+    {
+      "code": "dns_placement_route_inputs_invalid",
+      "hostname": "argus.fugue.pro"
+    },
+    {
+      "code": "dns_placement_route_inputs_invalid",
+      "hostname": "canvas.fugue.pro"
+    },
+    {
+      "code": "dns_placement_route_inputs_invalid",
+      "hostname": "cerebr.fugue.pro"
+    },
+    {
+      "code": "dns_placement_route_inputs_invalid",
+      "hostname": "drain-canary-0705.fugue.pro"
+    },
+    {
+      "code": "dns_placement_route_inputs_invalid",
+      "hostname": "edge-protocol-canary.fugue.pro"
+    },
+    {
+      "code": "dns_placement_route_inputs_invalid",
+      "hostname": "env-maple.fugue.pro"
+    },
+    {
+      "code": "dns_placement_route_inputs_invalid",
+      "hostname": "gigo-sidecar.fugue.pro"
+    },
+    {
+      "code": "dns_placement_route_inputs_invalid",
+      "hostname": "listening.fugue.pro"
+    },
+    {
+      "code": "dns_placement_route_inputs_invalid",
+      "hostname": "mecgod.fugue.pro"
+    },
+    {
+      "code": "dns_placement_route_inputs_invalid",
+      "hostname": "music.fugue.pro"
+    },
+    {
+      "code": "dns_placement_route_inputs_invalid",
+      "hostname": "oaix.fugue.pro"
+    },
+    {
+      "code": "dns_placement_route_inputs_invalid",
+      "hostname": "review00.fugue.pro"
+    },
+    {
+      "code": "dns_placement_route_inputs_invalid",
+      "hostname": "uni-api-ember.fugue.pro"
+    }
+  ],
+  "migration_ready": false,
+  "configuration_state_unchanged": true,
+  "health_status": 200,
+  "ready_status": 200,
+  "shadow_release_set": "unchanged",
+  "route_lineage": "unchanged",
+  "policy_lkg": "unchanged 404 / not activated",
+  "scope": "Default application route DNS projection and bounded concurrent placement observation. No artifact promotion or DNS consumer gray/full release.",
+  "api_image": "ghcr.io/yym68686/fugue-api@sha256:c2d244b94c2824da5b70e450e924296c7da15a09e9e159affd6c84a8246327aa",
+  "api_pods": [
+    {
+      "name": "fugue-fugue-api-849c8c4d64-cs74g",
+      "ready": true,
+      "restarts": 0
+    },
+    {
+      "name": "fugue-fugue-api-849c8c4d64-ngbjz",
+      "ready": true,
+      "restarts": 0
+    }
+  ],
+  "guardian": {
+    "apiVersion": "release.fugue.dev/v1",
+    "component": "api",
+    "currentRecordDigest": "sha256:541eca996b9f0be67865c22a5c17b73086d0491568b153d77cc68506a6439901",
+    "group": "global",
+    "health": {
+      "dependency": {
+        "evidenceDigest": "sha256:6423d5f713c2197229df9a2f259d0d859e0852143df96334e2ffbae8c4db8b13",
+        "observedAt": "2026-09-14T22:28:45.297547604Z",
+        "state": "healthy"
+      },
+      "local": {
+        "evidenceDigest": "sha256:13d8254ba2b9b8f287ac8c22f4845bb66d7a89c207a27b0793d534b42d496a42",
+        "observedAt": "2026-09-14T22:28:45.297547604Z",
+        "state": "healthy"
+      },
+      "route": {
+        "evidenceDigest": "sha256:4003ef5e72051996b2da7f5dd081f162c31f9964547363a0b3b523ed510371da",
+        "observedAt": "2026-09-14T22:28:37.512648051Z",
+        "state": "healthy"
+      }
+    },
+    "kind": "ReleaseStatus",
+    "lastSuccessfulLkg": "sha256:541eca996b9f0be67865c22a5c17b73086d0491568b153d77cc68506a6439901",
+    "observedAt": "2026-09-14T22:28:47.411212468Z",
+    "reason": "local, dependency, and route health are verified",
+    "state": "stable",
+    "statusDigest": "sha256:7a8d7c6917675b806f6480f0d12fc40682e3fce0d019e6f6198889577fb07c54",
+    "targetRecordDigest": "sha256:541eca996b9f0be67865c22a5c17b73086d0491568b153d77cc68506a6439901"
+  },
+  "local_validation": [
+    "GOFLAGS=-p=2 GOMAXPROCS=4 make test passed",
+    "200-host/800-probe test with eight workers and cancellation join race tests passed",
+    "exact API-only release plan passed"
+  ]
+}
