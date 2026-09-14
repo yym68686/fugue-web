@@ -32,7 +32,7 @@ Runtime Facts / ACK / LKG
 
 ## 当前状态判断
 
-2026-09-14 生产核查：API 已运行 commit `7f214a78`（generation 1005，compiler v11）；美洲和德国 DNS/edge consumers 均已运行该 commit；Guardian 已运行 `42ba6b41`。业务迁移草稿包含 130 条 route、15 条 DNS 输入和 8 份 release observations；13 条静态 DNS 与来源逐条一致，已删除 zone 的 1 条记录明确排除。加权 compiler 与 DNS wire 校验通过本地、CI 和生产验证。仍未完成动态 DNS placement、ACME/flatten、TLS readiness、真实 release facts 修复、全量等价以及 consumer gray/full 接管。现有 shadow ReleaseSet 与 serving/LKG 未切换；这些结果不能作为全局迁移完成证明。
+2026-09-14 生产核查：API 已运行 commit `7f214a78`（generation 1005，compiler v11）；美洲和德国 DNS/SSH-front 均已运行该 commit；Guardian 已运行 `42ba6b41`。业务迁移草稿包含 130 条 route、15 条 DNS 输入和 8 份 release observations；13 条静态 DNS 与来源逐条一致，已删除 zone 的 1 条记录明确排除。加权 compiler 与 DNS wire 校验通过本地、CI 和生产验证。仍未完成动态 DNS placement、ACME/flatten、TLS readiness、真实 release facts 修复、全量等价以及 consumer gray/full 接管。现有 shadow ReleaseSet 未提升为 serving；其 route lineage 和 policy LKG 查询结果保持不变；这些结果不能作为全局迁移完成证明。
 
 Fugue 已经具备相当一部分基础设施：`PlatformArtifact` 已有 generation、content hash、签名、验证状态、release channel、fencing token 和 LKG；Edge 与 DNS 也有签名校验、本地缓存和过期控制。
 
@@ -2275,7 +2275,7 @@ anonymous/missing-id/unknown-id/generation-alias/wrong-kind: 401/400/404/409/409
 - [x] compiler v11 将多个 challenge 合并为同一 TXT RRset，为每个 value 保留独立 expiration；永久 TXT 不会被 challenge 生命周期覆盖，过期 value 在编译时删除，空 RRset 不输出。
 - [x] challenge identity、zone 边界、TTL、空值、重复 ID、缺失 captured_at 和到期时间均 fail-closed；runtime facts 改变只改变 input snapshot/artifact digest，不改 intent/policy digest。
 - [x] DNS artifact 与包含它的 ReleaseSet 在 DNS consumer 尚未支持逐值 expiration 前，gray/full 发布和 rollback 均返回 409；shadow 编译可用于验证，soft override 不能绕过该兼容性门。
-- [x] backend commit `966c2fc8ab7465017823156207d150bac94572cf`、CI `34849354452` 成功；web `ccb9cf65`、contract-drift `34845570785` 成功。
+- [x] backend commit `966c2fc8ab7465017823156207d150bac94572cf`、CI `34849354452` 成功；web `ccb9cf65`、contract-drift `34849540285` 成功。
 - [x] 生产 API generation 1004、2/2 Ready、Guardian stable、健康/就绪 200；3 次 replay digest 一致，两个值独立到期，首值到期后只剩第二值；5 类非法输入返回 400，6 类 traffic promotion/rollback 入口返回 409，shadow/route/policy LKG 未变化。
 - [ ] DNS consumer 支持逐值 expiration、空权威 RRset 和 ACME serving 后，才可解除 gray/full 门并完成真实业务 challenge 的端到端验证；当前生产草稿 challenge 数为 0。
 
@@ -2288,7 +2288,7 @@ anonymous/missing-id/unknown-id/generation-alias/wrong-kind: 401/400/404/409/409
 - [x] DNS consumer 校验 PlatformIntent/PolicySnapshot lineage、artifact metadata、ReleaseSet 绑定和 DNS wire 编码；不支持到期语义的 consumer 仍被 gray/full promotion 与 rollback 保护门拒绝。
 - [x] 到期事实写入 autonomy WAL，只记录 record identity、数量和 evidence digest，不记录 challenge token；重复事实有时间窗口去重。
 - [x] `make test` 与 DNS 到期/LKG/WAL/篡改签名回归通过；backend `7f214a78d6e827f247ad098c41c942820aa720df`、CI `34853240238` 成功；web `fd581ee77ad6caa04541d2e4c63c09674d239191`、contract-drift `34853332420` 成功。
-- [x] 生产 API、US/DE DNS 与 SSH-front workloads 均运行 `7f214a78`，Ready 且无重启；两个 DNS consumer 对现有 shadow artifact 均报告 `shadow_verified`、可信 heartbeat `staged/shadow_validated`，原 serving generation 未切换，API/Guardian 健康。
+- [x] 生产 API、US/DE DNS 与 SSH-front workloads 均运行 `7f214a78`，Ready 且无重启；两个 DNS consumer 对现有 shadow artifact 均报告 `shadow_verified`、可信 heartbeat `staged/shadow_validated`，未将候选提升为 serving；legacy DNS envelope generation 随正常刷新变化，API/Guardian 健康。
 - [ ] 生产尚无真实 ACME challenge（当前草稿 challenge 数为 0），因此真实公网 challenge 的逐值过期 serving E2E 与解除 promotion 保护门继续留待业务输入存在后验证。
 
 证据：[dns-consumer-expiring-values-2026-09-14.json](verification/dns-consumer-expiring-values-2026-09-14.json)。
