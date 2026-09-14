@@ -1717,6 +1717,68 @@ export interface paths {
     /** Create App Backup Run */
     post: operations["createAppBackupRun"];
   };
+  "/v1/admin/object-storage": {
+    /**
+     * getObjectStorageConfig
+     * @description Platform administrators only. Returns configuration status without credentials.
+     */
+    get: operations["getObjectStorageConfig"];
+    /**
+     * configureObjectStorage
+     * @description Platform administrators only. Verifies Cloudflare account permissions then encrypts the management token. Existing account identity cannot change while resources exist.
+     */
+    put: operations["configureObjectStorage"];
+  };
+  "/v1/object-stores": {
+    /**
+     * listObjectStores
+     * @description List stores belonging to the caller tenant and permitted project. Requires storage.read, storage.admin, or the existing tenant data.admin scope.
+     */
+    get: operations["listObjectStores"];
+    /**
+     * createObjectStore
+     * @description Explicitly provision a private independent R2 bucket. Requires storage.admin or the existing tenant data.admin scope. Name is unique within the project; retries resume provisioning. No backup objects are used.
+     */
+    post: operations["createObjectStore"];
+  };
+  "/v1/object-stores/{store_id}": {
+    /**
+     * getObjectStore
+     * @description getObjectStore
+     */
+    get: operations["getObjectStore"];
+    /**
+     * updateObjectStore
+     * @description Requires storage.admin or the existing tenant data.admin scope. Disabling revokes all issued credentials before marking disabled and retains every object. Enabling does not restore revoked credentials. Quota is a measured soft budget.
+     */
+    patch: operations["updateObjectStore"];
+  };
+  "/v1/object-stores/{store_id}/credentials": {
+    /**
+     * listObjectStoreCredentials
+     * @description listObjectStoreCredentials
+     */
+    get: operations["listObjectStoreCredentials"];
+    /**
+     * createObjectStoreCredential
+     * @description Requires storage.admin or the existing tenant data.admin scope. Create a bucket-scoped read-only or read-write credential for an explicit application in the same tenant. Returned secret must not be logged. Different projects require explicit tenant-level authorization.
+     */
+    post: operations["createObjectStoreCredential"];
+  };
+  "/v1/object-stores/{store_id}/credentials/{credential_id}": {
+    /**
+     * revokeObjectStoreCredential
+     * @description Requires storage.admin or the existing tenant data.admin scope. Revokes the upstream credential before reporting revoked; failure remains retryable.
+     */
+    delete: operations["revokeObjectStoreCredential"];
+  };
+  "/v1/object-stores/{store_id}/usage": {
+    /**
+     * measureObjectStoreUsage
+     * @description Requires storage.read, storage.admin, or the existing tenant data.admin scope. Measures current bucket object bytes and object count, with timestamp. Does not claim real-time hard quotas or exact billable request counts.
+     */
+    post: operations["measureObjectStoreUsage"];
+  };
   "/v1/data/backends": {
     /** List Data Backends */
     get: operations["listDataBackends"];
@@ -2506,6 +2568,94 @@ export interface components {
     DataMultipartPartsResponse: {
       transfer: components["schemas"]["DataTransferSummary"];
       parts: components["schemas"]["DataTransferPart"][];
+    };
+    ObjectStorageConfigRequest: {
+      account_id: string;
+      api_token: string;
+    };
+    ObjectStorageConfigStatus: {
+      configured: boolean;
+      account_id?: string;
+      /** Format: date-time */
+      updated_at?: string;
+    };
+    ObjectStoreCreateRequest: {
+      tenant_id?: string;
+      project_id: string;
+      name: string;
+      /** Format: int64 */
+      quota_bytes?: number;
+    };
+    ObjectStoreUpdateRequest: {
+      enabled?: boolean;
+      /** Format: int64 */
+      quota_bytes?: number;
+    };
+    ObjectStore: {
+      id: string;
+      tenant_id: string;
+      project_id: string;
+      name: string;
+      /** @enum {string} */
+      provider: "cloudflare-r2";
+      bucket: string;
+      endpoint: string;
+      region: string;
+      /** @enum {string} */
+      status: "provisioning" | "active" | "disabling" | "disabled";
+      /** Format: int64 */
+      quota_bytes: number;
+      /** Format: int64 */
+      used_bytes?: number;
+      /** Format: int64 */
+      object_count?: number;
+      /** Format: date-time */
+      usage_measured_at?: string;
+      /** @enum {string} */
+      quota_mode?: "soft";
+      /** Format: date-time */
+      created_at: string;
+      /** Format: date-time */
+      updated_at: string;
+    };
+    ObjectStoreEnvelope: {
+      store: components["schemas"]["ObjectStore"];
+    };
+    ObjectStoreList: {
+      stores: components["schemas"]["ObjectStore"][];
+    };
+    ObjectStorageCredentialRequest: {
+      app_id: string;
+      name: string;
+      /** @enum {string} */
+      permission: "read-only" | "read-write";
+    };
+    ObjectStorageCredential: {
+      id: string;
+      store_id: string;
+      app_id: string;
+      name: string;
+      /** @enum {string} */
+      permission: "read-only" | "read-write";
+      /** @enum {string} */
+      status: "provisioning" | "active" | "revoking" | "revoked";
+      access_key_id?: string;
+      /** Format: date-time */
+      created_at: string;
+    };
+    ObjectStorageCredentialEnvelope: {
+      credential: components["schemas"]["ObjectStorageCredential"];
+    };
+    ObjectStorageCredentialList: {
+      credentials: components["schemas"]["ObjectStorageCredential"][];
+    };
+    ObjectStorageConnection: {
+      credential: components["schemas"]["ObjectStorageCredential"];
+      endpoint: string;
+      region: string;
+      bucket: string;
+      access_key_id: string;
+      secret_access_key: string;
     };
     DataBackendCredentials: {
       access_key_id?: string;
@@ -19992,6 +20142,213 @@ export interface operations {
       409: {
         content: {
           "application/json": components["schemas"]["ErrorResponse"];
+        };
+      };
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
+  /**
+   * getObjectStorageConfig
+   * @description Platform administrators only. Returns configuration status without credentials.
+   */
+  getObjectStorageConfig: {
+    responses: {
+      /** @description Successful response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["ObjectStorageConfigStatus"];
+        };
+      };
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
+  /**
+   * configureObjectStorage
+   * @description Platform administrators only. Verifies Cloudflare account permissions then encrypts the management token. Existing account identity cannot change while resources exist.
+   */
+  configureObjectStorage: {
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ObjectStorageConfigRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["ObjectStorageConfigStatus"];
+        };
+      };
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
+  /**
+   * listObjectStores
+   * @description List stores belonging to the caller tenant and permitted project. Requires storage.read, storage.admin, or the existing tenant data.admin scope.
+   */
+  listObjectStores: {
+    parameters: {
+      query?: {
+        tenant_id?: string;
+        project_id?: string;
+      };
+    };
+    responses: {
+      /** @description Successful response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["ObjectStoreList"];
+        };
+      };
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
+  /**
+   * createObjectStore
+   * @description Explicitly provision a private independent R2 bucket. Requires storage.admin or the existing tenant data.admin scope. Name is unique within the project; retries resume provisioning. No backup objects are used.
+   */
+  createObjectStore: {
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ObjectStoreCreateRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["ObjectStoreEnvelope"];
+        };
+      };
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
+  /**
+   * getObjectStore
+   * @description getObjectStore
+   */
+  getObjectStore: {
+    parameters: {
+      path: {
+        store_id: string;
+      };
+    };
+    responses: {
+      /** @description Successful response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["ObjectStoreEnvelope"];
+        };
+      };
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
+  /**
+   * updateObjectStore
+   * @description Requires storage.admin or the existing tenant data.admin scope. Disabling revokes all issued credentials before marking disabled and retains every object. Enabling does not restore revoked credentials. Quota is a measured soft budget.
+   */
+  updateObjectStore: {
+    parameters: {
+      path: {
+        store_id: string;
+      };
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ObjectStoreUpdateRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["ObjectStoreEnvelope"];
+        };
+      };
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
+  /**
+   * listObjectStoreCredentials
+   * @description listObjectStoreCredentials
+   */
+  listObjectStoreCredentials: {
+    parameters: {
+      path: {
+        store_id: string;
+      };
+    };
+    responses: {
+      /** @description Successful response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["ObjectStorageCredentialList"];
+        };
+      };
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
+  /**
+   * createObjectStoreCredential
+   * @description Requires storage.admin or the existing tenant data.admin scope. Create a bucket-scoped read-only or read-write credential for an explicit application in the same tenant. Returned secret must not be logged. Different projects require explicit tenant-level authorization.
+   */
+  createObjectStoreCredential: {
+    parameters: {
+      path: {
+        store_id: string;
+      };
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ObjectStorageCredentialRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["ObjectStorageConnection"];
+        };
+      };
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
+  /**
+   * revokeObjectStoreCredential
+   * @description Requires storage.admin or the existing tenant data.admin scope. Revokes the upstream credential before reporting revoked; failure remains retryable.
+   */
+  revokeObjectStoreCredential: {
+    parameters: {
+      path: {
+        store_id: string;
+        credential_id: string;
+      };
+    };
+    responses: {
+      /** @description Successful response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["ObjectStorageCredentialEnvelope"];
+        };
+      };
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
+  /**
+   * measureObjectStoreUsage
+   * @description Requires storage.read, storage.admin, or the existing tenant data.admin scope. Measures current bucket object bytes and object count, with timestamp. Does not claim real-time hard quotas or exact billable request counts.
+   */
+  measureObjectStoreUsage: {
+    parameters: {
+      path: {
+        store_id: string;
+      };
+    };
+    responses: {
+      /** @description Successful response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["ObjectStoreEnvelope"];
         };
       };
       default: components["responses"]["ErrorResponse"];

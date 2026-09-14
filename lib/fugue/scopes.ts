@@ -24,6 +24,8 @@ export const WORKSPACE_ADMIN_SCOPES = [
   "data.delete",
   "data.grant",
   "data.admin",
+  "storage.read",
+  "storage.admin",
 ] as const;
 
 /** Deduplicate and sort scopes so equality checks are order-independent. */
