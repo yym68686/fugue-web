@@ -365,6 +365,13 @@ export interface paths {
      */
     get: operations["comparePlatformRouteMigration"];
   };
+  "/v1/admin/platform-config/routes/project": {
+    /**
+     * Project Business Routes into PlatformIntent
+     * @description Read-only migration projection of current business routes into a canonical PlatformIntent and fixed runtime origin observations. Writes no serving state.
+     */
+    get: operations["projectPlatformIntent"];
+  };
   "/v1/admin/platform-config/import-env/preview": {
     /** Preview Legacy Environment Import */
     get: operations["previewPlatformConfigEnvironmentImport"];
@@ -10636,6 +10643,15 @@ export interface components {
         })[];
       snapshot_differences: ("tls_allowlist" | "cache_policies")[];
     };
+    PlatformIntentProjectionResponse: {
+      intent: components["schemas"]["PlatformConfigIntent"];
+      runtime_snapshot: components["schemas"]["PlatformRuntimeSnapshot"];
+      source_generation: string;
+      /** Format: date-time */
+      captured_at: string;
+      route_count: number;
+      omitted_runtime_fields: string[];
+    };
     PlatformRuntimeSnapshot: {
       /**
        * Format: date-time
@@ -12895,6 +12911,21 @@ export interface operations {
       503: {
         content: {
           "application/json": components["schemas"]["ErrorResponse"];
+        };
+      };
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
+  /**
+   * Project Business Routes into PlatformIntent
+   * @description Read-only migration projection of current business routes into a canonical PlatformIntent and fixed runtime origin observations. Writes no serving state.
+   */
+  projectPlatformIntent: {
+    responses: {
+      /** @description Projected PlatformIntent and RuntimeSnapshot. */
+      200: {
+        content: {
+          "application/json": components["schemas"]["PlatformIntentProjectionResponse"];
         };
       };
       default: components["responses"]["ErrorResponse"];
