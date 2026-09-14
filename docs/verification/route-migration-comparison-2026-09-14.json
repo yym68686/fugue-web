@@ -1,0 +1,97 @@
+{
+  "observed_at": "2026-09-14T02:23:26.232075+00:00",
+  "commit": "001953eaed064794a47f78dd7f0b4d8b9f63bad1",
+  "api_generation": 985,
+  "api_image": "ghcr.io/yym68686/fugue-api@sha256:3dd8839a4672b37a99c80ae3667d78af3111c41ad686334f6fb1e638d77e53a0",
+  "release_set_id": "artifact_1789290147_22038f948fad",
+  "release_channel": "shadow",
+  "artifact_id": "artifact_1789290147_3ae6084f214d",
+  "artifact_digest": "sha256:aa3453c3d79efef9c915163030f1d20df4186a69c3fe0cb24a567ef166ab69f9",
+  "source_generation": "routeintents_4ada67c80b2072d129cce55feddfce11333a4e946681dfdd2d53329f73e619af",
+  "captured_at": "2026-09-14T02:23:23.44156737Z",
+  "source_route_count": 130,
+  "artifact_route_count": 2,
+  "matching_route_count": 1,
+  "equivalent": false,
+  "differences_by_kind": {
+    "missing_from_artifact": 128,
+    "changed": 1
+  },
+  "changed_field_counts": {
+    "min_healthy_edge_nodes": 1
+  },
+  "snapshot_differences": [
+    "tls_allowlist",
+    "cache_policies"
+  ],
+  "http_statuses": {
+    "anonymous": 401,
+    "missing_id": 400,
+    "unknown_id": 404,
+    "generation_alias": 409,
+    "wrong_kind": 409
+  },
+  "artifact_lineage_lkg_unchanged": true,
+  "shadow_release_unchanged": true,
+  "api_pods": [
+    {
+      "pod": "fugue-fugue-api-6b4bb46444-84bzp",
+      "ready": true,
+      "restarts": 0
+    },
+    {
+      "pod": "fugue-fugue-api-6b4bb46444-z2lhk",
+      "ready": true,
+      "restarts": 0
+    }
+  ],
+  "guardian": {
+    "apiVersion": "release.fugue.dev/v1",
+    "component": "api",
+    "currentRecordDigest": "sha256:c0d257c060fd3e0ab04330f157ec608c151ffa0cf13194ed2e0061ea01f077a3",
+    "group": "global",
+    "health": {
+      "dependency": {
+        "evidenceDigest": "sha256:6423d5f713c2197229df9a2f259d0d859e0852143df96334e2ffbae8c4db8b13",
+        "observedAt": "2026-09-14T02:23:21.973660879Z",
+        "state": "healthy"
+      },
+      "local": {
+        "evidenceDigest": "sha256:b0a374d8820b609c98e0ecc21a063ca102dd5708d69a840b2334a6b36b70bd6f",
+        "observedAt": "2026-09-14T02:23:21.973660879Z",
+        "state": "healthy"
+      },
+      "route": {
+        "evidenceDigest": "sha256:4003ef5e72051996b2da7f5dd081f162c31f9964547363a0b3b523ed510371da",
+        "observedAt": "2026-09-14T02:23:23.189674968Z",
+        "state": "healthy"
+      }
+    },
+    "kind": "ReleaseStatus",
+    "lastSuccessfulLkg": "sha256:c0d257c060fd3e0ab04330f157ec608c151ffa0cf13194ed2e0061ea01f077a3",
+    "observedAt": "2026-09-14T02:23:24.078951259Z",
+    "reason": "local, dependency, and route health are verified",
+    "state": "stable",
+    "statusDigest": "sha256:1aad2f45a64d637ecd61fa834991deb24245933c6f697757f62a9c0a4d282740",
+    "targetRecordDigest": "sha256:c0d257c060fd3e0ab04330f157ec608c151ffa0cf13194ed2e0061ea01f077a3"
+  },
+  "health": {
+    "status": "ok"
+  },
+  "ready": {
+    "checks": {
+      "kubernetes_api": {
+        "status": "ok"
+      },
+      "observability": {
+        "status": "ok",
+        "message": "configured backends: analytics,logs,metrics; retention: 24h0m0s; exporters: analytics,logs"
+      },
+      "store": {
+        "status": "ok"
+      }
+    },
+    "status": "ok"
+  },
+  "scope": "read-only business-to-artifact semantic comparison; not serving or promotion verification"
+}

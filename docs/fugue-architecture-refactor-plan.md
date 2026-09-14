@@ -2066,3 +2066,29 @@ serving: legacy publication continues; neither DNS pod applies the shadow candid
 发布中曾误填前驱并推送未通过计划检查的 intent，还重写过 main 历史；已通过 `1b28c5a0` 合并恢复原提交祖先，当前文件树与生产 commit 完全一致。失败 preflight 没有被作为部署成功证据，重复发布已取消。
 
 当前可信观察：route 3/10、DNS 2/9、TLS 0/5；passing 均为 0。候选只包含平台迁移样本，不能覆盖现有完整 serving。机器可读证据见 [edge-platform-shadow-2026-09-14.json](verification/edge-platform-shadow-2026-09-14.json)。
+
+### P0-AP：完整业务路由与候选 artifact 的只读比较
+
+- [x] 新增管理员接口 `GET /v1/admin/platform-config/routes/compare?artifact_id=...`，比较当前业务投影与精确、签名可信、validated 的 global route artifact。
+- [x] 按 hostname/path 区分路由，报告缺失、额外和字段变化；忽略 generation/记录时间差异，保留 upstream、权重、排除规则、缓存和请求策略的语义差异。
+- [x] 单独比较 TLS allowlist 和 cache policies；拒绝重复路由身份、错误 kind、generation 别名、撤销签名和未授权请求。
+- [x] 比较独立于 serving source selector，即使存在 route LKG 仍读取业务投影；不写入业务、artifact、release 或 LKG。
+- [x] 定向测试、完整 `make test`、前端契约同步/typecheck、后端 CI 与生产部署全部通过。
+- [x] 生产 API 两个副本 Ready、0 重启，Guardian `stable` 且三项健康；新接口成功返回真实差异，比较前后 artifact/lineage/LKG 与 shadow release 保持相同。
+- [ ] 将完整业务 serving 语义迁移到强类型 PlatformIntent，并使编译后的投影通过语义等价比较。
+- [ ] 继续完成 DNS/TLS 输出比较和实际 apply/probe/灰度/回滚验证；本接口结果不能替代这些验收。
+
+生产观察：业务投影 130 条 route，候选 2 条；1 条语义一致、1 条 `min_healthy_edge_nodes` 不同、128 条缺失；TLS allowlist 和 cache policies 均不同。这个结果说明候选还不能接管。比较捕获的是当前业务投影，尚不保证跨业务表的事务快照，后续编译输入冻结需另行实现。
+
+```text
+backend commit: 001953eaed064794a47f78dd7f0b4d8b9f63bad1
+backend CI: 34798428678, success
+API generation: 985
+API image: sha256:3dd8839a4672b37a99c80ae3667d78af3111c41ad686334f6fb1e638d77e53a0
+web contract commit: 04a2415f1ced0319504ccc35f3adf8ccbb5da7ca
+web contract-drift: 34798641060, success
+release_set: artifact_1789290147_22038f948fad (shadow, unchanged)
+anonymous/missing-id/unknown-id/generation-alias/wrong-kind: 401/400/404/409/409
+```
+
+机器可读证据见 [route-migration-comparison-2026-09-14.json](verification/route-migration-comparison-2026-09-14.json)。
