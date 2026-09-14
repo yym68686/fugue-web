@@ -2100,7 +2100,7 @@ anonymous/missing-id/unknown-id/generation-alias/wrong-kind: 401/400/404/409/409
 - [x] compiler version 升至 `platform-config-compiler/v3`；相同 intent/policy 连续编译生成相同 artifact digest。
 - [x] 旧 intent JSON 的精确字段和默认行为保持兼容；拒绝非 canonical path、重复 hostname/path、非法端口。
 - [x] Edge artifact projection 与 Edge Control materialization 保留 path、port、streaming，未改变现有 serving。
-- [x] 后端完整测试、CI `34800313874`、API deploy 和前端 contract-drift `34799095536` 通过。
+- [x] 后端完整测试、CI `34800313874`、API deploy 和前端 contract-drift `34800377322`（commit `2f46992c`）通过。
 - [x] 生产验证：commit `5e8b1cbbf5445021b0b3403b6b8f9e8704cf2c8b`，API generation 986，image `sha256:43675670f4eeb3204e7d3da1ee60b094115bb397214203ddecbc274dd358528c`，两个副本 Ready、0 重启，Guardian stable。
 - [x] 生产连续三次编译 digest 相同，`/` 与 `/api` 路径、18081 端口、`streaming=false` 均保留；重复路由返回 400，未发布候选，shadow ReleaseSet 和旧 artifact LKG 不变。
 - [ ] 继续迁移多 upstream、cache、请求体策略和 TLS/DNS 绑定；当前候选仍不能代表完整业务 serving。
@@ -2114,8 +2114,21 @@ anonymous/missing-id/unknown-id/generation-alias/wrong-kind: 401/400/404/409/409
 - [x] 限制最多 16 个目标，权重必须总计 100，拒绝重复选择身份、非法 HTTP URL、凭据/fragment、非法端口、未知 kind/scope。
 - [x] 保留 Edge weighted selector 使用的目标顺序；同一输入重放产生相同 artifact digest。
 - [x] 禁用/不可服务路由不会重新获得 upstream；artifact projection 不伪造 runtime status。
-- [x] 后端全仓 `make test`、CI `34803290544`、API deploy 和前端 OpenAPI contract check `34801473182` 通过。
+- [x] 后端全仓 `make test`、CI `34803290544`、API deploy 和前端 contract-drift `34804067000`（commit `be520668`）通过。
 - [x] 生产验证：commit `0a999c8ab7922b33759ae9caa5a5c4f4545511b3` 已部署，编译器 v4 连续三次 digest 相同；80/20 stable/canary、release ID、service port 均保留；错误权重返回 400，候选未发布。
+- [x] 后续生产复查：API generation 987、image `sha256:a4c8df0add4ffaf94b062a12dcae892fd7b3802c2c02176fca1df74d6d0e32ef`，两个副本 Ready、0 重启，Guardian stable；旧 route artifact/lineage/LKG 和 shadow ReleaseSet 未变化。证据见 [weighted-upstream-serving-health-2026-09-14.json](verification/weighted-upstream-serving-health-2026-09-14.json)。
 - [ ] 将业务 AppRelease/TrafficPolicy 的完整 upstream 投影迁移到此模型，并完成真实 route/DNS/TLS 输出等价后才能推进灰度。
 
 生产证据见 [platform-intent-weighted-upstreams-2026-09-14.json](verification/platform-intent-weighted-upstreams-2026-09-14.json)。
+
+### P0-AS：PlatformIntent cache 与 ingress policy 语义
+
+- [x] `PlatformIntent` 保存强类型 cache policies；route 保存 cache policy ID、namespace、deployment generation 和 request-body policies。
+- [x] cache policy ID 唯一且受限于支持的 kind、TTL、path/method/status/vary/header 字段；route 引用必须存在且非 disabled policy 必须有 namespace。
+- [x] request-body policy 复用严格 parser，要求 canonical 方法/path、显式 retry-after 和现有大小、超时、并发边界。
+- [x] artifact route payload 携带 cache policies；artifact projection 与 Edge Control 保留 cache、namespace、deployment generation 和 request-body 语义，不混入 runtime facts。
+- [x] 后端全仓 `make test`、CI `34805584061`、API deploy、前端 contract-drift `34804171546` 通过。
+- [x] 生产验证：API generation 988，v5 编译器连续三次 replay digest 相同；cache policy、namespace、deployment generation、request-body policy 完整保留，健康/就绪均 200，shadow ReleaseSet 未变化，候选未发布。
+- [ ] 将真实业务 AppRelease、cache policy 和 ingress policy 全量投影进 PlatformIntent，完成 route/DNS/TLS 等价后再推进灰度。
+
+生产证据见 [platform-intent-cache-ingress-2026-09-14.json](verification/platform-intent-cache-ingress-2026-09-14.json)。
