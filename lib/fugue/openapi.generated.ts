@@ -10490,6 +10490,12 @@ export interface components {
     };
     PlatformConfigRouteIntent: {
       hostname: string;
+      app_id?: string;
+      tenant_id?: string;
+      /** @description Desired runtime identity, bound to an origin observation when origin_ref is provided. */
+      runtime_id?: string;
+      /** @description Reference to an explicit origin observation in the fixed runtime snapshot. Inline status does not supply the observation. */
+      origin_ref?: string;
       /** @description Canonical route path, defaults to /. Different paths on the same hostname are distinct routes. */
       path_prefix?: string;
       upstream_url: string;
@@ -10631,6 +10637,12 @@ export interface components {
       snapshot_differences: ("tls_allowlist" | "cache_policies")[];
     };
     PlatformRuntimeSnapshot: {
+      /**
+       * Format: date-time
+       * @description Fixed freshness reference for origin observations, required when origins are present. Compiler wall clock is never used.
+       */
+      captured_at?: string;
+      origins?: components["schemas"]["PlatformOriginObservation"][];
       intent_generation: string;
       policy_generation: string;
       facts?: {
@@ -10644,6 +10656,18 @@ export interface components {
       input_snapshot?: {
         [key: string]: unknown;
       };
+    };
+    PlatformOriginObservation: {
+      ref: string;
+      /** Format: date-time */
+      observed_at: string;
+      /** @enum {string} */
+      status: "active" | "disabled" | "unavailable";
+      status_reason?: string;
+      runtime_id?: string;
+      runtime_type?: string;
+      runtime_edge_group_id?: string;
+      runtime_cluster_node?: string;
     };
     PlatformConfigCompileResponse: {
       lineage: components["schemas"]["PlatformConfigLineage"];
