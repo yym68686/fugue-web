@@ -368,7 +368,7 @@ export interface paths {
   "/v1/admin/platform-config/routes/project": {
     /**
      * Project Business Routes into PlatformIntent
-     * @description Read-only migration draft from one consistent business snapshot. PostgreSQL uses a read-only repeatable-read transaction; file storage reads under one lock. Returns the business snapshot revision/time and explicit migration issues. Runtime observations retain their own evidence timestamps and are not part of the database transaction. migration_ready remains false until policy, DNS, TLS and release target projection is complete. Writes no serving state.
+     * @description Read-only migration draft from one consistent business snapshot. PostgreSQL uses a read-only repeatable-read transaction; file storage reads under one lock. Returns the business snapshot revision/time and explicit migration issues. Runtime observations retain their own evidence timestamps and are not part of the database transaction. Desired release references and weights are projected into policy; release addresses and readiness retain their original observation timestamps in runtime_snapshot.releases. migration_ready remains false until all serving inputs, policy execution, DNS/TLS readiness and output equivalence are verified. Writes no serving state.
      */
     get: operations["projectPlatformIntent"];
   };
@@ -10590,7 +10590,7 @@ export interface components {
       dependency_order?: string[];
       constraint_graph?: components["schemas"]["PlatformConstraintGraph"];
       route_constraints?: components["schemas"]["PlatformRoutePolicyConstraint"][];
-      /** @description Draft release constraints. Compilation refuses nonempty traffic constraints until the release fact resolver is available; they are never silently ignored. */
+      /** @description Desired release references and weights. Compilation requires matching fresh release observations. Unsupported sticky routing is rejected, never silently ignored. */
       traffic_constraints?: components["schemas"]["PlatformTrafficPolicyConstraint"][];
     };
     PlatformRoutePolicyConstraint: {
@@ -10613,6 +10613,12 @@ export interface components {
     PlatformTrafficPolicyConstraint: {
       id: string;
       app_id: string;
+      tenant_id?: string;
+      /**
+       * @description Defaults to reject. Stable explicitly permits fallback to a fresh active stable release when the candidate is unavailable.
+       * @enum {string}
+       */
+      unavailable_candidate?: "reject" | "stable";
       /** @enum {string} */
       mode: "single" | "canary" | "weighted" | "paused";
       stable_release_id?: string;
@@ -10698,10 +10704,11 @@ export interface components {
     PlatformRuntimeSnapshot: {
       /**
        * Format: date-time
-       * @description Fixed freshness reference for origin observations, required when origins are present. Compiler wall clock is never used.
+       * @description Fixed freshness reference for origin and release observations, required when either is present. Compiler wall clock is never used.
        */
       captured_at?: string;
       origins?: components["schemas"]["PlatformOriginObservation"][];
+      releases?: components["schemas"]["PlatformReleaseObservation"][];
       intent_generation: string;
       policy_generation: string;
       facts?: {
@@ -10727,6 +10734,19 @@ export interface components {
       runtime_type?: string;
       runtime_edge_group_id?: string;
       runtime_cluster_node?: string;
+    };
+    PlatformReleaseObservation: {
+      id: string;
+      app_id: string;
+      tenant_id: string;
+      /** Format: date-time */
+      observed_at: string;
+      /** @enum {string} */
+      status: "active" | "unavailable" | "disabled";
+      status_reason?: string;
+      upstream_url: string;
+      runtime_id?: string;
+      deployment_generation?: string;
     };
     PlatformConfigCompileResponse: {
       lineage: components["schemas"]["PlatformConfigLineage"];
@@ -12961,7 +12981,7 @@ export interface operations {
   };
   /**
    * Project Business Routes into PlatformIntent
-   * @description Read-only migration draft from one consistent business snapshot. PostgreSQL uses a read-only repeatable-read transaction; file storage reads under one lock. Returns the business snapshot revision/time and explicit migration issues. Runtime observations retain their own evidence timestamps and are not part of the database transaction. migration_ready remains false until policy, DNS, TLS and release target projection is complete. Writes no serving state.
+   * @description Read-only migration draft from one consistent business snapshot. PostgreSQL uses a read-only repeatable-read transaction; file storage reads under one lock. Returns the business snapshot revision/time and explicit migration issues. Runtime observations retain their own evidence timestamps and are not part of the database transaction. Desired release references and weights are projected into policy; release addresses and readiness retain their original observation timestamps in runtime_snapshot.releases. migration_ready remains false until all serving inputs, policy execution, DNS/TLS readiness and output equivalence are verified. Writes no serving state.
    */
   projectPlatformIntent: {
     responses: {
