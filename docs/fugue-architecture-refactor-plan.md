@@ -32,7 +32,7 @@ Runtime Facts / ACK / LKG
 
 ## 当前状态判断
 
-2026-09-14 生产核查：API 已运行 commit `7f214a78`（generation 1005，compiler v11）；美洲和德国 DNS/SSH-front 已运行 `10049784`；Guardian 已运行 `42ba6b41`。业务迁移草稿包含 130 条 route、15 条 DNS 输入和 8 份 release observations；13 条静态 DNS 与来源逐条一致，已删除 zone 的 1 条记录明确排除。加权 compiler 与 DNS wire 校验通过本地、CI 和生产验证。仍未完成动态 DNS placement、ACME/flatten、TLS readiness、真实 release facts 修复、全量等价以及 consumer gray/full 接管。现有 shadow ReleaseSet 未提升为 serving；其 route lineage 和 policy LKG 查询结果保持不变；这些结果不能作为全局迁移完成证明。
+2026-09-14 生产核查：API 已运行 commit `7f214a78`（generation 1005，compiler v11）；美洲和德国 DNS/SSH-front 已运行 `db44b459`；Guardian 已运行 `42ba6b41`。业务迁移草稿包含 131 条 route、15 条 DNS 输入和 8 份 release observations；13 条静态 DNS 与来源逐条一致，已删除 zone 的 1 条记录明确排除。加权 compiler 与 DNS wire 校验通过本地、CI 和生产验证。仍未完成动态 DNS placement、ACME/flatten、TLS readiness、真实 release facts 修复、全量等价以及 consumer gray/full 接管。现有 shadow ReleaseSet 未提升为 serving；其 route lineage 和 policy LKG 查询结果保持不变；这些结果不能作为全局迁移完成证明。
 
 Fugue 已经具备相当一部分基础设施：`PlatformArtifact` 已有 generation、content hash、签名、验证状态、release channel、fencing token 和 LKG；Edge 与 DNS 也有签名校验、本地缓存和过期控制。
 
@@ -2299,8 +2299,10 @@ anonymous/missing-id/unknown-id/generation-alias/wrong-kind: 401/400/404/409/409
 - [x] TXT 分片保留原始 byte string 的首尾空白；签名中的 RDATA 与实际 DNS 报文保持一致。
 - [x] 已存在名称没有所请求 RRset 时（包括全部 challenge value 到期），返回 `NOERROR` 和 authority SOA；不存在名称仍返回 `NXDOMAIN`。
 - [x] 新增 compiler → signed cache reload → public ServeDNS → pack/unpack 回归，覆盖 11 类记录与 5 类否定应答；完整 `make test` 通过。
-- [x] 首次提交 `3d603977` 漏带 release intent，CI `34855177222` 在发布计划校验时拒绝，未部署；已补齐两个组件的真实生产前驱，`100497849f09837fa41f3081847cb536ee337cf5`、CI `34855593385` 完成构建和生产部署。
+- [x] 首次提交 `3d603977` 漏带 release intent，CI `34855177222` 在发布计划校验时拒绝，未部署；已补齐两个组件的真实生产前驱，`100497849f09837fa41f3081847cb536ee337cf5`、CI `34855593385` 完成构建和生产部署；后续 snapshot 修复 commit `db44b459f352d7f59a462265c473bd72f5410416`、CI `34857297271` 完成部署。
 - [x] US/DE DNS 与 SSH-front Ready，DNS pod 无重启；两个生产节点分别通过 UDP/TCP 正常 A 应答及 NODATA/SOA 探测，可信 shadow heartbeat 正常，API/Guardian 健康，shadow ReleaseSet、route lineage 和 policy LKG 查询状态不变。
-- [ ] zone apex 的存在性不能只由 records 推导；继续补齐缺少显式 apex RRset 时的 NODATA 判断，并将查询所用 index 与 bundle 作为同一个 snapshot 读取。
+- [x] zone apex 使用配置的 authoritative zone 判断存在性；缺少显式 apex RRset 时返回权威 NODATA/SOA。查询与 WAL 事实使用同一 bundle/index snapshot，刷新不能造成混合版本或索引越界。
 
-证据：[dns-wire-contract-2026-09-14.json](verification/dns-wire-contract-2026-09-14.json)。协议依据：[RFC 2308](https://www.rfc-editor.org/rfc/rfc2308.html)、[RFC 2782](https://www.rfc-editor.org/rfc/rfc2782.html)、[RFC 7505](https://www.rfc-editor.org/rfc/rfc7505.html)。
+证据：[dns-wire-contract-2026-09-14.json](verification/dns-wire-contract-2026-09-14.json)。
+
+补充证据：[dns-snapshot-index-2026-09-14.json](verification/dns-snapshot-index-2026-09-14.json)。协议依据：[RFC 2308](https://www.rfc-editor.org/rfc/rfc2308.html)、[RFC 2782](https://www.rfc-editor.org/rfc/rfc2782.html)、[RFC 7505](https://www.rfc-editor.org/rfc/rfc7505.html)。

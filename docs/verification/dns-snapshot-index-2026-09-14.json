@@ -1,0 +1,433 @@
+{
+  "observed_at": "2026-09-14T14:49:01.198966+00:00",
+  "commit": "db44b459f352d7f59a462265c473bd72f5410416",
+  "workloads": [
+    {
+      "name": "fugue-fugue-api",
+      "kind": "Deployment",
+      "generation": 1005,
+      "commit": "7f214a78d6e827f247ad098c41c942820aa720df",
+      "images": [
+        "ghcr.io/yym68686/fugue-api@sha256:622d42efa2f7fa7640a8a788a585b75d1228b7c13c23e1bccc0e187540dfc4bb"
+      ],
+      "ready": true
+    },
+    {
+      "name": "fugue-fugue-dns",
+      "kind": "DaemonSet",
+      "generation": 435,
+      "commit": "db44b459f352d7f59a462265c473bd72f5410416",
+      "images": [
+        "ghcr.io/yym68686/fugue-edge@sha256:a8f50c495d5d32fbf7002b90ab5f0f305b78258e9767c8d32387e897faed2c52"
+      ],
+      "ready": true
+    },
+    {
+      "name": "fugue-fugue-dns-country-de",
+      "kind": "DaemonSet",
+      "generation": 430,
+      "commit": "db44b459f352d7f59a462265c473bd72f5410416",
+      "images": [
+        "ghcr.io/yym68686/fugue-edge@sha256:d255ba81d8db1ca3894ebfe4e9b7ca14077db55f2ba37ff84cf40a380db4788f"
+      ],
+      "ready": true
+    },
+    {
+      "name": "fugue-fugue-edge-country-de-ssh-front",
+      "kind": "DaemonSet",
+      "generation": 206,
+      "commit": "db44b459f352d7f59a462265c473bd72f5410416",
+      "images": [
+        "ghcr.io/yym68686/fugue-edge@sha256:d255ba81d8db1ca3894ebfe4e9b7ca14077db55f2ba37ff84cf40a380db4788f"
+      ],
+      "ready": true
+    },
+    {
+      "name": "fugue-fugue-edge-ssh-front",
+      "kind": "DaemonSet",
+      "generation": 209,
+      "commit": "db44b459f352d7f59a462265c473bd72f5410416",
+      "images": [
+        "ghcr.io/yym68686/fugue-edge@sha256:a8f50c495d5d32fbf7002b90ab5f0f305b78258e9767c8d32387e897faed2c52"
+      ],
+      "ready": true
+    }
+  ],
+  "consumers": [
+    {
+      "pod": "fugue-fugue-dns-country-de-m7rwq",
+      "node": "vps-84c8f0a9",
+      "health": "ok",
+      "serving_generation": "dnsenv_761807198c607aa80d078121c252d64736cb1cbda0afed58412617b47152a33a",
+      "candidate": {
+        "state": "shadow_verified",
+        "artifact_id": "artifact_1789290147_a04df449b074",
+        "digest": "sha256:219aa35e3085818a3ff8e5bb996205b433b320bf60f0993c0967bcfe6ad5ce7c",
+        "release_set_id": "artifact_1789290147_22038f948fad",
+        "record_count": 13,
+        "sequence": 1789397324623951949,
+        "verified_at": "2026-09-14T14:48:44.623952044Z",
+        "reported_at": "2026-09-14T14:48:44.786952501Z"
+      },
+      "restarts": 0
+    },
+    {
+      "pod": "fugue-fugue-dns-knm24",
+      "node": "vps-591f4447",
+      "health": "ok",
+      "serving_generation": "dnsenv_ad642e03bef4b29f8193b74338db3246aed718b3919e1022093a4b86e2326b83",
+      "candidate": {
+        "state": "shadow_verified",
+        "artifact_id": "artifact_1789290147_a04df449b074",
+        "digest": "sha256:219aa35e3085818a3ff8e5bb996205b433b320bf60f0993c0967bcfe6ad5ce7c",
+        "release_set_id": "artifact_1789290147_22038f948fad",
+        "record_count": 13,
+        "sequence": 1789397329070452119,
+        "verified_at": "2026-09-14T14:48:49.070452245Z",
+        "reported_at": "2026-09-14T14:48:49.085309256Z"
+      },
+      "restarts": 0
+    }
+  ],
+  "state_snapshot": [
+    [
+      200,
+      {
+        "artifact": {
+          "id": "artifact_1789290147_22038f948fad",
+          "artifact_kind": "release_set",
+          "scope": {
+            "scope_type": "global",
+            "key": "global"
+          },
+          "scope_key": "global",
+          "schema_version": "1.0",
+          "generation": "release-915ca009dc70243f7b4a29462bd0844b9319c16e8c7f67a78cdafed488a3cadf",
+          "generation_sequence": 1,
+          "status": "validated",
+          "content_hash": "sha256:8b7448ad3340214ada7319e224bf59743f9a09b29a4863362591c4cc728ba1d7",
+          "content": {
+            "artifact_ids": [
+              "artifact_1789290147_3ae6084f214d",
+              "artifact_1789290147_a04df449b074",
+              "artifact_1789290147_0511fe77df9e"
+            ],
+            "artifact_kinds": [
+              "edge_route_bundle",
+              "dns_answer_bundle",
+              "caddy_route_config"
+            ],
+            "dependencies": [
+              {
+                "from": "dns_answer_bundle",
+                "relation": "requires",
+                "to": "edge_route_bundle"
+              },
+              {
+                "from": "caddy_route_config",
+                "relation": "requires",
+                "to": "edge_route_bundle"
+              }
+            ],
+            "generation": "release-915ca009dc70243f7b4a29462bd0844b9319c16e8c7f67a78cdafed488a3cadf",
+            "lineage": {
+              "compiler_version": "platform-config-compiler/v2",
+              "input_snapshot_digest": "sha256:e8ee9fb4b9c3c49598bc798c100fb863313db477e1acb49d22f52008b6c1cede",
+              "intent_digest": "sha256:33badf8c5f2ded11b7ca1303702946c160f32580396a6e0c93566b3d2d650fa6",
+              "intent_generation": "env-migration-prod-1",
+              "policy_digest": "sha256:40cc2e93cc77248a1d7387b04b7f12d825bfe574c2d2f00e39f16ca5f4301111",
+              "policy_generation": "policy-shadow-prod-1"
+            },
+            "schema_version": "fugue.platform.config/v1",
+            "scope": "global"
+          },
+          "validation_results": [
+            {
+              "name": "platform_config.release_set_replay",
+              "pass": true,
+              "severity": "block_publish",
+              "message": "deterministic release set replay passed"
+            }
+          ],
+          "metadata": {
+            "compiler_version": "platform-config-compiler/v2",
+            "input_snapshot_digest": "sha256:e8ee9fb4b9c3c49598bc798c100fb863313db477e1acb49d22f52008b6c1cede",
+            "intent_digest": "sha256:33badf8c5f2ded11b7ca1303702946c160f32580396a6e0c93566b3d2d650fa6",
+            "intent_generation": "env-migration-prod-1",
+            "policy_digest": "sha256:40cc2e93cc77248a1d7387b04b7f12d825bfe574c2d2f00e39f16ca5f4301111",
+            "policy_generation": "policy-shadow-prod-1"
+          },
+          "created_by_type": "bootstrap",
+          "created_by_id": "bootstrap-admin",
+          "provenance": {
+            "issuer": "fugue-control-plane",
+            "key_id": "control-plane",
+            "algorithm": "hmac-sha256",
+            "signature": "mCbAibQhLZVNRTbHTGXwimcxsjYeOb-EZUkh8LGNYnE",
+            "signed_at": "2026-09-13T09:02:27.582918Z"
+          },
+          "created_at": "2026-09-13T09:02:27.582918Z",
+          "updated_at": "2026-09-13T09:03:52.886724Z"
+        },
+        "release": {
+          "id": "artifactrel_1789292458_d1b4c134c3e2",
+          "artifact_id": "artifact_1789290147_22038f948fad",
+          "artifact_kind": "release_set",
+          "scope": {
+            "scope_type": "global",
+            "key": "global"
+          },
+          "scope_key": "global",
+          "generation": "release-915ca009dc70243f7b4a29462bd0844b9319c16e8c7f67a78cdafed488a3cadf",
+          "release_channel": "shadow",
+          "status": "active",
+          "lane_key": "release_set|global|shadow",
+          "fencing_token": 1,
+          "version": 1,
+          "idempotency_key": "architecture-shadow-release-1",
+          "candidate_generation": "release-915ca009dc70243f7b4a29462bd0844b9319c16e8c7f67a78cdafed488a3cadf",
+          "verification_state": "serving_unverified",
+          "reason": "architecture shadow validation",
+          "released_by_type": "bootstrap",
+          "released_by_id": "bootstrap-admin",
+          "released_at": "2026-09-13T09:40:58.756585Z",
+          "created_at": "2026-09-13T09:40:58.756585Z",
+          "updated_at": "2026-09-13T09:40:58.756585Z"
+        },
+        "generation": "release-915ca009dc70243f7b4a29462bd0844b9319c16e8c7f67a78cdafed488a3cadf",
+        "waited": false
+      }
+    ],
+    [
+      404,
+      {
+        "error": "verified platform policy LKG not found",
+        "code": "not_found",
+        "category": "not_found"
+      }
+    ],
+    [
+      200,
+      {
+        "artifact": {
+          "id": "artifact_1789290147_3ae6084f214d",
+          "artifact_kind": "edge_route_bundle",
+          "scope": {
+            "scope_type": "global",
+            "key": "global"
+          },
+          "scope_key": "global",
+          "schema_version": "1.0",
+          "generation": "route-915ca009dc70243f7b4a29462bd0844b9319c16e8c7f67a78cdafed488a3cadf",
+          "generation_sequence": 1,
+          "status": "validated",
+          "content_hash": "sha256:aa3453c3d79efef9c915163030f1d20df4186a69c3fe0cb24a567ef166ab69f9",
+          "content": {
+            "generation": "env-migration-prod-1",
+            "lineage": {
+              "compiler_version": "platform-config-compiler/v2",
+              "input_snapshot_digest": "sha256:e8ee9fb4b9c3c49598bc798c100fb863313db477e1acb49d22f52008b6c1cede",
+              "intent_digest": "sha256:33badf8c5f2ded11b7ca1303702946c160f32580396a6e0c93566b3d2d650fa6",
+              "intent_generation": "env-migration-prod-1",
+              "policy_digest": "sha256:40cc2e93cc77248a1d7387b04b7f12d825bfe574c2d2f00e39f16ca5f4301111",
+              "policy_generation": "policy-shadow-prod-1"
+            },
+            "policy": {
+              "constraint_graph": {},
+              "created_at": "0001-01-01T00:00:00Z",
+              "dependency_order": [
+                "route",
+                "tls",
+                "dns"
+              ],
+              "generation": "policy-shadow-prod-1",
+              "max_stale_seconds": 86400,
+              "minimum_healthy_edges": 1,
+              "require_route_ready": true,
+              "require_tls_ready": false,
+              "schema_version": "fugue.platform.config/v1",
+              "scope": "global"
+            },
+            "routes": [
+              {
+                "edge_group_mode": "region_aware",
+                "enabled": true,
+                "hostname": "api.fugue.pro",
+                "kind": "control-plane-api",
+                "route_policy": "edge_enabled",
+                "tls_policy": "platform",
+                "ttl": 60,
+                "upstream_kind": "kubernetes-service",
+                "upstream_scope": "cluster",
+                "upstream_url": "http://fugue-fugue.fugue-system.svc.cluster.local:80"
+              },
+              {
+                "edge_group_mode": "region_aware",
+                "enabled": true,
+                "hostname": "mesh.fugue.pro",
+                "kind": "control-plane-mesh",
+                "route_policy": "edge_enabled",
+                "tls_policy": "platform",
+                "ttl": 60,
+                "upstream_kind": "kubernetes-service",
+                "upstream_scope": "cluster",
+                "upstream_url": "http://fugue-fugue-headscale.fugue-system.svc.cluster.local:8080"
+              }
+            ],
+            "schema_version": "fugue.platform.config/v1"
+          },
+          "validation_results": [
+            {
+              "name": "platform_config.artifact_replay",
+              "pass": true,
+              "severity": "block_publish",
+              "message": "deterministic artifact replay passed",
+              "evidence": {
+                "intent_artifact": "artifact_1789286213_523d8160cadf",
+                "policy_artifact": "artifact_1789288669_564294d0d812"
+              }
+            }
+          ],
+          "metadata": {
+            "compiler_version": "platform-config-compiler/v2",
+            "input_snapshot_digest": "sha256:e8ee9fb4b9c3c49598bc798c100fb863313db477e1acb49d22f52008b6c1cede",
+            "intent_digest": "sha256:33badf8c5f2ded11b7ca1303702946c160f32580396a6e0c93566b3d2d650fa6",
+            "intent_generation": "env-migration-prod-1",
+            "policy_digest": "sha256:40cc2e93cc77248a1d7387b04b7f12d825bfe574c2d2f00e39f16ca5f4301111",
+            "policy_generation": "policy-shadow-prod-1",
+            "release_set_generation": "release-915ca009dc70243f7b4a29462bd0844b9319c16e8c7f67a78cdafed488a3cadf"
+          },
+          "created_by_type": "bootstrap",
+          "created_by_id": "bootstrap-admin",
+          "provenance": {
+            "issuer": "fugue-control-plane",
+            "key_id": "control-plane",
+            "algorithm": "hmac-sha256",
+            "signature": "LFKYxDna8nEe4Qkv_RaAVzAad3svYCbXew3d2blHwMs",
+            "signed_at": "2026-09-13T09:02:27.542164Z"
+          },
+          "created_at": "2026-09-13T09:02:27.542164Z",
+          "updated_at": "2026-09-13T09:03:52.876791Z"
+        },
+        "lineage": {
+          "intent_generation": "env-migration-prod-1",
+          "policy_generation": "policy-shadow-prod-1",
+          "intent_digest": "sha256:33badf8c5f2ded11b7ca1303702946c160f32580396a6e0c93566b3d2d650fa6",
+          "policy_digest": "sha256:40cc2e93cc77248a1d7387b04b7f12d825bfe574c2d2f00e39f16ca5f4301111",
+          "input_snapshot_digest": "sha256:e8ee9fb4b9c3c49598bc798c100fb863313db477e1acb49d22f52008b6c1cede",
+          "compiler_version": "platform-config-compiler/v2"
+        }
+      }
+    ]
+  ],
+  "trusted_dns_receipts_verified": true,
+  "api_guardian": "stable",
+  "health_status": 200,
+  "ready_status": 200,
+  "serving_promoted": false,
+  "lease_filter_e2e": "local signed LKG reload and query tests; no production challenge serving claim",
+  "ci_run": 34857297271,
+  "web_commit": "fd581ee77ad6caa04541d2e4c63c09674d239191",
+  "web_contract_run": 34853332420,
+  "wire_probes": [
+    {
+      "apex_SRV_nodata": {
+        "rcode": 0,
+        "answers": 0,
+        "authority_types": [
+          6
+        ]
+      },
+      "pod": "fugue-fugue-dns-country-de-m7rwq",
+      "transport": "udp",
+      "positive_A": {
+        "rcode": 0,
+        "answers": 1,
+        "authority_types": []
+      },
+      "existing_name_PTR_nodata": {
+        "rcode": 0,
+        "answers": 0,
+        "authority_types": [
+          6
+        ]
+      }
+    },
+    {
+      "apex_SRV_nodata": {
+        "rcode": 0,
+        "answers": 0,
+        "authority_types": [
+          6
+        ]
+      },
+      "pod": "fugue-fugue-dns-country-de-m7rwq",
+      "transport": "tcp",
+      "positive_A": {
+        "rcode": 0,
+        "answers": 1,
+        "authority_types": []
+      },
+      "existing_name_PTR_nodata": {
+        "rcode": 0,
+        "answers": 0,
+        "authority_types": [
+          6
+        ]
+      }
+    },
+    {
+      "apex_SRV_nodata": {
+        "rcode": 0,
+        "answers": 0,
+        "authority_types": [
+          6
+        ]
+      },
+      "pod": "fugue-fugue-dns-knm24",
+      "transport": "udp",
+      "positive_A": {
+        "rcode": 0,
+        "answers": 1,
+        "authority_types": []
+      },
+      "existing_name_PTR_nodata": {
+        "rcode": 0,
+        "answers": 0,
+        "authority_types": [
+          6
+        ]
+      }
+    },
+    {
+      "apex_SRV_nodata": {
+        "rcode": 0,
+        "answers": 0,
+        "authority_types": [
+          6
+        ]
+      },
+      "pod": "fugue-fugue-dns-knm24",
+      "transport": "tcp",
+      "positive_A": {
+        "rcode": 0,
+        "answers": 1,
+        "authority_types": []
+      },
+      "existing_name_PTR_nodata": {
+        "rcode": 0,
+        "answers": 0,
+        "authority_types": [
+          6
+        ]
+      }
+    }
+  ],
+  "wire_contract_local_cases": 11,
+  "negative_response_local_cases": 6,
+  "snapshot_index_interleaving_regression": "A and TXT queries preserve old snapshot while next query observes new publication",
+  "race_check": "go test -race ./internal/dnsserver passed",
+  "validation_scope": "Production UDP/TCP probes validate positive A, existing-name NODATA and apex NODATA. The publication interleaving panic is covered locally; no deliberate production race or fault injection.",
+  "source": "read-only production verification via kubectl/API; no live mutation",
+  "failed_ci_run_34855177222": "prepush rejected missing same-commit intent; no production mutation"
+}
