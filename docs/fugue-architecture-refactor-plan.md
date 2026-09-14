@@ -32,7 +32,7 @@ Runtime Facts / ACK / LKG
 
 ## 当前状态判断
 
-2026-09-14 生产核查：API 已运行 commit `e6abe55d`（generation 1006，compiler v11）；美洲和德国 DNS/SSH-front 已运行 `db44b459`；Guardian 已运行 `42ba6b41`。本次观测的业务迁移草稿包含 132 条 route、15 条 DNS 输入和 8 份 release observations；13 条静态 DNS 与来源逐条一致，已删除 zone 的 1 条记录明确排除。加权 compiler 与 DNS wire 校验通过本地、CI 和生产验证。仍未完成动态 DNS placement、ACME/flatten、TLS readiness、真实 release facts 修复、全量等价以及 consumer gray/full 接管。现有 shadow ReleaseSet 未提升为 serving；其 route lineage 和 policy LKG 查询结果保持不变；这些结果不能作为全局迁移完成证明。
+2026-09-14 生产核查：API 已运行 commit `ce418c91`（generation 1007，compiler v12）；美洲和德国 DNS/SSH-front 已运行 `db44b459`；Guardian 已运行 `42ba6b41`。本次观测的业务迁移草稿包含 132 条 route、15 条 DNS 输入和 8 份 release observations；13 条静态 DNS 与来源逐条一致，已删除 zone 的 1 条记录明确排除。加权 compiler 与 DNS wire 校验通过本地、CI 和生产验证。仍未完成动态 DNS placement、ACME/flatten、TLS readiness、真实 release facts 修复、全量等价以及 consumer gray/full 接管。现有 shadow ReleaseSet 未提升为 serving；其 route lineage 和 policy LKG 查询结果保持不变；这些结果不能作为全局迁移完成证明。
 
 Fugue 已经具备相当一部分基础设施：`PlatformArtifact` 已有 generation、content hash、签名、验证状态、release channel、fencing token 和 LKG；Edge 与 DNS 也有签名校验、本地缓存和过期控制。
 
@@ -2328,3 +2328,16 @@ anonymous/missing-id/unknown-id/generation-alias/wrong-kind: 401/400/404/409/409
 - [ ] 从固定 edge inventory、route-ready/TLS-ready 证据解析应用与平台 DNS placement，绑定 input digest、原始证据时间和 policy；补齐发布一致性与全量输出等价后再推进 consumer gray/full。当前 `migration_ready=false`，剩余 4 个 issue 为应用/平台 DNS placement 与 release facts/等价验证。
 
 证据：[dns-application-intent-2026-09-14.json](verification/dns-application-intent-2026-09-14.json)。
+
+### P0-BK：DNS placement 固定事实编译与绝对租期
+
+- [x] 新增 `DNSPlacementObservation` 与 `DNSPlacementCandidate`，绑定 canonical DNS/application/compiled-route/policy digest；候选保存 edge identity、group、serving generation、observed-at、valid-until、健康、route-ready、TLS-ready 和 A/AAAA。
+- [x] compiler v12 只从固定 placement facts 生成 FUGUE_APP 的 A/AAAA；校验租户/route owner、edge 排除、pinned group、IP family、最小健康 edge、freshness 和 wire 地址，缺证据或不满足 ready 条件时拒绝新编译。
+- [x] 应用地址写入逐值绝对 expiration；TTL 同时受记录、目标事实、heartbeat freshness 和 quorum deadline 限制，达到最小健康数量前不会自动延长 lease。
+- [x] 动态候选与地址租期互斥；consumer 对带租期 A/AAAA/TXT 执行查询时过滤、签名校验和 LKG 恢复，promotion/rollback 在真实 consumer 能力注册前继续 fail-closed。
+- [x] placement replay、双栈、quorum、owner、route/TLS readiness、排除、过期和 20 类非法输入回归通过；完整 `make test` 通过。
+- [x] backend `ce418c911d1ba10d38e870e4edd3be5f6a7f5e1b`、CI `34871479064` 成功，API 与 US/DE DNS lanes 均部署；web `3b86559acc9b3261445d0bbaa3d91b4457c6e276`、contract-drift `34871954405` 成功。
+- [x] 生产 API generation 1007、两个 DNS 节点可信 shadow receipt 为 `staged/shadow_validated`，DNS 节点健康、cache ready；现有 shadow ReleaseSet、route lineage、policy LKG 和 serving 未改变。生产合成编译验证了三次相同 digest、双栈 lease、quorum 截止、策略分支、所有 traffic guard 和健康/就绪 200。
+- [ ] 真实业务 hostname placement observation 尚未由独立受信采集器生成；当前草稿仍有 `dns_app_placement_not_projected`，因此不能宣称 FUGUE_APP 已进入生产 serving 或解除租期 promotion 保护。
+
+证据：[dns-placement-compiler-2026-09-15.json](verification/dns-placement-compiler-2026-09-15.json)。

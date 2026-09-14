@@ -1,0 +1,183 @@
+{
+  "observed_at": "2026-09-14T17:09:04.355721Z",
+  "compiler_version": "platform-config-compiler/v12",
+  "replay_count": 3,
+  "same_digest": true,
+  "dual_stack": true,
+  "quorum_expiration_seconds": 10,
+  "fact_change_keeps_intent_policy": true,
+  "negative_cases": {
+    "missing": 400,
+    "wrong_digest": 400,
+    "changed_route": 400,
+    "changed_policy": 400,
+    "future_observation": 400,
+    "missing_generation": 400,
+    "duplicate_edge": 400,
+    "duplicate_ip": 400,
+    "wrong_family": 400,
+    "private_ip": 400,
+    "route_not_ready": 400,
+    "tls_not_ready": 400,
+    "expired": 400,
+    "stale_heartbeat": 400,
+    "extra_fact": 400,
+    "zero_target_ttl": 400
+  },
+  "policy_cases": {
+    "disabled": 201,
+    "ipv4": 201,
+    "stale_allowed": 201,
+    "stale_refused": 400,
+    "quorum_one": 201
+  },
+  "traffic_guards": {
+    "dns_artifact_gray": 409,
+    "dns_artifact_full": 409,
+    "dns_artifact_rollback": 409,
+    "release_artifact_gray": 409,
+    "release_artifact_full": 409,
+    "release_artifact_rollback": 409
+  },
+  "shadow_release_route_lineage_policy_lkg_unchanged": true,
+  "production_business_migration_ready": false,
+  "business_issues": [
+    "dns_app_placement_not_projected",
+    "dns_route_placement_not_projected",
+    "release_target_equivalence_not_verified",
+    "release_observations_require_repair"
+  ],
+  "validation_scope": "Synthetic fixed evidence compiled on production API; no serving promotion; real hostname evidence collector remains pending",
+  "health_status": 200,
+  "ready_status": 200,
+  "backend_commit": "ce418c911d1ba10d38e870e4edd3be5f6a7f5e1b",
+  "ci_run": 34871479064,
+  "web_commit": "3b86559acc9b3261445d0bbaa3d91b4457c6e276",
+  "web_contract_run": 34871954405,
+  "workloads": [
+    {
+      "pod": "fugue-fugue-edge-ssh-front-6kmz7",
+      "node": "bwg",
+      "lane": "edge-client-us",
+      "ready": true,
+      "restarts": 0,
+      "image": "ghcr.io/yym68686/fugue-edge@sha256:ff951179811457e521f9d873af56e2fe159ff344f89173ebdc55b1ab9e2a9f39"
+    },
+    {
+      "pod": "fugue-fugue-dns-qzpjd",
+      "node": "vps-591f4447",
+      "lane": "edge-client-us",
+      "ready": true,
+      "restarts": 0,
+      "image": "ghcr.io/yym68686/fugue-edge@sha256:ff951179811457e521f9d873af56e2fe159ff344f89173ebdc55b1ab9e2a9f39"
+    },
+    {
+      "pod": "fugue-fugue-edge-ssh-front-6xq6c",
+      "node": "vps-591f4447",
+      "lane": "edge-client-us",
+      "ready": true,
+      "restarts": 0,
+      "image": "ghcr.io/yym68686/fugue-edge@sha256:ff951179811457e521f9d873af56e2fe159ff344f89173ebdc55b1ab9e2a9f39"
+    },
+    {
+      "pod": "fugue-fugue-dns-country-de-5zptr",
+      "node": "vps-84c8f0a9",
+      "lane": "edge-client-de",
+      "ready": true,
+      "restarts": 0,
+      "image": "ghcr.io/yym68686/fugue-edge@sha256:f6922b894f8c47748fba51065bd7e838dcaf206fb0a1f61ae57e4d7056f116a3"
+    },
+    {
+      "pod": "fugue-fugue-edge-country-de-ssh-front-j4xfn",
+      "node": "vps-84c8f0a9",
+      "lane": "edge-client-de",
+      "ready": true,
+      "restarts": 0,
+      "image": "ghcr.io/yym68686/fugue-edge@sha256:f6922b894f8c47748fba51065bd7e838dcaf206fb0a1f61ae57e4d7056f116a3"
+    },
+    {
+      "pod": "fugue-fugue-api-8565bb8858-9sjh4",
+      "node": "vps-d6d20fa1",
+      "lane": "api",
+      "ready": true,
+      "restarts": 0,
+      "image": "ghcr.io/yym68686/fugue-api@sha256:37bdf938b8c84ae1622e9233fb46ed9d76d045de38d9f82ca616b82c7360496f"
+    },
+    {
+      "pod": "fugue-fugue-api-8565bb8858-gfs2d",
+      "node": "vps-d6d20fa1",
+      "lane": "api",
+      "ready": true,
+      "restarts": 0,
+      "image": "ghcr.io/yym68686/fugue-api@sha256:37bdf938b8c84ae1622e9233fb46ed9d76d045de38d9f82ca616b82c7360496f"
+    }
+  ],
+  "trusted_dns_shadow_receipts": [
+    {
+      "consumer_id": "dns-server:vps-591f4447",
+      "last_heartbeat_at": "2026-09-14T17:10:15.540503Z",
+      "identity_verified": true,
+      "apply_status": "staged",
+      "probe_status": "shadow_validated"
+    },
+    {
+      "consumer_id": "dns-server:vps-84c8f0a9",
+      "last_heartbeat_at": "2026-09-14T17:10:15.094313Z",
+      "identity_verified": true,
+      "apply_status": "staged",
+      "probe_status": "shadow_validated"
+    }
+  ],
+  "dns_nodes": [
+    {
+      "id": "vps-84c8f0a9",
+      "healthy": true,
+      "cache_status": "ready",
+      "last_heartbeat_at": "2026-09-14T17:10:14.770273Z"
+    },
+    {
+      "id": "vps-84c8f0a9--zone-i00-pro",
+      "healthy": true,
+      "cache_status": "ready",
+      "last_heartbeat_at": "2026-09-14T17:10:14.770182Z"
+    },
+    {
+      "id": "vps-84c8f0a9--zone-oaix-cc",
+      "healthy": true,
+      "cache_status": "ready",
+      "last_heartbeat_at": "2026-09-14T17:10:14.621933Z"
+    },
+    {
+      "id": "vps-591f4447",
+      "healthy": true,
+      "cache_status": "ready",
+      "last_heartbeat_at": "2026-09-14T17:10:15.517102Z"
+    },
+    {
+      "id": "vps-591f4447--zone-i00-pro",
+      "healthy": true,
+      "cache_status": "ready",
+      "last_heartbeat_at": "2026-09-14T17:10:15.520191Z"
+    },
+    {
+      "id": "vps-591f4447--zone-oaix-cc",
+      "healthy": true,
+      "cache_status": "ready",
+      "last_heartbeat_at": "2026-09-14T17:10:15.524598Z"
+    }
+  ],
+  "policy_lkg_status": 404,
+  "local_validation": [
+    "make test passed",
+    "API rejected promotion/rollback without creating LKG",
+    "signed LKG expiry tests for A/AAAA/TXT",
+    "placement replay, readiness, owner, exclusions, family, quorum tests"
+  ],
+  "limitations": [
+    "Real hostname evidence collector and platform DNS projection remain pending",
+    "No promotion of synthetic placement artifacts",
+    "Direct SSH was unavailable; actual production Pod images verified through authenticated cluster API against CI receipts",
+    "Direct external UDP query timed out from this host; TCP succeeded. DNS node health and trusted heartbeats are healthy.",
+    "Release guard baseline already reports failed checks across existing applications; this step is not a clean full-platform bill of health"
+  ]
+}
