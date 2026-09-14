@@ -1,10 +1,15 @@
 {
-  "backend_commit": "f2e6dc1bd1c43f7f60d822add04c92d1604dc969",
-  "ci_run": "34829713087",
-  "production_commit": "f2e6dc1bd1c43f7f60d822add04c92d1604dc969",
-  "intent_dns_count": 2,
-  "issues": ["dns_not_projected", "dns_zone_missing", "release_weights_not_projected"],
+  "backend_commit": "3dae2c992759599ce1cfc1c3cc0f0cce4d6e6c87",
+  "ci_run": "34831195308",
+  "api_generation": 999,
+  "production_image": "sha256:6880aa8de8acc9ef4d8626f2f7ab47831e885c9bdc1ea7c3dde49f29f82c46d2",
+  "intent_dns_count": 3,
+  "issues": ["dns_zone_missing", "release_weights_not_projected"],
+  "dns_records_retained": true,
+  "policy_generation": "policy_674f6da8e796dd937792891a7fb2b349c2cb676db9b67ae6c3dab8b814f3f877",
+  "health_status": 200,
+  "ready_status": 200,
   "fail_closed": true,
   "shadow_unchanged": true,
-  "note": "Typed DNS projection is active; complete business equivalence is not claimed because one or more records lack a captured zone association."
+  "note": "Records remain in typed intent even when zone evidence is missing; complete equivalence is not claimed until all zone associations are repaired."
 }

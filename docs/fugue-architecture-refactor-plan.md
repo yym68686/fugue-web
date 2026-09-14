@@ -2211,6 +2211,6 @@ anonymous/missing-id/unknown-id/generation-alias/wrong-kind: 401/400/404/409/409
 - [x] `RouteBusinessSnapshot` 同时捕获 hosted zones 与有效 DNS records；PostgreSQL 使用同一 repeatable-read 事务，文件存储使用同一锁。
 - [x] DNS record 规范化、排序并投影到 `PlatformIntent.DNS`，保留 type、values、TTL、source、tenant 语义。
 - [x] 缺失 zone 关联显式报告 `dns_zone_missing` 并保持迁移不可发布；不静默丢弃记录。
-- [x] backend commit `f2e6dc1bd1c43f7f60d822add04c92d1604dc969`、CI `34829713087` 成功，生产 API 已运行；shadow ReleaseSet 未变化。
-- [x] 生产验证记录 2 条 typed DNS 记录，issues 包含 `dns_zone_missing`，证明 fail-closed。证据：[business-intent-dns-projection-2026-09-14.json](verification/business-intent-dns-projection-2026-09-14.json)。
+- [x] backend commits `f2e6dc1b`、`3dae2c99`、CI `34831195308` 成功，生产 API generation `999`；shadow ReleaseSet 未变化。
+- [x] 生产验证记录 3 条 typed DNS 记录，缺失 zone 关联保留为 `dns_zone_missing`，证明 fail-closed 且不丢失输入。证据：[business-intent-dns-projection-2026-09-14.json](verification/business-intent-dns-projection-2026-09-14.json)。
 - [ ] 完成全部 DNS zone/record 关联修复和全量等价校验。
