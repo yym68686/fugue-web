@@ -2171,7 +2171,7 @@ anonymous/missing-id/unknown-id/generation-alias/wrong-kind: 401/400/404/409/409
 - [x] 后端 commit `a213b48db4f9f62494cba86b4aef3b9749d4729a`，CI `34812191553` 成功；前端 contract-drift `34812235896`（commit `2d5c3ef1`）成功。
 - [x] 生产 API generation 992，两个副本 Ready，健康/就绪 200；返回 `postgres:50637113:50637113:` snapshot revision，130 route、128 origin，旧 artifact/LKG 与 shadow ReleaseSet 不变。
 - [x] 生产前驱刷新复查：commit `f7f91e83fe4c6e60f9743d2c7f19079e424c4bf8`，API generation 993，snapshot revision `postgres:50641879:50641879:`，130 route、128 origin，健康/就绪 200；旧 artifact/LKG 与 shadow ReleaseSet 仍不变。
-- [ ] 将 PolicySnapshot、TLS/DNS、AppRelease/TrafficPolicy 的完整 desired/fact 投影纳入同一迁移流程；当前不可直接 compile/promote。
+- [x] PolicySnapshot route/traffic 约束已投影进迁移草稿；TLS/DNS 与 weighted release target 仍保留为显式 issues，当前不可直接 compile/promote。
 
 生产证据见 [business-snapshot-2026-09-14.json](verification/business-snapshot-2026-09-14.json)。
 前驱刷新复查证据见 [business-snapshot-predecessor-refresh-2026-09-14.json](verification/business-snapshot-predecessor-refresh-2026-09-14.json)。
@@ -2186,3 +2186,12 @@ anonymous/missing-id/unknown-id/generation-alias/wrong-kind: 401/400/404/409/409
 - [x] web OpenAPI 同步 commit `c562e5228260e7ffc9a7182d16f2a0df67c53217` 已推送；contract-drift `34818528103` 成功。
 - [x] 生产验证：连续 3 次相同输入得到相同 artifact digest；route 约束正确产生 disabled、`route_a_only`、最小健康数和 edge 排除；未支持 traffic/edge-group 约束均返回 400；shadow ReleaseSet 未变化；API generation `994`、2/2 replicas、`/healthz` 与 `/readyz` 均正常。证据：[platform-policy-constraints-2026-09-14.json](verification/platform-policy-constraints-2026-09-14.json)。
 - [ ] 完成 release fact resolver 与 DNS placement resolver 后，再分别启用 traffic constraint 和 edge-group constraint 的 artifact 编译与生产 shadow 验证。
+
+### P0-AX：业务迁移草稿纳入 PolicySnapshot
+
+- [x] `GET /v1/admin/platform-config/routes/project` 同时返回 `PlatformIntent`、`PolicySnapshot` 与固定 `RuntimeSnapshot`，三者带独立 generation/事实边界。
+- [x] route policy 与 traffic policy 从同一事务业务快照投影；runtime evidence、checked-at、owner digest 不进入 policy。
+- [x] 未完成的 TLS/DNS、release target 投影继续以 issues 暴露，`migration_ready` 保持 `false`，草稿不具备 promotion 权限。
+- [x] backend commit `6d57509000fb241aa177cb268cba02cf09b1e8d6`（功能）及 `c0ba659a3ff1c8051be6a797babf4434fe67f618`（生产前驱绑定）已推送；CI `34820761786` 成功，生产 API generation `995`。
+- [x] 生产验证：130 routes、128 app routes/origins；策略投影 issues 明确为 `constraint_policy_not_projected`、`dns_tls_not_projected`、`release_weights_not_projected`；原始 observation 时间保留；route LKG、shadow ReleaseSet 未变化；2 个 API Pod 零重启，Guardian stable，健康/就绪正常。证据：[business-intent-policy-projection-2026-09-14.json](verification/business-intent-policy-projection-2026-09-14.json)。
+
