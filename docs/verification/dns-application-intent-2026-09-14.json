@@ -1,0 +1,36 @@
+{
+  "observed_at": "2026-09-14T15:35:06.700319+00:00",
+  "commit": "e6abe55d10e4e47e2931231f6434641e69943500",
+  "generation": 1006,
+  "image": "ghcr.io/yym68686/fugue-api@sha256:af33f331e88e1b39adb33cf90161c07c7e710c45bbe91e4756f131b1d485b386",
+  "validated_intent_id": "artifact_1789400106_10171213af5c",
+  "unresolved_compile_status": 400,
+  "negative_cases": {
+    "missing_policy": 409,
+    "foreign_tenant": 409,
+    "wrong_reference": 409,
+    "family_conflict": 409,
+    "wire_with_application": 409,
+    "no_route": 409,
+    "competing_address": 409
+  },
+  "business_route_count": 132,
+  "business_application_record_count": 1,
+  "intent_validation_issue_removed": true,
+  "migration_ready": false,
+  "issues": [
+    "dns_app_placement_not_projected",
+    "dns_route_placement_not_projected",
+    "release_target_equivalence_not_verified",
+    "release_observations_require_repair"
+  ],
+  "created_candidate_intents": 8,
+  "promoted": false,
+  "shadow_release_route_lineage_policy_lkg_unchanged": true,
+  "guardian": "stable",
+  "health_status": 200,
+  "ready_status": 200,
+  "ci_run": 34862201247,
+  "web_commit": "6639986c15dbd35d920f0a1b03845c3f940502bb",
+  "web_contract_run": 34862418114
+}

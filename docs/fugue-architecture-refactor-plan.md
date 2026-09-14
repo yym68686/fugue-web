@@ -32,7 +32,7 @@ Runtime Facts / ACK / LKG
 
 ## 当前状态判断
 
-2026-09-14 生产核查：API 已运行 commit `7f214a78`（generation 1005，compiler v11）；美洲和德国 DNS/SSH-front 已运行 `db44b459`；Guardian 已运行 `42ba6b41`。业务迁移草稿包含 131 条 route、15 条 DNS 输入和 8 份 release observations；13 条静态 DNS 与来源逐条一致，已删除 zone 的 1 条记录明确排除。加权 compiler 与 DNS wire 校验通过本地、CI 和生产验证。仍未完成动态 DNS placement、ACME/flatten、TLS readiness、真实 release facts 修复、全量等价以及 consumer gray/full 接管。现有 shadow ReleaseSet 未提升为 serving；其 route lineage 和 policy LKG 查询结果保持不变；这些结果不能作为全局迁移完成证明。
+2026-09-14 生产核查：API 已运行 commit `e6abe55d`（generation 1006，compiler v11）；美洲和德国 DNS/SSH-front 已运行 `db44b459`；Guardian 已运行 `42ba6b41`。本次观测的业务迁移草稿包含 132 条 route、15 条 DNS 输入和 8 份 release observations；13 条静态 DNS 与来源逐条一致，已删除 zone 的 1 条记录明确排除。加权 compiler 与 DNS wire 校验通过本地、CI 和生产验证。仍未完成动态 DNS placement、ACME/flatten、TLS readiness、真实 release facts 修复、全量等价以及 consumer gray/full 接管。现有 shadow ReleaseSet 未提升为 serving；其 route lineage 和 policy LKG 查询结果保持不变；这些结果不能作为全局迁移完成证明。
 
 Fugue 已经具备相当一部分基础设施：`PlatformArtifact` 已有 generation、content hash、签名、验证状态、release channel、fencing token 和 LKG；Edge 与 DNS 也有签名校验、本地缓存和过期控制。
 
@@ -2316,3 +2316,15 @@ anonymous/missing-id/unknown-id/generation-alias/wrong-kind: 401/400/404/409/409
 - [x] 两个生产节点的 UDP/TCP 正常 A、已有名称 NODATA、apex NODATA 探测通过；可信 shadow heartbeat、API/Guardian 正常。shadow ReleaseSet、route lineage 和 policy LKG 查询与发布前一致。没有在生产主动制造竞态或故障，竞态修复由本地 interleaving/race 回归证明。
 
 证据：[dns-snapshot-index-2026-09-14.json](verification/dns-snapshot-index-2026-09-14.json)。后续迁移仍由 DNS placement、release observation 修复与全量输出等价验证阻塞，不能将这些 DNS consumer 修复当作五层架构已完全接管 serving。
+
+### P0-BJ：应用 DNS 期望配置与 placement 分离
+
+- [x] `DNSApplicationIntent` 保存 FUGUE_APP 的 IP family、TTL、fallback 策略；迁移草稿将唯一同租户应用名称解析为稳定 app ID，Values 只保存该 ID，不复制已选择的地址或 readiness。
+- [x] 配置校验要求 canonical app/tenant ID、准确 Values 引用及同 hostname 的 route owner；拒绝不完整绑定、跨租户、冲突 IP family、混用 flatten/expiration，以及与 A/AAAA/CNAME/ALIAS/ANAME 的地址来源冲突。
+- [x] 应用 DNS 配置可创建并验证为 immutable intent；wire 校验和 compiler 在 placement resolver 尚未完成时继续明确拒绝，不把应用 ID 当作 DNS 地址或生成空 artifact。
+- [x] normalization 深拷贝应用 DNS policy，修改期望策略产生新的 intent generation；16 类非法输入、名称歧义、来源保真与完整 `make test` 通过。
+- [x] backend `e6abe55d10e4e47e2931231f6434641e69943500`、CI `34862201247` 成功，仅发布 API；web `6639986c15dbd35d920f0a1b03845c3f940502bb`、contract-drift `34862418114` 成功。
+- [x] 生产 API generation 1006、2/2 Ready、Guardian stable、健康/就绪 200；合法候选 intent 验证成功，7 类非法候选验证返回 409，未解析编译返回 400。当前 132 条 route、1 条应用 DNS 的草稿已消除 `intent_requires_validation_repair`，shadow ReleaseSet、route lineage 和 policy LKG 查询不变。验证新增 8 份候选 intent，均未 promotion。
+- [ ] 从固定 edge inventory、route-ready/TLS-ready 证据解析应用与平台 DNS placement，绑定 input digest、原始证据时间和 policy；补齐发布一致性与全量输出等价后再推进 consumer gray/full。当前 `migration_ready=false`，剩余 4 个 issue 为应用/平台 DNS placement 与 release facts/等价验证。
+
+证据：[dns-application-intent-2026-09-14.json](verification/dns-application-intent-2026-09-14.json)。
