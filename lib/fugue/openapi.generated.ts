@@ -358,6 +358,13 @@ export interface paths {
      */
     post: operations["compilePlatformConfigFromArtifacts"];
   };
+  "/v1/admin/platform-config/routes/compare": {
+    /**
+     * Compare Business Route Projection with a Signed Artifact
+     * @description Read-only migration diagnostic for platform administrators. Captures the current legacy business projection and compares its route semantics, TLS allowlist and cache policies with one exact validated global route artifact. This is not a serving verification, an atomic business database snapshot, or authorization to promote. No artifacts, releases, LKG or business records are written.
+     */
+    get: operations["comparePlatformRouteMigration"];
+  };
   "/v1/admin/platform-config/import-env/preview": {
     /** Preview Legacy Environment Import */
     get: operations["previewPlatformConfigEnvironmentImport"];
@@ -10574,6 +10581,26 @@ export interface components {
       /** @enum {string} */
       relation: "requires";
     };
+    PlatformRouteMigrationComparison: {
+      artifact_id: string;
+      artifact_digest: string;
+      artifact_generation: string;
+      source_generation: string;
+      /** Format: date-time */
+      captured_at: string;
+      source_route_count: number;
+      artifact_route_count: number;
+      matching_route_count: number;
+      equivalent: boolean;
+      differences: ({
+          hostname: string;
+          path_prefix: string;
+          /** @enum {string} */
+          kind: "missing_from_artifact" | "extra_in_artifact" | "changed";
+          fields: string[];
+        })[];
+      snapshot_differences: ("tls_allowlist" | "cache_policies")[];
+    };
     PlatformRuntimeSnapshot: {
       intent_generation: string;
       policy_generation: string;
@@ -12768,6 +12795,50 @@ export interface operations {
         };
       };
       /** @description Input artifact storage is temporarily unavailable. */
+      503: {
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"];
+        };
+      };
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
+  /**
+   * Compare Business Route Projection with a Signed Artifact
+   * @description Read-only migration diagnostic for platform administrators. Captures the current legacy business projection and compares its route semantics, TLS allowlist and cache policies with one exact validated global route artifact. This is not a serving verification, an atomic business database snapshot, or authorization to promote. No artifacts, releases, LKG or business records are written.
+   */
+  comparePlatformRouteMigration: {
+    parameters: {
+      query: {
+        artifact_id: string;
+      };
+    };
+    responses: {
+      /** @description Semantic comparison of the captured business projection and verified artifact projection. */
+      200: {
+        content: {
+          "application/json": components["schemas"]["PlatformRouteMigrationComparison"];
+        };
+      };
+      /** @description An exact artifact ID is required. */
+      400: {
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"];
+        };
+      };
+      /** @description Artifact not found. */
+      404: {
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"];
+        };
+      };
+      /** @description Artifact is untrusted, incompatible, or not a validated global route artifact. */
+      409: {
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"];
+        };
+      };
+      /** @description Storage or the business projection is unavailable or invalid. */
       503: {
         content: {
           "application/json": components["schemas"]["ErrorResponse"];
