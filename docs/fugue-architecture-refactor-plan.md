@@ -2160,3 +2160,16 @@ anonymous/missing-id/unknown-id/generation-alias/wrong-kind: 401/400/404/409/409
 - [ ] 完成事务内业务快照、PolicySnapshot 投影、8 条加权 release 的 desired/fact 分离，以及 DNS/TLS 输出；当前 `migration_ready` 必须继续为 false。
 
 首版 `054ad367` 虽返回 130 条 route，但存在 group mode 映射错误和观测时间被重新赋值的问题，未作为迁移完成证据；以上修复后才验收草稿诊断。生产证据见 [business-intent-draft-2026-09-14.json](verification/business-intent-draft-2026-09-14.json)。
+
+### P0-AV：业务输入事务快照
+
+- [x] 新增 `RouteBusinessSnapshot`，一次读取 Apps、verified Domains、ProjectRouteTables、Runtimes、EdgeRoutePolicies、AppReleases、TrafficPolicies。
+- [x] PostgreSQL 使用只读 `REPEATABLE READ` 事务并记录 `pg_current_snapshot()` revision；文件存储在同一 state lock 内复制并计算 revision。
+- [x] snapshot 完成深拷贝和稳定排序，过滤 deleted/pending 业务记录，不让后续调用读取到更新中的半套数据。
+- [x] 草稿接口返回 `business_snapshot_revision`、`business_snapshot_at`；transaction snapshot 缺口从 issues 移除，仍保持 `migration_ready=false`。
+- [x] 覆盖文件存储隔离、取消、数据库错误回滚及真实 PostgreSQL 并发写入的一致性测试；完整 `make test` 通过。
+- [x] 后端 commit `a213b48db4f9f62494cba86b4aef3b9749d4729a`，CI `34812191553` 成功；前端 contract-drift `34812235896`（commit `2d5c3ef1`）成功。
+- [x] 生产 API generation 992，两个副本 Ready，健康/就绪 200；返回 `postgres:50637113:50637113:` snapshot revision，130 route、128 origin，旧 artifact/LKG 与 shadow ReleaseSet 不变。
+- [ ] 将 PolicySnapshot、TLS/DNS、AppRelease/TrafficPolicy 的完整 desired/fact 投影纳入同一迁移流程；当前不可直接 compile/promote。
+
+生产证据见 [business-snapshot-2026-09-14.json](verification/business-snapshot-2026-09-14.json)。
