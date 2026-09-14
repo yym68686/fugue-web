@@ -18,6 +18,7 @@ export type AppShellUser = {
 type NavDef = { href: string; labelKey: string; icon: React.ReactNode };
 
 const consoleNav: NavDef[] = [
+  { href: "/storage", labelKey: "Object storage", icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 4 16 4 16 0V5M4 12c0 4 16 4 16 0"/></svg> },
   {
     href: "/projects",
     labelKey: "Projects",

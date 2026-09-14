@@ -5,6 +5,7 @@ import { PAGE_RETURN_TO_HEADER } from "@/lib/auth/page-request-context";
 
 const CONSOLE_PREFIXES = [
   "/projects",
+  "/storage",
   "/keys",
   "/servers",
   "/billing",
@@ -39,5 +40,5 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/projects/:path*", "/keys/:path*", "/servers/:path*", "/billing/:path*", "/admin/:path*"],
+  matcher: ["/storage/:path*", "/projects/:path*", "/keys/:path*", "/servers/:path*", "/billing/:path*", "/admin/:path*"],
 };

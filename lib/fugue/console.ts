@@ -2050,3 +2050,38 @@ export async function deleteProject(
     `/v1/projects/${encodeURIComponent(projectId)}${query}`,
   );
 }
+
+// Object storage types come from the authoritative Fugue API contract.
+export type ObjectStore = import("./openapi.generated").components["schemas"]["ObjectStore"];
+export type ObjectStorageCredential = import("./openapi.generated").components["schemas"]["ObjectStorageCredential"];
+export async function listObjectStores(key: string) {
+  return fugueGet<{stores: ObjectStore[]}>(key, "/v1/object-stores");
+}
+export async function listObjectStoreCredentials(key: string, id: string) {
+  return fugueGet<{credentials: ObjectStorageCredential[]}>(key, `/v1/object-stores/${encodeURIComponent(id)}/credentials`);
+}
+export async function mutateObjectStore(key: string, action: string, body: Record<string, unknown>) {
+  const id = typeof body.id === "string" ? body.id : "";
+  const base = `/v1/object-stores/${encodeURIComponent(id)}`;
+  switch (action) {
+    case "create": return fugueSend(key, "POST", "/v1/object-stores", {project_id: body.project_id, name: body.name, quota_bytes: body.quota_bytes ?? 0});
+    case "update": return fugueSend(key, "PATCH", base, {enabled: body.enabled, quota_bytes: body.quota_bytes});
+    case "measure": return fugueSend(key, "POST", `${base}/usage`);
+    case "revoke": return fugueSend(key, "DELETE", `${base}/credentials/${encodeURIComponent(String(body.credential_id))}`);
+    case "bind": {
+      const appId = String(body.app_id);
+      const conn = await fugueSend<import("./openapi.generated").components["schemas"]["ObjectStorageConnection"]>(key, "POST", `${base}/credentials`, {app_id: appId, name: body.name, permission: body.permission});
+      await patchAppEnv(key, appId, {set: {S3_ENDPOINT: conn.endpoint, S3_BUCKET: conn.bucket, AWS_REGION: conn.region, AWS_ACCESS_KEY_ID: conn.access_key_id, AWS_SECRET_ACCESS_KEY: conn.secret_access_key}, delete: []});
+      return {credential: conn.credential, bound: true};
+    }
+    default: throw new Error("400 Unknown storage action");
+  }
+}
+
+export async function getObjectStorageChoices(key: string) {
+  const [projects, apps] = await Promise.all([
+    fugueGet<{projects: {id:string;name:string}[]}>(key, "/v1/projects"),
+    fugueGet<{apps: {id:string;name:string;project_id:string}[]}>(key, "/v1/apps?view=summary&include_resource_usage=false&include_live_status=false"),
+  ]);
+  return {projects: projects.projects.map(p=>({id:p.id,name:p.name})), apps: apps.apps.map(a=>({id:a.id,name:a.name,project_id:a.project_id}))};
+}
