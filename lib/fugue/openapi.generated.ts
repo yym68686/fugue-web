@@ -10549,7 +10549,9 @@ export interface components {
       deployment_generation?: string;
     };
     PlatformConfigDNSIntent: {
+      flatten?: components["schemas"]["PlatformDNSFlattenIntent"];
       hostname: string;
+      /** @description Only wire DNS types can be compiled. Symbolic FUGUE_APP, ALIAS and ANAME records require a resolver and are rejected. */
       type: string;
       values: string[];
       /** Format: int32 */
@@ -10562,6 +10564,15 @@ export interface components {
       tenant_id?: string;
       edge_group_id?: string;
       fallback_edge_group_id?: string;
+    };
+    /** @description Desired flatten configuration. Compilation requires a flatten resolver; unresolved configuration is rejected. */
+    PlatformDNSFlattenIntent: {
+      mode: string;
+      target: string;
+      ipv4_policy: string;
+      ipv6_policy: string;
+      ttl_policy: string;
+      fallback_policy: string;
     };
     PlatformConfigTLSIntent: {
       hostname: string;
@@ -10682,6 +10693,13 @@ export interface components {
       snapshot_differences: ("tls_allowlist" | "cache_policies")[];
     };
     PlatformIntentProjectionResponse: {
+      /** @description Captured source rows excluded from the draft, with identities and reasons. Deleted or suspended zones never re-enter serving intent. */
+      dns_exclusions: {
+          record_id: string;
+          zone_id: string;
+          hostname: string;
+          reason: string;
+        }[];
       business_snapshot_revision: string;
       /** Format: date-time */
       business_snapshot_at: string;
