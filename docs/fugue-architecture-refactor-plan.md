@@ -2170,6 +2170,8 @@ anonymous/missing-id/unknown-id/generation-alias/wrong-kind: 401/400/404/409/409
 - [x] 覆盖文件存储隔离、取消、数据库错误回滚及真实 PostgreSQL 并发写入的一致性测试；完整 `make test` 通过。
 - [x] 后端 commit `a213b48db4f9f62494cba86b4aef3b9749d4729a`，CI `34812191553` 成功；前端 contract-drift `34812235896`（commit `2d5c3ef1`）成功。
 - [x] 生产 API generation 992，两个副本 Ready，健康/就绪 200；返回 `postgres:50637113:50637113:` snapshot revision，130 route、128 origin，旧 artifact/LKG 与 shadow ReleaseSet 不变。
+- [x] 生产前驱刷新复查：commit `f7f91e83fe4c6e60f9743d2c7f19079e424c4bf8`，API generation 993，snapshot revision `postgres:50641879:50641879:`，130 route、128 origin，健康/就绪 200；旧 artifact/LKG 与 shadow ReleaseSet 仍不变。
 - [ ] 将 PolicySnapshot、TLS/DNS、AppRelease/TrafficPolicy 的完整 desired/fact 投影纳入同一迁移流程；当前不可直接 compile/promote。
 
 生产证据见 [business-snapshot-2026-09-14.json](verification/business-snapshot-2026-09-14.json)。
+前驱刷新复查证据见 [business-snapshot-predecessor-refresh-2026-09-14.json](verification/business-snapshot-predecessor-refresh-2026-09-14.json)。
