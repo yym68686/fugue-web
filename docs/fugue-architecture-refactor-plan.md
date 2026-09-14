@@ -32,7 +32,7 @@ Runtime Facts / ACK / LKG
 
 ## 当前状态判断
 
-2026-09-14 生产核查：API 已运行 commit `e4a98ce9`（generation 1003，compiler v10）；Guardian 已运行 `42ba6b41`。业务迁移草稿包含 130 条 route、15 条 DNS 输入和 8 份 release observations；13 条静态 DNS 与来源逐条一致，已删除 zone 的 1 条记录明确排除。加权 compiler 与 DNS wire 校验通过本地、CI 和生产验证。仍未完成动态 DNS placement、ACME/flatten、TLS readiness、真实 release facts 修复、全量等价以及 consumer gray/full 接管。现有 shadow ReleaseSet 与 serving/LKG 未切换；这些结果不能作为全局迁移完成证明。
+2026-09-14 生产核查：API 已运行 commit `7f214a78`（generation 1005，compiler v11）；美洲和德国 DNS/edge consumers 均已运行该 commit；Guardian 已运行 `42ba6b41`。业务迁移草稿包含 130 条 route、15 条 DNS 输入和 8 份 release observations；13 条静态 DNS 与来源逐条一致，已删除 zone 的 1 条记录明确排除。加权 compiler 与 DNS wire 校验通过本地、CI 和生产验证。仍未完成动态 DNS placement、ACME/flatten、TLS readiness、真实 release facts 修复、全量等价以及 consumer gray/full 接管。现有 shadow ReleaseSet 与 serving/LKG 未切换；这些结果不能作为全局迁移完成证明。
 
 Fugue 已经具备相当一部分基础设施：`PlatformArtifact` 已有 generation、content hash、签名、验证状态、release channel、fencing token 和 LKG；Edge 与 DNS 也有签名校验、本地缓存和过期控制。
 
@@ -2280,3 +2280,15 @@ anonymous/missing-id/unknown-id/generation-alias/wrong-kind: 401/400/404/409/409
 - [ ] DNS consumer 支持逐值 expiration、空权威 RRset 和 ACME serving 后，才可解除 gray/full 门并完成真实业务 challenge 的端到端验证；当前生产草稿 challenge 数为 0。
 
 证据：[acme-expiration-2026-09-14.json](verification/acme-expiration-2026-09-14.json)。
+
+### P0-BG：DNS consumer 逐值到期过滤与 LKG 恢复
+
+- [x] `EdgeDNSRecord.ValueExpirations` 纳入签名内容；consumer 在编译校验、缓存加载和每次查询时按绝对到期时间过滤 TXT value，并按最早剩余租期限制 TTL。
+- [x] 过期 value 不会通过缓存续租；全部 value 过期时返回权威空 RRset 语义，保留签名 bundle 和 verified LKG，不改写 serving cache。
+- [x] DNS consumer 校验 PlatformIntent/PolicySnapshot lineage、artifact metadata、ReleaseSet 绑定和 DNS wire 编码；不支持到期语义的 consumer 仍被 gray/full promotion 与 rollback 保护门拒绝。
+- [x] 到期事实写入 autonomy WAL，只记录 record identity、数量和 evidence digest，不记录 challenge token；重复事实有时间窗口去重。
+- [x] `make test` 与 DNS 到期/LKG/WAL/篡改签名回归通过；backend `7f214a78d6e827f247ad098c41c942820aa720df`、CI `34853240238` 成功；web `fd581ee77ad6caa04541d2e4c63c09674d239191`、contract-drift `34853332420` 成功。
+- [x] 生产 API、US/DE DNS 与 SSH-front workloads 均运行 `7f214a78`，Ready 且无重启；两个 DNS consumer 对现有 shadow artifact 均报告 `shadow_verified`、可信 heartbeat `staged/shadow_validated`，原 serving generation 未切换，API/Guardian 健康。
+- [ ] 生产尚无真实 ACME challenge（当前草稿 challenge 数为 0），因此真实公网 challenge 的逐值过期 serving E2E 与解除 promotion 保护门继续留待业务输入存在后验证。
+
+证据：[dns-consumer-expiring-values-2026-09-14.json](verification/dns-consumer-expiring-values-2026-09-14.json)。
