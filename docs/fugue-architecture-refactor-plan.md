@@ -2127,7 +2127,7 @@ anonymous/missing-id/unknown-id/generation-alias/wrong-kind: 401/400/404/409/409
 - [x] cache policy ID 唯一且受限于支持的 kind、TTL、path/method/status/vary/header 字段；route 引用必须存在且非 disabled policy 必须有 namespace。
 - [x] request-body policy 复用严格 parser，要求 canonical 方法/path、显式 retry-after 和现有大小、超时、并发边界。
 - [x] artifact route payload 携带 cache policies；artifact projection 与 Edge Control 保留 cache、namespace、deployment generation 和 request-body 语义，不混入 runtime facts。
-- [x] 后端全仓 `make test`、CI `34805584061`、API deploy、前端 contract-drift `34804171546` 通过。
+- [x] 后端全仓 `make test`、CI `34805584061`、API deploy、前端 contract-drift `34805613342`（commit `ac92b648`）通过。
 - [x] 生产验证：API generation 988，v5 编译器连续三次 replay digest 相同；cache policy、namespace、deployment generation、request-body policy 完整保留，健康/就绪均 200，shadow ReleaseSet 未变化，候选未发布。
 - [ ] 将真实业务 AppRelease、cache policy 和 ingress policy 全量投影进 PlatformIntent，完成 route/DNS/TLS 等价后再推进灰度。
 
@@ -2140,8 +2140,23 @@ anonymous/missing-id/unknown-id/generation-alias/wrong-kind: 401/400/404/409/409
 - [x] 按 `PolicySnapshot.max_stale_seconds` 拒绝过期 observation，拒绝未来时间、重复 ref、缺失 ref 和非法状态。
 - [x] unavailable/disabled observation 只影响新 artifact 的可服务状态，不会改写 intent/policy；恢复 observation 只重编译 artifact。
 - [x] artifact projection 保留 runtime identity 与固定 observation 结果，避免 executor 重新读取 mutable business/runtime 表。
-- [x] 后端全仓 `make test`、CI `34807438317`、API deploy 和前端 contract-drift `34806360394` 通过。
+- [x] 后端全仓 `make test`、CI `34807438317`、API deploy 和前端 contract-drift `34807463873`（commit `d46ba44a`）通过。
 - [x] 生产 v6 验证：intent/policy digest 在 unavailable 与 active observation 间稳定，runtime snapshot digest 和 artifact 随事实变化；缺失、future、stale、runtime mismatch 均返回 400，候选未发布。
 - [ ] 将生产业务表的 route/upstream/cache/request-body/TLS/DNS 输入一次性冻结为完整 typed intent + runtime snapshot，并完成跨 artifact 等价比较。
 
 生产证据见 [platform-intent-origin-snapshot-2026-09-14.json](verification/platform-intent-origin-snapshot-2026-09-14.json)。
+
+### P0-AU：业务迁移草稿与原始证据时间
+
+- [x] 新增只读管理员 `GET /v1/admin/platform-config/routes/project`，返回完整 route 清单的迁移草稿、独立 origin observations 和明确的迁移缺口。
+- [x] 应用 enabled/runtime 来自 desired spec；不从观测健康状态推导 enabled，不把运行时选择的 upstream/权重冒充 desired intent。
+- [x] origin ref 绑定 hostname/path/app/runtime，插入其他 route 不改变已有引用；group mode 映射到合法 PlatformIntent 枚举。
+- [x] 同一次业务读取保留 desired app 和 observation overlay，使用原始 `ObservedAt`；缺失或陈旧证据不会被请求时间更新为“新鲜”。
+- [x] `migration_ready=false` 与 `issues` 明确标识事务快照、policy、DNS/TLS 和 release 权重等尚未完成的迁移；草稿不等于可发布配置。
+- [x] 本地认证、无写入、故障时 intent 稳定、原始观察时间、引用稳定性和平台维护配置测试通过；完整 `make test` 通过。
+- [x] 后端 commit `e053484ea46975ecc442275011056136de41d631`，CI `34810431303` attempt 2 成功；attempt 1 因 Docker Hub token endpoint 连接重置失败，未部署。前端 commit `745be647`、contract-drift `34810501780` 成功。
+- [x] 生产 API generation 991，image `sha256:b5d66374fe1ec415e69dac8933a17561bf3025a01c8d5256429d0c2016b36db4`；两个副本 Ready、0 重启，Guardian stable，健康/就绪 200。
+- [x] 生产草稿包含 130 route、128 app route、128 origin，原始 observation 时间保留，旧 route artifact/LKG 和 shadow ReleaseSet 不变。
+- [ ] 完成事务内业务快照、PolicySnapshot 投影、8 条加权 release 的 desired/fact 分离，以及 DNS/TLS 输出；当前 `migration_ready` 必须继续为 false。
+
+首版 `054ad367` 虽返回 130 条 route，但存在 group mode 映射错误和观测时间被重新赋值的问题，未作为迁移完成证据；以上修复后才验收草稿诊断。生产证据见 [business-intent-draft-2026-09-14.json](verification/business-intent-draft-2026-09-14.json)。
