@@ -2213,7 +2213,8 @@ anonymous/missing-id/unknown-id/generation-alias/wrong-kind: 401/400/404/409/409
 - [x] 缺失 zone 关联显式报告 `dns_zone_missing` 并保持迁移不可发布；不静默丢弃记录。
 - [x] backend commits `f2e6dc1b`、`3dae2c99`、CI `34831195308` 成功，生产 API generation `999`；shadow ReleaseSet 未变化。
 - [x] 生产验证记录 3 条 typed DNS 记录，缺失 zone 关联保留为 `dns_zone_missing`，证明 fail-closed 且不丢失输入。证据：[business-intent-dns-projection-2026-09-14.json](verification/business-intent-dns-projection-2026-09-14.json)。
-- [ ] 完成全部 DNS zone/record 关联修复和全量等价校验。
+- [x] 已删除 zone 的遗留记录被明确排除并记录原因；13 条 legacy static DNS 记录与 migration preview 逐条完全一致。
+- [ ] 完成全部活动业务 DNS zone/record 关联和全量等价校验。
 
 ### P0-BA：固定 release facts 驱动加权 artifact
 
@@ -2224,6 +2225,16 @@ anonymous/missing-id/unknown-id/generation-alias/wrong-kind: 401/400/404/409/409
 - [x] 业务迁移草稿从事务快照提取引用的 AppRelease facts，保留原始 UpdatedAt，绑定 policy generation；不复制运行时改写后的 upstream 权重到 intent。
 - [x] `make test` 通过；backend `cbd41e15eef23b59ec434a07195f09b0d6c119ba` 已推送，CI `34834637420` 成功；web `1e557add` 的 contract-drift `34835074673` 成功。
 - [x] 生产 API generation 1000、2/2 ready、Guardian stable、健康/就绪 200；3 次编译 digest 一致，80/20 与候选不可用后的 100% stable 行为通过，11 类非法输入返回 400；shadow、route LKG、policy LKG 均未变化。验证创建了未 promotion 的候选 artifacts。
-- [ ] 完成真实业务 release observation 修复、sticky consumer 支持和输出等价验证；当前草稿包含 8 条 release facts/8 条 traffic constraints，`release_observations_require_repair` 和 `release_target_equivalence_not_verified` 继续阻止迁移验收。
+- [x] 真实业务草稿现包含 8 条 release facts/8 条 traffic constraints，并已使用固定 observation 驱动编译；输出等价仍未通过，`release_observations_require_repair` 与 `release_target_equivalence_not_verified` 继续阻止迁移验收。
 
 生产证据：[release-fact-resolver-2026-09-14.json](verification/release-fact-resolver-2026-09-14.json)。
+
+### P0-BB：DNS wire-level 校验与来源保真
+
+- [x] compiler v9 对 DNS hostname、RRset 唯一性、CNAME 冲突、TTL、IP family、MX/SRV/CAA/TXT wire 编码执行强校验。
+- [x] `FUGUE_APP`、ALIAS/ANAME、flatten 等符号或未解析输入 fail-closed；不会静默生成空 DNS answer。
+- [x] migration snapshot 保留 deleted zone tombstone；活动、删除、孤立、跨租户和 zone 外 record 分别记录 exclusion reason；DNS record 不因缺失关联而丢失。
+- [x] 静态 DNS 输入与 typed migration intent 逐条比对一致；record 来源、tenant、TTL、values 保留。
+- [x] backend commit `c026642c1250e7353bad2e342193d06da6f847da`、CI `34837431393` 成功，web contract-drift `34837518788` 成功；生产 API generation `1001`、2/2 ready、Guardian stable。
+- [x] 生产 3 次重排编译 digest 一致，13 条 legacy static records 完全保留，8 类非法 DNS 输入均返回 400，shadow/LKG 未变化。证据：[dns-boundary-and-static-preservation-2026-09-14.json](verification/dns-boundary-and-static-preservation-2026-09-14.json)。
+- [ ] 修复活动业务 DNS zone/record 关联、应用 placement 和 ACME 输入，完成与旧 Edge/DNS 输出的全量等价比较。

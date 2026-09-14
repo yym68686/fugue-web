@@ -1,0 +1,45 @@
+{
+  "observed_at": "2026-09-14T11:27:33.504700+00:00",
+  "production_commit": "c026642c1250e7353bad2e342193d06da6f847da",
+  "api_generation": 1001,
+  "image": "ghcr.io/yym68686/fugue-api@sha256:006c86fb740c33475d1839c20525149642a8c67d90884ff6b32f1b3734532e84",
+  "compiler_version": "platform-config-compiler/v9",
+  "replay_count": 3,
+  "reordered_RRsets_same_digest": true,
+  "TXT_bytes_preserved": true,
+  "negative_cases": {
+    "app_binding": 400,
+    "flatten": 400,
+    "wrong_address_family": 400,
+    "bad_MX": 400,
+    "empty_value": 400,
+    "invalid_TTL": 400,
+    "CNAME_conflict": 400,
+    "duplicate_RRset": 400
+  },
+  "draft_dns_count": 15,
+  "app_reference_correct": true,
+  "dns_exclusions_by_reason": {
+    "dns_zone_deleted": 1
+  },
+  "migration_ready": false,
+  "issues_by_code": {
+    "dns_acme_not_projected": 1,
+    "dns_app_placement_not_projected": 1,
+    "dns_route_placement_not_projected": 1,
+    "intent_requires_validation_repair": 1,
+    "release_target_equivalence_not_verified": 1,
+    "release_observations_require_repair": 1
+  },
+  "shadow_release_unchanged": true,
+  "route_lkg_unchanged": true,
+  "policy_lkg_unchanged": true,
+  "candidate_artifacts_persisted": true,
+  "candidate_promoted": false,
+  "ready_replicas": 2,
+  "guardian_state": "stable",
+  "health_status": 200,
+  "ready_status": 200,
+  "static_source_record_count": 13,
+  "static_records_preserved_exactly": true
+}
