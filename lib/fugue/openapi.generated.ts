@@ -10589,6 +10589,38 @@ export interface components {
       canary_weights?: number[];
       dependency_order?: string[];
       constraint_graph?: components["schemas"]["PlatformConstraintGraph"];
+      route_constraints?: components["schemas"]["PlatformRoutePolicyConstraint"][];
+      /** @description Draft release constraints. Compilation refuses nonempty traffic constraints until the release fact resolver is available; they are never silently ignored. */
+      traffic_constraints?: components["schemas"]["PlatformTrafficPolicyConstraint"][];
+    };
+    PlatformRoutePolicyConstraint: {
+      id: string;
+      hostname: string;
+      app_id?: string;
+      tenant_id?: string;
+      /** @description Compilation refuses nonempty placement constraints until DNS placement resolution is available. */
+      edge_group_id?: string;
+      excluded_edge_ids?: string[];
+      excluded_edge_group_ids?: string[];
+      exclusion_reason?: string;
+      /** Format: date-time */
+      exclusion_expires_at?: string | null;
+      min_healthy_edge_nodes?: number;
+      /** @enum {string} */
+      route_policy: "route_a_only" | "edge_canary" | "edge_enabled";
+      enabled: boolean;
+    };
+    PlatformTrafficPolicyConstraint: {
+      id: string;
+      app_id: string;
+      /** @enum {string} */
+      mode: "single" | "canary" | "weighted" | "paused";
+      stable_release_id?: string;
+      candidate_release_id?: string;
+      stable_weight: number;
+      candidate_weight: number;
+      sticky_header?: string;
+      sticky_cookie?: string;
     };
     PlatformConstraintGraph: {
       nodes?: string[];
