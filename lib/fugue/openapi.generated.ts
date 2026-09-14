@@ -10500,6 +10500,8 @@ export interface components {
       service_port?: number;
       /** @description Explicit streaming preference; omitted preserves legacy streaming behavior. */
       streaming?: boolean;
+      /** @description Ordered desired weighted targets. Weights are percentages and must total 100. The existing upstream_url remains the explicit fallback. Observed health/status is not accepted as intent. */
+      upstreams?: components["schemas"]["PlatformConfigUpstreamIntent"][];
       enabled: boolean;
       edge_group_id?: string;
       kind?: string;
@@ -10515,6 +10517,19 @@ export interface components {
       status_reason?: string;
       /** Format: int32 */
       ttl?: number;
+    };
+    PlatformConfigUpstreamIntent: {
+      role?: string;
+      release_id?: string;
+      weight: number;
+      /** @enum {string} */
+      upstream_kind?: "kubernetes-service" | "mesh";
+      /** @enum {string} */
+      upstream_scope?: "local-service" | "cluster" | "mesh";
+      upstream_url: string;
+      service_port?: number;
+      runtime_id?: string;
+      deployment_generation?: string;
     };
     PlatformConfigDNSIntent: {
       hostname: string;
