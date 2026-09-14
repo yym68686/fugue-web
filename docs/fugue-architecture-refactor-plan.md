@@ -2175,3 +2175,14 @@ anonymous/missing-id/unknown-id/generation-alias/wrong-kind: 401/400/404/409/409
 
 生产证据见 [business-snapshot-2026-09-14.json](verification/business-snapshot-2026-09-14.json)。
 前驱刷新复查证据见 [business-snapshot-predecessor-refresh-2026-09-14.json](verification/business-snapshot-predecessor-refresh-2026-09-14.json)。
+
+### P0-AW：PolicySnapshot 约束投影与编译执行
+
+- [x] 将业务 route policy 与 traffic policy 投影为强类型 `PolicySnapshot.RouteConstraints` / `TrafficConstraints`；投影只复制期望约束，不复制 runtime evidence、checked-at 或 owner digest。
+- [x] route 约束在 deterministic compiler 中应用到 artifact：route policy、enabled、最小健康 edge、排除 edge、原因与过期时间均进入 artifact；输入对象保持不变。
+- [x] 对未具备 resolver 的 traffic/release 约束和 edge-group/DNS placement 约束 fail-closed，编译返回 400，不静默忽略。
+- [x] policy rule 数量、hostname、owner、权重、模式、排除列表和过期字段均执行边界校验；规范化排序保证 replay digest 稳定。
+- [x] backend commit `1003dc0e071c32214f3affbc7b8ecb90796726db` 已推送 `main`；GitHub Actions CI `34818322239` 成功，API 已生产运行 `platform-config-compiler/v7`。
+- [x] web OpenAPI 同步 commit `c562e5228260e7ffc9a7182d16f2a0df67c53217` 已推送；contract-drift `34818528103` 成功。
+- [x] 生产验证：连续 3 次相同输入得到相同 artifact digest；route 约束正确产生 disabled、`route_a_only`、最小健康数和 edge 排除；未支持 traffic/edge-group 约束均返回 400；shadow ReleaseSet 未变化；API generation `994`、2/2 replicas、`/healthz` 与 `/readyz` 均正常。证据：[platform-policy-constraints-2026-09-14.json](verification/platform-policy-constraints-2026-09-14.json)。
+- [ ] 完成 release fact resolver 与 DNS placement resolver 后，再分别启用 traffic constraint 和 edge-group constraint 的 artifact 编译与生产 shadow 验证。
