@@ -2306,3 +2306,13 @@ anonymous/missing-id/unknown-id/generation-alias/wrong-kind: 401/400/404/409/409
 证据：[dns-wire-contract-2026-09-14.json](verification/dns-wire-contract-2026-09-14.json)。
 
 补充证据：[dns-snapshot-index-2026-09-14.json](verification/dns-snapshot-index-2026-09-14.json)。协议依据：[RFC 2308](https://www.rfc-editor.org/rfc/rfc2308.html)、[RFC 2782](https://www.rfc-editor.org/rfc/rfc2782.html)、[RFC 7505](https://www.rfc-editor.org/rfc/rfc7505.html)。
+
+### P0-BI：DNS 查询与发布快照一致性
+
+- [x] 消费者在同一个锁内读取 bundle 与其 immutable index，查询和到期 WAL 共用该快照；删除查询链路单独读取全局 index 的路径。
+- [x] 在查询获取快照之后插入一次新发布，A/TXT 查询仍返回旧快照的值，下一次查询再读取新值；修复测试中可稳定复现的索引越界 panic。
+- [x] authoritative zone apex 没有显式 RRset 时仍视为存在，返回 NODATA/SOA；缺失的非 apex 名称继续返回 NXDOMAIN。
+- [x] `go test -race ./internal/dnsserver`、完整 `make test`、精确发布计划通过；backend `db44b459f352d7f59a462265c473bd72f5410416`、CI `34857297271` 成功，US/DE DNS 与 SSH-front 已部署并 Ready。
+- [x] 两个生产节点的 UDP/TCP 正常 A、已有名称 NODATA、apex NODATA 探测通过；可信 shadow heartbeat、API/Guardian 正常。shadow ReleaseSet、route lineage 和 policy LKG 查询与发布前一致。没有在生产主动制造竞态或故障，竞态修复由本地 interleaving/race 回归证明。
+
+证据：[dns-snapshot-index-2026-09-14.json](verification/dns-snapshot-index-2026-09-14.json)。后续迁移仍由 DNS placement、release observation 修复与全量输出等价验证阻塞，不能将这些 DNS consumer 修复当作五层架构已完全接管 serving。
