@@ -1,0 +1,10 @@
+{
+  "backend_commit": "f2e6dc1bd1c43f7f60d822add04c92d1604dc969",
+  "ci_run": "34829713087",
+  "production_commit": "f2e6dc1bd1c43f7f60d822add04c92d1604dc969",
+  "intent_dns_count": 2,
+  "issues": ["dns_not_projected", "dns_zone_missing", "release_weights_not_projected"],
+  "fail_closed": true,
+  "shadow_unchanged": true,
+  "note": "Typed DNS projection is active; complete business equivalence is not claimed because one or more records lack a captured zone association."
+}

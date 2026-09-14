@@ -2203,4 +2203,14 @@ anonymous/missing-id/unknown-id/generation-alias/wrong-kind: 401/400/404/409/409
 - [x] declarative release predecessor 解析支持多个失败 preflight atom 后回到声明的祖先 verified LKG，仍要求精确 intent atom、祖先关系和部署时 Guardian LKG/image CAS 校验。
 - [x] backend commits `9d07dfb8`、`c4310f67`、`c619120a` 已推送；最终 CI `34827857272` 成功，生产 commit `c619120a822637c8c8b8c7153d84ecb690b238a5`、API generation `997`。
 - [x] 生产验证：草稿 130 route、128 app route/origin；TLS intent 已投影，issues 仅为 `dns_not_projected`、`release_weights_not_projected`；原始 observation 时间保留，route LKG/shadow ReleaseSet 未变化；2 Pod 零重启、Guardian stable、健康/就绪 200。证据：[business-intent-tls-projection-2026-09-14.json](verification/business-intent-tls-projection-2026-09-14.json)。
-- [ ] 完成 typed DNS record projection 与 weighted release fact resolver 后，才可移除对应 migration issues 并进入 ReleaseSet shadow。
+- [x] typed DNS record projection 已接入事务快照并在生产运行；发现 `dns_zone_missing` 时 fail-closed，未伪造完整等价。
+- [ ] 修复遗留 DNS zone/record 关联并完成全量 DNS 等价比较；在此之前保留 `dns_not_projected`。
+
+### P0-AZ：事务快照中的 typed DNS projection
+
+- [x] `RouteBusinessSnapshot` 同时捕获 hosted zones 与有效 DNS records；PostgreSQL 使用同一 repeatable-read 事务，文件存储使用同一锁。
+- [x] DNS record 规范化、排序并投影到 `PlatformIntent.DNS`，保留 type、values、TTL、source、tenant 语义。
+- [x] 缺失 zone 关联显式报告 `dns_zone_missing` 并保持迁移不可发布；不静默丢弃记录。
+- [x] backend commit `f2e6dc1bd1c43f7f60d822add04c92d1604dc969`、CI `34829713087` 成功，生产 API 已运行；shadow ReleaseSet 未变化。
+- [x] 生产验证记录 2 条 typed DNS 记录，issues 包含 `dns_zone_missing`，证明 fail-closed。证据：[business-intent-dns-projection-2026-09-14.json](verification/business-intent-dns-projection-2026-09-14.json)。
+- [ ] 完成全部 DNS zone/record 关联修复和全量等价校验。
