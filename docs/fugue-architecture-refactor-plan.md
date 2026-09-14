@@ -2106,3 +2106,16 @@ anonymous/missing-id/unknown-id/generation-alias/wrong-kind: 401/400/404/409/409
 - [ ] 继续迁移多 upstream、cache、请求体策略和 TLS/DNS 绑定；当前候选仍不能代表完整业务 serving。
 
 生产证据见 [platform-intent-route-paths-2026-09-14.json](verification/platform-intent-route-paths-2026-09-14.json)。
+
+### P0-AR：PlatformIntent 加权 upstream 语义
+
+- [x] 新增强类型 `UpstreamIntent`，承载 role、release、weight、URL、service port、upstream kind/scope、runtime 和 deployment 引用。
+- [x] upstream 只描述期望目标；不接受 health、probe、observed status 等 runtime fact。
+- [x] 限制最多 16 个目标，权重必须总计 100，拒绝重复选择身份、非法 HTTP URL、凭据/fragment、非法端口、未知 kind/scope。
+- [x] 保留 Edge weighted selector 使用的目标顺序；同一输入重放产生相同 artifact digest。
+- [x] 禁用/不可服务路由不会重新获得 upstream；artifact projection 不伪造 runtime status。
+- [x] 后端全仓 `make test`、CI `34803290544`、API deploy 和前端 OpenAPI contract check `34801473182` 通过。
+- [x] 生产验证：commit `0a999c8ab7922b33759ae9caa5a5c4f4545511b3` 已部署，编译器 v4 连续三次 digest 相同；80/20 stable/canary、release ID、service port 均保留；错误权重返回 400，候选未发布。
+- [ ] 将业务 AppRelease/TrafficPolicy 的完整 upstream 投影迁移到此模型，并完成真实 route/DNS/TLS 输出等价后才能推进灰度。
+
+生产证据见 [platform-intent-weighted-upstreams-2026-09-14.json](verification/platform-intent-weighted-upstreams-2026-09-14.json)。
