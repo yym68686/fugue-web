@@ -1,0 +1,43 @@
+{
+  "captured_at": "2026-09-15T14:05:38.12973456Z",
+  "app_id": "app_1781411982_650fede8ea9a",
+  "hostname": "review00.fugue.pro",
+  "controller_commit": "04dc1658d299aa144fcc250e5821ad0fa6faed8e",
+  "status": {
+    "phase": "failed",
+    "current_replicas": 0,
+    "last_message": "pod app-1781411982-650fede8ea9a-94cddcb4b-jbb26 on node ns101351 container review00 failed: Error: exit_code=1"
+  },
+  "observed_status": {
+    "phase": "failed",
+    "runtime_id": "runtime_managed_shared",
+    "desired_replicas": 1,
+    "ready_replicas": 0,
+    "runtime_object_present": true,
+    "namespace_present": true,
+    "service_present": true,
+    "endpoint_present": true,
+    "endpoint_ready": false,
+    "physical_replicas": 0,
+    "physical_desired_replicas": 1,
+    "image_ref": "registry.fugue.internal:5000/fugue-apps/review00:upload-b257783fdaee-build-op_1788714334_60ad5b2bcd27",
+    "fresh": true,
+    "observed_at": "2026-09-15T14:05:38.12973456Z",
+    "cluster_id": "1a08cd00-258e-44e6-a179-5d9d6fa8a1e9",
+    "generation": 131022,
+    "observed_generation": 131022,
+    "evidence_source": "kubernetes_api",
+    "evidence_sources": [
+      "kubernetes_api",
+      "image_location_store"
+    ],
+    "reason": "managed_app_error",
+    "message": "pod app-1781411982-650fede8ea9a-94cddcb4b-jbb26 on node ns101351 container review00 failed: Error: exit_code=1",
+    "invariant_violations": [
+      "endpoint_unready",
+      "physical_replicas_zero",
+      "desired_replicas_unready"
+    ]
+  },
+  "runtime_log_excerpt": "==> app-1781411982-650fede8ea9a-94cddcb4b-jbb26 <==\n{\"time\":\"2026-09-15T14:03:13.801945296Z\",\"level\":\"ERROR\",\"msg\":\"database ping error\",\"error\":\"failed to connect to `user=review00 database=review00`: 10.43.93.10:5432 (review00-db-postgres): dial error: dial tcp 10.43.93.10:5432: connect: connection refused\"}"
+}
