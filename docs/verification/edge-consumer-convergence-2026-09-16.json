@@ -1,0 +1,20 @@
+{
+  "verified_at": "2026-09-15T20:07:05.068090+00:00",
+  "generated_at": "2026-09-15T20:06:07.540789847Z",
+  "convergence": [
+    {
+      "artifact_kind": "edge_route_bundle",
+      "scope_key": "global",
+      "state": "fail",
+      "expected_generation": "route-915ca009dc70243f7b4a29462bd0844b9319c16e8c7f67a78cdafed488a3cadf",
+      "required_expected": 10,
+      "required_observed": 3,
+      "required_passing": 0,
+      "assessment_counts": {
+        "unknown": 7,
+        "fail": 3
+      }
+    }
+  ],
+  "interpretation": "Edge route consumer convergence is not complete; no full promotion or DNS answer switch is permitted. This is runtime evidence, not a reason to weaken proof or LKG gates."
+}

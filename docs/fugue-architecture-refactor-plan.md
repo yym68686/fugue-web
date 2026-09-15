@@ -2569,4 +2569,4 @@ P0-BK 验收范围说明：管理 SSH 通道在本轮核查时于密钥交换前
 - [x] 新增回归覆盖 digest mismatch 与诊断边界；完整 `make test` 通过。
 - [x] 后端 `15e9474b`、API intent generation 450 已发布；CI [35015498181](https://github.com/yym68686/fugue/actions/runs/35015498181) 成功，API 2/2 Ready。
 - [x] 生产 d-97 placement issue 已具体化为 `0-0.pro/:bundle_version_mismatch` 与 `api.0-0.pro/:digest_mismatch`；这证明剩余问题在 Edge bundle/proof reconciliation，未放宽 gate 或推进 DNS gray/full。证据：[placement-proof-diagnostics-2026-09-16.json](verification/placement-proof-diagnostics-2026-09-16.json)。
-- [ ] 修复实际 Edge bundle/proof 不一致，并完成 route/DNS/TLS 全量等价和 consumer convergence。
+- [ ] 修复实际 Edge bundle/proof 不一致，并完成 route/DNS/TLS 全量等价和 consumer convergence。当前 convergence API 记录 required 10、observed 3、passing 0；7 个 consumer heartbeat 缺失、3 个 consumer 的 generation/apply/probe 未通过，因此继续保持 gray/full 保护。证据：[edge-consumer-convergence-2026-09-16.json](verification/edge-consumer-convergence-2026-09-16.json)。
