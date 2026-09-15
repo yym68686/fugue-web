@@ -2413,7 +2413,8 @@ anonymous/missing-id/unknown-id/generation-alias/wrong-kind: 401/400/404/409/409
 - [x] backend `2b925c3bda48a5f78753a4fd91ecb467214f6b92`、CI `34914038259` 成功；生产 API 镜像 digest 为 `sha256:c329b57e76a3a0fccfb4884b0ecd78a6d764fd58b59eb596963218d76ebef925`，2/2 Ready，Guardian `stable` 且 local/dependency/route health 全部 healthy，`/healthz` 与 `/readyz` 均为 200。
 - [x] 恢复后 shadow ReleaseSet、route lineage、policy LKG 查询与已有基线完全一致；没有配置 promotion。placement 草稿为 133 routes、136 DNS intents、119 observations，保留 4 个 `dns_placement_route_inputs_invalid`、2 个 `dns_placement_evidence_requires_repair`、平台 DNS 与 release equivalence/freshness 缺口，`migration_ready=false`。policy LKG 仍为 404，该恢复能力尚未验收。
 - [x] 证据：[placement-proof-recovery-2026-09-15.json](verification/placement-proof-recovery-2026-09-15.json)。
-- [ ] 补充 collector 与实际 Edge Control 输出之间的回归，验证全局默认值、每路由覆盖和排除字段不会被二次投影改变；调查剩余业务输入/证明缺口，完成全量等价前不得解除 DNS gray/full 保护。
+- [x] 补充 collector 与实际 Edge Control 输出之间的回归，覆盖默认健康门槛 1、每路由覆盖 3 和排除字段，并验证已编译 release eligibility 不会在投影时丢失（P0-CC）。
+- [ ] 调查剩余业务输入/证明缺口，完成全量等价前不得解除 DNS gray/full 保护。
 
 ### P0-BS：Release fact 与 serving runtime 证据绑定
 
@@ -2518,3 +2519,14 @@ anonymous/missing-id/unknown-id/generation-alias/wrong-kind: 401/400/404/409/409
 证据：[dns-placement-compiler-2026-09-15.json](verification/dns-placement-compiler-2026-09-15.json)。
 
 P0-BK 验收范围说明：管理 SSH 通道在本轮核查时于密钥交换前关闭，实际镜像与 readiness 改由已授权 cluster API 和 CI 收据交叉核对。policy LKG 查询仍是原有 404，不等于已验证 policy 恢复。发布前全平台 release guard 已报告 152 项失败（以该次观测为准）；这些旧应用/运行态问题仍需后续调查修复，本步骤的通过不能证明全平台无故障。
+
+
+### P0-CC：编译后 release eligibility 与实际 Edge proof 一致
+
+- [x] 对通过固定 release facts 校验的 traffic-policy targets，在 artifact 执行投影中保留 `active`；校验 tenant、release 引用和正权重，普通 desired upstream 仍不携带运行状态。
+- [x] 保持 routeproof v1 的完整字段比较、节点/分组身份、加载版本和有效期校验；不忽略差异或降低健康门槛。
+- [x] 回归独立运行旧 traffic planner 和实际 Edge Control compiler，证明其 bundle 可被新 placement collector 接受；覆盖健康门槛 1/3、排除字段、陈旧 release facts 拒绝及 intent/policy 不变。
+- [x] 后端 `make test`、前端 contract/typecheck 通过。后端 `33c6a737`、API intent generation 447 已发布，CI [35002911576](https://github.com/yym68686/fugue/actions/runs/35002911576) 成功；前端契约 `ae1ad8cf` 已同步并通过 CI。
+- [x] 生产 API 新镜像 2/2 Ready，healthz/readyz 正常。本次前后采集均为 134 route、241 份 placement；`dns_placement_evidence_requires_repair` 从 13 条降为 0，总 issues 从 19 条降为 6 条。候选数量会随实时健康变化，该结果只代表记录中的采集时刻。
+- [x] 本步没有发布新配置；`fugue.pro` hostname lineage artifact 列表保持不变。Policy LKG 前后均为 404（尚未激活），不将此表述为 verified policy LKG 已完成。证据：[compiled-release-placement-proof-2026-09-16.json](verification/compiled-release-placement-proof-2026-09-16.json)。
+- [ ] 继续处理 release freshness、共享 hostname owner 冲突、全量 route/DNS/TLS 等价和真实 consumer apply/gray/full/rollback；当前 `migration_ready=false`。
