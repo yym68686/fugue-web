@@ -10746,9 +10746,11 @@ export interface components {
       /** @enum {string} */
       fallback_policy: "fail_closed" | "stale_if_error" | "empty_noerror";
     };
-    /** @description Symbolic FUGUE_ROUTE address source with an empty values array. Each referenced hostname must have routes with the same app/tenant owner as the DNS record; platform routes use empty app/tenant IDs. Every path at every referenced hostname must be proved on a candidate edge. References may differ from the DNS owner name for managed custom-domain targets. Selected addresses and readiness are runtime facts, never intent. */
+    /** @description Symbolic FUGUE_ROUTE address source with an empty values array. Without bindings, routes must match the record app/tenant owner, including empty platform ownership. Optional bindings explicitly declare every hostname/path/app dependency when applications in one tenant share a target. Bindings must exactly match PlatformIntent routes; the record retains its nonempty app/tenant owner, whose app must occur at each referenced hostname. Every path must be proved on each candidate edge. Addresses and readiness are runtime facts. */
     PlatformDNSRouteIntent: {
       hostnames: string[];
+      /** @description Complete path dependencies; tenant ownership is inherited from the DNS record. Omission retains single-app semantics. */
+      bindings?: components["schemas"]["PlatformDNSRouteBinding"][];
       /** @enum {string} */
       ipv4_policy: "auto" | "ipv4_only" | "ipv6_only" | "dual_stack_required";
       /** @enum {string} */
@@ -10757,6 +10759,11 @@ export interface components {
       ttl_policy: "record" | "target" | "min" | "bounded";
       /** @enum {string} */
       fallback_policy: "fail_closed" | "stale_if_error" | "empty_noerror";
+    };
+    PlatformDNSRouteBinding: {
+      hostname: string;
+      path_prefix: string;
+      app_id: string;
     };
     /** @description Desired flatten configuration, resolved only from matching fixed runtime observations. Apex mode requires zone to equal the record hostname. Empty-noerror remains unsupported until consumers can preserve empty authoritative names. */
     PlatformDNSFlattenIntent: {
@@ -10804,6 +10811,7 @@ export interface components {
       /** @description Desired release references and weights. Compilation requires matching fresh release observations. Unsupported sticky routing is rejected, never silently ignored. */
       traffic_constraints?: components["schemas"]["PlatformTrafficPolicyConstraint"][];
     };
+    /** @description Applies only to paths matching the specified app owner, or all paths at the hostname when app_id is empty. Every referenced constraint must match at least one route. A tenant mismatch is rejected, including other paths at the same hostname. */
     PlatformRoutePolicyConstraint: {
       id: string;
       hostname: string;
