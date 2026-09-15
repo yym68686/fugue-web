@@ -2501,7 +2501,7 @@ anonymous/missing-id/unknown-id/generation-alias/wrong-kind: 401/400/404/409/409
 - [x] database-localize 扩容严格保持请求中的 `storage_class_name`，不因目标 runtime 存在其他驱动而隐式切换 StorageClass。
 - [x] 应用不可用时仍可进入数据库扩容预检；扩容操作不会把 app ready 作为同 runtime PVC expansion 的必要条件。
 - [x] 新增 app-owned/bound-service 两条执行入口回归，验证替代驱动不会被读取、迁移对象不会被写入；完整 `make test` 通过。
-- [x] 生产 controller `4b918141f5dbbe75fc59f54ac404f2e162e983f7`、CI `34994646236`、controller deploy 成功，2/2 Ready。
+- [x] 生产 controller `4b918141f5dbbe75fc59f54ac404f2e162e983f7`（后续声明式 intent/test 发布为 `d17ce4560233a0104f587ca484a32a27402a8cb1`）、CI `34994646236`/`34996046808`、controller deploy 成功，2/2 Ready。
 - [x] 生产实测 `fugue-postgres-rwo`（OpenEBS）与 `fugue-longhorn-rwo`（Longhorn）为不同驱动；review00 PVC 保持 20Gi，40Gi 扩容在容量预检阶段安全拒绝，未发生 PVC patch 或跨驱动迁移。
 - [x] 证据：[postgres-storage-intent-preservation-2026-09-15.json](verification/postgres-storage-intent-preservation-2026-09-15.json)。
 - [ ] 需要增加 `ns101351/fugue-vg` 的物理 LocalPV 容量并重新执行扩容；当前剩余 8.59GB，小于 20Gi 扩容和 22.4Gi 安全余量要求，数据库与应用仍保持 fail-closed。
