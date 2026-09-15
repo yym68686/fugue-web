@@ -1,0 +1,30 @@
+{
+  "step": "P0-CI",
+  "description": "Caddy is projected as an edge-worker-owned sidecar capability",
+  "backend_commits": ["310e045b", "3aab5ce2", "9b2fa50e", "9beed1a3"],
+  "ci_runs": {
+    "edge_owner": "https://github.com/yym68686/fugue/actions/runs/35027936883",
+    "api_consumer": "https://github.com/yym68686/fugue/actions/runs/35030377009",
+    "final_api": "https://github.com/yym68686/fugue/actions/runs/35032124852"
+  },
+  "production": {
+    "api_healthz": 200,
+    "api_readyz": 200,
+    "artifact_kind": "edge_route_bundle",
+    "required_expected": 3,
+    "required_observed": 3,
+    "required_passing": 0,
+    "expected_consumer_set_id": "expectedconsumerset_5be93558e7ac6e43",
+    "consumers": [
+      {"consumer_id": "edge-worker:bwg", "expected_capabilities": ["caddy_apply_probe"], "observed_capabilities": ["caddy_apply_probe"], "state": "fail", "reasons": ["desired or actual generation does not match the expected generation", "apply status is not applied", "probe status is not passed"]},
+      {"consumer_id": "edge-worker:vps-591f4447", "expected_capabilities": ["caddy_apply_probe"], "observed_capabilities": ["caddy_apply_probe"], "state": "fail", "reasons": ["desired or actual generation does not match the expected generation", "apply status is not applied", "probe status is not passed"]},
+      {"consumer_id": "edge-worker:vps-84c8f0a9", "expected_capabilities": ["caddy_apply_probe"], "observed_capabilities": ["caddy_apply_probe"], "state": "fail", "reasons": ["desired or actual generation does not match the expected generation", "apply status is not applied", "probe status is not passed"]}
+    ],
+    "edge_nodes": [
+      {"id": "vps-84c8f0a9", "status": "healthy", "caddy_route_count": 134, "caddy_last_error": null},
+      {"id": "bwg", "status": "healthy", "caddy_route_count": 134, "caddy_last_error": null},
+      {"id": "vps-591f4447", "status": "healthy", "caddy_route_count": 134, "caddy_last_error": null}
+    ]
+  },
+  "interpretation": "The impossible independent Caddy consumer rows are projected to the worker owner while Caddy apply/probe evidence remains required as a capability. Shadow consumers are not yet applied/passed, so full convergence and promotion remain blocked."
+}

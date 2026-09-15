@@ -2579,3 +2579,12 @@ P0-BK 验收范围说明：管理 SSH 通道在本轮核查时于密钥交换前
 - [x] 回归覆盖 topology projection、持久化 expected set 不变和完整 API/platformcontrol 测试；`GOMAXPROCS=2 make test` 通过。
 - [x] 后端 `22b6eef6` 已发布，CI `35021446483` 成功，API 2/2 Ready。生产 required consumer 从 10 降为 6，observed 3、passing 0；未解除 full promotion。证据：[edge-consumer-topology-projection-2026-09-16.json](verification/edge-consumer-topology-projection-2026-09-16.json)。
 - [ ] 修复当前 3 个真实 consumer 的 heartbeat/generation/apply/probe 缺口，完成 full convergence。
+
+### P0-CI：Caddy sidecar 归属到 Edge worker consumer
+
+- [x] 将 Caddy 明确建模为 edge-worker DaemonSet 的受管 sidecar；Caddy apply/probe 证据通过 worker heartbeat 的 `caddy_apply_probe` capability 传递，不再要求不存在独立身份的 `caddy-edge-front` heartbeat。
+- [x] 对历史 immutable expected set 做只读 projection 兼容：保留 lineage 原记录，把 legacy Caddy owner 映射到同节点的 worker owner，并继续要求该 capability；新 expected set 直接只生成 worker owner。
+- [x] 增加 legacy owner projection、capability 和确定性 convergence 回归；后端 `GOMAXPROCS=2 make test` 全量通过。
+- [x] Edge worker `3aab5ce2` 与 API `9beed1a3` 已通过 GitHub Actions 正式部署；API `healthz/readyz` 均为 200。
+- [x] 生产 convergence required expected 从 6 降为 3，required observed 为 3；三个 worker 的 expected/observed capability 均为 `caddy_apply_probe`，历史 Caddy 条目不再作为独立 consumer 阻塞恢复。证据：[edge-consumer-caddy-owner-2026-09-16.json](verification/edge-consumer-caddy-owner-2026-09-16.json)。
+- [ ] 当前 shadow consumer 仍为 staged/shadow_validated，required passing 为 0；继续处理 generation/apply/probe 证据与 full convergence，不解除 gray/full 保护。
