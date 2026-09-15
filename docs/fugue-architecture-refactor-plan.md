@@ -2491,6 +2491,7 @@ anonymous/missing-id/unknown-id/generation-alias/wrong-kind: 401/400/404/409/409
 - [x] 新增时间精度边界回归；完整 `make test` 通过。
 - [x] backend `04dc1658d299aa144fcc250e5821ad0fa6faed8e`、CI `34978538926`、controller deploy 成功；生产 controller 2/2 Ready。
 - [x] 生产 review00 观察状态已从 `deploying` 变为 `failed`，API 返回 `reason=managed_app_error`、Pod/容器错误和 fresh Kubernetes evidence；runtime log 同时记录数据库连接被拒绝。旧 serving/LKG 与其他组件未被该故障污染。
+- [x] 托管 Postgres Pod 的容器故障也已进入 backing-service runtime facts；生产 `GET /v1/backing-services?include_live_status=true` 返回 `phase=error`、`ready_instances=0/1`，消息包含 `exit_code=4`，底层日志明确为 `no free disk space for WALs`。
 - [x] 证据：[controller-crashloop-status-2026-09-15.json](verification/controller-crashloop-status-2026-09-15.json)。
 - [ ] 继续修复 review00 数据库自身故障、剩余 release freshness、route/TLS evidence、shared-host conflict 和全量 output equivalence；本步骤只修复故障识别与传播，不宣称业务实例已恢复。
 

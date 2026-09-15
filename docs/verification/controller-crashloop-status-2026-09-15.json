@@ -2,7 +2,7 @@
   "captured_at": "2026-09-15T14:05:38.12973456Z",
   "app_id": "app_1781411982_650fede8ea9a",
   "hostname": "review00.fugue.pro",
-  "controller_commit": "04dc1658d299aa144fcc250e5821ad0fa6faed8e",
+  "controller_commit": "df42d91f18d2ab0a8597405450f33765be8c57f2",
   "status": {
     "phase": "failed",
     "current_replicas": 0,
@@ -39,5 +39,12 @@
       "desired_replicas_unready"
     ]
   },
-  "runtime_log_excerpt": "==> app-1781411982-650fede8ea9a-94cddcb4b-jbb26 <==\n{\"time\":\"2026-09-15T14:03:13.801945296Z\",\"level\":\"ERROR\",\"msg\":\"database ping error\",\"error\":\"failed to connect to `user=review00 database=review00`: 10.43.93.10:5432 (review00-db-postgres): dial error: dial tcp 10.43.93.10:5432: connect: connection refused\"}"
+  "runtime_log_excerpt": "==> app-1781411982-650fede8ea9a-94cddcb4b-jbb26 <==\n{\"time\":\"2026-09-15T14:03:13.801945296Z\",\"level\":\"ERROR\",\"msg\":\"database ping error\",\"error\":\"failed to connect to `user=review00 database=review00`: 10.43.93.10:5432 (review00-db-postgres): dial error: dial tcp 10.43.93.10:5432: connect: connection refused\"}",
+  "backing_service_runtime_status": {
+    "phase": "error",
+    "message": "pod review00-db-postgres-2 on node ns101351 container postgres failed: Error: exit_code=4",
+    "ready_instances": 0,
+    "desired_instances": 1
+  },
+  "postgres_runtime_log_excerpt": "r\",\"logging_pod\":\"review00-db-postgres-2\",\"controller\":\"instance-cluster\",\"controllerGroup\":\"postgresql.cnpg.io\",\"controllerKind\":\"Cluster\",\"Cluster\":{\"name\":\"review00-db-postgres\",\"namespace\":\"fg-tenant-1774393589-e35b60a6fc11\"},\"namespace\":\"fg-tenant-1774393589-e35b60a6fc11\",\"name\":\"review00-db-postgres\",\"reconcileID\":\"91e60274-4e20-48ab-80cd-8b7f8e095669\",\"instance\":\"review00-db-postgres-2\",\"cluster\":\"review00-db-postgres\",\"namespace\":\"fg-tenant-1774393589-e35b60a6fc11\",\"logging_pod\":\"review00-db-postgres-2\"}\n{\"level\":\"info\",\"ts\":\"2026-09-15T14:39:27.343642164Z\",\"msg\":\"All workers finished\",\"logger\":\"instance-manager\",\"logging_pod\":\"review00-db-postgres-2\",\"controller\":\"instance-cluster\",\"controllerGroup\":\"postgresql.cnpg.io\",\"controllerKind\":\"Cluster\"}\n{\"level\":\"info\",\"ts\":\"2026-09-15T14:39:27.343651238Z\",\"msg\":\"Stopping and waiting for caches\",\"logger\":\"instance-manager\",\"logging_pod\":\"review00-db-postgres-2\"}\n{\"level\":\"info\",\"ts\":\"2026-09-15T14:39:27.343681553Z\",\"msg\":\"Stopping and waiting for webhooks\",\"logger\":\"instance-manager\",\"logging_pod\":\"review00-db-postgres-2\"}\n{\"level\":\"info\",\"ts\":\"2026-09-15T14:39:27.343685515Z\",\"msg\":\"Stopping and waiting for HTTP servers\",\"logger\":\"instance-manager\",\"logging_pod\":\"review00-db-postgres-2\"}\n{\"level\":\"info\",\"ts\":\"2026-09-15T14:39:27.343688327Z\",\"msg\":\"Wait completed, proceeding to shutdown the manager\",\"logger\":\"instance-manager\",\"logging_pod\":\"review00-db-postgres-2\"}\n{\"level\":\"info\",\"ts\":\"2026-09-15T14:39:27.343697736Z\",\"msg\":\"Checking for free disk space for WALs after PostgreSQL finished\",\"logger\":\"instance-manager\",\"logging_pod\":\"review00-db-postgres-2\"}\n{\"level\":\"info\",\"ts\":\"2026-09-15T14:39:27.344874442Z\",\"msg\":\"Detected low-disk space condition\",\"logger\":\"instance-manager\",\"logging_pod\":\"review00-db-postgres-2\"}\n"
 }
