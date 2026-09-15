@@ -5746,6 +5746,7 @@ export interface components {
       desired_origin_source?: components["schemas"]["AppSource"];
       /** @description Explicit deployment link recovered from durable import evidence; absent when no link has been recorded. Consumers of older APIs may use the legacy queued-deploy message but must never infer a link from timestamps. */
       queued_deploy_operation_id?: string;
+      /** @description Latest progress or outcome message. When the controller finalizes an operation as failed, this contains the terminal failure reason rather than the previous progress message; error_message remains the authoritative failure detail. */
       result_message?: string;
       manifest_path?: string;
       assigned_runtime_id?: string;
