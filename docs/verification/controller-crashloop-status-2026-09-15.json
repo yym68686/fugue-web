@@ -2,7 +2,7 @@
   "captured_at": "2026-09-15T14:05:38.12973456Z",
   "app_id": "app_1781411982_650fede8ea9a",
   "hostname": "review00.fugue.pro",
-  "controller_commit": "df42d91f18d2ab0a8597405450f33765be8c57f2",
+  "controller_commit": "e6eef67274763ff7024b527fc3ff97698b75f078",
   "status": {
     "phase": "failed",
     "current_replicas": 0,
@@ -46,5 +46,225 @@
     "ready_instances": 0,
     "desired_instances": 1
   },
-  "postgres_runtime_log_excerpt": "r\",\"logging_pod\":\"review00-db-postgres-2\",\"controller\":\"instance-cluster\",\"controllerGroup\":\"postgresql.cnpg.io\",\"controllerKind\":\"Cluster\",\"Cluster\":{\"name\":\"review00-db-postgres\",\"namespace\":\"fg-tenant-1774393589-e35b60a6fc11\"},\"namespace\":\"fg-tenant-1774393589-e35b60a6fc11\",\"name\":\"review00-db-postgres\",\"reconcileID\":\"91e60274-4e20-48ab-80cd-8b7f8e095669\",\"instance\":\"review00-db-postgres-2\",\"cluster\":\"review00-db-postgres\",\"namespace\":\"fg-tenant-1774393589-e35b60a6fc11\",\"logging_pod\":\"review00-db-postgres-2\"}\n{\"level\":\"info\",\"ts\":\"2026-09-15T14:39:27.343642164Z\",\"msg\":\"All workers finished\",\"logger\":\"instance-manager\",\"logging_pod\":\"review00-db-postgres-2\",\"controller\":\"instance-cluster\",\"controllerGroup\":\"postgresql.cnpg.io\",\"controllerKind\":\"Cluster\"}\n{\"level\":\"info\",\"ts\":\"2026-09-15T14:39:27.343651238Z\",\"msg\":\"Stopping and waiting for caches\",\"logger\":\"instance-manager\",\"logging_pod\":\"review00-db-postgres-2\"}\n{\"level\":\"info\",\"ts\":\"2026-09-15T14:39:27.343681553Z\",\"msg\":\"Stopping and waiting for webhooks\",\"logger\":\"instance-manager\",\"logging_pod\":\"review00-db-postgres-2\"}\n{\"level\":\"info\",\"ts\":\"2026-09-15T14:39:27.343685515Z\",\"msg\":\"Stopping and waiting for HTTP servers\",\"logger\":\"instance-manager\",\"logging_pod\":\"review00-db-postgres-2\"}\n{\"level\":\"info\",\"ts\":\"2026-09-15T14:39:27.343688327Z\",\"msg\":\"Wait completed, proceeding to shutdown the manager\",\"logger\":\"instance-manager\",\"logging_pod\":\"review00-db-postgres-2\"}\n{\"level\":\"info\",\"ts\":\"2026-09-15T14:39:27.343697736Z\",\"msg\":\"Checking for free disk space for WALs after PostgreSQL finished\",\"logger\":\"instance-manager\",\"logging_pod\":\"review00-db-postgres-2\"}\n{\"level\":\"info\",\"ts\":\"2026-09-15T14:39:27.344874442Z\",\"msg\":\"Detected low-disk space condition\",\"logger\":\"instance-manager\",\"logging_pod\":\"review00-db-postgres-2\"}\n"
+  "postgres_runtime_log_excerpt": "r\",\"logging_pod\":\"review00-db-postgres-2\",\"controller\":\"instance-cluster\",\"controllerGroup\":\"postgresql.cnpg.io\",\"controllerKind\":\"Cluster\",\"Cluster\":{\"name\":\"review00-db-postgres\",\"namespace\":\"fg-tenant-1774393589-e35b60a6fc11\"},\"namespace\":\"fg-tenant-1774393589-e35b60a6fc11\",\"name\":\"review00-db-postgres\",\"reconcileID\":\"91e60274-4e20-48ab-80cd-8b7f8e095669\",\"instance\":\"review00-db-postgres-2\",\"cluster\":\"review00-db-postgres\",\"namespace\":\"fg-tenant-1774393589-e35b60a6fc11\",\"logging_pod\":\"review00-db-postgres-2\"}\n{\"level\":\"info\",\"ts\":\"2026-09-15T14:39:27.343642164Z\",\"msg\":\"All workers finished\",\"logger\":\"instance-manager\",\"logging_pod\":\"review00-db-postgres-2\",\"controller\":\"instance-cluster\",\"controllerGroup\":\"postgresql.cnpg.io\",\"controllerKind\":\"Cluster\"}\n{\"level\":\"info\",\"ts\":\"2026-09-15T14:39:27.343651238Z\",\"msg\":\"Stopping and waiting for caches\",\"logger\":\"instance-manager\",\"logging_pod\":\"review00-db-postgres-2\"}\n{\"level\":\"info\",\"ts\":\"2026-09-15T14:39:27.343681553Z\",\"msg\":\"Stopping and waiting for webhooks\",\"logger\":\"instance-manager\",\"logging_pod\":\"review00-db-postgres-2\"}\n{\"level\":\"info\",\"ts\":\"2026-09-15T14:39:27.343685515Z\",\"msg\":\"Stopping and waiting for HTTP servers\",\"logger\":\"instance-manager\",\"logging_pod\":\"review00-db-postgres-2\"}\n{\"level\":\"info\",\"ts\":\"2026-09-15T14:39:27.343688327Z\",\"msg\":\"Wait completed, proceeding to shutdown the manager\",\"logger\":\"instance-manager\",\"logging_pod\":\"review00-db-postgres-2\"}\n{\"level\":\"info\",\"ts\":\"2026-09-15T14:39:27.343697736Z\",\"msg\":\"Checking for free disk space for WALs after PostgreSQL finished\",\"logger\":\"instance-manager\",\"logging_pod\":\"review00-db-postgres-2\"}\n{\"level\":\"info\",\"ts\":\"2026-09-15T14:39:27.344874442Z\",\"msg\":\"Detected low-disk space condition\",\"logger\":\"instance-manager\",\"logging_pod\":\"review00-db-postgres-2\"}\n",
+  "post_fix_runtime_verification": {
+    "components": [
+      {
+        "component": "api",
+        "image_tag": "3acc20c3426ddd05b7ee9ec2090717415431114e",
+        "image": "ghcr.io/yym68686/fugue-api@sha256:b76c3f7445ee3759c7735a327e5103383c715ce46f52f0db83b8e370d9a1fa5a",
+        "status": "ready",
+        "desired_replicas": 2,
+        "ready_replicas": 2
+      },
+      {
+        "component": "controller",
+        "image_tag": "e6eef67274763ff7024b527fc3ff97698b75f078",
+        "image": "ghcr.io/yym68686/fugue-controller@sha256:da894e6e13ffbdf55ad5d6ae4f0f5b6fa9245627758118f1edadfe190e343d8f",
+        "status": "ready",
+        "desired_replicas": 2,
+        "ready_replicas": 2
+      }
+    ],
+    "backing": [
+      {
+        "id": "app-postgres-app_1775212527_bac47888ffc9",
+        "runtime_status": {
+          "phase": "active",
+          "message": "backing service cluster fugue-web-postgres-postgres ready",
+          "ready_instances": 1,
+          "desired_instances": 1
+        }
+      },
+      {
+        "id": "app-postgres-app_1776071893_eb3c67828c53",
+        "runtime_status": {
+          "phase": "active",
+          "message": "backing service cluster oaix-postgres-postgres ready",
+          "ready_instances": 1,
+          "desired_instances": 1
+        }
+      },
+      {
+        "id": "service_1776536408_63e6b969ef98",
+        "runtime_status": {
+          "phase": "active",
+          "message": "backing service cluster mecgod-cloud-db-postgres ready",
+          "ready_instances": 2,
+          "desired_instances": 2
+        }
+      },
+      {
+        "id": "app-postgres-app_1776461431_79a1800ca140",
+        "runtime_status": {
+          "phase": "active",
+          "message": "backing service cluster postgres ready",
+          "ready_instances": 1,
+          "desired_instances": 1
+        }
+      },
+      {
+        "id": "app-postgres-app_1777246494_7d3d99b4d0f1",
+        "runtime_status": {
+          "phase": "active",
+          "message": "backing service cluster dataocean-postgres ready",
+          "ready_instances": 1,
+          "desired_instances": 1
+        }
+      },
+      {
+        "id": "app-postgres-app_1777410244_aa8bcc95df0e",
+        "runtime_status": {
+          "phase": "active",
+          "message": "backing service cluster cerebr-snapshot-share-postgres ready",
+          "ready_instances": 1,
+          "desired_instances": 1
+        }
+      },
+      {
+        "id": "service_1777486398_1216648e40e7",
+        "runtime_status": {
+          "phase": "active",
+          "message": "backing service cluster nl2pcb-postgres ready",
+          "ready_instances": 1,
+          "desired_instances": 1
+        }
+      },
+      {
+        "id": "app-postgres-app_1778178448_87938dea414b",
+        "runtime_status": {
+          "phase": "suspended",
+          "message": "backing service cluster docker-compose-yml-postgres-postgres suspended (0/1 ready instances)",
+          "ready_instances": 0,
+          "desired_instances": 1
+        }
+      },
+      {
+        "id": "app-postgres-app_1778291142_8ff1bd9ba6ff",
+        "runtime_status": {
+          "phase": "active",
+          "message": "backing service cluster mecpro-postgres ready",
+          "ready_instances": 1,
+          "desired_instances": 1
+        }
+      },
+      {
+        "id": "app-postgres-app_1778958829_7a965e0863ed",
+        "runtime_status": {
+          "phase": "active",
+          "message": "backing service cluster uni-api-web-api-db-postgres ready",
+          "ready_instances": 1,
+          "desired_instances": 1
+        }
+      },
+      {
+        "id": "app-postgres-app_1779698709_805632e1ced9",
+        "runtime_status": {
+          "phase": "active",
+          "message": "backing service cluster mecgod ready",
+          "ready_instances": 1,
+          "desired_instances": 1
+        }
+      },
+      {
+        "id": "service_1779790243_f77e4ff502cf",
+        "runtime_status": {
+          "phase": "active",
+          "message": "backing service cluster specforge-postgres ready",
+          "ready_instances": 2,
+          "desired_instances": 2
+        }
+      },
+      {
+        "id": "service_1780810035_528c916ef9e5",
+        "runtime_status": {
+          "phase": "active",
+          "message": "backing service cluster yesir-postgres ready",
+          "ready_instances": 1,
+          "desired_instances": 1
+        }
+      },
+      {
+        "id": "app-postgres-app_1780909103_7fa4ff5ed252",
+        "runtime_status": {
+          "phase": "active",
+          "message": "backing service cluster morlane-ocean-postgres-postgres ready",
+          "ready_instances": 1,
+          "desired_instances": 1
+        }
+      },
+      {
+        "id": "app-postgres-app_1781411982_650fede8ea9a",
+        "runtime_status": {
+          "phase": "error",
+          "message": "pod review00-db-postgres-2 on node ns101351 container postgres failed: Error: exit_code=4",
+          "ready_instances": 0,
+          "desired_instances": 1
+        }
+      },
+      {
+        "id": "app-postgres-app_1782441770_88448b92eb55",
+        "runtime_status": {
+          "phase": "suspended",
+          "message": "backing service cluster gaokao-db-postgres suspended (0/1 ready instances)",
+          "ready_instances": 0,
+          "desired_instances": 1
+        }
+      },
+      {
+        "id": "app-postgres-app_1784837121_6408f801f81c",
+        "runtime_status": {
+          "phase": "error",
+          "message": "pod baomian-backend-postgres-v2-2-join-7vhsf on node v2202605354515455529 container join failed: process exited successfully instead of staying online",
+          "ready_instances": 1,
+          "desired_instances": 1
+        }
+      },
+      {
+        "id": "service_1786118410_7dec0edf46dd",
+        "runtime_status": {
+          "phase": "active",
+          "message": "backing service cluster i00probot-referrals-db-postgres ready",
+          "ready_instances": 1,
+          "desired_instances": 1
+        }
+      },
+      {
+        "id": "service_1787903219_59cf4e7f66f4",
+        "runtime_status": {
+          "phase": "resuming",
+          "message": "waiting for backing service cluster shadowguard-db-postgres to settle (1/1 ready instances)",
+          "ready_instances": 1,
+          "desired_instances": 1
+        }
+      },
+      {
+        "id": "app-postgres-app_1789246079_28e7d406506a",
+        "runtime_status": {
+          "phase": "active",
+          "message": "backing service cluster project-1789246078-78eb089c3ccf-db-postgres ready",
+          "ready_instances": 1,
+          "desired_instances": 1
+        }
+      }
+    ],
+    "health": {
+      "status": "ok"
+    },
+    "ready": {
+      "checks": {
+        "kubernetes_api": {
+          "status": "ok"
+        },
+        "observability": {
+          "status": "ok",
+          "message": "configured backends: analytics,logs,metrics; retention: 24h0m0s; exporters: analytics,logs"
+        },
+        "store": {
+          "status": "ok"
+        }
+      },
+      "status": "ok"
+    }
+  }
 }
