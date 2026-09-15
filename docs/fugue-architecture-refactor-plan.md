@@ -2560,3 +2560,13 @@ P0-BK 验收范围说明：管理 SSH 通道在本轮核查时于密钥交换前
 - [x] 后端 `ee19260c`、API intent generation 449 已发布；CI [35011697271](https://github.com/yym68686/fugue/actions/runs/35011697271) 成功，API 2/2 Ready，health/readiness 正常。
 - [x] 生产前后 route count 均为 135，release observations 从 8 降为 7，移除的条目没有对应 serving route；剩余问题仍是 route graph 中真实引用的 freshness/equivalence/placement 缺口。证据：[release-graph-input-filter-2026-09-16.json](verification/release-graph-input-filter-2026-09-16.json)。
 - [ ] 修复仍被 route graph 引用的 release identity/freshness，并完成全量 route/DNS/TLS 等价和 consumer convergence；当前 `migration_ready=false`。
+
+
+### P0-CG：DNS placement proof failure diagnostics
+
+- [x] 在不改变 placement 正向 gate 的前提下，记录有界的 `hostname/path:proof_failure` 分类：probe error、digest、bundle version、edge/group identity 和 expiry。
+- [x] 诊断不保存 URL、origin 内容、凭据或完整 probe 响应；proof v1、bundle version、edge/group identity 和租期校验保持不变。
+- [x] 新增回归覆盖 digest mismatch 与诊断边界；完整 `make test` 通过。
+- [x] 后端 `15e9474b`、API intent generation 450 已发布；CI [35015498181](https://github.com/yym68686/fugue/actions/runs/35015498181) 成功，API 2/2 Ready。
+- [x] 生产 d-97 placement issue 已具体化为 `0-0.pro/:bundle_version_mismatch` 与 `api.0-0.pro/:digest_mismatch`；这证明剩余问题在 Edge bundle/proof reconciliation，未放宽 gate 或推进 DNS gray/full。证据：[placement-proof-diagnostics-2026-09-16.json](verification/placement-proof-diagnostics-2026-09-16.json)。
+- [ ] 修复实际 Edge bundle/proof 不一致，并完成 route/DNS/TLS 全量等价和 consumer convergence。

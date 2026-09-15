@@ -1,0 +1,41 @@
+{
+  "verified_at": "2026-09-15T19:56:14.788089+00:00",
+  "backend_commit": "15e9474b3fe6a030dae2ed2e180aefab24b78013",
+  "ci_run": 35015498181,
+  "api": {
+    "component": "api",
+    "image": "ghcr.io/yym68686/fugue-api@sha256:8eabdaad200dcfe48448d3a2fa9461c11523b8bc37b5a94009431b5daddc47cf",
+    "image_tag": "15e9474b3fe6a030dae2ed2e180aefab24b78013",
+    "status": "ready",
+    "desired_replicas": 2,
+    "ready_replicas": 2,
+    "updated_replicas": 2
+  },
+  "projection": {
+    "captured_at": "2026-09-15T19:55:26.757177873Z",
+    "route_count": 135,
+    "migration_ready": false,
+    "placement_issues": [
+      {
+        "code": "dns_placement_route_inputs_invalid",
+        "hostname": "d-3d52bfa8be18749d574f.dns.fugue.pro",
+        "reason": "release observation requires fresh evidence at fixed captured_at"
+      },
+      {
+        "code": "dns_placement_evidence_requires_repair",
+        "hostname": "d-97cf66d9ded34593117e.dns.fugue.pro",
+        "reason": "DNS placement has insufficient route-ready and TLS-ready edges; candidates=0 healthy=0 route_ready=0 tls_ready=0; proof_failures=0-0.pro/:bundle_version_mismatch=1,api.0-0.pro/:digest_mismatch=1"
+      },
+      {
+        "code": "dns_placement_route_inputs_invalid",
+        "hostname": "review00.fugue.pro",
+        "reason": "release observation requires fresh evidence at fixed captured_at"
+      }
+    ]
+  },
+  "diagnostic_contract": "Proof failure reasons are bounded hostname/path/reason labels; no URL, origin payload, credential or probe response is persisted. Positive eligibility checks are unchanged.",
+  "limitations": [
+    "d-3d52 and review00 remain blocked by fresh release evidence.",
+    "d-97 requires Edge bundle/proof reconciliation before DNS promotion; no gray/full serving was attempted."
+  ]
+}
