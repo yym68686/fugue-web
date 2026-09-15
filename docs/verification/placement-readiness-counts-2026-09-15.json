@@ -1,0 +1,96 @@
+{
+  "observed_at": "2026-09-15T11:49:06.816373+00:00",
+  "backend_commit": "4d232f0a8062b7f87afcaf0a859220c5272aea92",
+  "image": "ghcr.io/yym68686/fugue-api@sha256:36d305aadf47bfb0ab724e02a721624f6178b1272f7451d66b3bff9841b0dd73",
+  "api_ready": [
+    2,
+    2
+  ],
+  "healthz": 200,
+  "readyz": 200,
+  "migration_ready": false,
+  "issue_counts": {
+    "dns_output_equivalence_not_verified": 1,
+    "release_target_equivalence_not_verified": 1,
+    "release_observations_require_repair": 1,
+    "dns_custom_domain_shared_hostname_conflict": 1,
+    "dns_placement_route_inputs_invalid": 6,
+    "dns_placement_evidence_requires_repair": 6
+  },
+  "placement_repair_issues": [
+    {
+      "code": "dns_placement_evidence_requires_repair",
+      "hostname": "d-6b64ca2436892bf0b8d1.dns.fugue.pro",
+      "reason": "DNS placement has insufficient route-ready and TLS-ready edges; candidates=0 healthy=0 route_ready=0 tls_ready=0"
+    },
+    {
+      "code": "dns_placement_evidence_requires_repair",
+      "hostname": "d-8bdf276e71ea1720f7d2.dns.fugue.pro",
+      "reason": "DNS placement has insufficient route-ready and TLS-ready edges; candidates=0 healthy=0 route_ready=0 tls_ready=0"
+    },
+    {
+      "code": "dns_placement_evidence_requires_repair",
+      "hostname": "d-d1634e62756a77acd020.dns.fugue.pro",
+      "reason": "DNS placement has insufficient route-ready and TLS-ready edges; candidates=0 healthy=0 route_ready=0 tls_ready=0"
+    },
+    {
+      "code": "dns_placement_evidence_requires_repair",
+      "hostname": "gigo-sidecar.fugue.pro",
+      "reason": "DNS placement has insufficient route-ready and TLS-ready edges; candidates=0 healthy=0 route_ready=0 tls_ready=0"
+    },
+    {
+      "code": "dns_placement_evidence_requires_repair",
+      "hostname": "mecgod.fugue.pro",
+      "reason": "DNS placement has insufficient route-ready and TLS-ready edges; candidates=0 healthy=0 route_ready=0 tls_ready=0"
+    },
+    {
+      "code": "dns_placement_evidence_requires_repair",
+      "hostname": "uni-api-ember.fugue.pro",
+      "reason": "DNS placement has insufficient route-ready and TLS-ready edges; candidates=0 healthy=0 route_ready=0 tls_ready=0"
+    }
+  ],
+  "route_input_issues": [
+    {
+      "code": "dns_placement_route_inputs_invalid",
+      "hostname": "d-08feea92ce495838953a.dns.fugue.pro",
+      "reason": "release observation requires fresh evidence at fixed captured_at"
+    },
+    {
+      "code": "dns_placement_route_inputs_invalid",
+      "hostname": "d-3d52bfa8be18749d574f.dns.fugue.pro",
+      "reason": "release observation requires fresh evidence at fixed captured_at"
+    },
+    {
+      "code": "dns_placement_route_inputs_invalid",
+      "hostname": "d-573780ce7ff778574ba8.dns.fugue.pro",
+      "reason": "release observation requires fresh evidence at fixed captured_at"
+    },
+    {
+      "code": "dns_placement_route_inputs_invalid",
+      "hostname": "drain-canary-0705.fugue.pro",
+      "reason": "release observation requires fresh evidence at fixed captured_at"
+    },
+    {
+      "code": "dns_placement_route_inputs_invalid",
+      "hostname": "music.fugue.pro",
+      "reason": "release observation requires fresh evidence at fixed captured_at"
+    },
+    {
+      "code": "dns_placement_route_inputs_invalid",
+      "hostname": "review00.fugue.pro",
+      "reason": "release observation requires fresh evidence at fixed captured_at"
+    }
+  ],
+  "custom_domain_issues": [
+    {
+      "code": "dns_custom_domain_shared_hostname_conflict",
+      "hostname": "api.0-0.pro",
+      "reason": "custom and platform routes at one hostname have different app owners"
+    }
+  ],
+  "assertions": {
+    "counts_are_structured": true,
+    "zero_candidate_facts_remain_fail_closed": true,
+    "serving_promotion": false
+  }
+}

@@ -2465,6 +2465,15 @@ anonymous/missing-id/unknown-id/generation-alias/wrong-kind: 401/400/404/409/409
 - [x] 证据：[custom-domain-dns-projection-2026-09-15.json](verification/custom-domain-dns-projection-2026-09-15.json)。
 - [ ] 继续修复剩余 owner mismatch、release freshness、route/TLS readiness 与全量旧输出等价，完成前保持 gray/full 保护。
 
+### P0-BX：Placement readiness 计数诊断
+
+- [x] placement repair reason 增加 `candidates`、`healthy`、`route_ready`、`tls_ready` 计数；计数来自同一固定 DNS placement fact，不会改变 gate 判定。
+- [x] `candidates=0`、任一路由/TLS readiness 不足和 release freshness 继续分别 fail-closed；不通过降低阈值或伪造候选清除 issue。
+- [x] backend `4d232f0a8062b7f87afcaf0a859220c5272aea92`、CI `34964491450`、API deploy 成功；生产 API 2/2 Ready，`migration_ready=false`，Guardian/LKG serving 保持稳定。
+- [x] 生产诊断确认 6 个 placement repair 为 `candidates=0 healthy=0 route_ready=0 tls_ready=0`，6 个 route input 为固定时间 freshness 失败，1 个 shared-host owner conflict 保持 fail-closed。
+- [x] 证据：[placement-readiness-counts-2026-09-15.json](verification/placement-readiness-counts-2026-09-15.json)。
+- [ ] 继续修复真实 edge inventory、route/TLS readiness、release freshness 和 shared-host 业务冲突，完成前保持 gray/full 保护。
+
 证据：[dns-placement-compiler-2026-09-15.json](verification/dns-placement-compiler-2026-09-15.json)。
 
 P0-BK 验收范围说明：管理 SSH 通道在本轮核查时于密钥交换前关闭，实际镜像与 readiness 改由已授权 cluster API 和 CI 收据交叉核对。policy LKG 查询仍是原有 404，不等于已验证 policy 恢复。发布前全平台 release guard 已报告 152 项失败（以该次观测为准）；这些旧应用/运行态问题仍需后续调查修复，本步骤的通过不能证明全平台无故障。
