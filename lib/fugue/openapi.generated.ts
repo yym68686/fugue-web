@@ -10902,6 +10902,8 @@ export interface components {
           code: string;
           hostname?: string;
           path_prefix?: string;
+          /** @description Generic validation reason explaining the projection issue; excludes credentials and runtime target URLs. */
+          reason?: string;
         }[];
       intent: components["schemas"]["PlatformConfigIntent"];
       policy: components["schemas"]["PlatformConfigPolicySnapshot"];
