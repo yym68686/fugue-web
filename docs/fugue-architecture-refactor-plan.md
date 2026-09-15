@@ -2406,6 +2406,15 @@ anonymous/missing-id/unknown-id/generation-alias/wrong-kind: 401/400/404/409/409
 - [x] 发布前后 shadow ReleaseSet、route lineage 和 policy LKG 状态未变化；健康/就绪 200，未 promotion。证据：[placement-policy-bridge-2026-09-15.json](verification/placement-policy-bridge-2026-09-15.json)。
 - [ ] 修复剩余 release freshness、sticky consumer 能力和各 hostname 的 origin/runtime 输入后，才能完成 placement 全量等价和 DNS gray/full/rollback 验收。
 
+### P0-BR：Placement 证明回滚与 LKG 恢复验证
+
+- [x] 撤回重复覆盖 route projection 的实现：`projectPlatformRouteArtifact` 已应用全局/每路由最小健康数及排除字段；再次把 `CompiledRoute.MinHealthyEdgeNodes=0` 复制到最终投影会抹掉有效默认值，导致 proof 不匹配。恢复直接对最终 route projection 求摘要，保留 v1 的完整行为校验。
+- [x] 通过声明式 release 链恢复兼容 collector。`1471bdce` 曾通过健康检查并部署，但 placement 诊断出现回归；`2b925c3b` 才是撤回后的实际生产版本。若干发布因本轮错误的 intent generation、predecessor/digest 与历史改写失败，均发生在生产写入前；后续恢复使用实际 Guardian LKG 和明确 supersede 关系，没有现场修改 Deployment。
+- [x] backend `2b925c3bda48a5f78753a4fd91ecb467214f6b92`、CI `34914038259` 成功；生产 API 镜像 digest 为 `sha256:c329b57e76a3a0fccfb4884b0ecd78a6d764fd58b59eb596963218d76ebef925`，2/2 Ready，Guardian `stable` 且 local/dependency/route health 全部 healthy，`/healthz` 与 `/readyz` 均为 200。
+- [x] 恢复后 shadow ReleaseSet、route lineage、policy LKG 查询与已有基线完全一致；没有配置 promotion。placement 草稿为 133 routes、136 DNS intents、119 observations，保留 4 个 `dns_placement_route_inputs_invalid`、2 个 `dns_placement_evidence_requires_repair`、平台 DNS 与 release equivalence/freshness 缺口，`migration_ready=false`。policy LKG 仍为 404，该恢复能力尚未验收。
+- [x] 证据：[placement-proof-recovery-2026-09-15.json](verification/placement-proof-recovery-2026-09-15.json)。
+- [ ] 补充 collector 与实际 Edge Control 输出之间的回归，验证全局默认值、每路由覆盖和排除字段不会被二次投影改变；调查剩余业务输入/证明缺口，完成全量等价前不得解除 DNS gray/full 保护。
+
 证据：[dns-placement-compiler-2026-09-15.json](verification/dns-placement-compiler-2026-09-15.json)。
 
 P0-BK 验收范围说明：管理 SSH 通道在本轮核查时于密钥交换前关闭，实际镜像与 readiness 改由已授权 cluster API 和 CI 收据交叉核对。policy LKG 查询仍是原有 404，不等于已验证 policy 恢复。发布前全平台 release guard 已报告 152 项失败（以该次观测为准）；这些旧应用/运行态问题仍需后续调查修复，本步骤的通过不能证明全平台无故障。

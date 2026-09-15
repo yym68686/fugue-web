@@ -1,0 +1,117 @@
+{
+  "observed_at": "2026-09-15T00:47:32.037292+00:00",
+  "backend_commit": "2b925c3bda48a5f78753a4fd91ecb467214f6b92",
+  "ci_run": 34914038259,
+  "api": {
+    "component": "api",
+    "deployment_name": "fugue-fugue-api",
+    "image": "ghcr.io/yym68686/fugue-api@sha256:c329b57e76a3a0fccfb4884b0ecd78a6d764fd58b59eb596963218d76ebef925",
+    "image_repository": "ghcr.io/yym68686/fugue-api",
+    "image_tag": "2b925c3bda48a5f78753a4fd91ecb467214f6b92",
+    "observed_image_tags": [
+      "2b925c3bda48a5f78753a4fd91ecb467214f6b92"
+    ],
+    "observed_pods": [
+      {
+        "name": "fugue-fugue-api-57b696d987-nh5f2",
+        "node_name": "vps-d6d20fa1",
+        "phase": "Running",
+        "ready": true,
+        "image": "ghcr.io/yym68686/fugue-api@sha256:c329b57e76a3a0fccfb4884b0ecd78a6d764fd58b59eb596963218d76ebef925",
+        "image_repository": "ghcr.io/yym68686/fugue-api",
+        "image_tag": "2b925c3bda48a5f78753a4fd91ecb467214f6b92",
+        "start_time": "2026-09-15T00:44:54Z"
+      },
+      {
+        "name": "fugue-fugue-api-57b696d987-6m2m7",
+        "node_name": "vps-d6d20fa1",
+        "phase": "Running",
+        "ready": true,
+        "image": "ghcr.io/yym68686/fugue-api@sha256:c329b57e76a3a0fccfb4884b0ecd78a6d764fd58b59eb596963218d76ebef925",
+        "image_repository": "ghcr.io/yym68686/fugue-api",
+        "image_tag": "2b925c3bda48a5f78753a4fd91ecb467214f6b92",
+        "start_time": "2026-09-15T00:44:34Z"
+      }
+    ],
+    "status": "ready",
+    "desired_replicas": 2,
+    "ready_replicas": 2,
+    "updated_replicas": 2,
+    "available_replicas": 2
+  },
+  "guardian": {
+    "apiVersion": "release.fugue.dev/v1",
+    "component": "api",
+    "currentRecordDigest": "sha256:99621b4e302a43effa4a217bed5678b9272f058d40bbc51f95aaf1f692756d77",
+    "group": "global",
+    "health": {
+      "dependency": {
+        "evidenceDigest": "sha256:6423d5f713c2197229df9a2f259d0d859e0852143df96334e2ffbae8c4db8b13",
+        "observedAt": "2026-09-15T00:47:25.290986819Z",
+        "state": "healthy"
+      },
+      "local": {
+        "evidenceDigest": "sha256:5c9e8f0fe165f875cc419c45205b798aab0d451c12d2be8876bd3aa77a299a6b",
+        "observedAt": "2026-09-15T00:47:25.290986819Z",
+        "state": "healthy"
+      },
+      "route": {
+        "evidenceDigest": "sha256:4003ef5e72051996b2da7f5dd081f162c31f9964547363a0b3b523ed510371da",
+        "observedAt": "2026-09-15T00:47:18.089005198Z",
+        "state": "healthy"
+      }
+    },
+    "kind": "ReleaseStatus",
+    "lastSuccessfulLkg": "sha256:99621b4e302a43effa4a217bed5678b9272f058d40bbc51f95aaf1f692756d77",
+    "observedAt": "2026-09-15T00:47:27.064677909Z",
+    "reason": "local, dependency, and route health are verified",
+    "state": "stable",
+    "statusDigest": "sha256:87f776d2b721319f86a8a5866d92c5b332b87ba38c91e615a54b449456499908",
+    "targetRecordDigest": "sha256:99621b4e302a43effa4a217bed5678b9272f058d40bbc51f95aaf1f692756d77"
+  },
+  "health_status": 200,
+  "ready_status": 200,
+  "state_unchanged": true,
+  "policy_lkg_status": 404,
+  "serving_promoted": false,
+  "migration_ready": false,
+  "route_count": 133,
+  "dns_count": 136,
+  "placement_count": 119,
+  "issues": [
+    {
+      "code": "dns_route_placement_not_projected"
+    },
+    {
+      "code": "release_target_equivalence_not_verified"
+    },
+    {
+      "code": "release_observations_require_repair"
+    },
+    {
+      "code": "dns_placement_route_inputs_invalid",
+      "hostname": "drain-canary-0705.fugue.pro"
+    },
+    {
+      "code": "dns_placement_route_inputs_invalid",
+      "hostname": "gigo-sidecar.fugue.pro"
+    },
+    {
+      "code": "dns_placement_evidence_requires_repair",
+      "hostname": "mecgod.fugue.pro"
+    },
+    {
+      "code": "dns_placement_route_inputs_invalid",
+      "hostname": "music.fugue.pro"
+    },
+    {
+      "code": "dns_placement_route_inputs_invalid",
+      "hostname": "review00.fugue.pro"
+    },
+    {
+      "code": "dns_placement_evidence_requires_repair",
+      "hostname": "uni-api-ember.fugue.pro"
+    }
+  ],
+  "scope": "Placement proof policy re-materialization was reverted after diagnostic regression. Existing route proof v1 and consumer serving artifacts preserved. This is recovery evidence, not migration completion."
+}
