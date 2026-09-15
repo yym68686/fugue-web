@@ -2474,6 +2474,16 @@ anonymous/missing-id/unknown-id/generation-alias/wrong-kind: 401/400/404/409/409
 - [x] 证据：[placement-readiness-counts-2026-09-15.json](verification/placement-readiness-counts-2026-09-15.json)。
 - [ ] 继续修复真实 edge inventory、route/TLS readiness、release freshness 和 shared-host 业务冲突，完成前保持 gray/full 保护。
 
+
+### P0-BY：Ready stable baseline 的 serving identity 兼容
+
+- [x] 单 stable 100% traffic policy 下，`AppRelease.status=ready` 且 Deployment/Service/Endpoint/image current cohort 全部健康时，作为 canonical stable baseline 参与 serving identity 证明；不要求历史持久状态必须已经写成 `serving`。
+- [x] 新增 point-read 回归测试；完整 `GOFLAGS=-p=2 GOMAXPROCS=4 make test` 通过。
+- [x] backend `65f319b544b36eac27bfc3dc25350ade07a9c600`、CI `34967815766`、API deploy 成功；生产 API 2/2 Ready，Guardian stable，health/ready 通过。
+- [x] 生产 `music.fugue.pro` 与 `drain-canary-0705.fugue.pro` 均恢复精确 `serving_release_id`；`release_observations_require_repair` 的 freshness 输入从 6 个降为 2 个，未发生 serving promotion。
+- [x] 证据：[ready-stable-baseline-release-identity-2026-09-15.json](verification/ready-stable-baseline-release-identity-2026-09-15.json)。
+- [ ] 继续处理剩余两个 freshness 输入、review00 runtime 故障、route/TLS evidence、shared-host conflict 和全量 output equivalence。
+
 证据：[dns-placement-compiler-2026-09-15.json](verification/dns-placement-compiler-2026-09-15.json)。
 
 P0-BK 验收范围说明：管理 SSH 通道在本轮核查时于密钥交换前关闭，实际镜像与 readiness 改由已授权 cluster API 和 CI 收据交叉核对。policy LKG 查询仍是原有 404，不等于已验证 policy 恢复。发布前全平台 release guard 已报告 152 项失败（以该次观测为准）；这些旧应用/运行态问题仍需后续调查修复，本步骤的通过不能证明全平台无故障。

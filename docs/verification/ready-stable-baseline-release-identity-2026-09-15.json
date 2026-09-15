@@ -1,0 +1,264 @@
+{
+  "observed_at": "2026-09-15T12:26:10.892021+00:00",
+  "backend_commit": "65f319b544b36eac27bfc3dc25350ade07a9c600",
+  "ci_run": 34967815766,
+  "api": {
+    "component": "api",
+    "deployment_name": "fugue-fugue-api",
+    "image": "ghcr.io/yym68686/fugue-api@sha256:2ee44f5172a848d93fcba34230621c35694c6cf1f728eca8c300b51cfab12864",
+    "image_repository": "ghcr.io/yym68686/fugue-api",
+    "image_tag": "65f319b544b36eac27bfc3dc25350ade07a9c600",
+    "observed_image_tags": [
+      "65f319b544b36eac27bfc3dc25350ade07a9c600"
+    ],
+    "observed_pods": [
+      {
+        "name": "fugue-fugue-api-845db8697f-hhnm6",
+        "node_name": "vps-d6d20fa1",
+        "phase": "Running",
+        "ready": true,
+        "image": "ghcr.io/yym68686/fugue-api@sha256:2ee44f5172a848d93fcba34230621c35694c6cf1f728eca8c300b51cfab12864",
+        "image_repository": "ghcr.io/yym68686/fugue-api",
+        "image_tag": "65f319b544b36eac27bfc3dc25350ade07a9c600",
+        "start_time": "2026-09-15T12:22:17Z"
+      },
+      {
+        "name": "fugue-fugue-api-845db8697f-dd5ql",
+        "node_name": "vps-d6d20fa1",
+        "phase": "Running",
+        "ready": true,
+        "image": "ghcr.io/yym68686/fugue-api@sha256:2ee44f5172a848d93fcba34230621c35694c6cf1f728eca8c300b51cfab12864",
+        "image_repository": "ghcr.io/yym68686/fugue-api",
+        "image_tag": "65f319b544b36eac27bfc3dc25350ade07a9c600",
+        "start_time": "2026-09-15T12:21:57Z"
+      }
+    ],
+    "status": "ready",
+    "desired_replicas": 2,
+    "ready_replicas": 2,
+    "updated_replicas": 2,
+    "available_replicas": 2
+  },
+  "health_checks": {
+    "/healthz": 200,
+    "/readyz": 200
+  },
+  "guardian": {
+    "apiVersion": "release.fugue.dev/v1",
+    "component": "api",
+    "currentRecordDigest": "sha256:86363612636c5e957083433d019560fe2c5d583fd028962c68219b45d761e4cf",
+    "group": "global",
+    "health": {
+      "dependency": {
+        "evidenceDigest": "sha256:6423d5f713c2197229df9a2f259d0d859e0852143df96334e2ffbae8c4db8b13",
+        "observedAt": "2026-09-15T12:26:04.442351407Z",
+        "state": "healthy"
+      },
+      "local": {
+        "evidenceDigest": "sha256:42fc32320068dd05f68a4f9912bf9cc02feafb25569cfa770485c03c5bb8165d",
+        "observedAt": "2026-09-15T12:26:04.442351407Z",
+        "state": "healthy"
+      },
+      "route": {
+        "evidenceDigest": "sha256:4003ef5e72051996b2da7f5dd081f162c31f9964547363a0b3b523ed510371da",
+        "observedAt": "2026-09-15T12:25:57.688970517Z",
+        "state": "healthy"
+      }
+    },
+    "kind": "ReleaseStatus",
+    "lastSuccessfulLkg": "sha256:86363612636c5e957083433d019560fe2c5d583fd028962c68219b45d761e4cf",
+    "observedAt": "2026-09-15T12:26:06.541872492Z",
+    "reason": "local, dependency, and route health are verified",
+    "state": "stable",
+    "statusDigest": "sha256:a2a9236d847c5060b986c00068c2d13de36548c65549b8d977c70d54f1da2420",
+    "targetRecordDigest": "sha256:86363612636c5e957083433d019560fe2c5d583fd028962c68219b45d761e4cf"
+  },
+  "samples": [
+    {
+      "app_id": "app_1774720664_ef855e625cae",
+      "hostname": "music.fugue.pro",
+      "stable_release_id": "apprel_1783456350_05baff791771",
+      "durable_release_status": "ready",
+      "observed_status": {
+        "phase": "deployed",
+        "runtime_id": "runtime_managed_shared",
+        "serving_release_id": "apprel_1783456350_05baff791771",
+        "desired_replicas": 1,
+        "ready_replicas": 1,
+        "runtime_object_present": true,
+        "namespace_present": true,
+        "service_present": true,
+        "endpoint_present": true,
+        "endpoint_ready": true,
+        "physical_replicas": 1,
+        "physical_desired_replicas": 1,
+        "image_present": true,
+        "image_ref": "registry.fugue.internal:5000/fugue-apps/lingkuma-albumartwork:git-e1b421c5ac24",
+        "fresh": true,
+        "observed_at": "2026-09-15T12:25:37.01520775Z",
+        "cluster_id": "1a08cd00-258e-44e6-a179-5d9d6fa8a1e9",
+        "generation": 4,
+        "observed_generation": 4,
+        "evidence_source": "kubernetes_api",
+        "evidence_sources": [
+          "kubernetes_api",
+          "image_location_store",
+          "app_release_traffic_policy"
+        ],
+        "reason": "managed_app_ready",
+        "message": "stable release apprel_1783456350_05baff791771 is serving the desired image"
+      },
+      "release_fact": {
+        "observed_at": "2026-09-15T12:25:45.156604817Z",
+        "tenant_id": "tenant_1774720388_5c9ca0db3d42",
+        "id": "apprel_1783456350_05baff791771",
+        "app_id": "app_1774720664_ef855e625cae",
+        "status": "active",
+        "upstream_url": "http://app-1774720664-ef855e625cae.fg-tenant-1774720388-5c9ca0db3d42.svc.cluster.local:80",
+        "runtime_id": "runtime_managed_shared",
+        "deployment_generation": "registry.fugue.internal:5000/fugue-apps/lingkuma-albumartwork:git-e1b421c5ac24"
+      }
+    },
+    {
+      "app_id": "app_1783188884_8facd2b054e6",
+      "hostname": "drain-canary-0705.fugue.pro",
+      "stable_release_id": "apprel_1783440303_3510434a81f7",
+      "durable_release_status": "ready",
+      "observed_status": {
+        "phase": "deployed",
+        "runtime_id": "runtime_managed_shared",
+        "serving_release_id": "apprel_1783440303_3510434a81f7",
+        "desired_replicas": 1,
+        "ready_replicas": 1,
+        "runtime_object_present": true,
+        "namespace_present": true,
+        "service_present": true,
+        "endpoint_present": true,
+        "endpoint_ready": true,
+        "physical_replicas": 1,
+        "physical_desired_replicas": 1,
+        "image_present": true,
+        "image_ref": "registry.fugue.internal:5000/fugue-apps/index-docker-io-library-python:image-6d43704baacd",
+        "fresh": true,
+        "observed_at": "2026-09-15T12:25:37.01520775Z",
+        "cluster_id": "1a08cd00-258e-44e6-a179-5d9d6fa8a1e9",
+        "generation": 34,
+        "observed_generation": 34,
+        "evidence_source": "kubernetes_api",
+        "evidence_sources": [
+          "kubernetes_api",
+          "image_location_store",
+          "app_release_traffic_policy"
+        ],
+        "reason": "managed_app_ready",
+        "message": "stable release apprel_1783440303_3510434a81f7 is serving the desired image"
+      },
+      "release_fact": {
+        "observed_at": "2026-09-15T12:25:45.156604817Z",
+        "tenant_id": "tenant_1774393589_e35b60a6fc11",
+        "id": "apprel_1783440303_3510434a81f7",
+        "app_id": "app_1783188884_8facd2b054e6",
+        "status": "active",
+        "upstream_url": "http://app-1783188884-8facd2b054e6.fg-tenant-1774393589-e35b60a6fc11.svc.cluster.local:8000",
+        "runtime_id": "runtime_managed_shared",
+        "deployment_generation": "registry.fugue.internal:5000/fugue-apps/index-docker-io-library-python:image-6d43704baacd"
+      }
+    }
+  ],
+  "draft": {
+    "captured_at": "2026-09-15T12:25:58.45935162Z",
+    "route_count": 134,
+    "migration_ready": false,
+    "issues": [
+      {
+        "code": "dns_output_equivalence_not_verified"
+      },
+      {
+        "code": "release_target_equivalence_not_verified"
+      },
+      {
+        "code": "release_observations_require_repair"
+      },
+      {
+        "code": "dns_custom_domain_shared_hostname_conflict",
+        "hostname": "api.0-0.pro",
+        "reason": "custom and platform routes at one hostname have different app owners"
+      },
+      {
+        "code": "dns_placement_evidence_requires_repair",
+        "hostname": "d-08feea92ce495838953a.dns.fugue.pro",
+        "reason": "DNS placement has insufficient route-ready and TLS-ready edges; candidates=0 healthy=0 route_ready=0 tls_ready=0"
+      },
+      {
+        "code": "dns_placement_route_inputs_invalid",
+        "hostname": "d-3d52bfa8be18749d574f.dns.fugue.pro",
+        "reason": "release observation requires fresh evidence at fixed captured_at"
+      },
+      {
+        "code": "dns_placement_evidence_requires_repair",
+        "hostname": "d-573780ce7ff778574ba8.dns.fugue.pro",
+        "reason": "DNS placement has insufficient route-ready and TLS-ready edges; candidates=0 healthy=0 route_ready=0 tls_ready=0"
+      },
+      {
+        "code": "dns_placement_evidence_requires_repair",
+        "hostname": "d-6b64ca2436892bf0b8d1.dns.fugue.pro",
+        "reason": "DNS placement has insufficient route-ready and TLS-ready edges; candidates=0 healthy=0 route_ready=0 tls_ready=0"
+      },
+      {
+        "code": "dns_placement_evidence_requires_repair",
+        "hostname": "d-8bdf276e71ea1720f7d2.dns.fugue.pro",
+        "reason": "DNS placement has insufficient route-ready and TLS-ready edges; candidates=0 healthy=0 route_ready=0 tls_ready=0"
+      },
+      {
+        "code": "dns_placement_evidence_requires_repair",
+        "hostname": "d-d1634e62756a77acd020.dns.fugue.pro",
+        "reason": "DNS placement has insufficient route-ready and TLS-ready edges; candidates=0 healthy=0 route_ready=0 tls_ready=0"
+      },
+      {
+        "code": "dns_placement_evidence_requires_repair",
+        "hostname": "drain-canary-0705.fugue.pro",
+        "reason": "DNS placement has insufficient route-ready and TLS-ready edges; candidates=0 healthy=0 route_ready=0 tls_ready=0"
+      },
+      {
+        "code": "dns_placement_evidence_requires_repair",
+        "hostname": "gigo-sidecar.fugue.pro",
+        "reason": "DNS placement has insufficient route-ready and TLS-ready edges; candidates=0 healthy=0 route_ready=0 tls_ready=0"
+      },
+      {
+        "code": "dns_placement_evidence_requires_repair",
+        "hostname": "mecgod.fugue.pro",
+        "reason": "DNS placement has insufficient route-ready and TLS-ready edges; candidates=0 healthy=0 route_ready=0 tls_ready=0"
+      },
+      {
+        "code": "dns_placement_evidence_requires_repair",
+        "hostname": "music.fugue.pro",
+        "reason": "DNS placement has insufficient route-ready and TLS-ready edges; candidates=0 healthy=0 route_ready=0 tls_ready=0"
+      },
+      {
+        "code": "dns_placement_route_inputs_invalid",
+        "hostname": "review00.fugue.pro",
+        "reason": "release observation requires fresh evidence at fixed captured_at"
+      },
+      {
+        "code": "dns_placement_evidence_requires_repair",
+        "hostname": "uni-api-ember.fugue.pro",
+        "reason": "DNS placement has insufficient route-ready and TLS-ready edges; candidates=0 healthy=0 route_ready=0 tls_ready=0"
+      }
+    ],
+    "issue_counts": {
+      "dns_output_equivalence_not_verified": 1,
+      "release_target_equivalence_not_verified": 1,
+      "release_observations_require_repair": 1,
+      "dns_custom_domain_shared_hostname_conflict": 1,
+      "dns_placement_evidence_requires_repair": 10,
+      "dns_placement_route_inputs_invalid": 2
+    }
+  },
+  "serving_state_unchanged_during_verification": true,
+  "state_statuses": {
+    "/v1/platform-state/artifacts/release_set?scope_key=global&channel=shadow": 200,
+    "/v1/platform-state/artifacts/release_set?scope_key=global&channel=full": 200,
+    "/v1/admin/platform-config/policy-lkg": 404,
+    "/v1/admin/artifacts/artifact_1789290147_3ae6084f214d/lineage": 200
+  }
+}
