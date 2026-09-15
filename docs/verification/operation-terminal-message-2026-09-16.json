@@ -1,0 +1,61 @@
+{
+  "captured_at": "2026-09-15T17:28:05.493486+00:00",
+  "backend_commit": "acf3a20f855f22066066585d6c27efbb09d52ff2",
+  "ci_run": 35000216401,
+  "components": [
+    {
+      "component": "api",
+      "image_tag": "acf3a20f855f22066066585d6c27efbb09d52ff2",
+      "image": "ghcr.io/yym68686/fugue-api@sha256:619654b4f38019d7ca01e569865a2a61e6929d812f807788dda44b42ff8f5084",
+      "status": "ready",
+      "desired_replicas": 2,
+      "ready_replicas": 2
+    },
+    {
+      "component": "controller",
+      "image_tag": "acf3a20f855f22066066585d6c27efbb09d52ff2",
+      "image": "ghcr.io/yym68686/fugue-controller@sha256:426e95e7c4ddd636e66b7d17de2425e041eb90062ece631dac894f31fb75e5e6",
+      "status": "ready",
+      "desired_replicas": 2,
+      "ready_replicas": 2
+    }
+  ],
+  "health": {
+    "status": "ok"
+  },
+  "ready": {
+    "checks": {
+      "kubernetes_api": {
+        "status": "ok"
+      },
+      "observability": {
+        "status": "ok",
+        "message": "configured backends: analytics,logs,metrics; retention: 24h0m0s; exporters: analytics,logs"
+      },
+      "store": {
+        "status": "ok"
+      }
+    },
+    "status": "ok"
+  },
+  "operation": {
+    "id": "op_1789493150_fa29686cc5b8",
+    "status": "failed",
+    "result_message": "insufficient LocalPV capacity on node ns101351 volume group fugue-vg for postgres expansion: free_bytes=8585740288 expansion_bytes=21474836480 required_reserve_bytes=24051397428 pv_size_bytes=240513974272 PVCs=review00-db-postgres-2",
+    "error_message": "insufficient LocalPV capacity on node ns101351 volume group fugue-vg for postgres expansion: free_bytes=8585740288 expansion_bytes=21474836480 required_reserve_bytes=24051397428 pv_size_bytes=240513974272 PVCs=review00-db-postgres-2",
+    "created_at": "2026-09-15T17:25:50.00201Z",
+    "completed_at": "2026-09-15T17:26:01.849241Z"
+  },
+  "pvc_after_rejected_operation": {
+    "storage_class": "fugue-postgres-rwo",
+    "requested_size": "20Gi",
+    "capacity": "20Gi"
+  },
+  "unresolved_cluster_spec_from_earlier_attempt": {
+    "storage_class": "fugue-longhorn-rwo",
+    "size": "40Gi",
+    "instances": 2
+  },
+  "database_recovered": false,
+  "new_configuration_promoted": false
+}

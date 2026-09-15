@@ -49,5 +49,11 @@
     "required_reserve_bytes": 24051397428,
     "decision": "rejected_before_pvc_patch"
   },
-  "safety_result": "old PVC and old serving/LKG retained; no cross-driver migration"
+  "safety_result": "The corrected capacity preflight rejected the new operation before patching the OpenEBS PVC. No LKG comparison was collected for this step. An earlier failed standby operation left CNPG Cluster.spec at Longhorn 40Gi / 2 instances; restoration remains unverified.",
+  "unresolved_cluster_spec_from_earlier_attempt": {
+    "storage_class": "fugue-longhorn-rwo",
+    "size": "40Gi",
+    "instances": 2,
+    "restored": false
+  }
 }
