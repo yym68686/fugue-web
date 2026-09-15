@@ -1,0 +1,20 @@
+{
+  "step": "P0-CJ",
+  "description": "Full promotion gate uses the same active/fresh topology projection as convergence read models",
+  "backend_commit": "9b172712",
+  "ci_run": "https://github.com/yym68686/fugue/actions/runs/35035081891",
+  "local_validation": "GOMAXPROCS=2 make test",
+  "production": {
+    "healthz": 200,
+    "readyz": 200,
+    "edge_route_bundle_convergence": {
+      "required_expected": 3,
+      "required_observed": 3,
+      "required_passing": 0,
+      "expected_consumer_set_id": "expectedconsumerset_5be93558e7ac6e43",
+      "consumer_capabilities_match": true,
+      "remaining_reasons": ["desired or actual generation does not match the expected generation", "apply status is not applied", "probe status is not passed"]
+    }
+  },
+  "safety": "The projection preserves RequiresConsumers when the live topology is empty, so unknown topology cannot be interpreted as zero required consumers. Full promotion remains blocked while shadow consumers are staged/shadow_validated."
+}

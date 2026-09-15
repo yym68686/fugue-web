@@ -2588,3 +2588,12 @@ P0-BK 验收范围说明：管理 SSH 通道在本轮核查时于密钥交换前
 - [x] Edge worker `3aab5ce2` 与 API `9beed1a3` 已通过 GitHub Actions 正式部署；API `healthz/readyz` 均为 200。
 - [x] 生产 convergence required expected 从 6 降为 3，required observed 为 3；三个 worker 的 expected/observed capability 均为 `caddy_apply_probe`，历史 Caddy 条目不再作为独立 consumer 阻塞恢复。证据：[edge-consumer-caddy-owner-2026-09-16.json](verification/edge-consumer-caddy-owner-2026-09-16.json)。
 - [ ] 当前 shadow consumer 仍为 staged/shadow_validated，required passing 为 0；继续处理 generation/apply/probe 证据与 full convergence，不解除 gray/full 保护。
+
+### P0-CJ：Full promotion gate 与 convergence 使用同一 live topology projection
+
+- [x] full promotion gate 使用与 convergence 查询相同的 active/fresh Edge、DNS、node-updater、runtime topology projection；历史 removed consumer 不再永久阻塞，历史 Caddy owner 映射到 worker owner。
+- [x] live topology 为空时保留原 expected set 的 `RequiresConsumers` 语义，返回 unknown/block，不能把 topology 缺失解释成“没有 required consumer”。
+- [x] 增加 promotion gate、空 topology 和 legacy owner projection 回归；完整 `GOMAXPROCS=2 make test` 通过。
+- [x] 后端 `9b172712` 已通过 prepush、API build 和 `deploy_api`；生产 `/healthz`、`/readyz` 均为 200。
+- [x] 生产 convergence 仍为 required expected 3、observed 3、passing 0，三个 worker 的 `caddy_apply_probe` capability 均匹配；shadow staged/shadow_validated 继续阻止 full promotion。证据：[promotion-gate-live-topology-2026-09-16.json](verification/promotion-gate-live-topology-2026-09-16.json)。
+- [ ] 完成真实 consumer 的 candidate apply/probe、gray/full 和 rollback 验收后，才能解除 full promotion 保护。
