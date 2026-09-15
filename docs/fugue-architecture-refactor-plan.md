@@ -2550,3 +2550,13 @@ P0-BK 验收范围说明：管理 SSH 通道在本轮核查时于密钥交换前
 - [x] 后端 `79d2a6e9`、API intent generation 448 已推送；CI `35008546470` 成功，API 2/2 Ready，前端 contract-drift `35008580689` 成功。
 - [x] 生产 projection 验证：`dns_custom_domain_shared_hostname_conflict` 与 owner mismatch 均为 0；route count 135，migration_ready 仍为 false。证据：[shared-hostname-path-binding-2026-09-16.json](verification/shared-hostname-path-binding-2026-09-16.json)。
 - [ ] 继续完成真实 DNS/TLS 全量等价、consumer apply/gray/full/rollback 和剩余 release freshness；本步没有解除发布保护。
+
+
+### P0-CF：Release facts 按冻结 route graph 过滤
+
+- [x] 只把当前 `PlatformIntent` route graph 引用的 traffic policy、stable/candidate release 和 route policy 纳入迁移编译；未被 route 引用的应用不会阻塞迁移，也不会进入 RuntimeSnapshot。
+- [x] 保持 fail-closed：当前 route 引用的 release 仍必须通过 owner、runtime、image、freshness 和 serving evidence 校验；此步骤没有放宽任何正向 serving gate。
+- [x] 增加无关 release facts 不进入 PolicySnapshot/RuntimeSnapshot 的回归，完整 `make test` 通过。
+- [x] 后端 `ee19260c`、API intent generation 449 已发布；CI [35011697271](https://github.com/yym68686/fugue/actions/runs/35011697271) 成功，API 2/2 Ready，health/readiness 正常。
+- [x] 生产前后 route count 均为 135，release observations 从 8 降为 7，移除的条目没有对应 serving route；剩余问题仍是 route graph 中真实引用的 freshness/equivalence/placement 缺口。证据：[release-graph-input-filter-2026-09-16.json](verification/release-graph-input-filter-2026-09-16.json)。
+- [ ] 修复仍被 route graph 引用的 release identity/freshness，并完成全量 route/DNS/TLS 等价和 consumer convergence；当前 `migration_ready=false`。

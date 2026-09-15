@@ -1,0 +1,63 @@
+{
+  "verified_at": "2026-09-15T19:19:40.824183+00:00",
+  "backend_commit": "ee19260c2fcfe76156b166beea4ae1cc73fd7d56",
+  "ci_run": 35011697271,
+  "api": {
+    "component": "api",
+    "image": "ghcr.io/yym68686/fugue-api@sha256:e01ed478c5e5ee796410eeb467c3fbec615112dcff96d336ad1d7d5874fe89d1",
+    "image_tag": "ee19260c2fcfe76156b166beea4ae1cc73fd7d56",
+    "status": "ready",
+    "desired_replicas": 2,
+    "ready_replicas": 2,
+    "updated_replicas": 2
+  },
+  "health": {
+    "status": "ok"
+  },
+  "ready": {
+    "checks": {
+      "kubernetes_api": {
+        "status": "ok"
+      },
+      "observability": {
+        "status": "ok",
+        "message": "configured backends: analytics,logs,metrics; retention: 24h0m0s; exporters: analytics,logs"
+      },
+      "store": {
+        "status": "ok"
+      }
+    },
+    "status": "ok"
+  },
+  "before": {
+    "captured_at": "2026-09-15T18:46:43.337539065Z",
+    "route_count": 135,
+    "release_observation_count": 8,
+    "migration_ready": false
+  },
+  "after": {
+    "captured_at": "2026-09-15T19:18:07.498731459Z",
+    "route_count": 135,
+    "release_observation_count": 7,
+    "migration_ready": false,
+    "issue_codes": [
+      "dns_output_equivalence_not_verified",
+      "dns_placement_evidence_requires_repair",
+      "dns_placement_route_inputs_invalid",
+      "release_observations_require_repair",
+      "release_target_equivalence_not_verified"
+    ]
+  },
+  "unreferenced_release_app_ids_removed": [
+    "app_1783616770_b1ffb292ab7f"
+  ],
+  "invariants": [
+    "PlatformIntent and RuntimeSnapshot remain separate.",
+    "Only traffic policies whose app appears in the frozen route graph are compiled.",
+    "Unreferenced release rows are not treated as required serving evidence."
+  ],
+  "limitations": [
+    "Remaining release freshness, route/DNS/TLS equivalence and consumer convergence issues remain.",
+    "No configuration promotion or database recovery was performed."
+  ]
+}
