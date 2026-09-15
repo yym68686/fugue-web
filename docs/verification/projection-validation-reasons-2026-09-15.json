@@ -1,0 +1,88 @@
+{
+  "observed_at": "2026-09-15T01:48:25.087856+00:00",
+  "backend_commit": "5dc88268c36823c50e37dc16db8194d0e768707a",
+  "ci_run": 34918009055,
+  "api": {
+    "component": "api",
+    "deployment_name": "fugue-fugue-api",
+    "image": "ghcr.io/yym68686/fugue-api@sha256:2adb63b326d8e34050570b9576bb1028b6427f4b28005f4ed41728bdf3e2d5e2",
+    "image_repository": "ghcr.io/yym68686/fugue-api",
+    "image_tag": "5dc88268c36823c50e37dc16db8194d0e768707a",
+    "observed_image_tags": [
+      "5dc88268c36823c50e37dc16db8194d0e768707a"
+    ],
+    "observed_pods": [
+      {
+        "name": "fugue-fugue-api-5c468674db-d4tvn",
+        "node_name": "vps-d6d20fa1",
+        "phase": "Running",
+        "ready": true,
+        "image": "ghcr.io/yym68686/fugue-api@sha256:2adb63b326d8e34050570b9576bb1028b6427f4b28005f4ed41728bdf3e2d5e2",
+        "image_repository": "ghcr.io/yym68686/fugue-api",
+        "image_tag": "5dc88268c36823c50e37dc16db8194d0e768707a",
+        "start_time": "2026-09-15T01:44:35Z"
+      },
+      {
+        "name": "fugue-fugue-api-5c468674db-ht5kc",
+        "node_name": "vps-d6d20fa1",
+        "phase": "Running",
+        "ready": true,
+        "image": "ghcr.io/yym68686/fugue-api@sha256:2adb63b326d8e34050570b9576bb1028b6427f4b28005f4ed41728bdf3e2d5e2",
+        "image_repository": "ghcr.io/yym68686/fugue-api",
+        "image_tag": "5dc88268c36823c50e37dc16db8194d0e768707a",
+        "start_time": "2026-09-15T01:44:18Z"
+      }
+    ],
+    "status": "ready",
+    "desired_replicas": 2,
+    "ready_replicas": 2,
+    "updated_replicas": 2,
+    "available_replicas": 2
+  },
+  "route_count": 134,
+  "dns_count": 137,
+  "placement_count": 122,
+  "issues": [
+    {
+      "code": "dns_route_placement_not_projected"
+    },
+    {
+      "code": "release_target_equivalence_not_verified"
+    },
+    {
+      "code": "release_observations_require_repair"
+    },
+    {
+      "code": "dns_placement_route_inputs_invalid",
+      "hostname": "drain-canary-0705.fugue.pro",
+      "reason": "release observation requires fresh evidence at fixed captured_at"
+    },
+    {
+      "code": "dns_placement_evidence_requires_repair",
+      "hostname": "gigo-sidecar.fugue.pro",
+      "reason": "DNS placement has insufficient route-ready and TLS-ready edges"
+    },
+    {
+      "code": "dns_placement_evidence_requires_repair",
+      "hostname": "mecgod.fugue.pro",
+      "reason": "DNS placement has insufficient route-ready and TLS-ready edges"
+    },
+    {
+      "code": "dns_placement_route_inputs_invalid",
+      "hostname": "music.fugue.pro",
+      "reason": "release observation requires fresh evidence at fixed captured_at"
+    },
+    {
+      "code": "dns_placement_evidence_requires_repair",
+      "hostname": "uni-api-console.fugue.pro",
+      "reason": "DNS placement has insufficient route-ready and TLS-ready edges"
+    },
+    {
+      "code": "dns_placement_evidence_requires_repair",
+      "hostname": "uni-api-ember.fugue.pro",
+      "reason": "DNS placement has insufficient route-ready and TLS-ready edges"
+    }
+  ],
+  "migration_ready": false,
+  "scope": "Structured projection reasons are diagnostic only; no serving promotion or issue suppression occurs."
+}

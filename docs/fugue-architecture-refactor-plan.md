@@ -2424,6 +2424,14 @@ anonymous/missing-id/unknown-id/generation-alias/wrong-kind: 401/400/404/409/409
 - [x] 证据：[release-fact-runtime-evidence-2026-09-15.json](verification/release-fact-runtime-evidence-2026-09-15.json)。
 - [ ] 为每个 stable/candidate release 增加可验证的 release identity（而不是仅 app 级 serving evidence），再处理剩余 freshness 和 target equivalence 缺口。
 
+### P0-BT：Placement 与 release 输入的结构化诊断
+
+- [x] placement collector 将 route input 和 evidence repair 的通用校验错误写入 `issues[].reason`；不记录 upstream URL、凭据或其他敏感 runtime payload。
+- [x] OpenAPI、生成客户端和 web 快照同步；本地 `make generate-openapi`、完整 Go 测试与 `npm run contract:check` 通过。
+- [x] backend `5dc88268c36823c50e37dc16db8194d0e768707a`、CI `34918009055` 成功，生产 API 2/2 Ready、Guardian stable。生产原因已确认：2 个 route input 为 `release observation requires fresh evidence at fixed captured_at`；4 个 placement repair 为 `insufficient route-ready and TLS-ready edges`。这些 issue 继续阻止 promotion，没有被隐藏或降级。
+- [x] 证据：[projection-validation-reasons-2026-09-15.json](verification/projection-validation-reasons-2026-09-15.json)。
+- [ ] 逐项修复实际 release identity/freshness 和 route/TLS readiness 输入后，才能完成 DNS 等价和 consumer gray/full 验收。
+
 证据：[dns-placement-compiler-2026-09-15.json](verification/dns-placement-compiler-2026-09-15.json)。
 
 P0-BK 验收范围说明：管理 SSH 通道在本轮核查时于密钥交换前关闭，实际镜像与 readiness 改由已授权 cluster API 和 CI 收据交叉核对。policy LKG 查询仍是原有 404，不等于已验证 policy 恢复。发布前全平台 release guard 已报告 152 项失败（以该次观测为准）；这些旧应用/运行态问题仍需后续调查修复，本步骤的通过不能证明全平台无故障。
