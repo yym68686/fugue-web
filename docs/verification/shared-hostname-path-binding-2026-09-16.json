@@ -1,0 +1,54 @@
+{
+  "verified_at": "2026-09-15T18:47:31.569159+00:00",
+  "backend_commit": "79d2a6e91cbb08bec426b0056b1071b1a2f4283f",
+  "ci_runs": {
+    "backend": 35008546470,
+    "frontend_contract": 35008580689
+  },
+  "api": {
+    "component": "api",
+    "image": "ghcr.io/yym68686/fugue-api@sha256:2bf511a1094c85519c639b4627ce0c889d9b6c4b3b379eedff56f71c0bda9389",
+    "image_tag": "79d2a6e91cbb08bec426b0056b1071b1a2f4283f",
+    "status": "ready",
+    "desired_replicas": 2,
+    "ready_replicas": 2,
+    "updated_replicas": 2
+  },
+  "health": {
+    "status": "ok"
+  },
+  "ready": {
+    "checks": {
+      "kubernetes_api": {
+        "status": "ok"
+      },
+      "observability": {
+        "status": "ok",
+        "message": "configured backends: analytics,logs,metrics; retention: 24h0m0s; exporters: analytics,logs"
+      },
+      "store": {
+        "status": "ok"
+      }
+    },
+    "status": "ok"
+  },
+  "projection": {
+    "captured_at": "2026-09-15T18:46:43.337539065Z",
+    "route_count": 135,
+    "migration_ready": false,
+    "issue_count": 8,
+    "shared_hostname_conflicts": [],
+    "remaining_issue_codes": [
+      "dns_output_equivalence_not_verified",
+      "dns_placement_evidence_requires_repair",
+      "dns_placement_route_inputs_invalid",
+      "release_observations_require_repair",
+      "release_target_equivalence_not_verified"
+    ]
+  },
+  "behavior": "Explicit DNSRouteBinding is emitted for each hostname/path/app when a verified custom-domain target contains multiple same-tenant app owners; compiler and placement collector require exact route binding matches. Existing single-app/platform records remain strict.",
+  "limitations": [
+    "No DNS/TLS full equivalence or consumer gray/full serving promotion was performed.",
+    "Remaining freshness, output-equivalence and database issues keep migration_ready false."
+  ]
+}

@@ -2540,3 +2540,13 @@ P0-BK 验收范围说明：管理 SSH 通道在本轮核查时于密钥交换前
 - [x] 后端 `afe4c0ab`、Controller intent generation 138 已推送并发布；CI [35004314869](https://github.com/yym68686/fugue/actions/runs/35004314869) 成功，Controller 2/2 Ready，API healthz/readyz 正常。
 - [x] 等待生产 reconciliation 后，成功 join 的 `process exited successfully instead of staying online` 误报消失，对外状态恢复为真实的 `resuming`；review00 数据库的真实 `exit_code=4` 错误继续保留。证据：[cnpg-job-status-projection-2026-09-16.json](verification/cnpg-job-status-projection-2026-09-16.json)。
 - [ ] 继续处理实际数据库容量与副本拓扑问题；本步骤修复事实分类，不代表数据库恢复完成或全部业务健康。
+
+
+### P0-CE：共享 hostname 的显式 path owner binding
+
+- [x] 新增强类型 `DNSRouteBinding(hostname, path_prefix, app_id)`，仅用于同租户多应用共享 DNS target；普通单应用和平台 DNS 保持原有严格 owner 校验。
+- [x] DNS projection 为共享 target 生成每条 hostname/path/app 绑定；编译、输入校验和 placement collector 都要求绑定与 PlatformIntent 路由逐条一致，跨租户、缺失路径、重复绑定和悬空 policy 均 fail-closed。
+- [x] 增加共享路径、绑定变更、单应用兼容及按 App route policy 回归；后端 `make test`、前端 OpenAPI 同步和 typecheck 通过。
+- [x] 后端 `79d2a6e9`、API intent generation 448 已推送；CI `35008546470` 成功，API 2/2 Ready，前端 contract-drift `35008580689` 成功。
+- [x] 生产 projection 验证：`dns_custom_domain_shared_hostname_conflict` 与 owner mismatch 均为 0；route count 135，migration_ready 仍为 false。证据：[shared-hostname-path-binding-2026-09-16.json](verification/shared-hostname-path-binding-2026-09-16.json)。
+- [ ] 继续完成真实 DNS/TLS 全量等价、consumer apply/gray/full/rollback 和剩余 release freshness；本步没有解除发布保护。
