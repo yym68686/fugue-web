@@ -32,7 +32,7 @@ Runtime Facts / ACK / LKG
 
 ## 当前状态判断
 
-2026-09-15 生产核查：API 已运行 commit `ce418c91`（2/2 Ready，compiler v12）；美洲和德国 DNS/SSH-front 均已运行 `ce418c91`；Guardian 已运行 `42ba6b41`。本次观测的业务迁移草稿包含 132 条 route、15 条 DNS 输入和 8 份 release observations；13 条静态 DNS 与来源逐条一致，已删除 zone 的 1 条记录明确排除。加权 compiler 与 DNS wire 校验通过本地、CI 和生产验证。仍未完成动态 DNS placement、ACME/flatten、TLS readiness、真实 release facts 修复、全量等价以及 consumer gray/full 接管。现有 shadow ReleaseSet 未提升为 serving；其 route lineage 和 policy LKG 查询结果保持不变；这些结果不能作为全局迁移完成证明。
+2026-09-16 生产核查：API 已运行 commit `ee19260c`（2/2 Ready），Controller 已运行 `a7229fa2`（2/2 Ready）。最新业务迁移草稿包含 135 条 route；共享 hostname path owner 冲突已清零，未被冻结 route graph 引用的 release facts 已过滤，当前保留 7 条被引用的 release observations。动态 DNS placement、ACME/flatten、TLS readiness、剩余 release freshness、全量等价以及 consumer gray/full 接管仍未完成；migration_ready 继续为 false。现有 shadow ReleaseSet 未提升为 serving，policy LKG 仍未激活；这些结果不能作为全局迁移完成证明。
 
 Fugue 已经具备相当一部分基础设施：`PlatformArtifact` 已有 generation、content hash、签名、验证状态、release channel、fencing token 和 LKG；Edge 与 DNS 也有签名校验、本地缓存和过期控制。
 
@@ -2225,7 +2225,7 @@ anonymous/missing-id/unknown-id/generation-alias/wrong-kind: 401/400/404/409/409
 - [x] 业务迁移草稿从事务快照提取引用的 AppRelease facts，保留原始 UpdatedAt，绑定 policy generation；不复制运行时改写后的 upstream 权重到 intent。
 - [x] `make test` 通过；backend `cbd41e15eef23b59ec434a07195f09b0d6c119ba` 已推送，CI `34834637420` 成功；web `1e557add` 的 contract-drift `34835074673` 成功。
 - [x] 生产 API generation 1000、2/2 ready、Guardian stable、健康/就绪 200；3 次编译 digest 一致，80/20 与候选不可用后的 100% stable 行为通过，11 类非法输入返回 400；shadow、route LKG、policy LKG 均未变化。验证创建了未 promotion 的候选 artifacts。
-- [ ] 完成真实业务 release observation 修复、sticky consumer 支持和输出等价验证；当前草稿包含 8 条 release facts/8 条 traffic constraints，`release_observations_require_repair` 和 `release_target_equivalence_not_verified` 继续阻止迁移验收。
+- [ ] 完成真实业务 release observation 修复、sticky consumer 支持和输出等价验证；当前草稿只保留 7 条被 route graph 引用的 release facts；`release_observations_require_repair` 和 `release_target_equivalence_not_verified` 继续阻止迁移验收。
 
 生产证据：[release-fact-resolver-2026-09-14.json](verification/release-fact-resolver-2026-09-14.json)。
 
@@ -2495,7 +2495,7 @@ anonymous/missing-id/unknown-id/generation-alias/wrong-kind: 401/400/404/409/409
 - [x] 托管 Postgres Pod 的容器故障也已进入 backing-service runtime facts；生产 `GET /v1/backing-services?include_live_status=true` 返回 `phase=error`、`ready_instances=0/1`，消息包含 `exit_code=4`，底层日志明确为 `no free disk space for WALs`。
 - [x] 保护性回归确认：其他 healthy/suspended backing service 仍保持原有 `active`/`suspended` phase；只有当前 Pod failure 的服务转为 `error`，不会被历史失败 Pod 误覆盖。
 - [x] 证据：[controller-crashloop-status-2026-09-15.json](verification/controller-crashloop-status-2026-09-15.json)。
-- [ ] 继续修复 review00 数据库自身故障、剩余 release freshness、route/TLS evidence、shared-host conflict 和全量 output equivalence；本步骤只修复故障识别与传播，不宣称业务实例已恢复。
+- [ ] 继续修复 review00 数据库自身故障、剩余 release freshness、route/TLS evidence 和全量 output equivalence；本步骤只修复故障识别与传播，不宣称业务实例已恢复。
 
 ### P0-CA：数据库存储意图保持与容量安全门
 
