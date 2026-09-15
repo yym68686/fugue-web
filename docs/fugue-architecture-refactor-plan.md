@@ -2530,3 +2530,13 @@ P0-BK 验收范围说明：管理 SSH 通道在本轮核查时于密钥交换前
 - [x] 生产 API 新镜像 2/2 Ready，healthz/readyz 正常。本次前后采集均为 134 route、241 份 placement；`dns_placement_evidence_requires_repair` 从 13 条降为 0，总 issues 从 19 条降为 6 条。候选数量会随实时健康变化，该结果只代表记录中的采集时刻。
 - [x] 本步没有发布新配置；`fugue.pro` hostname lineage artifact 列表保持不变。Policy LKG 前后均为 404（尚未激活），不将此表述为 verified policy LKG 已完成。证据：[compiled-release-placement-proof-2026-09-16.json](verification/compiled-release-placement-proof-2026-09-16.json)。
 - [ ] 继续处理 release freshness、共享 hostname owner 冲突、全量 route/DNS/TLS 等价和真实 consumer apply/gray/full/rollback；当前 `migration_ready=false`。
+
+
+### P0-CD：数据库运行事实共用 Job-aware 故障判断
+
+- [x] 删除后台同步单独调用普通长驻应用故障判断的包装函数，rollout 与后台同步统一使用 CNPG 故障投影。
+- [x] 只有带明确 `batch/v1 Job` controller owner 的成功任务可以正常结束；Cluster 管理的数据库进程退出、非零失败及 CrashLoop 仍被识别。
+- [x] 回归覆盖成功 initdb/join、成功任务后另一实例的真实失败、失败 Job、数据库进程意外退出及源 pod facts 不变；`make test` 全量通过。
+- [x] 后端 `afe4c0ab`、Controller intent generation 138 已推送并发布；CI [35004314869](https://github.com/yym68686/fugue/actions/runs/35004314869) 成功，Controller 2/2 Ready，API healthz/readyz 正常。
+- [x] 等待生产 reconciliation 后，成功 join 的 `process exited successfully instead of staying online` 误报消失，对外状态恢复为真实的 `resuming`；review00 数据库的真实 `exit_code=4` 错误继续保留。证据：[cnpg-job-status-projection-2026-09-16.json](verification/cnpg-job-status-projection-2026-09-16.json)。
+- [ ] 继续处理实际数据库容量与副本拓扑问题；本步骤修复事实分类，不代表数据库恢复完成或全部业务健康。

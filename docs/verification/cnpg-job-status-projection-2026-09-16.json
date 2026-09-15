@@ -1,0 +1,66 @@
+{
+  "verified_at": "2026-09-15T18:05:09.794610+00:00",
+  "backend_commit": "afe4c0ab1f3f931fcba7eeb2202cbeb01c9b8c8d",
+  "ci_run": 35004314869,
+  "ci_conclusion": "success",
+  "component": {
+    "component": "controller",
+    "image": "ghcr.io/yym68686/fugue-controller@sha256:7c4f4b61c891afea99a42a106cf31c665e5c796fdc9ef87f50a68af92eaac44c",
+    "image_tag": "afe4c0ab1f3f931fcba7eeb2202cbeb01c9b8c8d",
+    "status": "ready",
+    "ready_replicas": 2,
+    "desired_replicas": 2,
+    "updated_replicas": 2
+  },
+  "before": {
+    "id": "app-postgres-app_1784837121_6408f801f81c",
+    "name": "baomian-backend",
+    "runtime_status": {
+      "phase": "error",
+      "message": "pod baomian-backend-postgres-v2-2-join-7vhsf on node v2202605354515455529 container join failed: process exited successfully instead of staying online",
+      "ready_instances": 1,
+      "desired_instances": 1
+    }
+  },
+  "after_controller_reconciliation": {
+    "id": "app-postgres-app_1784837121_6408f801f81c",
+    "name": "baomian-backend",
+    "runtime_status": {
+      "phase": "resuming",
+      "message": "waiting for backing service cluster baomian-backend-postgres-v2 to settle (1/1 ready instances)",
+      "ready_instances": 1,
+      "desired_instances": 1
+    }
+  },
+  "real_database_failure_retained": {
+    "id": "app-postgres-app_1781411982_650fede8ea9a",
+    "name": "review00",
+    "runtime_status": {
+      "phase": "error",
+      "message": "pod review00-db-postgres-2 on node ns101351 container postgres failed: Error: exit_code=4",
+      "ready_instances": 0,
+      "desired_instances": 1
+    }
+  },
+  "health": {
+    "status": "ok"
+  },
+  "ready": {
+    "checks": {
+      "kubernetes_api": {
+        "status": "ok"
+      },
+      "observability": {
+        "status": "ok",
+        "message": "configured backends: analytics,logs,metrics; retention: 24h0m0s; exporters: analytics,logs"
+      },
+      "store": {
+        "status": "ok"
+      }
+    },
+    "status": "ok"
+  },
+  "scope": "Shared CNPG job-aware failure projection for rollout and periodic status reconciliation; no storage recovery operation or serving configuration promotion.",
+  "verification_note": "Initial read after rollout still contained the previous message; subsequent controller reconciliation updated both ManagedApp status and the public API.",
+  "database_fully_healthy": false
+}
