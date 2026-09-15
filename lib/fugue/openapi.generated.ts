@@ -11535,6 +11535,16 @@ export interface components {
     };
   };
   responses: {
+    /** @description Another object storage management operation holds the lock. No mutation was performed by this request; retry after the indicated delay. Other state conflicts may also return 409 with retryable false. */
+    ObjectStorageBusy: {
+      headers: {
+        /** @description Suggested wait in seconds when the management lock is busy. */
+        "Retry-After"?: number;
+      };
+      content: {
+        "application/json": components["schemas"]["ErrorResponse"];
+      };
+    };
     /** @description Error response */
     ErrorResponse: {
       content: {
@@ -20186,6 +20196,7 @@ export interface operations {
           "application/json": components["schemas"]["ObjectStorageConfigStatus"];
         };
       };
+      409: components["responses"]["ObjectStorageBusy"];
       default: components["responses"]["ErrorResponse"];
     };
   };
@@ -20227,6 +20238,7 @@ export interface operations {
           "application/json": components["schemas"]["ObjectStoreEnvelope"];
         };
       };
+      409: components["responses"]["ObjectStorageBusy"];
       default: components["responses"]["ErrorResponse"];
     };
   };
@@ -20272,6 +20284,7 @@ export interface operations {
           "application/json": components["schemas"]["ObjectStoreEnvelope"];
         };
       };
+      409: components["responses"]["ObjectStorageBusy"];
       default: components["responses"]["ErrorResponse"];
     };
   };
@@ -20317,6 +20330,7 @@ export interface operations {
           "application/json": components["schemas"]["ObjectStorageConnection"];
         };
       };
+      409: components["responses"]["ObjectStorageBusy"];
       default: components["responses"]["ErrorResponse"];
     };
   };
@@ -20338,6 +20352,7 @@ export interface operations {
           "application/json": components["schemas"]["ObjectStorageCredentialEnvelope"];
         };
       };
+      409: components["responses"]["ObjectStorageBusy"];
       default: components["responses"]["ErrorResponse"];
     };
   };
@@ -20358,6 +20373,7 @@ export interface operations {
           "application/json": components["schemas"]["ObjectStoreEnvelope"];
         };
       };
+      409: components["responses"]["ObjectStorageBusy"];
       default: components["responses"]["ErrorResponse"];
     };
   };
