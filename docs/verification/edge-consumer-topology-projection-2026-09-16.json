@@ -1,0 +1,23 @@
+{
+  "verified_at": "2026-09-15T20:54:59.931143+00:00",
+  "backend_commit": "22b6eef6d23fe68e70107ed2367b3772c2a67bc8",
+  "ci_run": 35021446483,
+  "api": {
+    "status": "ready",
+    "ready_replicas": 2
+  },
+  "projection": {
+    "artifact_kind": "edge_route_bundle",
+    "scope_key": "global",
+    "expected_generation": "route-915ca009dc70243f7b4a29462bd0844b9319c16e8c7f67a78cdafed488a3cadf",
+    "state": "fail",
+    "required_expected": 6,
+    "required_observed": 3,
+    "required_passing": 0,
+    "assessment_counts": {
+      "unknown": 3,
+      "fail": 3
+    }
+  },
+  "interpretation": "Convergence now projects only consumers present in the current fresh active topology. Removed historical edge nodes no longer count as required; current consumers still fail closed when heartbeats or apply/probe/generation evidence is missing."
+}

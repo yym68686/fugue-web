@@ -2569,4 +2569,13 @@ P0-BK 验收范围说明：管理 SSH 通道在本轮核查时于密钥交换前
 - [x] 新增回归覆盖 digest mismatch 与诊断边界；完整 `make test` 通过。
 - [x] 后端 `15e9474b`、API intent generation 450 已发布；CI [35015498181](https://github.com/yym68686/fugue/actions/runs/35015498181) 成功，API 2/2 Ready。
 - [x] 生产 d-97 placement issue 已具体化为 `0-0.pro/:bundle_version_mismatch` 与 `api.0-0.pro/:digest_mismatch`；这证明剩余问题在 Edge bundle/proof reconciliation，未放宽 gate 或推进 DNS gray/full。证据：[placement-proof-diagnostics-2026-09-16.json](verification/placement-proof-diagnostics-2026-09-16.json)。
-- [ ] 修复实际 Edge bundle/proof 不一致，并完成 route/DNS/TLS 全量等价和 consumer convergence。当前 convergence API 记录 required 10、observed 3、passing 0；7 个 consumer heartbeat 缺失、3 个 consumer 的 generation/apply/probe 未通过，因此继续保持 gray/full 保护。证据：[edge-consumer-convergence-2026-09-16.json](verification/edge-consumer-convergence-2026-09-16.json)。
+- [ ] 修复实际 Edge bundle/proof 不一致，并完成 route/DNS/TLS 全量等价和 consumer convergence。修复后 convergence API 记录 required 6、observed 3、passing 0；历史移除节点不再计入 required，当前 3 个 consumer 仍分别存在 heartbeat 或 generation/apply/probe 缺口，因此继续保持 gray/full 保护。证据：[edge-consumer-convergence-2026-09-16.json](verification/edge-consumer-convergence-2026-09-16.json)。
+
+
+### P0-CH：Convergence 使用当前 fresh active topology
+
+- [x] convergence read model 和 expected consumer preparation 使用与 Edge inventory 相同的 active/fresh topology projection；持久化 expected set 不被修改，lineage 仍保持不可变。
+- [x] 已移除节点不再永久阻塞 required cardinality；当前仍在 inventory 的节点缺 heartbeat、generation 或 apply/probe 证据时继续 fail-closed。
+- [x] 回归覆盖 topology projection、持久化 expected set 不变和完整 API/platformcontrol 测试；`GOMAXPROCS=2 make test` 通过。
+- [x] 后端 `22b6eef6` 已发布，CI `35021446483` 成功，API 2/2 Ready。生产 required consumer 从 10 降为 6，observed 3、passing 0；未解除 full promotion。证据：[edge-consumer-topology-projection-2026-09-16.json](verification/edge-consumer-topology-projection-2026-09-16.json)。
+- [ ] 修复当前 3 个真实 consumer 的 heartbeat/generation/apply/probe 缺口，完成 full convergence。
