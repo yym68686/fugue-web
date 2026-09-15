@@ -4902,6 +4902,7 @@ export interface components {
       mode?: "dedicated_pvc" | "movable_rwo";
       storage_path?: string;
       storage_size?: string;
+      /** @description Explicit Kubernetes StorageClass. When creating an app or first enabling an app-owned RWO volume through deploy, omission uses the platform's configured app storage class. Updates preserve an existing volume's class (including a legacy omitted class). An explicit claim_name keeps its existing binding and does not receive a default class. */
       storage_class_name?: string;
       claim_name?: string;
       shared_sub_path?: string;
@@ -5078,7 +5079,7 @@ export interface components {
       /** @enum {string} */
       phase: "deployed" | "deploying" | "disabled" | "deleting" | "failed" | "unavailable" | "unknown";
       runtime_id?: string;
-      /** @description Exact release identity proven by the serving traffic policy and runtime observation. */
+      /** @description Release identity from the serving traffic policy, emitted only when a fresh current-cohort runtime observation proves healthy serving. Omitted for unknown, stale or unhealthy observations. */
       serving_release_id?: string;
       /** Format: int32 */
       desired_replicas: number;
@@ -11000,6 +11001,7 @@ export interface components {
       aaaa?: string[];
       target_ttl: number;
     };
+    /** @description Fixed release evidence. Migration drafts require matching owner, release, runtime, image and healthy serving evidence before reporting active. observed_at is the original runtime evidence time, never a business-row update time; absent evidence has zero observed_at and blocks compilation. */
     PlatformReleaseObservation: {
       id: string;
       app_id: string;

@@ -2448,6 +2448,9 @@ anonymous/missing-id/unknown-id/generation-alias/wrong-kind: 401/400/404/409/409
 - [x] backend `b02ba40c51e59e437bded1d2527dc1469063388f` 已推送 `main`；CI `34926438171`、`34926438201` 均成功。
 - [x] 生产 API 已运行 `b02ba40c…`，2/2 Ready，`healthz/readyz` 均为 200；缺少 identity 的两个历史 release 均为 `unavailable`，具备 identity 的 release 保持 `active`，`migration_ready=false` 未发生 promotion。
 - [x] 证据：[release-identity-active-fact-gate-2026-09-15.json](verification/release-identity-active-fact-gate-2026-09-15.json)。
+- [x] release 事实只在健康 current cohort 证明下携带精确 identity；真实观测时间固定为 runtime evidence 时间，业务 `UpdatedAt` 不再续期。
+- [x] backend `af1058b93639940968184453dc1684012872db77`、CI `34930943883` 与生产部署成功；API 2/2 Ready，Guardian stable，health/ready 均为 200。生产 4 个 release 为 active、4 个未验证 release 为 unavailable 且 `observed_at=zero`。
+- [x] 证据：[healthy-exact-release-evidence-2026-09-15.json](verification/healthy-exact-release-evidence-2026-09-15.json)。
 - [ ] 继续补齐每个 release 的真实 route/TLS readiness、target equivalence 和 DNS placement 投影，完成前保持 gray/full 保护。
 
 证据：[dns-placement-compiler-2026-09-15.json](verification/dns-placement-compiler-2026-09-15.json)。
