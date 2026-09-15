@@ -1,0 +1,188 @@
+{
+  "observed_at": "2026-09-15T04:05:07.374904+00:00",
+  "backend_commit": "b02ba40c51e59e437bded1d2527dc1469063388f",
+  "ci_runs": {
+    "ci": 34926438171,
+    "build_cli": 34926438201
+  },
+  "production": {
+    "control_plane_api": {
+      "component": "api",
+      "deployment_name": "fugue-fugue-api",
+      "image": "ghcr.io/yym68686/fugue-api@sha256:73a6c1a5f75bde169d537c0e8656341a50d3b760d92ec31be40d5a3834a46475",
+      "image_repository": "ghcr.io/yym68686/fugue-api",
+      "image_tag": "b02ba40c51e59e437bded1d2527dc1469063388f",
+      "observed_image_tags": [
+        "b02ba40c51e59e437bded1d2527dc1469063388f"
+      ],
+      "observed_pods": [
+        {
+          "name": "fugue-fugue-api-8ccb68cd8-l27l5",
+          "node_name": "vps-d6d20fa1",
+          "phase": "Running",
+          "ready": true,
+          "image": "ghcr.io/yym68686/fugue-api@sha256:73a6c1a5f75bde169d537c0e8656341a50d3b760d92ec31be40d5a3834a46475",
+          "image_repository": "ghcr.io/yym68686/fugue-api",
+          "image_tag": "b02ba40c51e59e437bded1d2527dc1469063388f",
+          "start_time": "2026-09-15T03:56:27Z"
+        },
+        {
+          "name": "fugue-fugue-api-8ccb68cd8-c8pk9",
+          "node_name": "vps-d6d20fa1",
+          "phase": "Running",
+          "ready": true,
+          "image": "ghcr.io/yym68686/fugue-api@sha256:73a6c1a5f75bde169d537c0e8656341a50d3b760d92ec31be40d5a3834a46475",
+          "image_repository": "ghcr.io/yym68686/fugue-api",
+          "image_tag": "b02ba40c51e59e437bded1d2527dc1469063388f",
+          "start_time": "2026-09-15T03:56:05Z"
+        }
+      ],
+      "status": "ready",
+      "desired_replicas": 2,
+      "ready_replicas": 2,
+      "updated_replicas": 2,
+      "available_replicas": 2
+    },
+    "healthz": 200,
+    "readyz": 200
+  },
+  "projection": {
+    "status": 200,
+    "migration_ready": false,
+    "route_count": 134,
+    "issues": [
+      {
+        "code": "dns_route_placement_not_projected"
+      },
+      {
+        "code": "release_target_equivalence_not_verified"
+      },
+      {
+        "code": "release_observations_require_repair"
+      },
+      {
+        "code": "dns_placement_route_inputs_invalid",
+        "hostname": "drain-canary-0705.fugue.pro",
+        "reason": "release observation requires fresh evidence at fixed captured_at"
+      },
+      {
+        "code": "dns_placement_evidence_requires_repair",
+        "hostname": "gigo-sidecar.fugue.pro",
+        "reason": "DNS placement has insufficient route-ready and TLS-ready edges"
+      },
+      {
+        "code": "dns_placement_evidence_requires_repair",
+        "hostname": "mecgod.fugue.pro",
+        "reason": "DNS placement has insufficient route-ready and TLS-ready edges"
+      },
+      {
+        "code": "dns_placement_route_inputs_invalid",
+        "hostname": "music.fugue.pro",
+        "reason": "release observation requires fresh evidence at fixed captured_at"
+      },
+      {
+        "code": "dns_placement_evidence_requires_repair",
+        "hostname": "uni-api-ember.fugue.pro",
+        "reason": "DNS placement has insufficient route-ready and TLS-ready edges"
+      }
+    ],
+    "issues_by_code": {
+      "dns_route_placement_not_projected": 1,
+      "release_target_equivalence_not_verified": 1,
+      "release_observations_require_repair": 1,
+      "dns_placement_route_inputs_invalid": 2,
+      "dns_placement_evidence_requires_repair": 3
+    },
+    "release_facts": [
+      {
+        "observed_at": "2026-07-31T08:19:34.056003Z",
+        "tenant_id": "tenant_1774393589_e35b60a6fc11",
+        "status_reason": "exact serving release identity is unavailable",
+        "id": "apprel_1783440303_3510434a81f7",
+        "app_id": "app_1783188884_8facd2b054e6",
+        "status": "unavailable",
+        "upstream_url": "http://app-1783188884-8facd2b054e6.fg-tenant-1774393589-e35b60a6fc11.svc.cluster.local:8000",
+        "runtime_id": "runtime_managed_shared",
+        "deployment_generation": "registry.fugue.internal:5000/fugue-apps/index-docker-io-library-python:image-6d43704baacd"
+      },
+      {
+        "observed_at": "2026-09-01T12:35:57.201996Z",
+        "tenant_id": "tenant_1774720388_5c9ca0db3d42",
+        "status_reason": "exact serving release identity is unavailable",
+        "id": "apprel_1783456350_05baff791771",
+        "app_id": "app_1774720664_ef855e625cae",
+        "status": "unavailable",
+        "upstream_url": "http://app-1774720664-ef855e625cae.fg-tenant-1774720388-5c9ca0db3d42.svc.cluster.local:80",
+        "runtime_id": "runtime_managed_shared",
+        "deployment_generation": "registry.fugue.internal:5000/fugue-apps/lingkuma-albumartwork:git-e1b421c5ac24"
+      },
+      {
+        "observed_at": "2026-07-29T06:56:10.438184Z",
+        "tenant_id": "tenant_1774495361_ceff207a44cc",
+        "id": "apprel_1785308170_357a4ad006a3",
+        "app_id": "app_1783616770_b1ffb292ab7f",
+        "status": "unavailable",
+        "upstream_url": "http://app-1783616770-b1ffb292ab7f.fg-tenant-1774495361-ceff207a44cc.svc.cluster.local:80",
+        "runtime_id": "runtime_managed_shared_loc_country-hk-56a83941",
+        "deployment_generation": "registry.fugue.internal:5000/fugue-apps/i00probot:upload-ca01cd9bc914"
+      },
+      {
+        "observed_at": "2026-09-15T04:04:54.583478527Z",
+        "tenant_id": "tenant_1774393589_e35b60a6fc11",
+        "id": "apprel_1789025572_6f435fb2c896",
+        "app_id": "app_1781411982_650fede8ea9a",
+        "status": "active",
+        "upstream_url": "http://app-1781411982-650fede8ea9a.fg-tenant-1774393589-e35b60a6fc11.svc.cluster.local:8000",
+        "runtime_id": "runtime_managed_shared",
+        "deployment_generation": "registry.fugue.internal:5000/fugue-apps/review00:upload-b257783fdaee-build-op_1788714334_60ad5b2bcd27"
+      },
+      {
+        "observed_at": "2026-09-15T04:04:54.583478527Z",
+        "tenant_id": "tenant_1775984397_49f2586338f3",
+        "id": "apprel_1789074614_b4ae73a996db",
+        "app_id": "app_1776051713_ffbc704de723",
+        "status": "active",
+        "upstream_url": "http://app-1776051713-ffbc704de723.fg-tenant-1775984397-49f2586338f3.svc.cluster.local:8080",
+        "runtime_id": "runtime_1778446328_2c06a5db5347",
+        "deployment_generation": "registry.fugue.internal:5000/fugue-apps/gigo-sidecar:upload-dc4c44003b6d-build-op_1789074569_5d8e64919150"
+      },
+      {
+        "observed_at": "2026-09-15T04:04:54.583478527Z",
+        "tenant_id": "tenant_1774393589_e35b60a6fc11",
+        "id": "apprel_1789378802_12de92a5adec",
+        "app_id": "app_1778958829_7a965e0863ed",
+        "status": "active",
+        "upstream_url": "http://app-1778958829-7a965e0863ed.fg-tenant-1774393589-e35b60a6fc11.svc.cluster.local:8000",
+        "runtime_id": "runtime_managed_shared",
+        "deployment_generation": "registry.fugue.internal:5000/fugue-apps/index-docker-io-yym68686-uni-api-backend-api:image-7c040cfe4f45"
+      },
+      {
+        "observed_at": "2026-09-15T04:04:54.583478527Z",
+        "tenant_id": "tenant_1774393589_e35b60a6fc11",
+        "id": "apprel_1789434061_164f912ef6d8",
+        "app_id": "app_1780014428_4ccd706744ad",
+        "status": "active",
+        "upstream_url": "http://app-1780014428-4ccd706744ad.fg-tenant-1774393589-e35b60a6fc11.svc.cluster.local:8000",
+        "runtime_id": "runtime_managed_shared_loc_country-us-ee6bbcaf",
+        "deployment_generation": "registry.fugue.internal:5000/fugue-apps/index-docker-io-yym68686-uni-api-uni-api:image-eb71745b7dd2"
+      },
+      {
+        "observed_at": "2026-09-15T04:04:54.583478527Z",
+        "tenant_id": "tenant_1778209522_5a84bb76dfd0",
+        "id": "apprel_1789441590_6563159ff08f",
+        "app_id": "app_1779698709_805632e1ced9",
+        "status": "active",
+        "upstream_url": "http://app-1779698709-805632e1ced9.fg-tenant-1778209522-5a84bb76dfd0.svc.cluster.local:8000",
+        "runtime_id": "runtime_1777592665_cd4d8fd98d0c",
+        "deployment_generation": "registry.fugue.internal:5000/fugue-apps/mecgod:upload-631f1fa13ec0-build-op_1789441439_d25d5424276b"
+      }
+    ],
+    "captured_at": "2026-09-15T04:05:06.888113028Z"
+  },
+  "assertions": {
+    "exact_identity_required_for_active_release_fact": true,
+    "identity_missing_release_is_unavailable": true,
+    "serving_promotion": false,
+    "old_serving_lkg_preserved": true
+  }
+}

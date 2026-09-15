@@ -2440,6 +2440,16 @@ anonymous/missing-id/unknown-id/generation-alias/wrong-kind: 401/400/404/409/409
 - [x] OpenAPI 与 web generated client 同步（web `3739ccc1`，contract check 通过）。证据：[serving-release-identity-2026-09-15.json](verification/serving-release-identity-2026-09-15.json)。
 - [ ] 补齐每个 release 的真实 route/TLS readiness 和 target equivalence，不能把 app 级健康状态继续当作全量 release 验收。
 
+### P0-BV：缺少精确 identity 的 release active gate
+
+- [x] PlatformIntent projection 只有在 `serving_release_id`、RuntimeID、resolved image、fresh serving evidence 同时匹配时，才把 stable/candidate release fact 标记为 active。
+- [x] 没有精确 serving identity 的 ready/serving release 保留为 `unavailable`，并返回 `exact serving release identity is unavailable`，不会被 traffic compiler 当作可服务目标。
+- [x] 新增回归测试覆盖 identity 缺失时的 fail-closed 行为；后端 `GOFLAGS=-p=2 GOMAXPROCS=4 make test` 全部通过。
+- [x] backend `b02ba40c51e59e437bded1d2527dc1469063388f` 已推送 `main`；CI `34926438171`、`34926438201` 均成功。
+- [x] 生产 API 已运行 `b02ba40c…`，2/2 Ready，`healthz/readyz` 均为 200；缺少 identity 的两个历史 release 均为 `unavailable`，具备 identity 的 release 保持 `active`，`migration_ready=false` 未发生 promotion。
+- [x] 证据：[release-identity-active-fact-gate-2026-09-15.json](verification/release-identity-active-fact-gate-2026-09-15.json)。
+- [ ] 继续补齐每个 release 的真实 route/TLS readiness、target equivalence 和 DNS placement 投影，完成前保持 gray/full 保护。
+
 证据：[dns-placement-compiler-2026-09-15.json](verification/dns-placement-compiler-2026-09-15.json)。
 
 P0-BK 验收范围说明：管理 SSH 通道在本轮核查时于密钥交换前关闭，实际镜像与 readiness 改由已授权 cluster API 和 CI 收据交叉核对。policy LKG 查询仍是原有 404，不等于已验证 policy 恢复。发布前全平台 release guard 已报告 152 项失败（以该次观测为准）；这些旧应用/运行态问题仍需后续调查修复，本步骤的通过不能证明全平台无故障。
