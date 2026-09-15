@@ -1,0 +1,53 @@
+{
+  "captured_at": "2026-09-15T16:45:45.556285Z",
+  "controller_commit": "4b918141f5dbbe75fc59f54ac404f2e162e983f7",
+  "ci_run": "34994646236",
+  "controller_production": {
+    "status": "ready",
+    "desired_replicas": 2,
+    "ready_replicas": 2
+  },
+  "app_id": "app_1781411982_650fede8ea9a",
+  "app_status": {
+    "phase": "failed",
+    "observed_phase": "failed",
+    "message": "pod app-1781411982-650fede8ea9a-94cddcb4b-jbb26 on node ns101351 container review00 failed: Error: exit_code=1"
+  },
+  "backing_service": {
+    "id": "app-postgres-app_1781411982_650fede8ea9a",
+    "storage_size": "20Gi",
+    "storage_class_name": "fugue-postgres-rwo"
+  },
+  "storage_classes": {
+    "fugue-postgres-rwo": {
+      "provisioner": "local.csi.openebs.io",
+      "allow_volume_expansion": true
+    },
+    "fugue-longhorn-rwo": {
+      "provisioner": "driver.longhorn.io",
+      "allow_volume_expansion": true
+    }
+  },
+  "pvc": {
+    "name": "review00-db-postgres-2",
+    "storage_class_name": "fugue-postgres-rwo",
+    "requested": "20Gi",
+    "capacity": "20Gi"
+  },
+  "expansion_operation": {
+    "id": "op_1789489846_ca40b510a768",
+    "status": "failed",
+    "requested_target": "40Gi",
+    "error_message": "insufficient LocalPV capacity on node ns101351 volume group fugue-vg for postgres expansion: free_bytes=8585740288 expansion_bytes=21474836480 required_reserve_bytes=24051397428 pv_size_bytes=240513974272 PVCs=review00-db-postgres-2",
+    "mutation_applied": false
+  },
+  "capacity_evidence": {
+    "node": "ns101351",
+    "volume_group": "fugue-vg",
+    "free_bytes": 8585740288,
+    "expansion_bytes": 21474836480,
+    "required_reserve_bytes": 24051397428,
+    "decision": "rejected_before_pvc_patch"
+  },
+  "safety_result": "old PVC and old serving/LKG retained; no cross-driver migration"
+}
