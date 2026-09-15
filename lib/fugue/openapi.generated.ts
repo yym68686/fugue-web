@@ -5078,6 +5078,8 @@ export interface components {
       /** @enum {string} */
       phase: "deployed" | "deploying" | "disabled" | "deleting" | "failed" | "unavailable" | "unknown";
       runtime_id?: string;
+      /** @description Exact release identity proven by the serving traffic policy and runtime observation. */
+      serving_release_id?: string;
       /** Format: int32 */
       desired_replicas: number;
       /** Format: int32 */
