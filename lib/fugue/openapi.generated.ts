@@ -3560,7 +3560,10 @@ export interface components {
       service_port?: number;
       runtime_id?: string;
       deployment_generation?: string;
-      /** @enum {string} */
+      /**
+       * @description Traffic eligibility. Compiled release targets bound to a traffic policy are projected as active after compilation has validated their fixed runtime facts. Unresolved desired upstreams may omit this field.
+       * @enum {string}
+       */
       status?: "active" | "disabled" | "unavailable" | "runtime-missing";
       status_reason?: string;
     };
