@@ -2460,8 +2460,8 @@ anonymous/missing-id/unknown-id/generation-alias/wrong-kind: 401/400/404/409/409
 - [x] 校验 App、Domain、Route 的 tenant/owner 一致性；缺失 route、非法 target、地址记录冲突和受保护 target 只生成结构化 issue，不覆盖已有 DNS。
 - [x] DNS/TLS readiness 保持 runtime fact；intent 只描述 hostname、target、owner 和 route 引用，placement collector 继续独立验证 readiness。
 - [x] 新增自定义 target 聚合、owner 冲突、protected target、缺失 route 和 legacy 空 DNS mode 回归测试；完整 `GOFLAGS=-p=2 GOMAXPROCS=4 make test` 通过。
-- [x] backend `598b41d8162f7bc320a6b4abbbcc3a9c3d46032a`、CI `34959842551` prepush/build/deploy 成功；生产 API 2/2 Ready，Guardian stable，health/ready 均为 200。
-- [x] 生产生成 119 个 custom-domain target intent，`dns_route_placement_not_projected` 为 0；剩余 owner mismatch、release freshness、route/TLS evidence 和 output equivalence 继续 fail-closed，`migration_ready=false`。
+- [x] backend `d3abeada10664027ba63e2bbff5140d9a26e5df2`、CI `34962186895` prepush/build/deploy 成功；生产 API 2/2 Ready，Guardian stable，health/ready 均为 200。
+- [x] 生产生成 119 个 custom-domain target intent，`dns_route_placement_not_projected` 为 0；剩余 shared-host owner conflict（`api.0-0.pro`）、release freshness、route/TLS evidence 和 output equivalence 继续 fail-closed，`migration_ready=false`。
 - [x] 证据：[custom-domain-dns-projection-2026-09-15.json](verification/custom-domain-dns-projection-2026-09-15.json)。
 - [ ] 继续修复剩余 owner mismatch、release freshness、route/TLS readiness 与全量旧输出等价，完成前保持 gray/full 保护。
 
