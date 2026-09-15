@@ -2415,6 +2415,15 @@ anonymous/missing-id/unknown-id/generation-alias/wrong-kind: 401/400/404/409/409
 - [x] 证据：[placement-proof-recovery-2026-09-15.json](verification/placement-proof-recovery-2026-09-15.json)。
 - [ ] 补充 collector 与实际 Edge Control 输出之间的回归，验证全局默认值、每路由覆盖和排除字段不会被二次投影改变；调查剩余业务输入/证明缺口，完成全量等价前不得解除 DNS gray/full 保护。
 
+### P0-BS：Release fact 与 serving runtime 证据绑定
+
+- [x] release observation 不再仅凭业务 release 行的 `UpdatedAt` 延长 freshness；只有 RuntimeID、resolved image 和 `app_release_traffic_policy` serving evidence 同时一致，才可采用更新的 runtime `ObservedAt`。
+- [x] 不匹配、缺失或不新鲜的 runtime 证据继续使用原始 release 时间并保留 fail-closed 行为，避免把其他 release 或历史运行实例冒充当前 stable release。
+- [x] 新增匹配/不匹配回归测试；后端完整 `GOFLAGS=-p=2 GOMAXPROCS=4 make test` 通过。
+- [x] backend `885da468faffddf1bb73df2305c673a12222db1a`、CI `34916793225` 成功，生产 API 2/2 Ready、Guardian stable、health/ready 通过；placement 草稿保持 `migration_ready=false`，2 个 route input invalid 和现有 evidence/equivalence 缺口均被保留。
+- [x] 证据：[release-fact-runtime-evidence-2026-09-15.json](verification/release-fact-runtime-evidence-2026-09-15.json)。
+- [ ] 为每个 stable/candidate release 增加可验证的 release identity（而不是仅 app 级 serving evidence），再处理剩余 freshness 和 target equivalence 缺口。
+
 证据：[dns-placement-compiler-2026-09-15.json](verification/dns-placement-compiler-2026-09-15.json)。
 
 P0-BK 验收范围说明：管理 SSH 通道在本轮核查时于密钥交换前关闭，实际镜像与 readiness 改由已授权 cluster API 和 CI 收据交叉核对。policy LKG 查询仍是原有 404，不等于已验证 policy 恢复。发布前全平台 release guard 已报告 152 项失败（以该次观测为准）；这些旧应用/运行态问题仍需后续调查修复，本步骤的通过不能证明全平台无故障。

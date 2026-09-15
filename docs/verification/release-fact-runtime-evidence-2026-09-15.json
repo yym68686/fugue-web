@@ -1,0 +1,539 @@
+{
+  "observed_at": "2026-09-15T01:29:17.653973+00:00",
+  "backend_commit": "885da468faffddf1bb73df2305c673a12222db1a",
+  "ci_run": 34916793225,
+  "control_plane": {
+    "control_plane": {
+      "namespace": "fugue-system",
+      "release_instance": "fugue",
+      "version": "",
+      "status": "mixed",
+      "observed_at": "2026-09-15T01:28:01.721908022Z",
+      "components": [
+        {
+          "component": "api",
+          "deployment_name": "fugue-fugue-api",
+          "image": "ghcr.io/yym68686/fugue-api@sha256:088dc62ff6a45a26aa493e15f3147775bc55b94aa3889df55d781b988b31f2e3",
+          "image_repository": "ghcr.io/yym68686/fugue-api",
+          "image_tag": "885da468faffddf1bb73df2305c673a12222db1a",
+          "observed_image_tags": [
+            "885da468faffddf1bb73df2305c673a12222db1a"
+          ],
+          "observed_pods": [
+            {
+              "name": "fugue-fugue-api-5594f9945b-59dqx",
+              "node_name": "vps-d6d20fa1",
+              "phase": "Running",
+              "ready": true,
+              "image": "ghcr.io/yym68686/fugue-api@sha256:088dc62ff6a45a26aa493e15f3147775bc55b94aa3889df55d781b988b31f2e3",
+              "image_repository": "ghcr.io/yym68686/fugue-api",
+              "image_tag": "885da468faffddf1bb73df2305c673a12222db1a",
+              "start_time": "2026-09-15T01:26:33Z"
+            },
+            {
+              "name": "fugue-fugue-api-5594f9945b-gcw9c",
+              "node_name": "vps-d6d20fa1",
+              "phase": "Running",
+              "ready": true,
+              "image": "ghcr.io/yym68686/fugue-api@sha256:088dc62ff6a45a26aa493e15f3147775bc55b94aa3889df55d781b988b31f2e3",
+              "image_repository": "ghcr.io/yym68686/fugue-api",
+              "image_tag": "885da468faffddf1bb73df2305c673a12222db1a",
+              "start_time": "2026-09-15T01:26:12Z"
+            }
+          ],
+          "status": "ready",
+          "desired_replicas": 2,
+          "ready_replicas": 2,
+          "updated_replicas": 2,
+          "available_replicas": 2
+        },
+        {
+          "component": "controller",
+          "deployment_name": "fugue-fugue-controller",
+          "image": "ghcr.io/yym68686/fugue-controller@sha256:6bb55f59dd9ad5e733c16c4bf916dd01df83f6592208cf12b991a1d243a6b2e5",
+          "image_repository": "ghcr.io/yym68686/fugue-controller",
+          "image_tag": "cc90c4a8a7f1f967fc7138935d64aa30b4cb3388",
+          "observed_image_tags": [
+            "cc90c4a8a7f1f967fc7138935d64aa30b4cb3388"
+          ],
+          "observed_pods": [
+            {
+              "name": "fugue-fugue-controller-78db7bd57c-zrddv",
+              "node_name": "vps-d6d20fa1",
+              "phase": "Running",
+              "ready": true,
+              "image": "ghcr.io/yym68686/fugue-controller@sha256:6bb55f59dd9ad5e733c16c4bf916dd01df83f6592208cf12b991a1d243a6b2e5",
+              "image_repository": "ghcr.io/yym68686/fugue-controller",
+              "image_tag": "cc90c4a8a7f1f967fc7138935d64aa30b4cb3388",
+              "start_time": "2026-09-13T07:03:37Z"
+            },
+            {
+              "name": "fugue-fugue-controller-78db7bd57c-c4hmm",
+              "node_name": "vps-d6d20fa1",
+              "phase": "Running",
+              "ready": true,
+              "image": "ghcr.io/yym68686/fugue-controller@sha256:6bb55f59dd9ad5e733c16c4bf916dd01df83f6592208cf12b991a1d243a6b2e5",
+              "image_repository": "ghcr.io/yym68686/fugue-controller",
+              "image_tag": "cc90c4a8a7f1f967fc7138935d64aa30b4cb3388",
+              "start_time": "2026-09-13T07:03:36Z"
+            }
+          ],
+          "status": "ready",
+          "desired_replicas": 2,
+          "ready_replicas": 2,
+          "updated_replicas": 2,
+          "available_replicas": 2
+        }
+      ],
+      "topology": {
+        "mode": "single_control_plane",
+        "status": "single_control_plane_risk",
+        "control_plane_capable_nodes": 1,
+        "ready_control_plane_capable_nodes": 1,
+        "etcd_voter_capable_nodes": 1,
+        "release_runner_capable_nodes": 0,
+        "failure_domains": [
+          "region:DE",
+          "region:Germany",
+          "region:Hong Kong",
+          "region:US",
+          "region:United States"
+        ],
+        "regions": [
+          "DE",
+          "Germany",
+          "Hong Kong",
+          "US",
+          "United States"
+        ],
+        "endpoint_mode": "single_endpoint",
+        "quorum_ready": false,
+        "ha_ready": false,
+        "risk_warnings": [
+          "single-control-plane: data plane must rely on validated LKG and external watchdog during control-plane VM outage"
+        ],
+        "missing_redundancy": [
+          "add at least two more control-plane-capable nodes for etcd quorum HA",
+          "add a second release-runner-capable node outside the current failure domain",
+          "need at least two release-runner-capable nodes for deploy runner de-single-point"
+        ],
+        "nodes": [
+          {
+            "node_name": "bwg",
+            "ready": true,
+            "control_plane_capable": false,
+            "etcd_voter_capable": false,
+            "release_runner_capable": false,
+            "desired_control_plane_role": "none",
+            "effective_control_plane_role": "none",
+            "region": "US",
+            "failure_domain": "region:US"
+          },
+          {
+            "node_name": "fortedrape8",
+            "ready": true,
+            "control_plane_capable": false,
+            "etcd_voter_capable": false,
+            "release_runner_capable": false,
+            "desired_control_plane_role": "none",
+            "effective_control_plane_role": "none",
+            "region": "Hong Kong",
+            "failure_domain": "region:Hong Kong"
+          },
+          {
+            "node_name": "ns101351",
+            "ready": true,
+            "control_plane_capable": false,
+            "etcd_voter_capable": false,
+            "release_runner_capable": false,
+            "desired_control_plane_role": "none",
+            "effective_control_plane_role": "none",
+            "region": "United States",
+            "failure_domain": "region:United States"
+          },
+          {
+            "node_name": "ovhuswestagent",
+            "ready": true,
+            "control_plane_capable": false,
+            "etcd_voter_capable": false,
+            "release_runner_capable": false,
+            "desired_control_plane_role": "none",
+            "effective_control_plane_role": "none",
+            "region": "United States",
+            "failure_domain": "region:United States"
+          },
+          {
+            "node_name": "v2202605354515455529",
+            "ready": true,
+            "control_plane_capable": false,
+            "etcd_voter_capable": false,
+            "release_runner_capable": false,
+            "desired_control_plane_role": "none",
+            "effective_control_plane_role": "none",
+            "region": "Germany",
+            "failure_domain": "region:Germany"
+          },
+          {
+            "node_name": "vps-591f4447",
+            "ready": true,
+            "control_plane_capable": false,
+            "etcd_voter_capable": false,
+            "release_runner_capable": false,
+            "desired_control_plane_role": "none",
+            "effective_control_plane_role": "none",
+            "region": "US",
+            "failure_domain": "region:US"
+          },
+          {
+            "node_name": "vps-84c8f0a9",
+            "ready": true,
+            "control_plane_capable": false,
+            "etcd_voter_capable": false,
+            "release_runner_capable": false,
+            "desired_control_plane_role": "none",
+            "effective_control_plane_role": "none",
+            "region": "DE",
+            "failure_domain": "region:DE"
+          },
+          {
+            "node_name": "vps-d6d20fa1",
+            "ready": true,
+            "control_plane_capable": true,
+            "etcd_voter_capable": true,
+            "release_runner_capable": false,
+            "desired_control_plane_role": "member",
+            "effective_control_plane_role": "member",
+            "region": "United States",
+            "failure_domain": "region:United States",
+            "roles": [
+              "control-plane",
+              "etcd"
+            ],
+            "capabilities": [
+              "control-plane-capable",
+              "etcd-voter-capable"
+            ]
+          }
+        ],
+        "generated_at": "2026-09-15T01:28:01.731838069Z"
+      }
+    }
+  },
+  "route_count": 134,
+  "dns_count": 137,
+  "placement_count": 122,
+  "issues": [
+    {
+      "code": "dns_route_placement_not_projected"
+    },
+    {
+      "code": "release_target_equivalence_not_verified"
+    },
+    {
+      "code": "release_observations_require_repair"
+    },
+    {
+      "code": "dns_placement_evidence_requires_repair",
+      "hostname": "0-0-maple-api.fugue.pro"
+    },
+    {
+      "code": "dns_placement_evidence_requires_repair",
+      "hostname": "0-0-maple.fugue.pro"
+    },
+    {
+      "code": "dns_placement_evidence_requires_repair",
+      "hostname": "ana-free.fugue.pro"
+    },
+    {
+      "code": "dns_placement_evidence_requires_repair",
+      "hostname": "ana.fugue.pro"
+    },
+    {
+      "code": "dns_placement_evidence_requires_repair",
+      "hostname": "api.fugue.pro"
+    },
+    {
+      "code": "dns_placement_evidence_requires_repair",
+      "hostname": "argus-telegram-bot.fugue.pro"
+    },
+    {
+      "code": "dns_placement_evidence_requires_repair",
+      "hostname": "argus.fugue.pro"
+    },
+    {
+      "code": "dns_placement_evidence_requires_repair",
+      "hostname": "atv-standards-assistant.fugue.pro"
+    },
+    {
+      "code": "dns_placement_evidence_requires_repair",
+      "hostname": "blog.fugue.pro"
+    },
+    {
+      "code": "dns_placement_evidence_requires_repair",
+      "hostname": "canvas.fugue.pro"
+    },
+    {
+      "code": "dns_placement_evidence_requires_repair",
+      "hostname": "carton-parametric-studio.fugue.pro"
+    },
+    {
+      "code": "dns_placement_evidence_requires_repair",
+      "hostname": "carton-structure-demo.fugue.pro"
+    },
+    {
+      "code": "dns_placement_evidence_requires_repair",
+      "hostname": "cerebr-stone.fugue.pro"
+    },
+    {
+      "code": "dns_placement_evidence_requires_repair",
+      "hostname": "cerebr.fugue.pro"
+    },
+    {
+      "code": "dns_placement_evidence_requires_repair",
+      "hostname": "dataocean.fugue.pro"
+    },
+    {
+      "code": "dns_placement_evidence_requires_repair",
+      "hostname": "deep-ai-agent.fugue.pro"
+    },
+    {
+      "code": "dns_placement_evidence_requires_repair",
+      "hostname": "draforge.fugue.pro"
+    },
+    {
+      "code": "dns_placement_route_inputs_invalid",
+      "hostname": "drain-canary-0705.fugue.pro"
+    },
+    {
+      "code": "dns_placement_evidence_requires_repair",
+      "hostname": "easyaudit.fugue.pro"
+    },
+    {
+      "code": "dns_placement_evidence_requires_repair",
+      "hostname": "edge-observe-canary-0731-1333.fugue.pro"
+    },
+    {
+      "code": "dns_placement_evidence_requires_repair",
+      "hostname": "edge-protocol-canary.fugue.pro"
+    },
+    {
+      "code": "dns_placement_evidence_requires_repair",
+      "hostname": "env-maple.fugue.pro"
+    },
+    {
+      "code": "dns_placement_evidence_requires_repair",
+      "hostname": "gigo-sidecar.fugue.pro"
+    },
+    {
+      "code": "dns_placement_evidence_requires_repair",
+      "hostname": "goproxy.fugue.pro"
+    },
+    {
+      "code": "dns_placement_evidence_requires_repair",
+      "hostname": "kimi-agent-telegram-bot-main-1.fugue.pro"
+    },
+    {
+      "code": "dns_placement_evidence_requires_repair",
+      "hostname": "listening.fugue.pro"
+    },
+    {
+      "code": "dns_placement_evidence_requires_repair",
+      "hostname": "livolif-datahub.fugue.pro"
+    },
+    {
+      "code": "dns_placement_evidence_requires_repair",
+      "hostname": "mecgod-cloud.fugue.pro"
+    },
+    {
+      "code": "dns_placement_evidence_requires_repair",
+      "hostname": "mecgod-codex-worker.fugue.pro"
+    },
+    {
+      "code": "dns_placement_evidence_requires_repair",
+      "hostname": "mecgod-stone-meadow.fugue.pro"
+    },
+    {
+      "code": "dns_placement_evidence_requires_repair",
+      "hostname": "mecgod-stone-solar.fugue.pro"
+    },
+    {
+      "code": "dns_placement_evidence_requires_repair",
+      "hostname": "mecgod-stone-violet.fugue.pro"
+    },
+    {
+      "code": "dns_placement_evidence_requires_repair",
+      "hostname": "mecgod.fugue.pro"
+    },
+    {
+      "code": "dns_placement_evidence_requires_repair",
+      "hostname": "mecpro.fugue.pro"
+    },
+    {
+      "code": "dns_placement_evidence_requires_repair",
+      "hostname": "mesh.fugue.pro"
+    },
+    {
+      "code": "dns_placement_evidence_requires_repair",
+      "hostname": "mimo2api.fugue.pro"
+    },
+    {
+      "code": "dns_placement_evidence_requires_repair",
+      "hostname": "morlane.fugue.pro"
+    },
+    {
+      "code": "dns_placement_evidence_requires_repair",
+      "hostname": "muscle-dev.fugue.pro"
+    },
+    {
+      "code": "dns_placement_evidence_requires_repair",
+      "hostname": "muscle.fugue.pro"
+    },
+    {
+      "code": "dns_placement_route_inputs_invalid",
+      "hostname": "music.fugue.pro"
+    },
+    {
+      "code": "dns_placement_evidence_requires_repair",
+      "hostname": "nl2pcb.fugue.pro"
+    },
+    {
+      "code": "dns_placement_evidence_requires_repair",
+      "hostname": "oaix.cc"
+    },
+    {
+      "code": "dns_placement_evidence_requires_repair",
+      "hostname": "oaix.fugue.pro"
+    },
+    {
+      "code": "dns_placement_evidence_requires_repair",
+      "hostname": "oddy-chromadb.fugue.pro"
+    },
+    {
+      "code": "dns_placement_evidence_requires_repair",
+      "hostname": "oddy-searxng.fugue.pro"
+    },
+    {
+      "code": "dns_placement_evidence_requires_repair",
+      "hostname": "oddy.fugue.pro"
+    },
+    {
+      "code": "dns_placement_evidence_requires_repair",
+      "hostname": "odysseus-amber.fugue.pro"
+    },
+    {
+      "code": "dns_placement_evidence_requires_repair",
+      "hostname": "odysseus-cedar-chromadb.fugue.pro"
+    },
+    {
+      "code": "dns_placement_evidence_requires_repair",
+      "hostname": "odysseus-cedar.fugue.pro"
+    },
+    {
+      "code": "dns_placement_evidence_requires_repair",
+      "hostname": "odysseus-chromadb.fugue.pro"
+    },
+    {
+      "code": "dns_placement_evidence_requires_repair",
+      "hostname": "oiuhu89.fugue.pro"
+    },
+    {
+      "code": "dns_placement_evidence_requires_repair",
+      "hostname": "pypen.fugue.pro"
+    },
+    {
+      "code": "dns_placement_evidence_requires_repair",
+      "hostname": "relife.fugue.pro"
+    },
+    {
+      "code": "dns_placement_evidence_requires_repair",
+      "hostname": "sbai-ai.fugue.pro"
+    },
+    {
+      "code": "dns_placement_evidence_requires_repair",
+      "hostname": "shadowguard-api.fugue.pro"
+    },
+    {
+      "code": "dns_placement_evidence_requires_repair",
+      "hostname": "snap.fugue.pro"
+    },
+    {
+      "code": "dns_placement_evidence_requires_repair",
+      "hostname": "sync.fugue.pro"
+    },
+    {
+      "code": "dns_placement_evidence_requires_repair",
+      "hostname": "uni-api-console.fugue.pro"
+    },
+    {
+      "code": "dns_placement_evidence_requires_repair",
+      "hostname": "uni-api-ember.fugue.pro"
+    },
+    {
+      "code": "dns_placement_evidence_requires_repair",
+      "hostname": "uni-api-web-solar.fugue.pro"
+    },
+    {
+      "code": "dns_placement_evidence_requires_repair",
+      "hostname": "uni-api-web.fugue.pro"
+    },
+    {
+      "code": "dns_placement_evidence_requires_repair",
+      "hostname": "uni-api.fugue.pro"
+    },
+    {
+      "code": "dns_placement_evidence_requires_repair",
+      "hostname": "web.fugue.pro"
+    },
+    {
+      "code": "dns_placement_evidence_requires_repair",
+      "hostname": "webterminal.fugue.pro"
+    },
+    {
+      "code": "dns_placement_evidence_requires_repair",
+      "hostname": "wormgpt.fugue.pro"
+    },
+    {
+      "code": "dns_placement_evidence_requires_repair",
+      "hostname": "www.fugue.pro"
+    },
+    {
+      "code": "dns_placement_evidence_requires_repair",
+      "hostname": "yesir-candidate.fugue.pro"
+    },
+    {
+      "code": "dns_placement_evidence_requires_repair",
+      "hostname": "yesir-freecad-v2.fugue.pro"
+    },
+    {
+      "code": "dns_placement_evidence_requires_repair",
+      "hostname": "yesir-freecad.fugue.pro"
+    },
+    {
+      "code": "dns_placement_evidence_requires_repair",
+      "hostname": "yesir-pcb-si-runtime.fugue.pro"
+    },
+    {
+      "code": "dns_placement_evidence_requires_repair",
+      "hostname": "yesir-stable.fugue.pro"
+    },
+    {
+      "code": "dns_placement_evidence_requires_repair",
+      "hostname": "yesir.fugue.pro"
+    },
+    {
+      "code": "dns_placement_evidence_requires_repair",
+      "hostname": "yjxltd26.fugue.pro"
+    },
+    {
+      "code": "dns_placement_evidence_requires_repair",
+      "hostname": "ywmj.fugue.pro"
+    },
+    {
+      "code": "dns_placement_evidence_requires_repair",
+      "hostname": "zhishu-cnc.fugue.pro"
+    }
+  ],
+  "migration_ready": false,
+  "serving_promoted": false,
+  "scope": "Release facts use matched runtime evidence only when runtime ID, resolved image and serving evidence source agree. Remaining issues are preserved fail-closed."
+}
