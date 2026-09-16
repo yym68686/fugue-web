@@ -2606,3 +2606,12 @@ P0-BK 验收范围说明：管理 SSH 通道在本轮核查时于密钥交换前
 - [x] 后端 `6d1314f7`、CI [35042217523](https://github.com/yym68686/fugue/actions/runs/35042217523) 和 DE/US Edge deploy 均成功。
 - [x] 生产三个 Edge 节点 healthy，Caddy last error 为 0，route count 仍为 134；active serving 未被候选 artifact 覆盖。证据：[edge-compiled-artifact-decoder-2026-09-16.json](verification/edge-compiled-artifact-decoder-2026-09-16.json)。
 - [ ] candidate apply/probe、trusted heartbeat 的 applied/passed 语义和 full convergence 仍未完成；当前 required passing 仍为 0。
+
+### P0-CL：Candidate generation 与 serving generation 分离
+
+- [x] heartbeat 增加可选 `candidate_generation`；旧消费者省略该字段时，evidence hash 保持向后兼容。
+- [x] PostgreSQL consumer projection、fresh-install DDL、增量 schema migration、audit metadata 和 OpenAPI 均保存 candidate generation。
+- [x] convergence 继续以 `actual_generation` 作为 serving 事实；只有未来明确 `apply=applied`、`probe=passed` 时才允许 candidate generation 参与 candidate 收敛判断。
+- [x] 本地完整 `GOMAXPROCS=2 make test` 通过；API 与 Edge atom 均通过 planner、CI/build/deploy。
+- [x] 生产三个 Edge consumer 持续上报相同 candidate generation，同时保留各自 serving actual generation；required observed 为 3、passing 为 0，full promotion 仍被阻止。证据：[candidate-generation-runtime-fact-2026-09-16.json](verification/candidate-generation-runtime-fact-2026-09-16.json)。
+- [ ] 实现真正 candidate apply、离线/隔离 probe、applied/passed heartbeat 和 gray/full/rollback 验收。

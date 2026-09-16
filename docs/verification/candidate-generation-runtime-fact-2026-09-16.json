@@ -1,0 +1,22 @@
+{
+  "step": "P0-CL",
+  "description": "Candidate generation is persisted as a runtime fact without replacing serving generation",
+  "backend_commits": ["7bab2f40", "803df57f", "1878231e", "34d81658", "8b2e02d1", "6cdc7d60"],
+  "ci_runs": [
+    "https://github.com/yym68686/fugue/actions/runs/35055180389",
+    "https://github.com/yym68686/fugue/actions/runs/35057521381"
+  ],
+  "production": {
+    "healthz": 200,
+    "readyz": 200,
+    "required_expected": 3,
+    "required_observed": 3,
+    "required_passing": 0,
+    "consumers": [
+      {"consumer_id": "edge-worker:bwg", "candidate_generation": "route-915ca009dc70243f7b4a29462bd0844b9319c16e8c7f67a78cdafed488a3cadf", "actual_generation": "edgegroupbundle_b1fa45710fdcb0059e3fd2d68d33c9100c1323cec2154a5c532ba6a57e349a5a", "apply_status": "staged", "probe_status": "shadow_validated"},
+      {"consumer_id": "edge-worker:vps-591f4447", "candidate_generation": "route-915ca009dc70243f7b4a29462bd0844b9319c16e8c7f67a78cdafed488a3cadf", "actual_generation": "edgegroupbundle_b1fa45710fdcb0059e3fd2d68d33c9100c1323cec2154a5c532ba6a57e349a5a", "apply_status": "staged", "probe_status": "shadow_validated"},
+      {"consumer_id": "edge-worker:vps-84c8f0a9", "candidate_generation": "route-915ca009dc70243f7b4a29462bd0844b9319c16e8c7f67a78cdafed488a3cadf", "actual_generation": "edgegroupbundle_d02d238e926bd5d005b570fcf34e894eb0e63ce63e78b3399755b78f72d07063", "apply_status": "staged", "probe_status": "shadow_validated"}
+    ]
+  },
+  "safety": "Candidate generation is an explicit runtime fact and does not satisfy serving convergence while apply/probe remain staged/shadow_validated. Full promotion remains blocked."
+}
