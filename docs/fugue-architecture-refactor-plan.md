@@ -2597,3 +2597,12 @@ P0-BK 验收范围说明：管理 SSH 通道在本轮核查时于密钥交换前
 - [x] 后端 `9b172712` 已通过 prepush、API build 和 `deploy_api`；生产 `/healthz`、`/readyz` 均为 200。
 - [x] 生产 convergence 仍为 required expected 3、observed 3、passing 0，三个 worker 的 `caddy_apply_probe` capability 均匹配；shadow staged/shadow_validated 继续阻止 full promotion。证据：[promotion-gate-live-topology-2026-09-16.json](verification/promotion-gate-live-topology-2026-09-16.json)。
 - [ ] 完成真实 consumer 的 candidate apply/probe、gray/full 和 rollback 验收后，才能解除 full promotion 保护。
+
+### P0-CK：Edge consumer 接受完整 compiled route artifact
+
+- [x] Edge shadow consumer 使用 `CompiledRoute` 强类型解码 route artifact，保留 runtime placement、edge/group exclusions、min healthy edges、upstream 和 request semantics。
+- [x] route artifact 的 `cache_policies` 纳入同一强类型 payload，并继续执行 route/cache policy 绑定校验；未知字段和非法 placement 类型仍 fail-closed。
+- [x] 回归覆盖 compiler 生成的 placement、排除规则、cache namespace/reference、未知字段和 serving cache 保留；完整 `GOMAXPROCS=2 make test` 通过。
+- [x] 后端 `6d1314f7`、CI [35042217523](https://github.com/yym68686/fugue/actions/runs/35042217523) 和 DE/US Edge deploy 均成功。
+- [x] 生产三个 Edge 节点 healthy，Caddy last error 为 0，route count 仍为 134；active serving 未被候选 artifact 覆盖。证据：[edge-compiled-artifact-decoder-2026-09-16.json](verification/edge-compiled-artifact-decoder-2026-09-16.json)。
+- [ ] candidate apply/probe、trusted heartbeat 的 applied/passed 语义和 full convergence 仍未完成；当前 required passing 仍为 0。

@@ -1,0 +1,25 @@
+{
+  "step": "P0-CK",
+  "description": "Edge shadow consumer decodes the compiler's compiled route payload, including runtime placement, exclusions and cache policies",
+  "backend_commit": "6d1314f7",
+  "ci_run": "https://github.com/yym68686/fugue/actions/runs/35042217523",
+  "local_validation": "GOMAXPROCS=2 make test",
+  "production": {
+    "edge_deploy": "success",
+    "edge_us_deploy": "success",
+    "healthy_nodes": 3,
+    "caddy_route_count": 134,
+    "caddy_last_error_count": 0,
+    "convergence": {"required_expected": 3, "required_observed": 3, "required_passing": 0},
+    "serving_changed": false
+  },
+  "coverage": [
+    "compiler-generated runtime placement fields",
+    "edge and group exclusions",
+    "cache policy reference and namespace",
+    "unknown compiled fields rejected",
+    "invalid placement type rejected",
+    "serving cache and Caddy LKG preserved"
+  ],
+  "interpretation": "This removes a decoder mismatch that rejected valid compiled artifacts. It does not claim candidate apply/probe or full convergence; the consumer still reports staged/shadow_validated until the separate executor work is implemented."
+}
