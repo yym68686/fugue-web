@@ -40,7 +40,7 @@ export interface paths {
   "/v1/edge/route-intents": {
     /**
      * Edge Route Intents
-     * @description Returns Core's inventory-independent desired-route projection. Only the edge-control component identity with global edge_route_intent capability is accepted; tenant and platform-admin API keys are not accepted. A verified global route artifact takes precedence over the legacy source. An unusable artifact or LKG returns 503 so Edge Control retains its last serving bundle rather than recompiling from mutable business tables. Artifact-backed serving and candidate validation share one route projection. Cache references resolve case-insensitively to the declared policy ID; disabled cache policies are not materialized as active bindings.
+     * @description Returns Core's inventory-independent desired-route projection. Only the edge-control component identity with global edge_route_intent capability is accepted; tenant and platform-admin API keys are not accepted. A verified global route artifact takes precedence over the legacy source. An unusable artifact or LKG returns 503 so Edge Control retains its last serving bundle rather than recompiling from mutable business tables.
      */
     get: operations["edgeRouteIntents"];
   };
@@ -1345,7 +1345,14 @@ export interface paths {
     post: operations["localizeAppDatabase"];
   };
   "/v1/apps/{id}/database/recover": {
-    /** Recover App Database Storage Pressure */
+    /**
+     * Recover App Database Storage Pressure
+     * @description Platform administrator only. Queues an observed-state recovery, including
+     * bounded LocalPV pool growth when required. Source volumes are retained
+     * until a replacement primary passes replication and write-read probes.
+     * Dry run describes the stages; live storage preconditions are evaluated by
+     * the controller before each mutation. Conflicting operations return 409.
+     */
     post: operations["recoverAppDatabase"];
   };
   "/v1/apps/{id}/continuity": {
@@ -11793,7 +11800,7 @@ export interface operations {
   };
   /**
    * Edge Route Intents
-   * @description Returns Core's inventory-independent desired-route projection. Only the edge-control component identity with global edge_route_intent capability is accepted; tenant and platform-admin API keys are not accepted. A verified global route artifact takes precedence over the legacy source. An unusable artifact or LKG returns 503 so Edge Control retains its last serving bundle rather than recompiling from mutable business tables. Artifact-backed serving and candidate validation share one route projection. Cache references resolve case-insensitively to the declared policy ID; disabled cache policies are not materialized as active bindings.
+   * @description Returns Core's inventory-independent desired-route projection. Only the edge-control component identity with global edge_route_intent capability is accepted; tenant and platform-admin API keys are not accepted. A verified global route artifact takes precedence over the legacy source. An unusable artifact or LKG returns 503 so Edge Control retains its last serving bundle rather than recompiling from mutable business tables.
    */
   edgeRouteIntents: {
     responses: {
@@ -18466,7 +18473,14 @@ export interface operations {
       default: components["responses"]["ErrorResponse"];
     };
   };
-  /** Recover App Database Storage Pressure */
+  /**
+   * Recover App Database Storage Pressure
+   * @description Platform administrator only. Queues an observed-state recovery, including
+   * bounded LocalPV pool growth when required. Source volumes are retained
+   * until a replacement primary passes replication and write-read probes.
+   * Dry run describes the stages; live storage preconditions are evaluated by
+   * the controller before each mutation. Conflicting operations return 409.
+   */
   recoverAppDatabase: {
     parameters: {
       path: {
@@ -18476,6 +18490,7 @@ export interface operations {
     requestBody?: {
       content: {
         "application/json": {
+          /** @default true */
           dry_run?: boolean;
           target_runtime_id?: string;
           target_node_name?: string;
@@ -18494,6 +18509,14 @@ export interface operations {
         content: {
           "application/json": components["schemas"]["OperationResponse"];
         };
+      };
+      /** @description Platform administrator permission is required for host storage recovery. */
+      403: {
+        content: never;
+      };
+      /** @description Another app operation or a different recovery target is active. */
+      409: {
+        content: never;
       };
       default: components["responses"]["ErrorResponse"];
     };
