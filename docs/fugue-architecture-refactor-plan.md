@@ -32,7 +32,7 @@ Runtime Facts / ACK / LKG
 
 ## 当前状态判断
 
-2026-09-17 08:24 UTC 生产核查：API 与 Controller 运行并行恢复提交 `d426cafa`（各 2/2 Ready）；DE/US Edge 与 DNS/SSH 已运行 `b120cd3b`。三个活动 Edge 各服务 135 条 route，并已对 2 条候选 route 完成真正的隔离 HTTP Caddy apply/probe，回执摘要与绑定独立核对通过（P0-CP）；候选不访问 origin、不执行 TLS/ACME，也不接管公网 serving。trusted heartbeat 仍为 `staged/shadow_validated`，route required observed 3、passing 0，未发生 gray/full 接管。API 和两地 Guardian 均 stable，Authority serving health 为 true。policy LKG 查询仍为 404；完整配置的 route/DNS/TLS 等价、serving apply/convergence、gray/full/rollback、恢复演练和旧路径删除仍未完成。
+2026-09-17 09:34 UTC 生产核查：API 与美国 Edge 运行 `64b2e4ad`，德国 Edge 经正式恢复发布运行 `da5f117b`；API 2/2 Ready，两地 Guardian 均 stable。三个活动 Edge 各服务 136 条 route，2 条候选 route 的隔离 HTTP Caddy apply/probe 回执持续通过（P0-CP）。旧 hostname policy 的同租户适用范围已显式投影，共享域名 route proof 不一致已修复（P0-CQ）。实时迁移草稿仅剩 `dns_output_equivalence_not_verified` 和 `release_target_equivalence_not_verified`，但主 compiler 对 Edge group 约束的历史限制仍待接入固定 placement resolver。trusted heartbeat 保持 staged/shadow_validated，route passing 为 0；policy LKG 查询仍为 404。完整配置编译/等价、serving convergence、gray/full/rollback、恢复演练及旧路径删除尚未完成。
 
 Fugue 已经具备相当一部分基础设施：`PlatformArtifact` 已有 generation、content hash、签名、验证状态、release channel、fencing token 和 LKG；Edge 与 DNS 也有签名校验、本地缓存和过期控制。
 
@@ -2673,3 +2673,20 @@ P0-BK 验收范围说明：管理 SSH 通道在本轮核查时于密钥交换前
 - [ ] 将完整配置的执行回执接入可信 consumer 协议，完成 route/DNS/TLS 等价、serving apply/probe、gray/full 与 rollback；policy verified LKG 和旧路径删除仍未验收。
 
 证据：[candidate-isolated-execution-2026-09-17.json](verification/candidate-isolated-execution-2026-09-17.json)。该步骤验收真实的隔离 HTTP candidate 执行及失败时保留 serving，不代表整个重构已完成。
+
+
+### P0-CQ：显式保存同租户 hostname 策略范围
+
+- [x] 先更新 OpenAPI，新增受限 `match_scope`：省略或 `app` 保持按 App 匹配，`tenant_hostname` 显式作用于该 hostname 下同 tenant 的所有路径，并要求非空 tenant。未知范围、跨租户和悬空策略仍拒绝。
+- [x] 旧业务 hostname policy 投影为 `tenant_hostname`，保留原 App owner、排除名单、排除到期字段、最小健康节点数和 group 约束；不通过删除排除项或忽略 route proof 来满足迁移 gate。旧 artifact 省略字段时 digest/行为保持兼容。
+- [x] 明确修正诊断：根路径 proof 差异来自旧策略按同租户 hostname 匹配、新 compiler 仅按 App 匹配，并非到期自动清除。过期排除仍按原有 fail-closed 语义保留。
+- [x] 回归覆盖默认 App 范围、显式 sibling App 范围、跨租户/未知范围拒绝、expired exclusion 保留和输入不变；集成测试使用真实 legacy Edge Control compiler 比较根路径与子路径完整 proof。完整 `GOMAXPROCS=2 make test` 通过，生产固定快照本地重放的两条 proof 精确相等。
+- [x] OpenAPI 与 web generated client 同步；前端 contract/typecheck 和 [contract-drift 35201803629](https://github.com/yym68686/fugue-web/actions/runs/35201803629) 通过。
+- [x] 实现 `64b2e4ad` 的 [CI 35201688452](https://github.com/yym68686/fugue/actions/runs/35201688452) 中 API 和美国 Edge 成功。德国 CurrentAuthority 未收敛，Front 自动补偿回 `b120cd3b`；回滚健康检查因 inactive worker 镜像归属不符进入 recovery_required，后续重试旧候选遇到 prewrite CAS changed。保留日志不足以断言首次 partial activation 的单一原因。
+- [x] 德国恢复提交 `da5f117b` 使用最新成功 LKG 收据、generation 322 和精确 `supersedesFailedConfigSha=64b2e4ad`，通过 planner 与 [CI 35204768029](https://github.com/yym68686/fugue/actions/runs/35204768029)。恢复仍经 main/GitHub Actions/Guardian 完成，没有手改生产对象或降低正向门。
+- [x] 09:34 UTC 生产核对：API 2/2 Ready；美国两个 worker 为 `64b2e4ad`，德国 worker 为 `da5f117b`，全部 Ready、零重启，各服务 136 条 route，Caddy 版本匹配、无 error/stale。三个隔离候选回执的摘要、绑定与有效期均通过；API 和两地 Guardian 均 stable。
+- [x] projection 保存 10 条显式 tenant_hostname 策略；共享域名的 digest mismatch 消失。旧 release freshness 问题随并行业务恢复消失，不归因于本补丁；当前只剩 DNS 输出和 release target 两项等价验证。发布前后配置 artifact/ReleaseSet/full/policy-LKG 指纹不变，route required expected/observed 3、passing 0。
+- [ ] 主 compiler 接入已固定的 Edge group/DNS placement 证据，完成 136 条业务 route 与 DNS/TLS 全量编译、输出等价和 consumer gray/full/rollback。
+- [ ] 修复代码 A/B 发布被并发配置变化打断后，补偿/候选重建/成功回执之间的恢复耦合；这次正式恢复成功不能代替该故障路径的根因修复与回归演练。
+
+证据：[tenant-hostname-policy-scope-2026-09-17.json](verification/tenant-hostname-policy-scope-2026-09-17.json)。该步骤已完成策略范围的生产对齐，整个重构目标仍未完成。
