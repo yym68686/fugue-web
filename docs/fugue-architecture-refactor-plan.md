@@ -32,7 +32,7 @@ Runtime Facts / ACK / LKG
 
 ## 当前状态判断
 
-2026-09-17 17:07 UTC 状态：完整 compiler v18 配置已进入 shadow，三台 Edge 分别通过 137 路由的真实隔离 Caddy 探测，两台 DNS 报告完整候选校验。API `e27c3a57` 已完成生产发布，DNS expected topology 从 9 行历史/zone 记录投影为 2 个实际进程，原始 expected set 不变。route 含 TLS/cache 的输出比较已等价；TLS artifact 仍缺少独立消费回执，DNS 输出语义、serving apply/probe、gray/full/rollback、policy verified LKG、恢复演练和旧路径删除尚未完成。当前正式 serving 和 LKG 指针保持不变，所有 shadow consumer passing 均为 0。
+2026-09-17 17:50 UTC 状态：完整 compiler v18 配置已进入真实 shadow。API 与两地 Edge 均为 `a90ca9bc`，CI 和独立生产验收通过；三台 Edge 各完成 137 路由的隔离 Caddy 探测，并独立校验 136 条 TLS 引用与 11 条 allowlist，两台 DNS 校验完整候选。当前 route 3/3、TLS 3/3、DNS 2/2（expected/observed），所有 passing 仍为 0，原始 expected sets 不变。route 含 TLS/cache 输出已等价；DNS 输出语义、新鲜 TLS/serving apply/probe、gray/full/rollback、policy verified LKG、恢复演练和旧路径删除尚未完成。正式 serving 与 LKG 指针保持不变。
 
 Fugue 已经具备相当一部分基础设施：`PlatformArtifact` 已有 generation、content hash、签名、验证状态、release channel、fencing token 和 LKG；Edge 与 DNS 也有签名校验、本地缓存和过期控制。
 
@@ -363,7 +363,6 @@ Fugue 已经具备相当一部分基础设施：`PlatformArtifact` 已有 genera
 - [x] compiler 从 intent、policy 和 runtime snapshot 生成 artifact。
 - [x] 重复编译验证 digest 稳定。
 - [ ] 验证 legacy 与新 compiler 输出一致。
-- [ ] 验证 compiler 失败不会影响旧 serving。
 - [x] 验证 compiler 失败不会影响旧 serving。
 - [x] 验证 runtime 变化不会影响已固定 snapshot 的输出。
 
@@ -2827,7 +2826,8 @@ DNS 尚有明确待完成的行为：disabled/unavailable 自定义目标在现�
 - [x] 两台真实 DNS 校验新完整候选并报告新鲜可信 shadow 心跳；临时地址按真实时间到期，有效候选 record count 可下降，未延长旧证明。
 - [x] 独立验收 Front activation 文件与发布前完全一致，正式 full channel、policy/route LKG 查询身份不变，API/两地 authority 健康。所有 consumer 仍为 staged/shadow_validated，required passing 保持 0，没有把隔离执行伪报为 serving。
 - [x] P0-DE 修复 DNS expected topology：持久化 9 行历史/zone 记录保持不变，当前拓扑投影为 2 个 physical DNS consumer，独立生产验证 2 expected / 2 observed / 0 passing。
-- [ ] 补齐 TLS artifact 的 consumer 协议与独立验证；当前 caddy_route_config expected 3、observed 0。完成 DNS 输出语义及 serving apply/probe、gray/full/rollback 后才能宣称完整收敛。
+- [x] P0-DF 补齐 TLS artifact 的 Worker consumer 协议与独立 shadow 校验，caddy_route_config expected 3、observed 3、passing 0；签名、成对 lineage、域名归属及独立 cursor 均通过生产验收。
+- [ ] 完成 DNS 输出语义、新鲜 TLS/serving apply/probe、gray/full/rollback 后才能宣称完整 serving 收敛。
 
 证据：[full-configuration-shadow-2026-09-18.json](verification/full-configuration-shadow-2026-09-18.json)。此步骤替换了旧两条 route 的 shadow fixture，不改变生产 serving 授权；整个重构目标继续进行。
 
@@ -2840,3 +2840,14 @@ DNS 尚有明确待完成的行为：disabled/unavailable 自定义目标在现�
 - [x] 生产两个 API 副本就绪；完整 shadow 的 DNS 为 2/2/0，Edge 为 3/3/0，TLS 为 3/0/0（expected/observed/passing）。原始 DNS expected set 的 9 行与发布前逐字段一致；三台 Worker 每台 137 条隔离 probe passed，两台 DNS 健康且心跳新鲜，Front activation 和正式 serving/LKG 指针不变。
 
 证据：[dns-physical-consumer-topology-2026-09-18.json](verification/dns-physical-consumer-topology-2026-09-18.json)。这一步完成拓扑身份修复，尚不构成 serving 收敛；继续完成 TLS consumer 与 DNS 输出语义。
+
+### P0-DF：由实际 Worker 消费 TLS reference artifact
+
+- [x] Caddy 归实际 Edge Worker 所有；TLS expected set 的新记录使用 Worker 身份，旧 caddy-edge-front 行只在 assignment、可信心跳绑定和 convergence（含 CLI）中投影到同一节点 Worker。原始 expected set 不变，旧 Front、其他节点/租户/scope 和缺少 TLS kind 授权的身份不能冒充。
+- [x] Worker 的 Pod identity 显式授权 TLS kind；TLS consumer 校验同一 active shadow ReleaseSet 内的 route/TLS 签名、artifact/release/fence/scope、完整 lineage、policy digest、hostname/path owner、原始 domain events 和两份 allowlist。共享 hostname 的平台/应用路径保留各自 policy，SNI 级 TLS reference 必须匹配真实路由 policy。
+- [x] TLS 使用独立持久化 cursor 和本地 platform_tls_candidate 状态；重启、响应丢失后 sequence 单调，损坏 cursor 与回放拒绝。只有活动 A/B Worker 报告，下载前后核对 activation；不写 serving/cache/Caddy/证书或 LKG，不把历史 ready 改写为新鲜 TLS 证明，actual/LKG TLS generation 保持空。
+- [x] 回归覆盖错误签名、混用 release/fence、错误 lineage/policy/owner/hostname/reference、未来 domain event、allowlist 不一致、inactive/changed activation 和重启。以完整生产快照在本地校验 136 条 TLS 引用和 11 条 allowlist；完整 make test、CLI owner 投影补充回归及前端 contract:check 通过。
+- [x] `a90ca9bcaca65e061b3662c2f382b5760fcd3c4d` 已推送，只发布 API 与 DE/US Edge；[CI 35252222335](https://github.com/yym68686/fugue/actions/runs/35252222335) 成功，前端契约 [CI 35252239945](https://github.com/yym68686/fugue-web/actions/runs/35252239945) 成功。
+- [x] 生产 API 两副本、三台活动 Worker/Front 均为新代码；德国 A/generation 261、美国 A/generation 825。精确镜像、CurrentAuthority、cache/Caddy 版本、零重启、独立 TLS/route cursor、三台各 137 条隔离探测和真实心跳通过核对。TLS 3/3/0、Edge 3/3/0、DNS 2/2/0（expected/observed/passing），原始 expected set、正式 serving 和 LKG 指针不变。
+
+证据：[worker-tls-shadow-consumer-2026-09-18.json](verification/worker-tls-shadow-consumer-2026-09-18.json)。本步骤完成 TLS artifact 的独立 shadow 消费；新鲜证书/serving 探测、DNS 输出语义、gray/full/rollback、policy verified LKG、恢复演练和旧路径删除仍待完成。
