@@ -32,7 +32,7 @@ Runtime Facts / ACK / LKG
 
 ## 当前状态判断
 
-2026-09-17 18:36 UTC 状态：API、两地 Edge、DNS/SSH 客户端均已更新为 `57264616`，CI 与全组独立运行验收通过。compiler v19 新增明确的 inactive DNS 错误页策略，三台 Worker 的六项实际 HTTPS 状态证明通过，原完整 shadow 的 route/TLS/DNS observed 分别为 3/3/2，passing 均为 0，serving/LKG 指针不变。新的完整编译因一个自定义域名证书已过期而被正确拒绝；诊断仍误报 ready，停用自定义域名未继续维护证书，需要先修复。DNS geo/ECS/latency、zone probes、新鲜 serving 收敛、gray/full/rollback、policy verified LKG、恢复演练及旧路径删除仍未完成。
+2026-09-17 19:23 UTC 状态：API 与两地 Edge 已更新为 `8cfb9786`，DNS/SSH 客户端保持 `57264616`，CI 与全组独立验收通过。停用自定义域名的证书维护与过期诊断已修复，实际过期证书通过正常 Edge 流程续期至 2026-12-16，三节点 HTTPS 状态证明通过。compiler v19 新鲜编译得到 137 route、214 DNS record、136 TLS reference，route 含 TLS/cache 137/137 等价，并通过固定输入本地重放；新配置未 promote。与已保存现网 DNS 记录集合比较只缺四条 zone probe，但 geo/ECS/latency、TTL、持续 serving 的租期处理仍待完成。原完整 shadow 的 route/TLS/DNS observed 为 3/3/2、passing 均为 0；正式 serving/LKG 指针不变。
 
 Fugue 已经具备相当一部分基础设施：`PlatformArtifact` 已有 generation、content hash、签名、验证状态、release channel、fencing token 和 LKG；Edge 与 DNS 也有签名校验、本地缓存和过期控制。
 
@@ -2861,6 +2861,18 @@ DNS 尚有明确待完成的行为：disabled/unavailable 自定义目标在现�
 - [x] `57264616331bd2ccdfbf1490c317f0fddb003baf` 的 [CI 35256630040](https://github.com/yym68686/fugue/actions/runs/35256630040) 全部成功；API、DE/US Edge 与两地 DNS/SSH 客户端均完成声明式发布。前端契约 [CI 35256653817](https://github.com/yym68686/fugue-web/actions/runs/35256653817) 成功。
 - [x] API 两副本、三台活动 Worker/Front 和五个 DNS/SSH 客户端均新版本且健康；德国 B/generation 262、美国 B/generation 826。每台 Worker 对 disabled/unavailable 的两项真实公网 HTTPS 探测返回精确 digest/原始 expiry，默认或错配状态返回 503 且无证明。137 路由隔离执行、TLS 136 引用/11 allowlist、独立 cursor、精确镜像、零重启和原始 expected sets 均通过验收；旧正式配置和 LKG 指针不变。
 - [x] 新鲜完整编译在某个自定义域名三节点 TLS 证明全部失败时返回 400，旧配置指针不变，未绕过校验。诊断发现共享证书已于 2026-08-30 过期，但旧诊断仅检查存在性而误报通过；停用 custom-domain 路由又被排除在证书维护之外。
-- [ ] 修复停用域名证书维护与过期诊断，再重新采集并验证 inactive DNS 的完整输出；当前不能把本步骤算作完整 DNS 等价或 serving 发布成功。
+- [x] P0-DH 修复停用域名证书维护与过期诊断，证书实际恢复后重新采集得到 214 条 DNS record，49 条 inactive 目标补回，137 route 含 TLS/cache 等价；DNS 策略/TTL/zone probe/持续 serving 仍待完成，不能据此宣称完整 DNS 等价或 full 发布成功。
 
 证据：[inactive-dns-route-proof-2026-09-18.json](verification/inactive-dns-route-proof-2026-09-18.json)。另外已发现 Edge expected topology 仍用心跳 freshness 过滤成员，必须改为失联节点继续 required、只由权威拓扑移除；在 full 发布前补上该回归与修复。
+
+### P0-DH：停用域名 TLS 维护与过期证书恢复
+
+- [x] Edge 对停用 custom-domain 路由继续维护证书，要求同一不可变 bundle 的精确 hostname/app/tenant verified allowlist、唯一授权、允许的 route policy、本地 group 且无 upstream；缺少/重复/跨 owner/未验证授权拒绝。TLS ask 使用同一个 immutable index 中的 route 与 allowlist，不能混用版本。
+- [x] 新增共用证书校验，检查实际 key pair、leaf hostname、NotBefore、NotAfter；API 上传、diagnosis、repair、TLS report 和 Edge 安装均使用它。存在性或历史 ready 不等于有效性；过期/未来/错配证书不能刷新 ready，数据存储读取错误不被改写为成功。拒绝的 incoming certificate 不修改本地可用证书。
+- [x] diagnosis 从同一份证书读取摘要和有效性，保留历史 domain events；回归覆盖伪造未来 metadata 配实际过期 leaf、跨 owner、repair/report 不提升无效证据、续期后恢复、同 bundle 授权与新 bundle 撤销、停用 origin 不被重新启用。更新旧“停用域名完全跳过 TLS”断言为真实维护流程回归，完整 make test 与前端 contract:check 通过。
+- [x] `8cfb9786d68b17e5d7135114ae41ffcd0afbc4a4` 的 [CI 35261876693](https://github.com/yym68686/fugue/actions/runs/35261876693) 全部成功，只发布 API 与两地 Edge；前端契约 [CI 35261906711](https://github.com/yym68686/fugue-web/actions/runs/35261906711) 成功。API 两副本、三台 Worker/Front 均新版本健康，德国 A/generation 263、美国 A/generation 827，Guardian 全部 stable，客户端继续健康。
+- [x] API 上线后先独立确认旧过期证书的 shared_tls_certificate/tls_ready/route_active 检查失败；随后 Edge 正常维护流程将证书续期至 2026-12-16，三台公网 HTTPS disabled-state proof 均为 204，应用仍 disabled、无 upstream。未手工修改证书文件、重装或伪造 TLS ready；最初 TLSReadyAt 保留，TLSLastCheckedAt 来自实际新上报。
+- [x] 新鲜 compiler v19 生成 route `artifact_1789672802_57a900abf279`、DNS `artifact_1789672802_285fbc29e72d`、TLS `artifact_1789672802_a27ba0c63367`、ReleaseSet `artifact_1789672802_d87cef1ee7b7`，均 validated、未 promote；137 route、214 DNS、136 TLS，route/TLS allowlist/cache 比较完全等价。固定输入本地重放五类 content/generation 和 lineage 相同，未重写 placement 证明。
+- [x] 对照已保存 legacy DNS 多 zone 缓存：49 条 inactive 自定义目标补回，新记录无多余项，集合仅差四条 zone probe。正式 serving/LKG 与原始 expected sets 不变；原 shadow 仍为 TLS 3/3/0、Edge 3/3/0、DNS 2/2/0。
+
+证据：[stopped-domain-tls-recovery-2026-09-18.json](verification/stopped-domain-tls-recovery-2026-09-18.json)。集合一致性不等于 DNS 查询行为一致性，剩余 geo/ECS/latency、各 consumer 的优先组、TTL、probe records 与持续租期处理继续待办。另需修复失联 Edge 从 required 集合消失，以及 domain diagnosis 的 route_active 未独立核对 origin/应用停用状态的问题。
