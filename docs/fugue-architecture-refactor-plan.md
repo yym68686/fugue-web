@@ -2876,3 +2876,13 @@ DNS 尚有明确待完成的行为：disabled/unavailable 自定义目标在现�
 - [x] 对照已保存 legacy DNS 多 zone 缓存：49 条 inactive 自定义目标补回，新记录无多余项，集合仅差四条 zone probe。正式 serving/LKG 与原始 expected sets 不变；原 shadow 仍为 TLS 3/3/0、Edge 3/3/0、DNS 2/2/0。
 
 证据：[stopped-domain-tls-recovery-2026-09-18.json](verification/stopped-domain-tls-recovery-2026-09-18.json)。集合一致性不等于 DNS 查询行为一致性，剩余 geo/ECS/latency、各 consumer 的优先组、TTL、probe records 与持续租期处理继续待办。另需修复失联 Edge 从 required 集合消失，以及 domain diagnosis 的 route_active 未独立核对 origin/应用停用状态的问题。
+
+### P0-DI：失联 Edge 继续计入 required membership
+
+- [x] 回归复现错误通过：两个 required 节点中一台心跳已陈旧 24 小时，另一台提交真实可信 applied/passed 回执，旧 API 把前者过滤后返回 1 expected / 1 passing / pass=true。
+- [x] expected topology 只按权威节点策略确定成员；移除 Edge heartbeat freshness 过滤，收敛评估单独处理缺失/陈旧事实。修复后保持 2 expected / 1 observed / 1 passing / pass=false，full gate 阻止发布；明确的权威节点移除仍可投影，持久化 expected set 不变。
+- [x] prepare、convergence 和 full gate 共用修复后的来源；OpenAPI 优先同步，针对性回归、完整 make test 与前端 contract:check 通过。
+- [x] `4acdff460caecdcc222d503abe15c857790e9044` 仅更新 API，[CI 35265609380](https://github.com/yym68686/fugue/actions/runs/35265609380) 成功；前端契约 [CI 35265629960](https://github.com/yym68686/fugue-web/actions/runs/35265629960) 成功。
+- [x] 生产 API 两副本更新就绪，原完整 shadow 的 TLS/Edge 分别 3 expected / 3 observed、DNS 2/2，passing 仍全为 0；原始 expected sets、shadow/serving/LKG 指针未变。三台 Worker 的 137 路由隔离执行与独立 TLS consumer、五个 DNS/SSH 客户端保持健康。
+
+证据：[required-edge-membership-2026-09-18.json](verification/required-edge-membership-2026-09-18.json)。后续必须继续收紧 ReleaseSet 回执身份、expected set、fence、generation sequence 绑定，并确保 full gate 要求全部成员的当前 expected set；当前尚未 full 发布。
