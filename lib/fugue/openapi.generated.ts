@@ -75,7 +75,7 @@ export interface paths {
   "/v1/admin/edge/authorities": {
     /**
      * Inspect real Edge Control authority projections
-     * @description Read-only diagnostic view of the Edge Control group authority. This endpoint never synthesizes Edge nodes or ACKs from DNS state.
+     * @description Read-only diagnostic view of the Edge Control group authority. This endpoint never synthesizes Edge nodes or ACKs from DNS state. It reads the complete authority projection, including explicit serving health and bootstrap eligibility. A response that omits either fact is reported as unavailable with an error, never as a false health observation.
      */
     get: operations["adminListEdgeAuthorities"];
   };
@@ -1343,6 +1343,10 @@ export interface paths {
   "/v1/apps/{id}/database/localize": {
     /** Localize App Database */
     post: operations["localizeAppDatabase"];
+  };
+  "/v1/apps/{id}/database/recover": {
+    /** Recover App Database Storage Pressure */
+    post: operations["recoverAppDatabase"];
   };
   "/v1/apps/{id}/continuity": {
     /** Patch App Continuity */
@@ -10580,6 +10584,7 @@ export interface components {
       identity_verified: boolean;
       desired_generation?: string;
       actual_generation?: string;
+      candidate_generation?: string;
       lkg_generation?: string;
       apply_status?: string;
       probe_status?: string;
@@ -11183,6 +11188,7 @@ export interface components {
       evidence_hash?: string;
       desired_generation?: string;
       actual_generation?: string;
+      candidate_generation?: string;
       lkg_generation?: string;
       apply_status?: string;
       probe_status?: string;
@@ -11220,6 +11226,7 @@ export interface components {
       /** @description Optional assertion; the server derives and verifies the value from the expected consumer set. */
       desired_generation?: string;
       actual_generation?: string;
+      candidate_generation?: string;
       lkg_generation?: string;
       apply_status?: string;
       probe_status?: string;
@@ -11962,7 +11969,7 @@ export interface operations {
   };
   /**
    * Inspect real Edge Control authority projections
-   * @description Read-only diagnostic view of the Edge Control group authority. This endpoint never synthesizes Edge nodes or ACKs from DNS state.
+   * @description Read-only diagnostic view of the Edge Control group authority. This endpoint never synthesizes Edge nodes or ACKs from DNS state. It reads the complete authority projection, including explicit serving health and bootstrap eligibility. A response that omits either fact is reported as unavailable with an error, never as a false health observation.
    */
   adminListEdgeAuthorities: {
     parameters: {
@@ -18451,6 +18458,38 @@ export interface operations {
     };
     responses: {
       /** @description Successful response */
+      202: {
+        content: {
+          "application/json": components["schemas"]["OperationResponse"];
+        };
+      };
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
+  /** Recover App Database Storage Pressure */
+  recoverAppDatabase: {
+    parameters: {
+      path: {
+        id: components["parameters"]["IdPathParam"];
+      };
+    };
+    requestBody?: {
+      content: {
+        "application/json": {
+          dry_run?: boolean;
+          target_runtime_id?: string;
+          target_node_name?: string;
+        };
+      };
+    };
+    responses: {
+      /** @description Recovery plan */
+      200: {
+        content: {
+          "application/json": Record<string, never>;
+        };
+      };
+      /** @description Recovery operation accepted or resumed */
       202: {
         content: {
           "application/json": components["schemas"]["OperationResponse"];

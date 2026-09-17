@@ -562,6 +562,9 @@ paths:
       description: >-
         Read-only diagnostic view of the Edge Control group authority. This
         endpoint never synthesizes Edge nodes or ACKs from DNS state.
+        It reads the complete authority projection, including explicit serving
+        health and bootstrap eligibility. A response that omits either fact is
+        reported as unavailable with an error, never as a false health observation.
       tags: [Admin, Edge]
       x-fugue-handler: handleAdminListEdgeAuthorities
       security:
@@ -8952,6 +8955,42 @@ paths:
       responses:
         '202':
           description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OperationResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+  /v1/apps/{id}/database/recover:
+    post:
+      operationId: recoverAppDatabase
+      summary: Recover App Database Storage Pressure
+      tags: [Apps]
+      x-fugue-handler: handleRecoverAppDatabase
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/IdPathParam"
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                dry_run: {type: boolean}
+                target_runtime_id: {type: string}
+                target_node_name: {type: string}
+      responses:
+        '200':
+          description: Recovery plan
+          content:
+            application/json:
+              schema:
+                type: object
+        '202':
+          description: Recovery operation accepted or resumed
           content:
             application/json:
               schema:
@@ -30645,6 +30684,8 @@ components:
           type: string
         actual_generation:
           type: string
+        candidate_generation:
+          type: string
         lkg_generation:
           type: string
         apply_status:
@@ -31716,6 +31757,8 @@ components:
           type: string
         actual_generation:
           type: string
+        candidate_generation:
+          type: string
         lkg_generation:
           type: string
         apply_status:
@@ -31796,6 +31839,8 @@ components:
           type: string
           description: Optional assertion; the server derives and verifies the value from the expected consumer set.
         actual_generation:
+          type: string
+        candidate_generation:
           type: string
         lkg_generation:
           type: string
