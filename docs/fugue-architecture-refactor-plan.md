@@ -32,7 +32,7 @@ Runtime Facts / ACK / LKG
 
 ## 当前状态判断
 
-2026-09-17 11:13 UTC 状态：主 compiler v15 已在生产 API 成功编译固定业务快照，生成 136 条 route、163 条 DNS record、135 个 TLS reference，并通过相同输入的本地精确重放。当前业务路由随后增至 137 条；完整 artifact 未接管流量，首次比较仅 110/136 条 route 完全一致，仍有 26 条字段差异及 TLS allowlist/cache 差异。代码发布暴露了 inactive Caddy 缓存加载不重试和配置更新清除代码候选后的等待缺口：缓存重试修复已推送 `6336275e`，但最新 CI 的德国通道失败，美国恢复仍在执行，不能宣称本轮全部上生产正常。现有配置指针保持不变；policy verified LKG、完整等价、serving convergence、gray/full/rollback、发布恢复耦合和旧路径删除继续未完成。
+2026-09-17 11:13 UTC 状态：主 compiler v15 已在生产 API 成功编译固定业务快照，生成 136 条 route、163 条 DNS record、135 个 TLS reference，并通过相同输入的本地精确重放。当前业务路由随后增至 137 条；完整 artifact 未接管流量，首次比较仅 110/136 条 route 完全一致，仍有 26 条字段差异及 TLS allowlist/cache 差异。代码发布暴露了 inactive Caddy 缓存加载不重试和配置更新清除代码候选后的等待缺口：缓存重试修复已推送 `6336275e`，但最新 CI 的德国与美国通道均失败，分别未加载精确候选、CurrentAuthority 未收敛，不能宣称本轮全部上生产正常。现有配置指针保持不变；policy verified LKG、完整等价、serving convergence、gray/full/rollback、发布恢复耦合和旧路径删除继续未完成。
 
 Fugue 已经具备相当一部分基础设施：`PlatformArtifact` 已有 generation、content hash、签名、验证状态、release channel、fencing token 和 LKG；Edge 与 DNS 也有签名校验、本地缓存和过期控制。
 

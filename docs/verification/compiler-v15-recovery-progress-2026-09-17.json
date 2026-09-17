@@ -368,6 +368,8 @@
     "fix_full_make_test": "passed"
   },
   "latest_ci": "https://github.com/yym68686/fugue/actions/runs/35212043085",
-  "remaining_failure": "DE executor waits for a staged candidate after ordinary configuration publication clears it; US recovery still running at observation. No complete rollout claim.",
-  "next_requirement": "bounded restaging on proven configuration supersession and exact committed-authority recognition; keep signature, CAS, cohort and canary gates"
+  "remaining_failure": "DE did not load the exact staged candidate; US CurrentAuthority did not converge. Both rollback verifications rejected mismatched image provenance. API healthz/readyz remain 200. No complete rollout claim.",
+  "next_requirement": "bounded restaging on proven configuration supersession and exact committed-authority recognition; keep signature, CAS, cohort and canary gates",
+  "latest_ci_status": "completed",
+  "latest_ci_conclusion": "failure"
 }
