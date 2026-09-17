@@ -10823,12 +10823,17 @@ export interface components {
       /** @description Desired release references and weights. Compilation requires matching fresh release observations. Unsupported sticky routing is rejected, never silently ignored. */
       traffic_constraints?: components["schemas"]["PlatformTrafficPolicyConstraint"][];
     };
-    /** @description Applies only to paths matching the specified app owner, or all paths at the hostname when app_id is empty. Every referenced constraint must match at least one route. A tenant mismatch is rejected, including other paths at the same hostname. */
+    /** @description By default applies only to paths matching the specified app owner, or all paths at the hostname when app_id is empty. Explicit tenant_hostname scope preserves legacy hostname policy behavior across apps within one tenant and requires tenant_id. Every referenced constraint must match at least one route. A tenant mismatch is always rejected, including other paths at the same hostname. Exclusion expiry remains evidence metadata and does not silently remove an exclusion. */
     PlatformRoutePolicyConstraint: {
       id: string;
       hostname: string;
       app_id?: string;
       tenant_id?: string;
+      /**
+       * @description Omission preserves app matching. tenant_hostname explicitly applies the rule to every path owned by tenant_id at this hostname; app_id retains the originating policy owner.
+       * @enum {string}
+       */
+      match_scope?: "app" | "tenant_hostname";
       /** @description Compilation refuses nonempty placement constraints until DNS placement resolution is available. */
       edge_group_id?: string;
       excluded_edge_ids?: string[];
