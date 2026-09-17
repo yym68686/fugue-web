@@ -10671,6 +10671,7 @@ export interface components {
       /** Format: date-time */
       updated_at: string;
     };
+    /** @description Desired route configuration. enabled=false independently forbids traffic; it does not rewrite an explicitly configured route_policy. Compilation retains a fixed non-active origin status and reason for diagnostics without re-enabling a disabled route. Explicit non-active intent status takes precedence over runtime recovery. */
     PlatformConfigRouteIntent: {
       hostname: string;
       app_id?: string;
