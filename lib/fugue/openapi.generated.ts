@@ -421,11 +421,17 @@ export interface paths {
     get: operations["listPlatformExpectedConsumerSets"];
   };
   "/v1/admin/platform-config/release-set/prepare-consumers": {
-    /** Prepare ReleaseSet Consumer Expectations */
+    /**
+     * Prepare ReleaseSet Consumer Expectations
+     * @description Builds immutable expectations from current node policy topology. DNS zone rows are owned by one physical DNS process identified by physical_node_id (or id when absent); per-zone rows do not create separate process consumers. Unknown or unhealthy existing DNS processes remain required.
+     */
     post: operations["preparePlatformReleaseSetConsumers"];
   };
   "/v1/admin/platform-state/convergence": {
-    /** List Platform Consumer Convergence */
+    /**
+     * List Platform Consumer Convergence
+     * @description Projects immutable expected sets onto current topology. DNS zone aliases are attributed to their physical process and duplicate expectations are collapsed; missing or unhealthy processes are not treated as successful. Empty required topology remains unknown. Full promotion uses the same projection.
+     */
     get: operations["listPlatformConsumerConvergence"];
   };
   "/v1/admin/platform-config/hostname-lineage": {
@@ -13523,7 +13529,10 @@ export interface operations {
       default: components["responses"]["ErrorResponse"];
     };
   };
-  /** Prepare ReleaseSet Consumer Expectations */
+  /**
+   * Prepare ReleaseSet Consumer Expectations
+   * @description Builds immutable expectations from current node policy topology. DNS zone rows are owned by one physical DNS process identified by physical_node_id (or id when absent); per-zone rows do not create separate process consumers. Unknown or unhealthy existing DNS processes remain required.
+   */
   preparePlatformReleaseSetConsumers: {
     requestBody: {
       content: {
@@ -13545,7 +13554,10 @@ export interface operations {
       default: components["responses"]["ErrorResponse"];
     };
   };
-  /** List Platform Consumer Convergence */
+  /**
+   * List Platform Consumer Convergence
+   * @description Projects immutable expected sets onto current topology. DNS zone aliases are attributed to their physical process and duplicate expectations are collapsed; missing or unhealthy processes are not treated as successful. Empty required topology remains unknown. Full promotion uses the same projection.
+   */
   listPlatformConsumerConvergence: {
     parameters: {
       query?: {
