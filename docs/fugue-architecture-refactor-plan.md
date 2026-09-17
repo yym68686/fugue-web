@@ -371,7 +371,7 @@ Fugue 已经具备相当一部分基础设施：`PlatformArtifact` 已有 genera
 
 - [x] Edge 支持 legacy bundle 和 artifact bundle。
 - [x] DNS 支持 legacy bundle 和 artifact bundle。
-- [ ] artifact bundle 先进入 shadow consumer。
+- [x] 完整 artifact bundle 进入真实 Edge/DNS shadow consumer；P0-DD 验证三台 Edge 的 137 路由隔离执行和两台 DNS 候选校验，正式 serving 未切换。
 - [ ] 记录 apply、probe、convergence 和 fallback。
 - [ ] 验证本地 LKG 恢复。
 
@@ -2819,3 +2819,14 @@ P0-BK 验收范围说明：管理 SSH 通道在本轮核查时于密钥交换前
 证据：[platform-domain-dns-precedence-2026-09-18.json](verification/platform-domain-dns-precedence-2026-09-18.json)。前端契约 [CI 35246746138](https://github.com/yym68686/fugue-web/actions/runs/35246746138) 成功。
 
 DNS 尚有明确待完成的行为：disabled/unavailable 自定义目标在现网仍解析到 Edge（已直接向 DNS 容器 localhost 查询确认），新 compiler 省略记录并不等价；还需补齐各权威 zone 的探测记录、剩余 TTL 差异与 geo/ECS/latency 选择策略，再进行 full serving 验收。
+
+### P0-DD：完整配置进入真实隔离 shadow
+
+- [x] 新鲜固定输入编译出的 ReleaseSet `artifact_1789663153_c9385581d825` 只发布到 shadow，release `artifactrel_1789663168_d6b9bf2ea7fd`、fencing token 2；route `artifact_1789663152_b1931bcb8a09`、DNS `artifact_1789663152_8a4538b7621d`、TLS `artifact_1789663153_461dbba2c0b7` 均由同一 lineage 绑定，137/137 route 含 TLS/cache 比较相同，未绕过发布门。
+- [x] 三台活动 Edge 实际执行完整 137 路由的隔离 Caddy，每台 receipt 为 passed、137 probes，绑定 artifact digest、ReleaseSet、expected set、generation sequence、fencing token 和 node/group；回执 digest 重算一致且有限期新鲜。serving、TLSVerified、OriginVerified 保持 false。
+- [x] 两台真实 DNS 校验新完整候选并报告新鲜可信 shadow 心跳；临时地址按真实时间到期，有效候选 record count 可下降，未延长旧证明。
+- [x] 独立验收 Front activation 文件与发布前完全一致，正式 full channel、policy/route LKG 查询身份不变，API/两地 authority 健康。所有 consumer 仍为 staged/shadow_validated，required passing 保持 0，没有把隔离执行伪报为 serving。
+- [ ] 修复 DNS expected topology：当前持久化 expected set 包含 9 行（历史节点及每 zone 虚拟行），实际只有 2 个 physical DNS consumer。必须按真实 consumer 身份与当前拓扑投影，保留不可变原始 set 的 lineage。
+- [ ] 补齐 TLS artifact 的 consumer 协议与独立验证；当前 caddy_route_config expected 3、observed 0。完成 DNS 输出语义及 serving apply/probe、gray/full/rollback 后才能宣称完整收敛。
+
+证据：[full-configuration-shadow-2026-09-18.json](verification/full-configuration-shadow-2026-09-18.json)。此步骤替换了旧两条 route 的 shadow fixture，不改变生产 serving 授权；整个重构目标继续进行。
