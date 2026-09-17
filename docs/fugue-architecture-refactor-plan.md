@@ -32,7 +32,7 @@ Runtime Facts / ACK / LKG
 
 ## 当前状态判断
 
-2026-09-17 11:13 UTC 状态：主 compiler v15 已在生产 API 成功编译固定业务快照，生成 136 条 route、163 条 DNS record、135 个 TLS reference，并通过相同输入的本地精确重放。当前业务路由随后增至 137 条；完整 artifact 未接管流量，首次比较仅 110/136 条 route 完全一致，仍有 26 条字段差异及 TLS allowlist/cache 差异。代码发布暴露了 inactive Caddy 缓存加载不重试和配置更新清除代码候选后的等待缺口：缓存重试修复已推送 `6336275e`，但最新 CI 的德国与美国通道均失败，分别未加载精确候选、CurrentAuthority 未收敛，不能宣称本轮全部上生产正常。现有配置指针保持不变；policy verified LKG、完整等价、serving convergence、gray/full/rollback、发布恢复耦合和旧路径删除继续未完成。
+2026-09-17 17:07 UTC 状态：完整 compiler v18 配置已进入 shadow，三台 Edge 分别通过 137 路由的真实隔离 Caddy 探测，两台 DNS 报告完整候选校验。API `e27c3a57` 已完成生产发布，DNS expected topology 从 9 行历史/zone 记录投影为 2 个实际进程，原始 expected set 不变。route 含 TLS/cache 的输出比较已等价；TLS artifact 仍缺少独立消费回执，DNS 输出语义、serving apply/probe、gray/full/rollback、policy verified LKG、恢复演练和旧路径删除尚未完成。当前正式 serving 和 LKG 指针保持不变，所有 shadow consumer passing 均为 0。
 
 Fugue 已经具备相当一部分基础设施：`PlatformArtifact` 已有 generation、content hash、签名、验证状态、release channel、fencing token 和 LKG；Edge 与 DNS 也有签名校验、本地缓存和过期控制。
 
@@ -2826,7 +2826,17 @@ DNS 尚有明确待完成的行为：disabled/unavailable 自定义目标在现�
 - [x] 三台活动 Edge 实际执行完整 137 路由的隔离 Caddy，每台 receipt 为 passed、137 probes，绑定 artifact digest、ReleaseSet、expected set、generation sequence、fencing token 和 node/group；回执 digest 重算一致且有限期新鲜。serving、TLSVerified、OriginVerified 保持 false。
 - [x] 两台真实 DNS 校验新完整候选并报告新鲜可信 shadow 心跳；临时地址按真实时间到期，有效候选 record count 可下降，未延长旧证明。
 - [x] 独立验收 Front activation 文件与发布前完全一致，正式 full channel、policy/route LKG 查询身份不变，API/两地 authority 健康。所有 consumer 仍为 staged/shadow_validated，required passing 保持 0，没有把隔离执行伪报为 serving。
-- [ ] 修复 DNS expected topology：当前持久化 expected set 包含 9 行（历史节点及每 zone 虚拟行），实际只有 2 个 physical DNS consumer。必须按真实 consumer 身份与当前拓扑投影，保留不可变原始 set 的 lineage。
+- [x] P0-DE 修复 DNS expected topology：持久化 9 行历史/zone 记录保持不变，当前拓扑投影为 2 个 physical DNS consumer，独立生产验证 2 expected / 2 observed / 0 passing。
 - [ ] 补齐 TLS artifact 的 consumer 协议与独立验证；当前 caddy_route_config expected 3、observed 0。完成 DNS 输出语义及 serving apply/probe、gray/full/rollback 后才能宣称完整收敛。
 
 证据：[full-configuration-shadow-2026-09-18.json](verification/full-configuration-shadow-2026-09-18.json)。此步骤替换了旧两条 route 的 shadow fixture，不改变生产 serving 授权；整个重构目标继续进行。
+
+### P0-DE：DNS 按物理进程计算 expected topology
+
+- [x] 构建 expected set 时按 physical node 去重，zone 行仅提供归属；历史 set 按当前权威节点策略投影，保存的 ID、revision、lineage 和全部原始行不变。
+- [x] DNS 健康与进程存在性分离：陈旧或不健康节点仍须提供自己的可信心跳；冲突物理归属、跨组身份和 alias 环拒绝或产生 unknown，空拓扑不能通过，zone 心跳不能冒充物理进程。无关 DNS 错误不阻断仅依赖 Edge 的拓扑计算。
+- [x] prepare、convergence 和发布 gate 使用同一拓扑读取逻辑；OpenAPI 优先同步，针对性回归、完整 `make test` 和前端 `contract:check` 通过。
+- [x] `e27c3a57603585cd5cd7bf278d0363e2dfbd5c51` 的 [CI 35249939306](https://github.com/yym68686/fugue/actions/runs/35249939306) 全部成功，只更新 API；前端契约 [CI 35249991565](https://github.com/yym68686/fugue-web/actions/runs/35249991565) 成功。
+- [x] 生产两个 API 副本就绪；完整 shadow 的 DNS 为 2/2/0，Edge 为 3/3/0，TLS 为 3/0/0（expected/observed/passing）。原始 DNS expected set 的 9 行与发布前逐字段一致；三台 Worker 每台 137 条隔离 probe passed，两台 DNS 健康且心跳新鲜，Front activation 和正式 serving/LKG 指针不变。
+
+证据：[dns-physical-consumer-topology-2026-09-18.json](verification/dns-physical-consumer-topology-2026-09-18.json)。这一步完成拓扑身份修复，尚不构成 serving 收敛；继续完成 TLS consumer 与 DNS 输出语义。
