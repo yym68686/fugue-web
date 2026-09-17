@@ -32,7 +32,7 @@ Runtime Facts / ACK / LKG
 
 ## 当前状态判断
 
-2026-09-17 生产核查：API 已运行 commit `3d0a19b7`（2/2 Ready）；Controller 由并行恢复任务推进，以各自发布收据为准。DE/US Edge Authority 原始响应均为 serving healthy，API 的健康字段丢失误报已修复（P0-CN）。三个活动 Edge 各服务 135 条 route，候选仍只有 2 条 route，保持 `staged/shadow_validated`；route required observed 3、passing 0，未发生 gray/full 接管。policy LKG 查询仍为 404，不能视为 verified policy LKG 已完成；全量配置等价、真正 candidate apply/probe、恢复演练和旧路径删除仍未完成。
+2026-09-17 08:24 UTC 生产核查：API 与 Controller 运行并行恢复提交 `d426cafa`（各 2/2 Ready）；DE/US Edge 与 DNS/SSH 已运行 `b120cd3b`。三个活动 Edge 各服务 135 条 route，并已对 2 条候选 route 完成真正的隔离 HTTP Caddy apply/probe，回执摘要与绑定独立核对通过（P0-CP）；候选不访问 origin、不执行 TLS/ACME，也不接管公网 serving。trusted heartbeat 仍为 `staged/shadow_validated`，route required observed 3、passing 0，未发生 gray/full 接管。API 和两地 Guardian 均 stable，Authority serving health 为 true。policy LKG 查询仍为 404；完整配置的 route/DNS/TLS 等价、serving apply/convergence、gray/full/rollback、恢复演练和旧路径删除仍未完成。
 
 Fugue 已经具备相当一部分基础设施：`PlatformArtifact` 已有 generation、content hash、签名、验证状态、release channel、fencing token 和 LKG；Edge 与 DNS 也有签名校验、本地缓存和过期控制。
 
@@ -2652,6 +2652,24 @@ P0-BK 验收范围说明：管理 SSH 通道在本轮核查时于密钥交换前
 - [x] 后端 `3d0a19b7` 通过本地精确 release planner；[CI 35184254091](https://github.com/yym68686/fugue/actions/runs/35184254091) 的 API、DE/US Edge 部署全部成功。前驱从各组件 Guardian 成功收据读取，未覆盖并行任务的 main 更新。
 - [x] 2026-09-17 05:32 UTC 生产验收：API 2/2 Ready；三个活动 worker 的 source commit 均为 `3d0a19b7`、Ready 且零重启，候选 digest 分别与本地生产 artifact 重放精确相等；各自继续服务 135 条 route，Caddy 版本一致、无 error。API 和两地 Edge Guardian 均 stable，local/dependency/route 均 healthy。
 - [x] 发布前后 shadow ReleaseSet、route artifact identity/digest、full channel 和 policy LKG 状态一致；route required expected/observed 为 3，passing 为 0，2 条 route 的候选仍与完整业务输出不等价。
-- [ ] 真正 apply 到隔离 executor/Caddy，生成精确 candidate apply/probe receipt，并完成完整配置的 gray/full 与 rollback；此步骤仍只证明路由转换与查找一致性。
+- [x] 真正 apply 到隔离 HTTP Caddy，生成绑定精确 artifact/ReleaseSet/consumer 的 candidate apply/probe receipt；P0-CP 已完成生产验收，尚不包括 origin/TLS 或公网 serving 验证。
+- [ ] 完成完整配置的 gray/full 与 rollback；不能把隔离 HTTP receipt 当成 serving convergence。
 
 证据：[shared-route-materialization-2026-09-17.json](verification/shared-route-materialization-2026-09-17.json)。DE 切换期间出现过旧 record 的 canary unknown；最终两地 Guardian 的 fresh 证据均通过并恢复 stable，未降低门槛或把 shadow 结果计入 serving convergence。
+
+
+### P0-CP：候选配置在隔离 Caddy 中执行并产生回执
+
+- [x] 从已经验签、校验 lineage 和 assignment 的 route artifact 生成 detached bundle，交给短生命周期的真实 Caddy 进程加载；监听地址仅为 loopback，admin 和配置持久化关闭，临时目录与 serving cache 分离。
+- [x] 候选 backend 只接受带本次随机 nonce 的 HEAD 探测，按 hostname/path 查找并比较完整 route proof；没有 origin transport，不加载 TLS/ACME，不返回 serving proof，不修改 serving index、Caddy serving 配置或 LKG。
+- [x] 回执保存 artifact ID/digest/generation、node/group、ReleaseSet、expected consumer set、generation sequence、fencing token、route index/config digest、probe count、observed/expiry 与 receipt digest。只复用本进程中绑定一致、摘要完整且有效期剩余超过 30 秒的结果；回执租期为 2 分钟，进程重启后重新执行。
+- [x] 子进程启动失败、提前退出、探测失败或超时均清理进程/临时目录；任何失败保留原 serving。新增真实 Caddy 2.10.2 集成测试、错误/取消清理和回执绑定/有效期回归，完整 `GOMAXPROCS=2 make test` 通过。
+- [x] 初次实现 `ec580a88` 的 [CI 35194919457](https://github.com/yym68686/fugue/actions/runs/35194919457) 成功后，生产验收发现候选启动 `operation not permitted`：上游 Caddy 二进制带文件 capability，而 worker 的 capability bounding set 为空。该故障导致候选执行及其 heartbeat 暂停，但三个 worker 的 135 条 serving route 持续健康；没有把 CI 成功当成该功能验收完成。
+- [x] 修复 `b120cd3b` 在镜像构建时移除 Caddy 文件 capability，并强制以全部 capability 丢弃、no-new-privileges 的环境执行 Caddy 自检；公网 Caddy 继续使用 Pod 已显式授予的 `NET_BIND_SERVICE`。本地完整测试、精确 release planner 和 [CI 35197313486](https://github.com/yym68686/fugue/actions/runs/35197313486) 均通过，DE/US worker 与共享镜像的 DNS/SSH 四个发布通道全部成功。
+- [x] OpenAPI 文档与 web 快照同步，前端 contract/typecheck 及 [contract-drift 35195201850](https://github.com/yym68686/fugue-web/actions/runs/35195201850) 通过。
+- [x] 08:24 UTC 生产核对：3 个活动 worker 的 source commit 都为 `b120cd3b`，Ready、零重启，各自产生 2 条候选路由的 `isolated_http/passed` 回执；摘要复算、artifact/consumer/fencing 绑定及观测时有效期均通过。5 个 DNS/SSH 实例也为该提交，Ready、零重启，DNS 所有 zone 健康，SSH listener 正常。
+- [x] 三个 worker 仍各自服务 135 条 route，Caddy 已加载版本与 bundle 一致，无 Caddy error 或 stale cache；API 与两地 Guardian 均 stable，local/dependency/route 证据均 healthy。发布前后 shadow ReleaseSet、route artifact、full channel 和 policy LKG 查询状态一致。
+- [x] trusted heartbeat 恢复新鲜且保持 `staged/shadow_validated`，actual serving generation 与 candidate generation 分离；route required expected/observed 为 3、passing 为 0。回执中的 `serving`、`tls_verified`、`origin_verified` 均为 false，2 条候选 route 与完整业务输出仍不等价。
+- [ ] 将完整配置的执行回执接入可信 consumer 协议，完成 route/DNS/TLS 等价、serving apply/probe、gray/full 与 rollback；policy verified LKG 和旧路径删除仍未验收。
+
+证据：[candidate-isolated-execution-2026-09-17.json](verification/candidate-isolated-execution-2026-09-17.json)。该步骤验收真实的隔离 HTTP candidate 执行及失败时保留 serving，不代表整个重构已完成。
