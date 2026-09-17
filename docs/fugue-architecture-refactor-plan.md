@@ -2774,6 +2774,15 @@ P0-BK 验收范围说明：管理 SSH 通道在本轮核查时于密钥交换前
 - [x] OpenAPI 优先更新并同步前端；完整 `make test` 与 `contract:check` 通过。`1fe61753fb5b6998c3fb9513754e20584b74f9f5` 已推送，发布计划选择 API 和 DE/US Edge。
 - [x] [CI 35234496493](https://github.com/yym68686/fugue/actions/runs/35234496493) 全部成功。API 两个副本和 DE/US 三台实际活动 Worker/Front 均为 `1fe61753`，德国 A/generation 259、美国 A/generation 823；Guardian stable，cache/bundle/Caddy、精确镜像、fresh 回执、心跳与 DNS/SSH 健康通过独立验收，配置指针不变。
 - [x] v17 使用重新采集的生产输入生成 137 条 route、165 条 DNS record、136 条 TLS 引用，route artifact `artifact_1789656195_c1cac5c34377`、ReleaseSet `artifact_1789656195_4a959b5a77e5` 均 validated，未 promote。实际过期排除在所有匹配路径保持原名单/expiry 且为 expired_hold；本地直接重放五类 artifact content/generation 与 lineage 相同。
-- [ ] 修复诊断中“无任何排除名单时，省略 lifecycle 与显式 clear”的通用表示差异。当前 136/137 条 route 一致，剩余平台 route 只有该表示差异；不能将此规则用于存在排除名单的 route，TLS allowlist 仍是实际缺失输出。
+- [x] P0-CZ 修复“无任何排除名单时，省略 lifecycle 与显式 clear”的通用表示差异，存在排除名单时不应用该规则。v17 初次比较 136/137 条 route 一致；后续真实业务部署引入的新 generation/upstream 差异继续报告，TLS allowlist 仍是实际缺失输出。
 
 证据：[exclusion-lifecycle-2026-09-17.json](verification/exclusion-lifecycle-2026-09-17.json)。前端契约 [CI 35234529394](https://github.com/yym68686/fugue-web/actions/runs/35234529394) 成功。required passing 仍为 0，完整 ReleaseSet serving 发布与恢复验收继续未完成。
+
+### P0-CZ：空排除状态的语义比较
+
+- [x] 比较器仅在 route 没有 excluded edge/group IDs 时，将省略 lifecycle 与显式 clear 视为等价；存在排除名单或非 clear 生命周期时保留字段比较，expiry/reason 及所有排除名单不被忽略。
+- [x] 回归复现双向省略/clear 误报，并覆盖 edge/group 排除、active→expired、legacy/expired hold 和 expiry/reason 变化；完整 `make test` 与前端契约检查通过。
+- [x] OpenAPI 优先更新、同步前端。提交 `21fd334cb57d97a572d1b581d56dd34741f5b07a` 已推送，声明式发布只包含 API。
+- [x] [CI 35238423605](https://github.com/yym68686/fugue/actions/runs/35238423605) 成功，API 两副本为 `21fd334c`，Guardian stable。同一 v17 artifact 比较不再出现 lifecycle 差异，snapshot 仍报告 TLS allowlist，equivalent=false；当前 133/137 route 相同，剩余四条为业务部署后的 cache namespace/deployment generation/upstream 变化。配置指针与两地 `1fe61753` 活动授权不变。
+
+证据：[empty-exclusion-comparison-2026-09-17.json](verification/empty-exclusion-comparison-2026-09-17.json)。前端契约 [CI 35238480650](https://github.com/yym68686/fugue-web/actions/runs/35238480650) 成功。本步骤仅完成表示等价诊断修复，仍需重新采集业务输入以及 TLS/ReleaseSet serving 迁移验收。
