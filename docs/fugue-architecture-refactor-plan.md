@@ -2687,12 +2687,12 @@ P0-BK 验收范围说明：管理 SSH 通道在本轮核查时于密钥交换前
 - [x] 09:34 UTC 生产核对：API 2/2 Ready；美国两个 worker 为 `64b2e4ad`，德国 worker 为 `da5f117b`，全部 Ready、零重启，各服务 136 条 route，Caddy 版本匹配、无 error/stale。三个隔离候选回执的摘要、绑定与有效期均通过；API 和两地 Guardian 均 stable。
 - [x] projection 保存 10 条显式 tenant_hostname 策略；共享域名的 digest mismatch 消失。旧 release freshness 问题随并行业务恢复消失，不归因于本补丁；当前只剩 DNS 输出和 release target 两项等价验证。发布前后配置 artifact/ReleaseSet/full/policy-LKG 指纹不变，route required expected/observed 3、passing 0。
 - [ ] 主 compiler 接入已固定的 Edge group/DNS placement 证据，完成 136 条业务 route 与 DNS/TLS 全量编译、输出等价和 consumer gray/full/rollback。
-- [ ] 修复代码 A/B 发布被并发配置变化打断后，补偿/候选重建/成功回执之间的恢复耦合；这次正式恢复成功不能代替该故障路径的根因修复与回归演练。
+- [x] 修复代码 A/B 发布被并发配置变化打断后的候选重建、提交观察和工作负载补偿竞态；P0-CT/CU/CV 覆盖明确配置失效、Guardian 事务提交中和旧 Worker 快照三类路径，回归与两地正式恢复均通过。全量配置迁移仍按独立清单验收。
 
 证据：[tenant-hostname-policy-scope-2026-09-17.json](verification/tenant-hostname-policy-scope-2026-09-17.json)。该步骤已完成策略范围的生产对齐，整个重构目标仍未完成。
 
 
-### P0-CR：主 compiler 接入 DNS 分组约束（发布恢复中）
+### P0-CR：主 compiler 接入 DNS 分组约束
 
 - [x] compiler v15 将 policy group 编译为 `dns_placement_edge_group_id`，进入 artifact 与 placement input digest；保留 route intent 的 Host serving 范围，禁止用 DNS 排除直接删掉其他组 Host route。
 - [x] 删除独立的 ForPlacement 转换路径；主 compiler 和采集器共用约束转换与 DNS edge 资格判断。固定证据、route/TLS readiness、owner、quorum、排除名单和绝对租期仍强制校验，意图 pin 与 policy group 冲突时拒绝。
@@ -2700,16 +2700,16 @@ P0-BK 验收范围说明：管理 SSH 通道在本轮核查时于密钥交换前
 - [x] 实现 `0aa6cfe0` 在生产 API 编译当前固定快照，保存完整 intent/policy/route/DNS/TLS/ReleaseSet artifacts。route artifact 为 `artifact_1789639173_f25b71093641`，ReleaseSet 为 `artifact_1789639173_145226533924`；六类 artifact 均 validated，未 promote。
 - [x] 同一份生产输入在本地重放，五个配置 artifact 的 content/generation 和 lineage 完全相等。首次比较 110/136 条 route 一致；14 条差异为 origin_status_reason/route_policy，1 条还包含 origin_status，11 条为 exclusion_lifecycle，另有 TLS allowlist/cache policy 差异。
 - [x] 后续 137 条路由快照在切换期间因 route/TLS placement 证据不足被 400 拒绝；前后 shadow ReleaseSet、serving artifact、full channel 和 policy-LKG 查询状态不变。未延长证据或降低 gate。
-- [ ] 完成 API、DE/US Edge 的最终部署及独立运行态验收后，才将此原子步骤标记为生产完成；目前原 CI 的 US 发布失败，后续恢复仍存在发布事务问题。
+- [x] API 与 DE/US 活动 Edge 均已运行包含该实现的代码：API `8d8045ce`、德国 `26bd5ee6`、美国 `169ec089`；后续 CI 35222667120 / 35225437092 成功，并逐台验证实际 Front/Worker/CurrentAuthority。原失败记录保留；此项只完成代码部署与运行验收，不代表输出等价或全量配置切换已完成。
 - [ ] 修复全量路由、TLS allowlist、cache 和 DNS 输出差异，重新采集最新完整输入，再推进 consumer gray/full/rollback。
 
-### P0-CS：空候选下恢复已验证 Caddy 缓存（发布恢复中）
+### P0-CS：空候选下恢复已验证 Caddy 缓存
 
 - [x] 回归复现：已验证缓存首次应用 Caddy 失败后，inactive slot 持续 204，Caddy 恢复可用也无法恢复 worker readiness。
 - [x] 204 分支按正常同步节奏调用既有缓存重试逻辑；失败继续显示 caddy-error，实际应用成功后恢复 readiness。测试验证 cache bytes、publication、bundle expiry 和 Front activation 不变；完整 `make test` 通过。
 - [x] 修复 `6336275e` 与 OpenAPI/web 契约已推送；前端 [contract-drift 35212045123](https://github.com/yym68686/fugue-web/actions/runs/35212045123) 成功。
-- [ ] 完成 [CI 35212043085](https://github.com/yym68686/fugue/actions/runs/35212043085) 及两地真实活动槽位验收。德国 inactive worker 已能加载缓存，但执行器等不到已被配置更新清除的精确候选；不能把缓存恢复成功等同于整次发布完成。
-- [ ] 修复配置 supersede 候选后的受控重新暂存，并覆盖 Guardian 已异步提交的情况。普通配置发布继续独立推进；新候选必须重新绑定最新签名 artifact 并通过 canary，不能接受旧候选或绕过 CAS。
+- [x] 原 [CI 35212043085](https://github.com/yym68686/fugue/actions/runs/35212043085) 失败后，已通过 P0-CU/CV 完成两地正式恢复。三台实际活动 Worker 均运行包含本修复的代码，cache/bundle/Caddy 应用版本一致且无 stale cache；Front 激活文件与 CurrentAuthority 精确匹配。
+- [x] 修复配置 supersede 候选后的受控重新暂存、Guardian 异步提交观察和 Worker 快照刷新；普通配置继续独立推进，新候选重新绑定签名 artifact 并通过 canary，未接受旧候选或绕过 CAS。
 
 进行中证据：[compiler-v15-recovery-progress-2026-09-17.json](verification/compiler-v15-recovery-progress-2026-09-17.json)。本记录明确保留发布失败及未完成项，不作为全量上生产成功证据。
 
@@ -2719,7 +2719,7 @@ P0-BK 验收范围说明：管理 SSH 通道在本轮核查时于密钥交换前
 - [x] Guardian 已异步提交精确候选时，执行器验证 CurrentAuthority、实际 Worker 代码/镜像和不倒退的配置版本，不再因旧候选已清除而误判失败。
 - [x] Guardian 完成 Front CAS 后允许已验证配置独立前进。公网响应缺少候选标签时，每个成功样本都必须重新取得精确代码/镜像/Front 授权与配置版本的运行态证明；仍验证响应内容与连续成功次数，错误或部分标签继续拒绝，不伪造响应头。
 - [x] 回归覆盖三个失效阶段、重试上限、活动授权变化、陈旧事实、错误镜像、错误响应、不完整标签和纯空白标签；完整 `make test` 通过。已合并同期 main API 诊断修复，代码提交 `78f6cd9718df7e6aed634e191e275e43b50e6fcb`。
-- [ ] 完成 DE/US 实际活动槽位的生产验收。[CI 35220258498](https://github.com/yym68686/fugue/actions/runs/35220258498) 的 Guardian 成功，但德国候选通过 canary/CurrentAuthority 后被回退；执行器将正在提交的授权误判为可重新暂存的候选。美国则因旧 ServingAuthority 配置版本与当前 publication 不同而持续 409，均不计作生产成功。
+- [x] P0-CU/CV 已完成 DE/US 实际活动槽位验收。历史 [CI 35220258498](https://github.com/yym68686/fugue/actions/runs/35220258498) 的两地失败保留：德国遇到提交中事务被误判失效，美国遇到旧 ServingAuthority 快照持续 409；后续分别通过 journal 观察和新鲜 Worker 证据修复。
 
 本步骤不解除 full promotion 保护；全量 route/DNS/TLS 等价、可信 serving apply/probe、policy verified LKG 和旧路径删除仍需继续完成。
 
@@ -2729,8 +2729,18 @@ P0-BK 验收范围说明：管理 SSH 通道在本轮核查时于密钥交换前
 - [x] 判断候选已被配置替代前，必须确认两个阶段的 journal 均不存在，再重读 CurrentAuthority；事务存在、无法读取或活动槽位已变化时继续观察，禁止把仍在提交的代码事务当作重新暂存理由。完整 `make test` 通过。
 - [x] 正式修复 `26bd5ee60cf79040f4bdf33cad467b029766a92d` 已推送；声明式计划仅选择 Guardian 与德国 Edge。美国的旧 Worker 快照问题单独保留，未盲目重试。
 - [x] [CI 35222667120](https://github.com/yym68686/fugue/actions/runs/35222667120) 全部成功。独立验收德国 Front/CurrentAuthority 均为 A 槽位、`26bd5ee6`、generation 257，精确镜像一致；Guardian/canary prober 为新版本且零重启，德国发布状态 stable，实际 Worker cache/bundle/Caddy 版本一致。三台活动 Worker 的隔离执行回执及可信 shadow 心跳有效，仍为 required 3 / observed 3 / passing 0，未伪报 serving。配置指针和 DNS/SSH 消费者保持健康。
-- [ ] 修复美国候选暂存期间 Worker 运行证据不刷新的问题，再完成全组代码恢复。
+- [x] P0-CV 修复美国候选暂存期间 Worker 运行证据不刷新的问题，并完成全组代码恢复；美国在 A 槽位稳定运行 `169ec089`，Front generation 821。
 
 进行中证据：[candidate-code-transaction-progress-2026-09-17.json](verification/candidate-code-transaction-progress-2026-09-17.json)。失败后的 API 健康端点为 200，两地 authority 健康；原 shadow/full/policy-LKG 指针状态未变。本文不将这次失败记录计作完整上线。
 
-德国与 Guardian 恢复成功证据：[candidate-journal-recovery-2026-09-17.json](verification/candidate-journal-recovery-2026-09-17.json)。美国仍使用 `64b2e4ad`，其代码恢复以及 P0-CR/P0-CS 的全组完成项继续保持未勾选。
+德国与 Guardian 恢复成功证据：[candidate-journal-recovery-2026-09-17.json](verification/candidate-journal-recovery-2026-09-17.json)。该快照时美国仍使用 `64b2e4ad`；随后的 P0-CV 完成美国与全组运行验收。
+
+### P0-CV：健康配置推进后的候选暂存证据刷新
+
+- [x] 通过 HTTP 暂存回归复现旧实现：控制面已发布新配置，但四次重试复用最初 Worker 快照，持续提交旧 ServingAuthority，并错误调用 LKG 恢复端点。
+- [x] 健康 current publication 上的 sequence conflict 只重新读取 Worker/Front snapshot；必须保持活动授权、槽位、代码镜像、节点集合和新鲜健康事实，publication sequence 不得倒退，再把实际加载的新版本绑定到签名暂存请求。此分支不刷新 LKG、不增加 recovery epoch，仍限制四次尝试。
+- [x] 回归覆盖成功刷新、活动授权变化、代码变化、事实过期、版本倒退、读取失败和重试耗尽，并断言没有 recovery POST 或代码授权写入；完整 `make test` 通过。
+- [x] `169ec08986b6b3e55760c0564cb4fe15576a8ad3` 已推送，声明式计划仅包含 Guardian 与美国 Edge，前驱分别绑定 `26bd5ee6` 和 `64b2e4ad`，失败目标精确绑定 `78f6cd97`。
+- [x] [CI 35225437092](https://github.com/yym68686/fugue/actions/runs/35225437092) 全部成功。美国两台 Front/活动 Worker 均为 A 槽位、`169ec089`，CurrentAuthority generation 821，切换时 recovery epoch 保持 179；两地 Guardian 发布状态 stable，三台活动 Worker 的实际 cache/bundle/Caddy、镜像、零重启、隔离执行回执与可信心跳均通过独立核对。原 shadow/full/policy-LKG 指针状态不变，DNS/SSH 消费者健康。
+
+全组代码恢复证据：[candidate-snapshot-recovery-2026-09-17.json](verification/candidate-snapshot-recovery-2026-09-17.json)。required consumer passing 仍为 0；全量 route/DNS/TLS 输出等价、serving apply/probe、gray/full/rollback、policy verified LKG 和旧路径删除仍未完成，不把代码恢复计作整个架构重构完成。
