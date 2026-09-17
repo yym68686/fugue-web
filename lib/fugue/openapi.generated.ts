@@ -40,7 +40,7 @@ export interface paths {
   "/v1/edge/route-intents": {
     /**
      * Edge Route Intents
-     * @description Returns Core's inventory-independent desired-route projection. Only the edge-control component identity with global edge_route_intent capability is accepted; tenant and platform-admin API keys are not accepted. A verified global route artifact takes precedence over the legacy source. An unusable artifact or LKG returns 503 so Edge Control retains its last serving bundle rather than recompiling from mutable business tables.
+     * @description Returns Core's inventory-independent desired-route projection. Only the edge-control component identity with global edge_route_intent capability is accepted; tenant and platform-admin API keys are not accepted. A verified global route artifact takes precedence over the legacy source. An unusable artifact or LKG returns 503 so Edge Control retains its last serving bundle rather than recompiling from mutable business tables. Artifact-backed serving and candidate validation share one route projection. Cache references resolve case-insensitively to the declared policy ID; disabled cache policies are not materialized as active bindings.
      */
     get: operations["edgeRouteIntents"];
   };
@@ -11793,7 +11793,7 @@ export interface operations {
   };
   /**
    * Edge Route Intents
-   * @description Returns Core's inventory-independent desired-route projection. Only the edge-control component identity with global edge_route_intent capability is accepted; tenant and platform-admin API keys are not accepted. A verified global route artifact takes precedence over the legacy source. An unusable artifact or LKG returns 503 so Edge Control retains its last serving bundle rather than recompiling from mutable business tables.
+   * @description Returns Core's inventory-independent desired-route projection. Only the edge-control component identity with global edge_route_intent capability is accepted; tenant and platform-admin API keys are not accepted. A verified global route artifact takes precedence over the legacy source. An unusable artifact or LKG returns 503 so Edge Control retains its last serving bundle rather than recompiling from mutable business tables. Artifact-backed serving and candidate validation share one route projection. Cache references resolve case-insensitively to the declared policy ID; disabled cache policies are not materialized as active bindings.
    */
   edgeRouteIntents: {
     responses: {
