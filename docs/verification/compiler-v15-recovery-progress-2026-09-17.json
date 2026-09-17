@@ -1,0 +1,373 @@
+{
+  "observed_at": "2026-09-17T11:15:33.018792+00:00",
+  "status": "in_progress_release_recovery",
+  "full_compile": {
+    "observed_at": "2026-09-17T09:59:52.048799+00:00",
+    "compiler_version": "platform-config-compiler/v15",
+    "lineage": {
+      "intent_generation": "intent_7a04162826ffb154a7cbc450ca96ae6b5af6db863dff0f130511a44ab9e7495e",
+      "policy_generation": "policy_1dfa3583f24b7786a45b3a9c671abe7639acdcef8f26a9d9d8ff0ce4cd4803eb",
+      "intent_digest": "sha256:b3bd5e3f44687636fd1c401a31fb489cf277820c8ad7eda5d1327df60f324e83",
+      "policy_digest": "sha256:e13b76379f73ce6ae518517b3565257953d27f5dc27dfb6a07a8308bce367c4d",
+      "input_snapshot_digest": "sha256:cdee25048a51fc0c798e892075df846cf2dc0b0435854d8483958f110583b8bc",
+      "compiler_version": "platform-config-compiler/v15"
+    },
+    "release_set_id": "artifact_1789639173_145226533924",
+    "artifacts": {
+      "intent_artifact": {
+        "id": "artifact_1789639173_3a578609fbe5",
+        "artifact_kind": "platform_intent",
+        "generation": "intent_7a04162826ffb154a7cbc450ca96ae6b5af6db863dff0f130511a44ab9e7495e",
+        "content_hash": "sha256:0620dc4e703b022379be590876627467d0b214bf77a49dd05c3a264dc8d3f905",
+        "status": "validated"
+      },
+      "policy_artifact": {
+        "id": "artifact_1789639173_b0b56cdab7b9",
+        "artifact_kind": "policy_snapshot",
+        "generation": "policy_1dfa3583f24b7786a45b3a9c671abe7639acdcef8f26a9d9d8ff0ce4cd4803eb",
+        "content_hash": "sha256:e7ebf63c3e35a648cffbf94e6d166b7ff1c7b599759bcc079808ce31a2c3f7b7",
+        "status": "validated"
+      },
+      "route_artifact": {
+        "id": "artifact_1789639173_f25b71093641",
+        "artifact_kind": "edge_route_bundle",
+        "generation": "route-447cb60ac52ee4f37c7c1841b802b870477b18927f2858b0d6370f4270f08c1f",
+        "content_hash": "sha256:f26df4dc527a528d2b07061938d7ed0e0cd0c1b90993b454cb235f97828cb25a",
+        "status": "validated"
+      },
+      "dns_artifact": {
+        "id": "artifact_1789639173_b1b2bb51d8cd",
+        "artifact_kind": "dns_answer_bundle",
+        "generation": "dns-447cb60ac52ee4f37c7c1841b802b870477b18927f2858b0d6370f4270f08c1f",
+        "content_hash": "sha256:91534e61693d7269f83b9e1b823ae0ee43052045212582802ab10b0dcb408290",
+        "status": "validated"
+      },
+      "tls_artifact": {
+        "id": "artifact_1789639173_79831b6bd77e",
+        "artifact_kind": "caddy_route_config",
+        "generation": "tls-447cb60ac52ee4f37c7c1841b802b870477b18927f2858b0d6370f4270f08c1f",
+        "content_hash": "sha256:643291d5fabe53bb26a43e6b9e14f8342d9de38c0a2d8f3d87201c3eb273a166",
+        "status": "validated"
+      },
+      "release_artifact": {
+        "id": "artifact_1789639173_145226533924",
+        "artifact_kind": "release_set",
+        "generation": "release-447cb60ac52ee4f37c7c1841b802b870477b18927f2858b0d6370f4270f08c1f",
+        "content_hash": "sha256:1e9b80b852fd803f35d1e3fba54f8a0b02ef34e091765cea23b13c8a16194382",
+        "status": "validated"
+      }
+    },
+    "route_count": 136,
+    "dns_record_count": 163,
+    "tls_reference_count": 135,
+    "projection_issues": [
+      {
+        "code": "dns_output_equivalence_not_verified"
+      },
+      {
+        "code": "release_target_equivalence_not_verified"
+      }
+    ],
+    "route_comparison": {
+      "artifact_id": "artifact_1789639173_f25b71093641",
+      "artifact_digest": "sha256:f26df4dc527a528d2b07061938d7ed0e0cd0c1b90993b454cb235f97828cb25a",
+      "artifact_generation": "route-447cb60ac52ee4f37c7c1841b802b870477b18927f2858b0d6370f4270f08c1f",
+      "source_generation": "routeintents_22e4f07db1cb0355ebe33559cc304448dcd957f93e4ba81e440e31d793b40e9d",
+      "captured_at": "2026-09-17T09:59:38.30380613Z",
+      "source_route_count": 136,
+      "artifact_route_count": 136,
+      "matching_route_count": 110,
+      "equivalent": false,
+      "differences": [
+        {
+          "hostname": "agent-payment-wallet.fugue.pro",
+          "path_prefix": "/",
+          "kind": "changed",
+          "fields": [
+            "origin_status",
+            "origin_status_reason",
+            "route_policy"
+          ]
+        },
+        {
+          "hostname": "api.0-0.pro",
+          "path_prefix": "/",
+          "kind": "changed",
+          "fields": [
+            "exclusion_lifecycle"
+          ]
+        },
+        {
+          "hostname": "api.0-0.pro",
+          "path_prefix": "/v1",
+          "kind": "changed",
+          "fields": [
+            "exclusion_lifecycle"
+          ]
+        },
+        {
+          "hostname": "app-canary.fugue.pro",
+          "path_prefix": "/",
+          "kind": "changed",
+          "fields": [
+            "origin_status_reason",
+            "route_policy"
+          ]
+        },
+        {
+          "hostname": "app-logseq.chikai.de",
+          "path_prefix": "/",
+          "kind": "changed",
+          "fields": [
+            "origin_status_reason",
+            "route_policy"
+          ]
+        },
+        {
+          "hostname": "argus.fugue.pro",
+          "path_prefix": "/",
+          "kind": "changed",
+          "fields": [
+            "exclusion_lifecycle"
+          ]
+        },
+        {
+          "hostname": "baomian-backend.fugue.pro",
+          "path_prefix": "/",
+          "kind": "changed",
+          "fields": [
+            "origin_status_reason",
+            "route_policy"
+          ]
+        },
+        {
+          "hostname": "canvas.fugue.pro",
+          "path_prefix": "/",
+          "kind": "changed",
+          "fields": [
+            "exclusion_lifecycle"
+          ]
+        },
+        {
+          "hostname": "cerebr.fugue.pro",
+          "path_prefix": "/",
+          "kind": "changed",
+          "fields": [
+            "exclusion_lifecycle"
+          ]
+        },
+        {
+          "hostname": "docker-compose-yaml-solar.fugue.pro",
+          "path_prefix": "/",
+          "kind": "changed",
+          "fields": [
+            "origin_status_reason",
+            "route_policy"
+          ]
+        },
+        {
+          "hostname": "docker-compose-yml-redis.fugue.pro",
+          "path_prefix": "/",
+          "kind": "changed",
+          "fields": [
+            "origin_status_reason",
+            "route_policy"
+          ]
+        },
+        {
+          "hostname": "docker-compose-yml.fugue.pro",
+          "path_prefix": "/",
+          "kind": "changed",
+          "fields": [
+            "origin_status_reason",
+            "route_policy"
+          ]
+        },
+        {
+          "hostname": "edge-protocol-canary.fugue.pro",
+          "path_prefix": "/",
+          "kind": "changed",
+          "fields": [
+            "exclusion_lifecycle"
+          ]
+        },
+        {
+          "hostname": "env-maple.fugue.pro",
+          "path_prefix": "/",
+          "kind": "changed",
+          "fields": [
+            "exclusion_lifecycle"
+          ]
+        },
+        {
+          "hostname": "fugue.fugue.pro",
+          "path_prefix": "/",
+          "kind": "changed",
+          "fields": [
+            "origin_status_reason",
+            "route_policy"
+          ]
+        },
+        {
+          "hostname": "gaokao.fugue.pro",
+          "path_prefix": "/",
+          "kind": "changed",
+          "fields": [
+            "origin_status_reason",
+            "route_policy"
+          ]
+        },
+        {
+          "hostname": "listening.fugue.pro",
+          "path_prefix": "/",
+          "kind": "changed",
+          "fields": [
+            "exclusion_lifecycle"
+          ]
+        },
+        {
+          "hostname": "logseq.fugue.pro",
+          "path_prefix": "/",
+          "kind": "changed",
+          "fields": [
+            "origin_status_reason",
+            "route_policy"
+          ]
+        },
+        {
+          "hostname": "mecgod-stone.fugue.pro",
+          "path_prefix": "/",
+          "kind": "changed",
+          "fields": [
+            "origin_status_reason",
+            "route_policy"
+          ]
+        },
+        {
+          "hostname": "music.chikai.de",
+          "path_prefix": "/",
+          "kind": "changed",
+          "fields": [
+            "exclusion_lifecycle"
+          ]
+        },
+        {
+          "hostname": "oaix.fugue.pro",
+          "path_prefix": "/",
+          "kind": "changed",
+          "fields": [
+            "exclusion_lifecycle"
+          ]
+        },
+        {
+          "hostname": "uni-api-ember.fugue.pro",
+          "path_prefix": "/",
+          "kind": "changed",
+          "fields": [
+            "exclusion_lifecycle"
+          ]
+        },
+        {
+          "hostname": "uni-api-web-api-go-candidate.fugue.pro",
+          "path_prefix": "/",
+          "kind": "changed",
+          "fields": [
+            "origin_status_reason",
+            "route_policy"
+          ]
+        },
+        {
+          "hostname": "uni-api-web-forest.fugue.pro",
+          "path_prefix": "/",
+          "kind": "changed",
+          "fields": [
+            "origin_status_reason",
+            "route_policy"
+          ]
+        },
+        {
+          "hostname": "uni-api-web-solar.fugue.pro",
+          "path_prefix": "/",
+          "kind": "changed",
+          "fields": [
+            "origin_status_reason",
+            "route_policy"
+          ]
+        },
+        {
+          "hostname": "yesir-pcb-si.fugue.pro",
+          "path_prefix": "/",
+          "kind": "changed",
+          "fields": [
+            "origin_status_reason",
+            "route_policy"
+          ]
+        }
+      ],
+      "snapshot_differences": [
+        "tls_allowlist",
+        "cache_policies"
+      ]
+    },
+    "configuration_unchanged": true,
+    "promoted": false,
+    "exact_local_replay": {
+      "content_and_generation_equal": [
+        "intent_artifact",
+        "policy_artifact",
+        "route_artifact",
+        "dns_artifact",
+        "tls_artifact"
+      ],
+      "lineage_equal": true,
+      "input_rewritten": false
+    },
+    "local_validation": {
+      "replay_type": "diagnostic_only_v14_placement_encoding_to_v15",
+      "times_and_leases_unchanged": true,
+      "persisted_or_promoted": false,
+      "lineage": {
+        "intent_generation": "intent_c9c9cd836ee391c1747438bd3cc693b4997a2e5e833f09667f9cfc2a873a993a",
+        "policy_generation": "policy_a15e30da524e4138bbbc6135357b9fcd636734122178426036bad11078de981a",
+        "intent_digest": "sha256:39c71e2e9e1cc6eeea8cb371431a63dc36f1b602bb3db6416224750849bce9fe",
+        "policy_digest": "sha256:c0c1158b54c733767b730564cecae798ab4835c8e2ddd937e3eefd740a01b894",
+        "input_snapshot_digest": "sha256:9cf58e013596669e6523eb3db769e918138ed134bb01d228a94a69ad5b0b2ecb",
+        "compiler_version": "platform-config-compiler/v15"
+      },
+      "counts": {
+        "RouteArtifact": 136,
+        "DNSArtifact": 163,
+        "TLSArtifact": 135
+      },
+      "tests": [
+        "make test",
+        "route artifact DNS group filter / Host scope separation",
+        "missing, stale, TLS-unready, mismatched and conflicting evidence rejected",
+        "fixed snapshot deterministic replay"
+      ]
+    },
+    "backend_commit": "0aa6cfe0b4b6eb7227f863a8d49a524b8efbcdf3",
+    "backend_ci": "https://github.com/yym68686/fugue/actions/runs/35207244865",
+    "frontend_ci": "https://github.com/yym68686/fugue-web/actions/runs/35207247411"
+  },
+  "recovery": {
+    "compiler_commit": "0aa6cfe0b4b6eb7227f863a8d49a524b8efbcdf3",
+    "compiler_ci": "https://github.com/yym68686/fugue/actions/runs/35207244865",
+    "compiler_outcome": {
+      "api": "success",
+      "edge_worker_de": "success",
+      "edge_worker_us": "recovery_required"
+    },
+    "us_failure": "inactive Worker did not become Ready; startup Caddy load saw connection refused and retained cache was not retried while empty candidate responses continued",
+    "us_recovery_commit": "4c6e5c5d19872783613b4d8db2f902374725a8e1",
+    "us_recovery_ci": "https://github.com/yym68686/fugue/actions/runs/35210634980",
+    "us_recovery_outcome": "prewrite-cas-drift; inactive DaemonSet identity changed after preparation; no forward mutation authorized",
+    "fix_commit": "6336275e2f63c4760c09b52e831a4b9947cb7dab",
+    "fix_ci": "https://github.com/yym68686/fugue/actions/runs/35212043085",
+    "regression": "verified signed cache + failed initial Caddy apply + empty candidate: pre-fix remains caddy-error; post-fix retries and becomes healthy without changing artifact bytes, publication, expiry or activation",
+    "fix_full_make_test": "passed"
+  },
+  "latest_ci": "https://github.com/yym68686/fugue/actions/runs/35212043085",
+  "remaining_failure": "DE executor waits for a staged candidate after ordinary configuration publication clears it; US recovery still running at observation. No complete rollout claim.",
+  "next_requirement": "bounded restaging on proven configuration supersession and exact committed-authority recognition; keep signature, CAS, cohort and canary gates"
+}

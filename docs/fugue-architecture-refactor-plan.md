@@ -32,7 +32,7 @@ Runtime Facts / ACK / LKG
 
 ## 当前状态判断
 
-2026-09-17 09:34 UTC 生产核查：API 与美国 Edge 运行 `64b2e4ad`，德国 Edge 经正式恢复发布运行 `da5f117b`；API 2/2 Ready，两地 Guardian 均 stable。三个活动 Edge 各服务 136 条 route，2 条候选 route 的隔离 HTTP Caddy apply/probe 回执持续通过（P0-CP）。旧 hostname policy 的同租户适用范围已显式投影，共享域名 route proof 不一致已修复（P0-CQ）。实时迁移草稿仅剩 `dns_output_equivalence_not_verified` 和 `release_target_equivalence_not_verified`，但主 compiler 对 Edge group 约束的历史限制仍待接入固定 placement resolver。trusted heartbeat 保持 staged/shadow_validated，route passing 为 0；policy LKG 查询仍为 404。完整配置编译/等价、serving convergence、gray/full/rollback、恢复演练及旧路径删除尚未完成。
+2026-09-17 11:13 UTC 状态：主 compiler v15 已在生产 API 成功编译固定业务快照，生成 136 条 route、163 条 DNS record、135 个 TLS reference，并通过相同输入的本地精确重放。当前业务路由随后增至 137 条；完整 artifact 未接管流量，首次比较仅 110/136 条 route 完全一致，仍有 26 条字段差异及 TLS allowlist/cache 差异。代码发布暴露了 inactive Caddy 缓存加载不重试和配置更新清除代码候选后的等待缺口：缓存重试修复已推送 `6336275e`，但最新 CI 的德国通道失败，美国恢复仍在执行，不能宣称本轮全部上生产正常。现有配置指针保持不变；policy verified LKG、完整等价、serving convergence、gray/full/rollback、发布恢复耦合和旧路径删除继续未完成。
 
 Fugue 已经具备相当一部分基础设施：`PlatformArtifact` 已有 generation、content hash、签名、验证状态、release channel、fencing token 和 LKG；Edge 与 DNS 也有签名校验、本地缓存和过期控制。
 
@@ -2690,3 +2690,25 @@ P0-BK 验收范围说明：管理 SSH 通道在本轮核查时于密钥交换前
 - [ ] 修复代码 A/B 发布被并发配置变化打断后，补偿/候选重建/成功回执之间的恢复耦合；这次正式恢复成功不能代替该故障路径的根因修复与回归演练。
 
 证据：[tenant-hostname-policy-scope-2026-09-17.json](verification/tenant-hostname-policy-scope-2026-09-17.json)。该步骤已完成策略范围的生产对齐，整个重构目标仍未完成。
+
+
+### P0-CR：主 compiler 接入 DNS 分组约束（发布恢复中）
+
+- [x] compiler v15 将 policy group 编译为 `dns_placement_edge_group_id`，进入 artifact 与 placement input digest；保留 route intent 的 Host serving 范围，禁止用 DNS 排除直接删掉其他组 Host route。
+- [x] 删除独立的 ForPlacement 转换路径；主 compiler 和采集器共用约束转换与 DNS edge 资格判断。固定证据、route/TLS readiness、owner、quorum、排除名单和绝对租期仍强制校验，意图 pin 与 policy group 冲突时拒绝。
+- [x] 新增端到端回归，覆盖允许/排除/异组 DNS 候选、Host 跨组保留、缺证据、错误输入、TLS 未 ready、到期和冲突 pin；完整 `make test` 与前端契约检查通过。
+- [x] 实现 `0aa6cfe0` 在生产 API 编译当前固定快照，保存完整 intent/policy/route/DNS/TLS/ReleaseSet artifacts。route artifact 为 `artifact_1789639173_f25b71093641`，ReleaseSet 为 `artifact_1789639173_145226533924`；六类 artifact 均 validated，未 promote。
+- [x] 同一份生产输入在本地重放，五个配置 artifact 的 content/generation 和 lineage 完全相等。首次比较 110/136 条 route 一致；14 条差异为 origin_status_reason/route_policy，1 条还包含 origin_status，11 条为 exclusion_lifecycle，另有 TLS allowlist/cache policy 差异。
+- [x] 后续 137 条路由快照在切换期间因 route/TLS placement 证据不足被 400 拒绝；前后 shadow ReleaseSet、serving artifact、full channel 和 policy-LKG 查询状态不变。未延长证据或降低 gate。
+- [ ] 完成 API、DE/US Edge 的最终部署及独立运行态验收后，才将此原子步骤标记为生产完成；目前原 CI 的 US 发布失败，后续恢复仍存在发布事务问题。
+- [ ] 修复全量路由、TLS allowlist、cache 和 DNS 输出差异，重新采集最新完整输入，再推进 consumer gray/full/rollback。
+
+### P0-CS：空候选下恢复已验证 Caddy 缓存（发布恢复中）
+
+- [x] 回归复现：已验证缓存首次应用 Caddy 失败后，inactive slot 持续 204，Caddy 恢复可用也无法恢复 worker readiness。
+- [x] 204 分支按正常同步节奏调用既有缓存重试逻辑；失败继续显示 caddy-error，实际应用成功后恢复 readiness。测试验证 cache bytes、publication、bundle expiry 和 Front activation 不变；完整 `make test` 通过。
+- [x] 修复 `6336275e` 与 OpenAPI/web 契约已推送；前端 [contract-drift 35212045123](https://github.com/yym68686/fugue-web/actions/runs/35212045123) 成功。
+- [ ] 完成 [CI 35212043085](https://github.com/yym68686/fugue/actions/runs/35212043085) 及两地真实活动槽位验收。德国 inactive worker 已能加载缓存，但执行器等不到已被配置更新清除的精确候选；不能把缓存恢复成功等同于整次发布完成。
+- [ ] 修复配置 supersede 候选后的受控重新暂存，并覆盖 Guardian 已异步提交的情况。普通配置发布继续独立推进；新候选必须重新绑定最新签名 artifact 并通过 canary，不能接受旧候选或绕过 CAS。
+
+进行中证据：[compiler-v15-recovery-progress-2026-09-17.json](verification/compiler-v15-recovery-progress-2026-09-17.json)。本记录明确保留发布失败及未完成项，不作为全量上生产成功证据。
