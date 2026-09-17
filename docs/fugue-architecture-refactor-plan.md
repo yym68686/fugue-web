@@ -2744,3 +2744,13 @@ P0-BK 验收范围说明：管理 SSH 通道在本轮核查时于密钥交换前
 - [x] [CI 35225437092](https://github.com/yym68686/fugue/actions/runs/35225437092) 全部成功。美国两台 Front/活动 Worker 均为 A 槽位、`169ec089`，CurrentAuthority generation 821，切换时 recovery epoch 保持 179；两地 Guardian 发布状态 stable，三台活动 Worker 的实际 cache/bundle/Caddy、镜像、零重启、隔离执行回执与可信心跳均通过独立核对。原 shadow/full/policy-LKG 指针状态不变，DNS/SSH 消费者健康。
 
 全组代码恢复证据：[candidate-snapshot-recovery-2026-09-17.json](verification/candidate-snapshot-recovery-2026-09-17.json)。required consumer passing 仍为 0；全量 route/DNS/TLS 输出等价、serving apply/probe、gray/full/rollback、policy verified LKG 和旧路径删除仍未完成，不把代码恢复计作整个架构重构完成。
+
+### P0-CW：Cache policy 比较保留执行优先级
+
+- [x] 全组恢复后重新采集稳定输入，生产 compiler v15 成功生成 137 条 route、165 条 DNS record、136 条 TLS 引用；ReleaseSet `artifact_1789652034_38ee013dd19f`、route artifact `artifact_1789652034_41a4f9ec2ab1` 均 validated，未 promote。比较为 111/137 条 route 一致，其余为 origin/policy、exclusion lifecycle、TLS allowlist 和 cache policy 差异。
+- [x] 核实并发 import/deploy 会改变 deployment generation 与 cache namespace；快照与 serving 证明不一致时编译拒绝，旧指针不变。等待实际部署完成后重新采集成功，未删除证明字段或降低 readiness 门槛。
+- [x] 比较器按 cache policy ID 比较内容，忽略没有执行含义的集合排序；保留多个 HTML fallback policy 的相对顺序、全部字段和嵌套规则顺序，空或重复 ID 拒绝比较。
+- [x] OpenAPI 优先更新并生成后端契约，前端契约/类型同步；回归覆盖默认集合换序、TTL、增删、嵌套顺序、HTML fallback 优先级、非法 ID 与输入不变性，完整 `make test` 和前端 `contract:check` 通过。
+- [x] API 提交 `8196648bb8c37ea76160235544c652b0e2661e4c` 的 [CI 35228644963](https://github.com/yym68686/fugue/actions/runs/35228644963) 成功，生产两个副本均更新就绪且 Guardian stable。对同一 artifact 只读比较，snapshot differences 从 TLS/cache 两项变为仅 TLS allowlist；origin/policy/exclusion 真实差异仍在、equivalent=false。期间业务配置继续变化，当前匹配 106 条，不能把两次 route 匹配数变化归因于本次排序修复。前后配置指针未变，两地活动代码授权保持一致。
+
+证据：[cache-policy-comparison-2026-09-17.json](verification/cache-policy-comparison-2026-09-17.json)。前端契约 [CI 35228670770](https://github.com/yym68686/fugue-web/actions/runs/35228670770) 成功。仍需修复真正的 TLS allowlist、停用路由状态/策略、exclusion lifecycle 差异和完整 serving 发布验收。

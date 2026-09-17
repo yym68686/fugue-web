@@ -1,0 +1,927 @@
+{
+  "verified_at": "2026-09-17T13:49:50.101889+00:00",
+  "backend_commit": "8196648bb8c37ea76160235544c652b0e2661e4c",
+  "ci_run": "https://github.com/yym68686/fugue/actions/runs/35228644963",
+  "health": {
+    "/healthz": 200,
+    "/readyz": 200
+  },
+  "api": {
+    "component": "api",
+    "image_tag": "8196648bb8c37ea76160235544c652b0e2661e4c",
+    "ready_replicas": 2,
+    "updated_replicas": 2,
+    "desired_replicas": 2
+  },
+  "api_guardian": {
+    "apiVersion": "release.fugue.dev/v1",
+    "component": "api",
+    "currentRecordDigest": "sha256:0ec8dfc94b3d60faa32114c41f62a009d7b28b184af27f82cbd22e75180d9a47",
+    "group": "global",
+    "health": {
+      "dependency": {
+        "evidenceDigest": "sha256:6423d5f713c2197229df9a2f259d0d859e0852143df96334e2ffbae8c4db8b13",
+        "observedAt": "2026-09-17T13:49:41.431612986Z",
+        "state": "healthy"
+      },
+      "local": {
+        "evidenceDigest": "sha256:dea20eca22098cfff18098b26084ed5add8337188e6914d5c221a4e28fa9e3d2",
+        "observedAt": "2026-09-17T13:49:41.431612986Z",
+        "state": "healthy"
+      },
+      "route": {
+        "evidenceDigest": "sha256:4003ef5e72051996b2da7f5dd081f162c31f9964547363a0b3b523ed510371da",
+        "observedAt": "2026-09-17T13:49:39.572220383Z",
+        "state": "healthy"
+      }
+    },
+    "kind": "ReleaseStatus",
+    "lastSuccessfulLkg": "sha256:0ec8dfc94b3d60faa32114c41f62a009d7b28b184af27f82cbd22e75180d9a47",
+    "observedAt": "2026-09-17T13:49:43.252155853Z",
+    "reason": "local, dependency, and route health are verified",
+    "state": "stable",
+    "statusDigest": "sha256:6ff036e7fe2da9fb3796dddcd051bdb47797cc63b808f69691bb3a7d0e85566e",
+    "targetRecordDigest": "sha256:0ec8dfc94b3d60faa32114c41f62a009d7b28b184af27f82cbd22e75180d9a47"
+  },
+  "edge_authorities": [
+    {
+      "apiVersion": "release.fugue.dev/v1",
+      "authorityEpoch": 26180,
+      "baselineReceiptDigest": "sha256:81c648131cb778f5e182bfbd75f55f2250aaac050a04513229558bfc7cf47ed5",
+      "currentBundleGeneration": "edgegroupbundle_423e1fb8afc29156664c65dee877c6a735a285638d8acd2b3ef8403dd87bbae4.p32018.r516",
+      "currentFrontGeneration": 257,
+      "currentRecordDigest": "sha256:99f6e847ed5278d3efe5f57581139d6207436491c6608cd1e579817e8a60b8df",
+      "currentWorkerImageDigest": "sha256:ad3ae1366b36a266eef5208d33007f2c25f1bf55728d116d15bd87c732118bd8",
+      "currentWorkerSlot": "a",
+      "currentWorkerSourceSha": "26bd5ee60cf79040f4bdf33cad467b029766a92d",
+      "groupId": "edge-group-country-de",
+      "kind": "CurrentAuthority",
+      "previousBundleGeneration": "edgegroupbundle_e73322e758cd9a7ae7b12a8c15026144220fcedd690bfe62ce5770e602c0c574.p32005.r516",
+      "previousFrontGeneration": 256,
+      "previousRecordDigest": "sha256:20dd7bd4e998bdea0cb119485f5f9d4f892b74ec202b7ec3bef27abf6f6eb687",
+      "previousWorkerImageDigest": "sha256:4a72c7e70d0658d294bd3f4c5569a86f8b6d1b7cccede913facdf02007402234",
+      "previousWorkerSlot": "b",
+      "previousWorkerSourceSha": "0aa6cfe0b4b6eb7227f863a8d49a524b8efbcdf3"
+    },
+    {
+      "apiVersion": "release.fugue.dev/v1",
+      "authorityEpoch": 40299,
+      "baselineReceiptDigest": "sha256:633d5ac0c4fc0d10505bc8fb34d27ca2377889bd4458465ee60a244086a193a4",
+      "currentBundleGeneration": "edgegroupbundle_df561f32be19e4cfc73fbb8d7682ac735085311f3048a3a7b6e5ff2703dcb24d.p45739.r179",
+      "currentFrontGeneration": 821,
+      "currentRecordDigest": "sha256:7e22e5845b80273ecd60d1b9c4f62f01302bdb7930dd8a2f3bb96300ae295e05",
+      "currentWorkerImageDigest": "sha256:7470cb1044174563d7167d78ced3e07ce4e61549a0a4012787bfdd91cab96609",
+      "currentWorkerSlot": "a",
+      "currentWorkerSourceSha": "169ec08986b6b3e55760c0564cb4fe15576a8ad3",
+      "groupId": "edge-group-country-us",
+      "kind": "CurrentAuthority",
+      "previousBundleGeneration": "edgegroupbundle_24516b340794367f383eb836934000d4205814e4eb57cddd92e3c4b442c09769.p45600.r177",
+      "previousFrontGeneration": 820,
+      "previousRecordDigest": "sha256:99a87df044bc976b7d54528aefaa131e315b5c4c0c2972ac61f23a9374d7c1d3",
+      "previousWorkerImageDigest": "sha256:95df0192a0af33ec23a91f0f124c96379349897bf92f85ec89ec10dc21d2892a",
+      "previousWorkerSlot": "b",
+      "previousWorkerSourceSha": "64b2e4ad52016810caa983df78e30bc031f57a8e"
+    }
+  ],
+  "configuration_unchanged": true,
+  "before_comparison": {
+    "artifact_id": "artifact_1789652034_41a4f9ec2ab1",
+    "artifact_digest": "sha256:26f21a56759df10e615f2c95927196bd1610e09bfec8e321051215b866b85448",
+    "artifact_generation": "route-59de15a5c955327a147d169426ad410559296cc948be82ac3fb125bb7a9b65ed",
+    "source_generation": "routeintents_37ea882136208f5417c8799db43f7b5426cfe8e995a1d36eee4b3f0fc63c5294",
+    "captured_at": "2026-09-17T13:33:56.989118775Z",
+    "source_route_count": 137,
+    "artifact_route_count": 137,
+    "matching_route_count": 111,
+    "equivalent": false,
+    "differences": [
+      {
+        "hostname": "agent-payment-wallet.fugue.pro",
+        "path_prefix": "/",
+        "kind": "changed",
+        "fields": [
+          "origin_status",
+          "origin_status_reason",
+          "route_policy"
+        ]
+      },
+      {
+        "hostname": "api.0-0.pro",
+        "path_prefix": "/",
+        "kind": "changed",
+        "fields": [
+          "exclusion_lifecycle"
+        ]
+      },
+      {
+        "hostname": "api.0-0.pro",
+        "path_prefix": "/v1",
+        "kind": "changed",
+        "fields": [
+          "exclusion_lifecycle"
+        ]
+      },
+      {
+        "hostname": "app-canary.fugue.pro",
+        "path_prefix": "/",
+        "kind": "changed",
+        "fields": [
+          "origin_status_reason",
+          "route_policy"
+        ]
+      },
+      {
+        "hostname": "app-logseq.chikai.de",
+        "path_prefix": "/",
+        "kind": "changed",
+        "fields": [
+          "origin_status_reason",
+          "route_policy"
+        ]
+      },
+      {
+        "hostname": "argus.fugue.pro",
+        "path_prefix": "/",
+        "kind": "changed",
+        "fields": [
+          "exclusion_lifecycle"
+        ]
+      },
+      {
+        "hostname": "baomian-backend.fugue.pro",
+        "path_prefix": "/",
+        "kind": "changed",
+        "fields": [
+          "origin_status_reason",
+          "route_policy"
+        ]
+      },
+      {
+        "hostname": "canvas.fugue.pro",
+        "path_prefix": "/",
+        "kind": "changed",
+        "fields": [
+          "exclusion_lifecycle"
+        ]
+      },
+      {
+        "hostname": "cerebr.fugue.pro",
+        "path_prefix": "/",
+        "kind": "changed",
+        "fields": [
+          "exclusion_lifecycle"
+        ]
+      },
+      {
+        "hostname": "docker-compose-yaml-solar.fugue.pro",
+        "path_prefix": "/",
+        "kind": "changed",
+        "fields": [
+          "origin_status_reason",
+          "route_policy"
+        ]
+      },
+      {
+        "hostname": "docker-compose-yml-redis.fugue.pro",
+        "path_prefix": "/",
+        "kind": "changed",
+        "fields": [
+          "origin_status_reason",
+          "route_policy"
+        ]
+      },
+      {
+        "hostname": "docker-compose-yml.fugue.pro",
+        "path_prefix": "/",
+        "kind": "changed",
+        "fields": [
+          "origin_status_reason",
+          "route_policy"
+        ]
+      },
+      {
+        "hostname": "edge-protocol-canary.fugue.pro",
+        "path_prefix": "/",
+        "kind": "changed",
+        "fields": [
+          "exclusion_lifecycle"
+        ]
+      },
+      {
+        "hostname": "env-maple.fugue.pro",
+        "path_prefix": "/",
+        "kind": "changed",
+        "fields": [
+          "exclusion_lifecycle"
+        ]
+      },
+      {
+        "hostname": "fugue.fugue.pro",
+        "path_prefix": "/",
+        "kind": "changed",
+        "fields": [
+          "origin_status_reason",
+          "route_policy"
+        ]
+      },
+      {
+        "hostname": "gaokao.fugue.pro",
+        "path_prefix": "/",
+        "kind": "changed",
+        "fields": [
+          "origin_status_reason",
+          "route_policy"
+        ]
+      },
+      {
+        "hostname": "listening.fugue.pro",
+        "path_prefix": "/",
+        "kind": "changed",
+        "fields": [
+          "exclusion_lifecycle"
+        ]
+      },
+      {
+        "hostname": "logseq.fugue.pro",
+        "path_prefix": "/",
+        "kind": "changed",
+        "fields": [
+          "origin_status_reason",
+          "route_policy"
+        ]
+      },
+      {
+        "hostname": "mecgod-stone.fugue.pro",
+        "path_prefix": "/",
+        "kind": "changed",
+        "fields": [
+          "origin_status_reason",
+          "route_policy"
+        ]
+      },
+      {
+        "hostname": "music.chikai.de",
+        "path_prefix": "/",
+        "kind": "changed",
+        "fields": [
+          "exclusion_lifecycle"
+        ]
+      },
+      {
+        "hostname": "oaix.fugue.pro",
+        "path_prefix": "/",
+        "kind": "changed",
+        "fields": [
+          "exclusion_lifecycle"
+        ]
+      },
+      {
+        "hostname": "uni-api-ember.fugue.pro",
+        "path_prefix": "/",
+        "kind": "changed",
+        "fields": [
+          "exclusion_lifecycle"
+        ]
+      },
+      {
+        "hostname": "uni-api-web-api-go-candidate.fugue.pro",
+        "path_prefix": "/",
+        "kind": "changed",
+        "fields": [
+          "origin_status_reason",
+          "route_policy"
+        ]
+      },
+      {
+        "hostname": "uni-api-web-forest.fugue.pro",
+        "path_prefix": "/",
+        "kind": "changed",
+        "fields": [
+          "origin_status_reason",
+          "route_policy"
+        ]
+      },
+      {
+        "hostname": "uni-api-web-solar.fugue.pro",
+        "path_prefix": "/",
+        "kind": "changed",
+        "fields": [
+          "origin_status_reason",
+          "route_policy"
+        ]
+      },
+      {
+        "hostname": "yesir-pcb-si.fugue.pro",
+        "path_prefix": "/",
+        "kind": "changed",
+        "fields": [
+          "origin_status_reason",
+          "route_policy"
+        ]
+      }
+    ],
+    "snapshot_differences": [
+      "tls_allowlist",
+      "cache_policies"
+    ]
+  },
+  "after_comparison": {
+    "artifact_id": "artifact_1789652034_41a4f9ec2ab1",
+    "artifact_digest": "sha256:26f21a56759df10e615f2c95927196bd1610e09bfec8e321051215b866b85448",
+    "artifact_generation": "route-59de15a5c955327a147d169426ad410559296cc948be82ac3fb125bb7a9b65ed",
+    "source_generation": "routeintents_8f285f2eb4010e29170e6c616d2e7c343c830c24ad65d90d33bd44c00bea5d0e",
+    "captured_at": "2026-09-17T13:49:42.150555909Z",
+    "source_route_count": 137,
+    "artifact_route_count": 137,
+    "matching_route_count": 106,
+    "equivalent": false,
+    "differences": [
+      {
+        "hostname": "agent-payment-wallet.fugue.pro",
+        "path_prefix": "/",
+        "kind": "changed",
+        "fields": [
+          "origin_status",
+          "origin_status_reason",
+          "route_policy"
+        ]
+      },
+      {
+        "hostname": "api.0-0.pro",
+        "path_prefix": "/",
+        "kind": "changed",
+        "fields": [
+          "exclusion_lifecycle"
+        ]
+      },
+      {
+        "hostname": "api.0-0.pro",
+        "path_prefix": "/v1",
+        "kind": "changed",
+        "fields": [
+          "exclusion_lifecycle"
+        ]
+      },
+      {
+        "hostname": "app-canary.fugue.pro",
+        "path_prefix": "/",
+        "kind": "changed",
+        "fields": [
+          "origin_status_reason",
+          "route_policy"
+        ]
+      },
+      {
+        "hostname": "app-logseq.chikai.de",
+        "path_prefix": "/",
+        "kind": "changed",
+        "fields": [
+          "origin_status_reason",
+          "route_policy"
+        ]
+      },
+      {
+        "hostname": "argus.fugue.pro",
+        "path_prefix": "/",
+        "kind": "changed",
+        "fields": [
+          "exclusion_lifecycle"
+        ]
+      },
+      {
+        "hostname": "baomian-backend.fugue.pro",
+        "path_prefix": "/",
+        "kind": "changed",
+        "fields": [
+          "origin_status_reason",
+          "route_policy"
+        ]
+      },
+      {
+        "hostname": "canvas.fugue.pro",
+        "path_prefix": "/",
+        "kind": "changed",
+        "fields": [
+          "exclusion_lifecycle"
+        ]
+      },
+      {
+        "hostname": "cerebr.fugue.pro",
+        "path_prefix": "/",
+        "kind": "changed",
+        "fields": [
+          "exclusion_lifecycle"
+        ]
+      },
+      {
+        "hostname": "docker-compose-yaml-solar.fugue.pro",
+        "path_prefix": "/",
+        "kind": "changed",
+        "fields": [
+          "origin_status_reason",
+          "route_policy"
+        ]
+      },
+      {
+        "hostname": "docker-compose-yml-redis.fugue.pro",
+        "path_prefix": "/",
+        "kind": "changed",
+        "fields": [
+          "origin_status_reason",
+          "route_policy"
+        ]
+      },
+      {
+        "hostname": "docker-compose-yml.fugue.pro",
+        "path_prefix": "/",
+        "kind": "changed",
+        "fields": [
+          "origin_status_reason",
+          "route_policy"
+        ]
+      },
+      {
+        "hostname": "edge-protocol-canary.fugue.pro",
+        "path_prefix": "/",
+        "kind": "changed",
+        "fields": [
+          "exclusion_lifecycle"
+        ]
+      },
+      {
+        "hostname": "env-maple.fugue.pro",
+        "path_prefix": "/",
+        "kind": "changed",
+        "fields": [
+          "exclusion_lifecycle"
+        ]
+      },
+      {
+        "hostname": "fugue.fugue.pro",
+        "path_prefix": "/",
+        "kind": "changed",
+        "fields": [
+          "origin_status_reason",
+          "route_policy"
+        ]
+      },
+      {
+        "hostname": "fugue.pro",
+        "path_prefix": "/",
+        "kind": "changed",
+        "fields": [
+          "cache_namespace",
+          "deployment_generation"
+        ]
+      },
+      {
+        "hostname": "gaokao.fugue.pro",
+        "path_prefix": "/",
+        "kind": "changed",
+        "fields": [
+          "origin_status_reason",
+          "route_policy"
+        ]
+      },
+      {
+        "hostname": "listening.fugue.pro",
+        "path_prefix": "/",
+        "kind": "changed",
+        "fields": [
+          "exclusion_lifecycle"
+        ]
+      },
+      {
+        "hostname": "logseq.fugue.pro",
+        "path_prefix": "/",
+        "kind": "changed",
+        "fields": [
+          "origin_status_reason",
+          "route_policy"
+        ]
+      },
+      {
+        "hostname": "mecgod-stone.fugue.pro",
+        "path_prefix": "/",
+        "kind": "changed",
+        "fields": [
+          "origin_status_reason",
+          "route_policy"
+        ]
+      },
+      {
+        "hostname": "music.chikai.de",
+        "path_prefix": "/",
+        "kind": "changed",
+        "fields": [
+          "exclusion_lifecycle"
+        ]
+      },
+      {
+        "hostname": "oaix.fugue.pro",
+        "path_prefix": "/",
+        "kind": "changed",
+        "fields": [
+          "exclusion_lifecycle"
+        ]
+      },
+      {
+        "hostname": "uni-api-analytics.fugue.pro",
+        "path_prefix": "/",
+        "kind": "changed",
+        "fields": [
+          "cache_namespace",
+          "deployment_generation"
+        ]
+      },
+      {
+        "hostname": "uni-api-console.fugue.pro",
+        "path_prefix": "/",
+        "kind": "changed",
+        "fields": [
+          "cache_namespace",
+          "deployment_generation"
+        ]
+      },
+      {
+        "hostname": "uni-api-ember.fugue.pro",
+        "path_prefix": "/",
+        "kind": "changed",
+        "fields": [
+          "exclusion_lifecycle"
+        ]
+      },
+      {
+        "hostname": "uni-api-web-api-go-candidate.fugue.pro",
+        "path_prefix": "/",
+        "kind": "changed",
+        "fields": [
+          "origin_status_reason",
+          "route_policy"
+        ]
+      },
+      {
+        "hostname": "uni-api-web-forest.fugue.pro",
+        "path_prefix": "/",
+        "kind": "changed",
+        "fields": [
+          "origin_status_reason",
+          "route_policy"
+        ]
+      },
+      {
+        "hostname": "uni-api-web-solar.fugue.pro",
+        "path_prefix": "/",
+        "kind": "changed",
+        "fields": [
+          "origin_status_reason",
+          "route_policy"
+        ]
+      },
+      {
+        "hostname": "web.fugue.pro",
+        "path_prefix": "/",
+        "kind": "changed",
+        "fields": [
+          "cache_namespace",
+          "deployment_generation"
+        ]
+      },
+      {
+        "hostname": "www.fugue.pro",
+        "path_prefix": "/",
+        "kind": "changed",
+        "fields": [
+          "cache_namespace",
+          "deployment_generation"
+        ]
+      },
+      {
+        "hostname": "yesir-pcb-si.fugue.pro",
+        "path_prefix": "/",
+        "kind": "changed",
+        "fields": [
+          "origin_status_reason",
+          "route_policy"
+        ]
+      }
+    ],
+    "snapshot_differences": [
+      "tls_allowlist"
+    ]
+  },
+  "complete_compile": {
+    "observed_at": "2026-09-17T13:34:02.588423+00:00",
+    "compiler_version": "platform-config-compiler/v15",
+    "lineage": {
+      "intent_generation": "intent_00ce930485c0eb0b6ca5e003cb41c41d135141acd76114870320a7bcad9055f6",
+      "policy_generation": "policy_3917f0e410d401ee356968dd9f5f02d7b14aedd915bccabcc753444c1c0410e7",
+      "intent_digest": "sha256:7aef671d91c76d73e0573cef878be0cf8b36398964acbf383c1c0e4a566ea0be",
+      "policy_digest": "sha256:3be34276ed38b8e1b9f3f73516e813d5e4b945f9c33896a08a8458cd1d7ce468",
+      "input_snapshot_digest": "sha256:6ff04cbf82e0cb4cefeb644873d1ce17a21f95f6434fc02bdd503c308c22f72c",
+      "compiler_version": "platform-config-compiler/v15"
+    },
+    "release_set_id": "artifact_1789652034_38ee013dd19f",
+    "artifacts": {
+      "intent_artifact": {
+        "id": "artifact_1789652034_c7661cad1cdf",
+        "artifact_kind": "platform_intent",
+        "generation": "intent_00ce930485c0eb0b6ca5e003cb41c41d135141acd76114870320a7bcad9055f6",
+        "content_hash": "sha256:8aea0e6a99eeb9ae884ddfeb5f28279eaa9d6f2154ce29760e6dc5a78ba839af",
+        "status": "validated"
+      },
+      "policy_artifact": {
+        "id": "artifact_1789652034_ccaa31ca5587",
+        "artifact_kind": "policy_snapshot",
+        "generation": "policy_3917f0e410d401ee356968dd9f5f02d7b14aedd915bccabcc753444c1c0410e7",
+        "content_hash": "sha256:1433e9acc454f2017339779d210e824aa0f0357b7e942bde31790ee63f8e83d9",
+        "status": "validated"
+      },
+      "route_artifact": {
+        "id": "artifact_1789652034_41a4f9ec2ab1",
+        "artifact_kind": "edge_route_bundle",
+        "generation": "route-59de15a5c955327a147d169426ad410559296cc948be82ac3fb125bb7a9b65ed",
+        "content_hash": "sha256:26f21a56759df10e615f2c95927196bd1610e09bfec8e321051215b866b85448",
+        "status": "validated"
+      },
+      "dns_artifact": {
+        "id": "artifact_1789652034_e803b4a670f4",
+        "artifact_kind": "dns_answer_bundle",
+        "generation": "dns-59de15a5c955327a147d169426ad410559296cc948be82ac3fb125bb7a9b65ed",
+        "content_hash": "sha256:a1f482b4383aea530bbf4ef807930a566628acd650817fd3df1d7dfe6c588e8e",
+        "status": "validated"
+      },
+      "tls_artifact": {
+        "id": "artifact_1789652034_be0c4103a290",
+        "artifact_kind": "caddy_route_config",
+        "generation": "tls-59de15a5c955327a147d169426ad410559296cc948be82ac3fb125bb7a9b65ed",
+        "content_hash": "sha256:42b0913ad339529767746a957115267fbe917bbb11f27272514de90c22fbf74c",
+        "status": "validated"
+      },
+      "release_artifact": {
+        "id": "artifact_1789652034_38ee013dd19f",
+        "artifact_kind": "release_set",
+        "generation": "release-59de15a5c955327a147d169426ad410559296cc948be82ac3fb125bb7a9b65ed",
+        "content_hash": "sha256:b3d45327897eddeb2de04d84dca14bcc41cc120da761fb49929855a10592208f",
+        "status": "validated"
+      }
+    },
+    "route_count": 137,
+    "dns_record_count": 165,
+    "tls_reference_count": 136,
+    "projection_issues": [
+      {
+        "code": "dns_output_equivalence_not_verified"
+      },
+      {
+        "code": "release_target_equivalence_not_verified"
+      }
+    ],
+    "route_comparison": {
+      "artifact_id": "artifact_1789652034_41a4f9ec2ab1",
+      "artifact_digest": "sha256:26f21a56759df10e615f2c95927196bd1610e09bfec8e321051215b866b85448",
+      "artifact_generation": "route-59de15a5c955327a147d169426ad410559296cc948be82ac3fb125bb7a9b65ed",
+      "source_generation": "routeintents_37ea882136208f5417c8799db43f7b5426cfe8e995a1d36eee4b3f0fc63c5294",
+      "captured_at": "2026-09-17T13:33:56.989118775Z",
+      "source_route_count": 137,
+      "artifact_route_count": 137,
+      "matching_route_count": 111,
+      "equivalent": false,
+      "differences": [
+        {
+          "hostname": "agent-payment-wallet.fugue.pro",
+          "path_prefix": "/",
+          "kind": "changed",
+          "fields": [
+            "origin_status",
+            "origin_status_reason",
+            "route_policy"
+          ]
+        },
+        {
+          "hostname": "api.0-0.pro",
+          "path_prefix": "/",
+          "kind": "changed",
+          "fields": [
+            "exclusion_lifecycle"
+          ]
+        },
+        {
+          "hostname": "api.0-0.pro",
+          "path_prefix": "/v1",
+          "kind": "changed",
+          "fields": [
+            "exclusion_lifecycle"
+          ]
+        },
+        {
+          "hostname": "app-canary.fugue.pro",
+          "path_prefix": "/",
+          "kind": "changed",
+          "fields": [
+            "origin_status_reason",
+            "route_policy"
+          ]
+        },
+        {
+          "hostname": "app-logseq.chikai.de",
+          "path_prefix": "/",
+          "kind": "changed",
+          "fields": [
+            "origin_status_reason",
+            "route_policy"
+          ]
+        },
+        {
+          "hostname": "argus.fugue.pro",
+          "path_prefix": "/",
+          "kind": "changed",
+          "fields": [
+            "exclusion_lifecycle"
+          ]
+        },
+        {
+          "hostname": "baomian-backend.fugue.pro",
+          "path_prefix": "/",
+          "kind": "changed",
+          "fields": [
+            "origin_status_reason",
+            "route_policy"
+          ]
+        },
+        {
+          "hostname": "canvas.fugue.pro",
+          "path_prefix": "/",
+          "kind": "changed",
+          "fields": [
+            "exclusion_lifecycle"
+          ]
+        },
+        {
+          "hostname": "cerebr.fugue.pro",
+          "path_prefix": "/",
+          "kind": "changed",
+          "fields": [
+            "exclusion_lifecycle"
+          ]
+        },
+        {
+          "hostname": "docker-compose-yaml-solar.fugue.pro",
+          "path_prefix": "/",
+          "kind": "changed",
+          "fields": [
+            "origin_status_reason",
+            "route_policy"
+          ]
+        },
+        {
+          "hostname": "docker-compose-yml-redis.fugue.pro",
+          "path_prefix": "/",
+          "kind": "changed",
+          "fields": [
+            "origin_status_reason",
+            "route_policy"
+          ]
+        },
+        {
+          "hostname": "docker-compose-yml.fugue.pro",
+          "path_prefix": "/",
+          "kind": "changed",
+          "fields": [
+            "origin_status_reason",
+            "route_policy"
+          ]
+        },
+        {
+          "hostname": "edge-protocol-canary.fugue.pro",
+          "path_prefix": "/",
+          "kind": "changed",
+          "fields": [
+            "exclusion_lifecycle"
+          ]
+        },
+        {
+          "hostname": "env-maple.fugue.pro",
+          "path_prefix": "/",
+          "kind": "changed",
+          "fields": [
+            "exclusion_lifecycle"
+          ]
+        },
+        {
+          "hostname": "fugue.fugue.pro",
+          "path_prefix": "/",
+          "kind": "changed",
+          "fields": [
+            "origin_status_reason",
+            "route_policy"
+          ]
+        },
+        {
+          "hostname": "gaokao.fugue.pro",
+          "path_prefix": "/",
+          "kind": "changed",
+          "fields": [
+            "origin_status_reason",
+            "route_policy"
+          ]
+        },
+        {
+          "hostname": "listening.fugue.pro",
+          "path_prefix": "/",
+          "kind": "changed",
+          "fields": [
+            "exclusion_lifecycle"
+          ]
+        },
+        {
+          "hostname": "logseq.fugue.pro",
+          "path_prefix": "/",
+          "kind": "changed",
+          "fields": [
+            "origin_status_reason",
+            "route_policy"
+          ]
+        },
+        {
+          "hostname": "mecgod-stone.fugue.pro",
+          "path_prefix": "/",
+          "kind": "changed",
+          "fields": [
+            "origin_status_reason",
+            "route_policy"
+          ]
+        },
+        {
+          "hostname": "music.chikai.de",
+          "path_prefix": "/",
+          "kind": "changed",
+          "fields": [
+            "exclusion_lifecycle"
+          ]
+        },
+        {
+          "hostname": "oaix.fugue.pro",
+          "path_prefix": "/",
+          "kind": "changed",
+          "fields": [
+            "exclusion_lifecycle"
+          ]
+        },
+        {
+          "hostname": "uni-api-ember.fugue.pro",
+          "path_prefix": "/",
+          "kind": "changed",
+          "fields": [
+            "exclusion_lifecycle"
+          ]
+        },
+        {
+          "hostname": "uni-api-web-api-go-candidate.fugue.pro",
+          "path_prefix": "/",
+          "kind": "changed",
+          "fields": [
+            "origin_status_reason",
+            "route_policy"
+          ]
+        },
+        {
+          "hostname": "uni-api-web-forest.fugue.pro",
+          "path_prefix": "/",
+          "kind": "changed",
+          "fields": [
+            "origin_status_reason",
+            "route_policy"
+          ]
+        },
+        {
+          "hostname": "uni-api-web-solar.fugue.pro",
+          "path_prefix": "/",
+          "kind": "changed",
+          "fields": [
+            "origin_status_reason",
+            "route_policy"
+          ]
+        },
+        {
+          "hostname": "yesir-pcb-si.fugue.pro",
+          "path_prefix": "/",
+          "kind": "changed",
+          "fields": [
+            "origin_status_reason",
+            "route_policy"
+          ]
+        }
+      ],
+      "snapshot_differences": [
+        "tls_allowlist",
+        "cache_policies"
+      ]
+    },
+    "configuration_unchanged": true,
+    "promoted": false
+  },
+  "promoted": false,
+  "overall_refactor_complete": false,
+  "production_step_complete": true
+}
