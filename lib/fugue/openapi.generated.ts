@@ -10793,9 +10793,30 @@ export interface components {
       /** @enum {string} */
       fallback_policy: "fail_closed" | "stale_if_error" | "empty_noerror";
     };
+    /** @description Desired TLS policy and optional domain binding. domain_ref requires app_id and tenant_id and an exact matching route owner. It references frozen domain lifecycle facts; verification status and certificate readiness are never desired intent. */
     PlatformConfigTLSIntent: {
       hostname: string;
       policy: string;
+      domain_ref?: string;
+      app_id?: string;
+      tenant_id?: string;
+    };
+    /** @description Frozen persisted domain lifecycle state, with original verification and TLS event timestamps. Historical ready status is not a fresh certificate probe or serving ACK. Missing or old tls_last_checked_at is retained, never renewed by snapshot capture. DNS eligibility still requires independent route/TLS placement proofs. References and owners must exactly match TLS intent and routes; duplicate or unreferenced facts and future timestamps are rejected. verified status requires verified_at; ready status requires verified ownership and tls_ready_at. */
+    PlatformTLSDomainObservation: {
+      ref: string;
+      hostname: string;
+      app_id: string;
+      tenant_id: string;
+      /** @enum {string} */
+      status: "pending" | "verified";
+      /** @enum {string} */
+      tls_status?: "" | "pending" | "ready" | "error";
+      /** Format: date-time */
+      verified_at?: string | null;
+      /** Format: date-time */
+      tls_last_checked_at?: string | null;
+      /** Format: date-time */
+      tls_ready_at?: string | null;
     };
     PlatformConfigIntent: {
       schema_version?: string;
@@ -10951,10 +10972,11 @@ export interface components {
       omitted_runtime_fields: string[];
     };
     PlatformRuntimeSnapshot: {
+      tls_domains?: components["schemas"]["PlatformTLSDomainObservation"][];
       dns_placements?: components["schemas"]["PlatformDNSPlacementObservation"][];
       /**
        * Format: date-time
-       * @description Fixed freshness reference for origin and release observations, required when either is present. Compiler wall clock is never used.
+       * @description Fixed reference for runtime observations and policy expiry evaluation. Required for origin, release or domain lifecycle facts and fully identified expiring exclusions. Snapshot capture never renews original verification or TLS check timestamps. Compiler wall clock is never used.
        */
       captured_at?: string;
       origins?: components["schemas"]["PlatformOriginObservation"][];
