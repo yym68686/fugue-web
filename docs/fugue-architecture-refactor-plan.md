@@ -2765,3 +2765,15 @@ P0-BK 验收范围说明：管理 SSH 通道在本轮核查时于密钥交换前
 - [x] 重新采集完整生产输入及 DNS placement 证明，v16 编译得到 137 条 route、165 条 DNS record、136 条 TLS 引用。route artifact `artifact_1789653944_e6c2e79486b9`、ReleaseSet `artifact_1789653944_8972c2c5b107` 均 validated，未 promote；route 匹配提升为 126/137，剩余 11 条差异全部为 exclusion_lifecycle，snapshot 差异仅 TLS allowlist。生产输入在本地直接重放，五类 artifact content/generation 和 lineage 完全相等，未重写 placement digest。
 
 证据：[disabled-route-policy-origin-2026-09-17.json](verification/disabled-route-policy-origin-2026-09-17.json)。前端契约 [CI 35230502568](https://github.com/yym68686/fugue-web/actions/runs/35230502568) 成功；完整配置尚未 promote，required passing 仍为 0，整个架构重构尚未完成。
+
+### P0-CY：排除策略生命周期进入确定性 artifact
+
+- [x] PolicySnapshot 保存 exclusion owner digest、generation、fence；迁移投影保留授权元数据，缺少完整元数据的旧排除继续按 legacy_hold 处理。
+- [x] compiler v17 和 DNS placement 采集器共用固定 `RuntimeSnapshot.captured_at` 的生命周期评估，结果进入 CompiledRoute 和 artifact executor 投影；有完整身份且带 expiry 的排除缺少固定时间时拒绝编译。
+- [x] clear、active、expiring_24h、expiring_1h、expired_hold、legacy_hold 均被端到端回归覆盖；到期后排除名单、reason 和 expiry 保持不变，wall clock 重放不改变 artifact，runtime 时间变化不修改 intent/policy 身份。
+- [x] OpenAPI 优先更新并同步前端；完整 `make test` 与 `contract:check` 通过。`1fe61753fb5b6998c3fb9513754e20584b74f9f5` 已推送，发布计划选择 API 和 DE/US Edge。
+- [x] [CI 35234496493](https://github.com/yym68686/fugue/actions/runs/35234496493) 全部成功。API 两个副本和 DE/US 三台实际活动 Worker/Front 均为 `1fe61753`，德国 A/generation 259、美国 A/generation 823；Guardian stable，cache/bundle/Caddy、精确镜像、fresh 回执、心跳与 DNS/SSH 健康通过独立验收，配置指针不变。
+- [x] v17 使用重新采集的生产输入生成 137 条 route、165 条 DNS record、136 条 TLS 引用，route artifact `artifact_1789656195_c1cac5c34377`、ReleaseSet `artifact_1789656195_4a959b5a77e5` 均 validated，未 promote。实际过期排除在所有匹配路径保持原名单/expiry 且为 expired_hold；本地直接重放五类 artifact content/generation 与 lineage 相同。
+- [ ] 修复诊断中“无任何排除名单时，省略 lifecycle 与显式 clear”的通用表示差异。当前 136/137 条 route 一致，剩余平台 route 只有该表示差异；不能将此规则用于存在排除名单的 route，TLS allowlist 仍是实际缺失输出。
+
+证据：[exclusion-lifecycle-2026-09-17.json](verification/exclusion-lifecycle-2026-09-17.json)。前端契约 [CI 35234529394](https://github.com/yym68686/fugue-web/actions/runs/35234529394) 成功。required passing 仍为 0，完整 ReleaseSet serving 发布与恢复验收继续未完成。
