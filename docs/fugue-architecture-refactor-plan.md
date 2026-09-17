@@ -2786,3 +2786,15 @@ P0-BK 验收范围说明：管理 SSH 通道在本轮核查时于密钥交换前
 - [x] [CI 35238423605](https://github.com/yym68686/fugue/actions/runs/35238423605) 成功，API 两副本为 `21fd334c`，Guardian stable。同一 v17 artifact 比较不再出现 lifecycle 差异，snapshot 仍报告 TLS allowlist，equivalent=false；当前 133/137 route 相同，剩余四条为业务部署后的 cache namespace/deployment generation/upstream 变化。配置指针与两地 `1fe61753` 活动授权不变。
 
 证据：[empty-exclusion-comparison-2026-09-17.json](verification/empty-exclusion-comparison-2026-09-17.json)。前端契约 [CI 35238480650](https://github.com/yym68686/fugue-web/actions/runs/35238480650) 成功。本步骤仅完成表示等价诊断修复，仍需重新采集业务输入以及 TLS/ReleaseSet serving 迁移验收。
+
+### P0-DA：域名 TLS 生命周期进入 route/TLS artifacts
+
+- [x] P0-CZ 后重新采集的 v17 草稿达到 137/137 条 route 等价，仅剩 TLS allowlist 差异；完整 ReleaseSet 仍未 promote。
+- [x] TLSIntent 仅新增域名引用与 app/tenant 归属；RuntimeSnapshot 单独保存域名验证状态、TLS 生命周期状态和原始 verified/check/ready 时间。历史 ready 不声明新鲜证书 readiness，缺少/陈旧 TLS check 时间原样保留，DNS 独立 route/TLS placement 门槛继续强制执行。
+- [x] compiler v18 从同一份 typed intent/facts 生成 route/TLS 两份一致 allowlist，并在 TLS artifact 保留原始 domain states；拒绝错误归属、缺少原始 verified/ready 时间、未来时间、重复或无引用事实。executor 投影按 route owner 验证 allowlist，按组物化只保留实际 Host 路由对应的条目。
+- [x] 测试覆盖 intent 与事实分离、原时间保真、确定性重放、跨 tenant/app 拒绝、缺少证据、pin 组过滤、DNS readiness 不被历史 ready 绕过，以及带 TLS allowlist 的可信 shadow consumer 不修改 serving。完整 `make test` 与前端契约检查通过。
+- [x] OpenAPI 优先更新并同步前端；`2a232bdf60ac02992478089f823ab6fb2ddba961` 已推送，计划仅包含 API 和 DE/US Edge。
+- [x] [CI 35240814548](https://github.com/yym68686/fugue/actions/runs/35240814548) 全部成功。API 两副本与三台活动 Worker/Front 均为 `2a232bdf`；德国 B/generation 260、美国 B/generation 824，精确镜像、CurrentAuthority、cache/bundle/Caddy、fresh 隔离回执及可信心跳均通过独立验收，Guardian stable、原配置指针未变。
+- [x] 新采集的 v18 生产输入生成 137 条 route、165 条 DNS record、136 条 TLS 引用；route artifact `artifact_1789659600_5325e89e6692`、DNS `artifact_1789659600_2491179f0697`、TLS `artifact_1789659600_472a827c80f9`、ReleaseSet `artifact_1789659600_e4e70915870d` 均 validated，未 promote。route 比较 137/137 相同，TLS allowlist/cache policies 均相同，equivalent=true。route/TLS 两份产物有相同的 11 条 allowlist，原始 domain events 完整保留；同一输入本地重放五类 content/generation 与 lineage 相同。
+
+证据：[domain-tls-artifact-equivalence-2026-09-18.json](verification/domain-tls-artifact-equivalence-2026-09-18.json)。前端契约 [CI 35240842288](https://github.com/yym68686/fugue-web/actions/runs/35240842288) 成功。这里的 equivalent 是 route 投影（含 TLS allowlist/cache）等价；DNS 实际输出、完整 shadow/gray/full、serving convergence 和恢复演练仍未完成。
