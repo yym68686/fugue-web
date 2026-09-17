@@ -10838,6 +10838,13 @@ export interface components {
       schema_version?: string;
       generation: string;
       scope?: string;
+      /** @description Versioned DNS treatment of inactive routes, keyed uniquely by record kind. Omission defaults to omit. serve_error_page permits disabled/unavailable local routes only with exact loaded-state and TLS proof; it never restores upstreams or permits route_a_only or excluded nodes. */
+      dns_route_state_constraints?: ({
+          /** @enum {string} */
+          record_kind: "platform" | "platform-route" | "platform-domain" | "custom-domain-target" | "hosted";
+          /** @enum {string} */
+          inactive_behavior: "omit" | "serve_error_page";
+        })[];
       require_tls_ready?: boolean;
       require_route_ready?: boolean;
       /** Format: int32 */
@@ -11044,6 +11051,8 @@ export interface components {
       valid_until: string;
       healthy: boolean;
       route_ready: boolean;
+      /** @description Every inactive dependency was independently probed through verified TLS for its exact loaded disabled/unavailable state and digest, with no upstream. Required by serve_error_page policy; does not attest origin health. */
+      inactive_routes_verified?: boolean;
       tls_ready: boolean;
       a?: string[];
       aaaa?: string[];
