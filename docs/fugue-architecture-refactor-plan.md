@@ -2712,3 +2712,25 @@ P0-BK 验收范围说明：管理 SSH 通道在本轮核查时于密钥交换前
 - [ ] 修复配置 supersede 候选后的受控重新暂存，并覆盖 Guardian 已异步提交的情况。普通配置发布继续独立推进；新候选必须重新绑定最新签名 artifact 并通过 canary，不能接受旧候选或绕过 CAS。
 
 进行中证据：[compiler-v15-recovery-progress-2026-09-17.json](verification/compiler-v15-recovery-progress-2026-09-17.json)。本记录明确保留发布失败及未完成项，不作为全量上生产成功证据。
+
+### P0-CT：配置更新期间的代码候选恢复
+
+- [x] 发布执行器区分“候选因健康配置更新而失效”与一般故障；滚动启动、候选等待、提交等待均可识别该事件。重新暂存最多四次，必须证明原 Front 授权、活动槽位、代码镜像及节点集合未变，运行事实新鲜且健康；每次重新绑定当前签名 artifact 并重新通过 canary。
+- [x] Guardian 已异步提交精确候选时，执行器验证 CurrentAuthority、实际 Worker 代码/镜像和不倒退的配置版本，不再因旧候选已清除而误判失败。
+- [x] Guardian 完成 Front CAS 后允许已验证配置独立前进。公网响应缺少候选标签时，每个成功样本都必须重新取得精确代码/镜像/Front 授权与配置版本的运行态证明；仍验证响应内容与连续成功次数，错误或部分标签继续拒绝，不伪造响应头。
+- [x] 回归覆盖三个失效阶段、重试上限、活动授权变化、陈旧事实、错误镜像、错误响应、不完整标签和纯空白标签；完整 `make test` 通过。已合并同期 main API 诊断修复，代码提交 `78f6cd9718df7e6aed634e191e275e43b50e6fcb`。
+- [ ] 完成 DE/US 实际活动槽位的生产验收。[CI 35220258498](https://github.com/yym68686/fugue/actions/runs/35220258498) 的 Guardian 成功，但德国候选通过 canary/CurrentAuthority 后被回退；执行器将正在提交的授权误判为可重新暂存的候选。美国则因旧 ServingAuthority 配置版本与当前 publication 不同而持续 409，均不计作生产成功。
+
+本步骤不解除 full promotion 保护；全量 route/DNS/TLS 等价、可信 serving apply/probe、policy verified LKG 和旧路径删除仍需继续完成。
+
+### P0-CU：候选失效判断等待 Guardian 事务结束
+
+- [x] 回归复现 prepared/activated journal 存在、journal 不可读，以及 journal 检查期间 CurrentAuthority 已提交的四种竞态；另用真实等待循环验证旧指针经过 pending journal 后收敛到精确的新指针，整个观察过程只有 GET。
+- [x] 判断候选已被配置替代前，必须确认两个阶段的 journal 均不存在，再重读 CurrentAuthority；事务存在、无法读取或活动槽位已变化时继续观察，禁止把仍在提交的代码事务当作重新暂存理由。完整 `make test` 通过。
+- [x] 正式修复 `26bd5ee60cf79040f4bdf33cad467b029766a92d` 已推送；声明式计划仅选择 Guardian 与德国 Edge。美国的旧 Worker 快照问题单独保留，未盲目重试。
+- [x] [CI 35222667120](https://github.com/yym68686/fugue/actions/runs/35222667120) 全部成功。独立验收德国 Front/CurrentAuthority 均为 A 槽位、`26bd5ee6`、generation 257，精确镜像一致；Guardian/canary prober 为新版本且零重启，德国发布状态 stable，实际 Worker cache/bundle/Caddy 版本一致。三台活动 Worker 的隔离执行回执及可信 shadow 心跳有效，仍为 required 3 / observed 3 / passing 0，未伪报 serving。配置指针和 DNS/SSH 消费者保持健康。
+- [ ] 修复美国候选暂存期间 Worker 运行证据不刷新的问题，再完成全组代码恢复。
+
+进行中证据：[candidate-code-transaction-progress-2026-09-17.json](verification/candidate-code-transaction-progress-2026-09-17.json)。失败后的 API 健康端点为 200，两地 authority 健康；原 shadow/full/policy-LKG 指针状态未变。本文不将这次失败记录计作完整上线。
+
+德国与 Guardian 恢复成功证据：[candidate-journal-recovery-2026-09-17.json](verification/candidate-journal-recovery-2026-09-17.json)。美国仍使用 `64b2e4ad`，其代码恢复以及 P0-CR/P0-CS 的全组完成项继续保持未勾选。

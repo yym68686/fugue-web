@@ -1,0 +1,110 @@
+{
+  "observed_at": "2026-09-17T12:43:23.740486+00:00",
+  "production_step_complete": false,
+  "failed_commit": "78f6cd9718df7e6aed634e191e275e43b50e6fcb",
+  "failed_ci": "https://github.com/yym68686/fugue/actions/runs/35220258498",
+  "results": {
+    "release-guardian": "success",
+    "edge-worker-de": "failure",
+    "edge-worker-us": "failure"
+  },
+  "health": {
+    "/healthz": 200,
+    "/readyz": 200
+  },
+  "components": [
+    {
+      "component": "api",
+      "image_tag": "8d8045ce601cd56e7f86aa4f0b1a4f06777ed2d7",
+      "ready_replicas": 2,
+      "updated_replicas": 2,
+      "desired_replicas": 2
+    },
+    {
+      "component": "controller",
+      "image_tag": "97d34aeff0839b711b353adb3e477fbafdd63357",
+      "ready_replicas": 2,
+      "updated_replicas": 2,
+      "desired_replicas": 2
+    }
+  ],
+  "configuration_unchanged": true,
+  "configuration": {
+    "/v1/platform-state/artifacts/release_set?scope_key=global&channel=shadow": {
+      "http_status": 200,
+      "identity": {
+        "artifact": {
+          "id": "artifact_1789290147_22038f948fad",
+          "artifact_kind": "release_set",
+          "generation": "release-915ca009dc70243f7b4a29462bd0844b9319c16e8c7f67a78cdafed488a3cadf",
+          "status": "validated",
+          "content_hash": "sha256:8b7448ad3340214ada7319e224bf59743f9a09b29a4863362591c4cc728ba1d7"
+        },
+        "release": {
+          "id": "artifactrel_1789292458_d1b4c134c3e2",
+          "artifact_id": "artifact_1789290147_22038f948fad",
+          "artifact_kind": "release_set",
+          "generation": "release-915ca009dc70243f7b4a29462bd0844b9319c16e8c7f67a78cdafed488a3cadf",
+          "release_channel": "shadow",
+          "status": "active",
+          "fencing_token": 1
+        },
+        "generation": "release-915ca009dc70243f7b4a29462bd0844b9319c16e8c7f67a78cdafed488a3cadf"
+      }
+    },
+    "/v1/platform-state/artifacts/release_set?scope_key=global&channel=full": {
+      "http_status": 200,
+      "identity": {}
+    },
+    "/v1/admin/platform-config/policy-lkg": {
+      "http_status": 404,
+      "identity": {}
+    },
+    "/v1/admin/artifacts/artifact_1789290147_3ae6084f214d/lineage": {
+      "http_status": 200,
+      "identity": {
+        "artifact": {
+          "id": "artifact_1789290147_3ae6084f214d",
+          "artifact_kind": "edge_route_bundle",
+          "generation": "route-915ca009dc70243f7b4a29462bd0844b9319c16e8c7f67a78cdafed488a3cadf",
+          "status": "validated",
+          "content_hash": "sha256:aa3453c3d79efef9c915163030f1d20df4186a69c3fe0cb24a567ef166ab69f9"
+        }
+      }
+    }
+  },
+  "edge_authorities": [
+    {
+      "group": "edge-group-country-de",
+      "ready": true,
+      "serving_healthy": true
+    },
+    {
+      "group": "edge-group-country-us",
+      "ready": true,
+      "serving_healthy": true
+    }
+  ],
+  "de_failure": "healthy publication superseded staged candidate while Guardian code authority was committing; unchanged-activation check rejected restaging and executor attempted workload LKG compensation; Guardian current_switched then current_reverted observed",
+  "us_failure": "serving_authority_current_mismatch: fixed snapshot supplied an old Front publication after serving configuration advanced; staging exhausted four sequence-conflict attempts",
+  "followup": {
+    "commit": "26bd5ee60cf79040f4bdf33cad467b029766a92d",
+    "ci": "https://github.com/yym68686/fugue/actions/runs/35222667120",
+    "production_complete": false,
+    "scope": [
+      "release-guardian",
+      "edge-worker-de"
+    ],
+    "change": "observe absence of prepared and activated Guardian transition journals, then reread CurrentAuthority before treating configuration advancement as candidate retirement",
+    "tests": "reproduced pending/activated/unreadable journal and concurrent commit cases; targeted tests and make test pass"
+  },
+  "remaining": [
+    "US fresh Worker publication evidence",
+    "DE final independent verification",
+    "route/DNS/TLS full equivalence",
+    "trusted serving apply/probe",
+    "gray/full/rollback",
+    "policy verified LKG",
+    "legacy path deletion"
+  ]
+}
