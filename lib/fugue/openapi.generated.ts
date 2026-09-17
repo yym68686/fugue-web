@@ -1056,11 +1056,17 @@ export interface paths {
     post: operations["verifyAppDomain"];
   };
   "/v1/apps/{id}/domains/diagnosis": {
-    /** Get App Domain Diagnosis */
+    /**
+     * Get App Domain Diagnosis
+     * @description Checks actual shared certificate validity and ownership independently from historical TLS status. Presence alone cannot pass shared_tls_certificate, tls_ready or route_active.
+     */
     get: operations["getAppDomainDiagnosis"];
   };
   "/v1/apps/{id}/domains/repair": {
-    /** Repair App Domain */
+    /**
+     * Repair App Domain
+     * @description Reconciles domain configuration and DNS verification. TLS ready is restored only from a currently usable, hostname- and owner-bound shared certificate; an expired certificate requires renewal and never receives a new ready timestamp.
+     */
     post: operations["repairAppDomain"];
   };
   "/v1/apps/{id}/route/availability": {
@@ -16817,7 +16823,10 @@ export interface operations {
       default: components["responses"]["ErrorResponse"];
     };
   };
-  /** Get App Domain Diagnosis */
+  /**
+   * Get App Domain Diagnosis
+   * @description Checks actual shared certificate validity and ownership independently from historical TLS status. Presence alone cannot pass shared_tls_certificate, tls_ready or route_active.
+   */
   getAppDomainDiagnosis: {
     parameters: {
       query?: {
@@ -16837,7 +16846,10 @@ export interface operations {
       default: components["responses"]["ErrorResponse"];
     };
   };
-  /** Repair App Domain */
+  /**
+   * Repair App Domain
+   * @description Reconciles domain configuration and DNS verification. TLS ready is restored only from a currently usable, hostname- and owner-bound shared certificate; an expired certificate requires renewal and never receives a new ready timestamp.
+   */
   repairAppDomain: {
     parameters: {
       path: {
