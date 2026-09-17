@@ -423,14 +423,14 @@ export interface paths {
   "/v1/admin/platform-config/release-set/prepare-consumers": {
     /**
      * Prepare ReleaseSet Consumer Expectations
-     * @description Builds immutable expectations from current node policy topology. DNS zone rows are owned by one physical DNS process identified by physical_node_id (or id when absent); per-zone rows do not create separate process consumers. Unknown or unhealthy existing DNS processes remain required.
+     * @description Builds immutable expectations from current node policy topology. Edge and DNS membership is independent of heartbeat freshness; missing or stale heartbeats cannot remove an existing required consumer. DNS zone rows are owned by one physical DNS process identified by physical_node_id (or id when absent); per-zone rows do not create separate process consumers. Unknown or unhealthy existing processes remain required.
      */
     post: operations["preparePlatformReleaseSetConsumers"];
   };
   "/v1/admin/platform-state/convergence": {
     /**
      * List Platform Consumer Convergence
-     * @description Projects immutable expected sets onto current topology. DNS zone aliases are attributed to their physical process and duplicate expectations are collapsed; missing or unhealthy processes are not treated as successful. Empty required topology remains unknown. Full promotion uses the same projection.
+     * @description Projects immutable expected sets onto current authoritative node policy topology. Heartbeat freshness is assessed after membership, so a silent or stale Edge or DNS process remains required and cannot make a partial cohort pass. DNS zone aliases are attributed to their physical process and duplicate expectations are collapsed; missing or unhealthy processes are not treated as successful. Empty required topology remains unknown. Full promotion uses the same projection.
      */
     get: operations["listPlatformConsumerConvergence"];
   };
@@ -13546,7 +13546,7 @@ export interface operations {
   };
   /**
    * Prepare ReleaseSet Consumer Expectations
-   * @description Builds immutable expectations from current node policy topology. DNS zone rows are owned by one physical DNS process identified by physical_node_id (or id when absent); per-zone rows do not create separate process consumers. Unknown or unhealthy existing DNS processes remain required.
+   * @description Builds immutable expectations from current node policy topology. Edge and DNS membership is independent of heartbeat freshness; missing or stale heartbeats cannot remove an existing required consumer. DNS zone rows are owned by one physical DNS process identified by physical_node_id (or id when absent); per-zone rows do not create separate process consumers. Unknown or unhealthy existing processes remain required.
    */
   preparePlatformReleaseSetConsumers: {
     requestBody: {
@@ -13571,7 +13571,7 @@ export interface operations {
   };
   /**
    * List Platform Consumer Convergence
-   * @description Projects immutable expected sets onto current topology. DNS zone aliases are attributed to their physical process and duplicate expectations are collapsed; missing or unhealthy processes are not treated as successful. Empty required topology remains unknown. Full promotion uses the same projection.
+   * @description Projects immutable expected sets onto current authoritative node policy topology. Heartbeat freshness is assessed after membership, so a silent or stale Edge or DNS process remains required and cannot make a partial cohort pass. DNS zone aliases are attributed to their physical process and duplicate expectations are collapsed; missing or unhealthy processes are not treated as successful. Empty required topology remains unknown. Full promotion uses the same projection.
    */
   listPlatformConsumerConvergence: {
     parameters: {
