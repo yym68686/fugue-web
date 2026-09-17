@@ -2807,3 +2807,15 @@ P0-BK 验收范围说明：管理 SSH 通道在本轮核查时于密钥交换前
 - [x] [CI 35245043626](https://github.com/yym68686/fugue/actions/runs/35245043626) 全部成功。两台 DNS 与三台 SSH front 均为 `921bbd90`、Ready 且零重启；DNS 健康、无 stale cache、仍验证原 13 条记录 shadow artifact 并报告新鲜心跳，SSH 无错误。API/三台 Edge Worker 保持 `2a232bdf`、两地 authority 健康，原配置指针未变。
 
 证据：[dns-versioned-policy-consumer-2026-09-18.json](verification/dns-versioned-policy-consumer-2026-09-18.json)。本步骤完成消费者代码兼容；完整 DNS artifact 输出和 shadow/serving 发布仍待下一步验证。
+
+### P0-DC：平台业务域名 DNS 覆盖静态地址
+
+- [x] 对照实际 DNS 缓存和查询发现：平台业务域名的旧静态地址/TTL 残留在迁移草稿中，未保留旧发布器的已验证域名覆盖优先级。
+- [x] 平台 app base 内已验证且归属正确的域名生成带完整 path owner bindings 的 FUGUE_ROUTE intent，使用配置的 DNS TTL；仅替换精确匹配的静态 A/AAAA/CNAME 并记录 digest 审计。非地址记录、保留域名、未验证域名和 custom target 命名空间保持原值；冲突 hosted address 保留并显式阻止编译。
+- [x] 测试覆盖 apex/www、A/AAAA/CNAME、保留 TXT、共享路径、跨 tenant/app 拒绝、缺失/重复 owner、输入不变性和确定性排序；没有 placement 证明仍不能编译。完整 `make test`、前端 `contract:check` 通过，OpenAPI/类型已同步。
+- [x] `06ad65be33c2c6a9f6eb707f9a9629f3b14e89c2` 已推送，声明式计划只更新 API。
+- [x] [CI 35246715831](https://github.com/yym68686/fugue/actions/runs/35246715831) 成功，API 两副本为 `06ad65be`，独立验收 authority、Guardian、三台 Worker、两台 DNS/三台 SSH 与旧配置指针均正常。新草稿中主域名和 www 为 owned FUGUE_ROUTE、期望 TTL 60，编译成三台有实际证明的 Edge 地址，每值都有原始到期时间；剩余证明租期将本次有效 TTL 压至 52 秒，未延长租期。137/137 route 与 TLS/cache 仍 equivalent=true，未 promote。
+
+证据：[platform-domain-dns-precedence-2026-09-18.json](verification/platform-domain-dns-precedence-2026-09-18.json)。前端契约 [CI 35246746138](https://github.com/yym68686/fugue-web/actions/runs/35246746138) 成功。
+
+DNS 尚有明确待完成的行为：disabled/unavailable 自定义目标在现网仍解析到 Edge（已直接向 DNS 容器 localhost 查询确认），新 compiler 省略记录并不等价；还需补齐各权威 zone 的探测记录、剩余 TTL 差异与 geo/ECS/latency 选择策略，再进行 full serving 验收。
