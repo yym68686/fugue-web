@@ -32,7 +32,7 @@ Runtime Facts / ACK / LKG
 
 ## 当前状态判断
 
-2026-09-17 17:50 UTC 状态：完整 compiler v18 配置已进入真实 shadow。API 与两地 Edge 均为 `a90ca9bc`，CI 和独立生产验收通过；三台 Edge 各完成 137 路由的隔离 Caddy 探测，并独立校验 136 条 TLS 引用与 11 条 allowlist，两台 DNS 校验完整候选。当前 route 3/3、TLS 3/3、DNS 2/2（expected/observed），所有 passing 仍为 0，原始 expected sets 不变。route 含 TLS/cache 输出已等价；DNS 输出语义、新鲜 TLS/serving apply/probe、gray/full/rollback、policy verified LKG、恢复演练和旧路径删除尚未完成。正式 serving 与 LKG 指针保持不变。
+2026-09-17 18:36 UTC 状态：API、两地 Edge、DNS/SSH 客户端均已更新为 `57264616`，CI 与全组独立运行验收通过。compiler v19 新增明确的 inactive DNS 错误页策略，三台 Worker 的六项实际 HTTPS 状态证明通过，原完整 shadow 的 route/TLS/DNS observed 分别为 3/3/2，passing 均为 0，serving/LKG 指针不变。新的完整编译因一个自定义域名证书已过期而被正确拒绝；诊断仍误报 ready，停用自定义域名未继续维护证书，需要先修复。DNS geo/ECS/latency、zone probes、新鲜 serving 收敛、gray/full/rollback、policy verified LKG、恢复演练及旧路径删除仍未完成。
 
 Fugue 已经具备相当一部分基础设施：`PlatformArtifact` 已有 generation、content hash、签名、验证状态、release channel、fencing token 和 LKG；Edge 与 DNS 也有签名校验、本地缓存和过期控制。
 
@@ -2851,3 +2851,16 @@ DNS 尚有明确待完成的行为：disabled/unavailable 自定义目标在现�
 - [x] 生产 API 两副本、三台活动 Worker/Front 均为新代码；德国 A/generation 261、美国 A/generation 825。精确镜像、CurrentAuthority、cache/Caddy 版本、零重启、独立 TLS/route cursor、三台各 137 条隔离探测和真实心跳通过核对。TLS 3/3/0、Edge 3/3/0、DNS 2/2/0（expected/observed/passing），原始 expected set、正式 serving 和 LKG 指针不变。
 
 证据：[worker-tls-shadow-consumer-2026-09-18.json](verification/worker-tls-shadow-consumer-2026-09-18.json)。本步骤完成 TLS artifact 的独立 shadow 消费；新鲜证书/serving 探测、DNS 输出语义、gray/full/rollback、policy verified LKG、恢复演练和旧路径删除仍待完成。
+
+### P0-DG：用显式策略和精确状态证明保留 inactive DNS 目标
+
+- [x] compiler v19 增加强类型 `dns_route_state_constraints`，按 record kind 指定 omit/serve_error_page；默认 omit，迁移投影明确保留 custom-domain-target 的错误页解析行为。策略有界、唯一、可版本化，进入 digest/lineage；不恢复任何 upstream。
+- [x] Edge 新增可选 `X-Fugue-Route-Probe-State`，仅证明精确加载的 disabled/unavailable 本地路由，要求无 upstream、正确 group、允许的 route policy、未排除、非 candidate 且 bundle 未过期。普通 active-only 探测语义保持；响应绑定 nonce、digest、版本、节点、group 与原始到期时间。
+- [x] placement collector 对每个依赖路径执行真实 TLS/Host 状态证明，单独记录 inactive_routes_verified；编译继续要求所有 TLS/route/健康/quorum/期限门槛。只有部分路径通过、错误状态、错配 digest、陈旧证明、TLS 失败不能生成可发布地址。
+- [x] 测试覆盖默认省略、显式策略、输入不可变和重放、所有依赖路径、错误状态/身份/排除/过期/残留 upstream；DNS 消费者严格解析新 policy 回归通过。完整 make test、前端 contract:check 通过，OpenAPI/类型已同步。
+- [x] `57264616331bd2ccdfbf1490c317f0fddb003baf` 的 [CI 35256630040](https://github.com/yym68686/fugue/actions/runs/35256630040) 全部成功；API、DE/US Edge 与两地 DNS/SSH 客户端均完成声明式发布。前端契约 [CI 35256653817](https://github.com/yym68686/fugue-web/actions/runs/35256653817) 成功。
+- [x] API 两副本、三台活动 Worker/Front 和五个 DNS/SSH 客户端均新版本且健康；德国 B/generation 262、美国 B/generation 826。每台 Worker 对 disabled/unavailable 的两项真实公网 HTTPS 探测返回精确 digest/原始 expiry，默认或错配状态返回 503 且无证明。137 路由隔离执行、TLS 136 引用/11 allowlist、独立 cursor、精确镜像、零重启和原始 expected sets 均通过验收；旧正式配置和 LKG 指针不变。
+- [x] 新鲜完整编译在某个自定义域名三节点 TLS 证明全部失败时返回 400，旧配置指针不变，未绕过校验。诊断发现共享证书已于 2026-08-30 过期，但旧诊断仅检查存在性而误报通过；停用 custom-domain 路由又被排除在证书维护之外。
+- [ ] 修复停用域名证书维护与过期诊断，再重新采集并验证 inactive DNS 的完整输出；当前不能把本步骤算作完整 DNS 等价或 serving 发布成功。
+
+证据：[inactive-dns-route-proof-2026-09-18.json](verification/inactive-dns-route-proof-2026-09-18.json)。另外已发现 Edge expected topology 仍用心跳 freshness 过滤成员，必须改为失联节点继续 required、只由权威拓扑移除；在 full 发布前补上该回归与修复。
