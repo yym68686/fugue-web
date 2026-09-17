@@ -10834,7 +10834,7 @@ export interface components {
        * @enum {string}
        */
       match_scope?: "app" | "tenant_hostname";
-      /** @description Compilation refuses nonempty placement constraints until DNS placement resolution is available. */
+      /** @description Restricts DNS answer eligibility to this group. It does not narrow Host serving scope; any explicit route intent pin must agree. Compiled output carries this as dns_placement_edge_group_id and DNS resolution requires matching fixed placement evidence. */
       edge_group_id?: string;
       excluded_edge_ids?: string[];
       excluded_edge_group_ids?: string[];
