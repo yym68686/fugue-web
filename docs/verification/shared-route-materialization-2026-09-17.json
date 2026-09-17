@@ -1,0 +1,428 @@
+{
+  "observed_at": "2026-09-17T05:31:58.777912+00:00",
+  "configuration": {
+    "/v1/platform-state/artifacts/release_set?scope_key=global&channel=shadow": {
+      "http_status": 200,
+      "identity": {
+        "artifact": {
+          "id": "artifact_1789290147_22038f948fad",
+          "artifact_kind": "release_set",
+          "generation": "release-915ca009dc70243f7b4a29462bd0844b9319c16e8c7f67a78cdafed488a3cadf",
+          "status": "validated",
+          "content_hash": "sha256:8b7448ad3340214ada7319e224bf59743f9a09b29a4863362591c4cc728ba1d7"
+        },
+        "release": {
+          "id": "artifactrel_1789292458_d1b4c134c3e2",
+          "artifact_id": "artifact_1789290147_22038f948fad",
+          "artifact_kind": "release_set",
+          "generation": "release-915ca009dc70243f7b4a29462bd0844b9319c16e8c7f67a78cdafed488a3cadf",
+          "release_channel": "shadow",
+          "status": "active",
+          "fencing_token": 1
+        },
+        "generation": "release-915ca009dc70243f7b4a29462bd0844b9319c16e8c7f67a78cdafed488a3cadf"
+      }
+    },
+    "/v1/platform-state/artifacts/release_set?scope_key=global&channel=full": {
+      "http_status": 200,
+      "identity": {}
+    },
+    "/v1/admin/platform-config/policy-lkg": {
+      "http_status": 404,
+      "identity": {}
+    },
+    "/v1/admin/artifacts/artifact_1789290147_3ae6084f214d/lineage": {
+      "http_status": 200,
+      "identity": {
+        "artifact": {
+          "id": "artifact_1789290147_3ae6084f214d",
+          "artifact_kind": "edge_route_bundle",
+          "generation": "route-915ca009dc70243f7b4a29462bd0844b9319c16e8c7f67a78cdafed488a3cadf",
+          "status": "validated",
+          "content_hash": "sha256:aa3453c3d79efef9c915163030f1d20df4186a69c3fe0cb24a567ef166ab69f9"
+        }
+      }
+    }
+  },
+  "health": {
+    "/healthz": 200,
+    "/readyz": 200
+  },
+  "authority": {
+    "configured": true,
+    "answer_model": "edge-control-authority",
+    "all_ready": true,
+    "authorities": [
+      {
+        "edge_group_id": "edge-group-country-de",
+        "service": "edge-control-de",
+        "ready": true,
+        "source": "edge-control-authority",
+        "status": {
+          "edge_group_id": "edge-group-country-de",
+          "status": "ready",
+          "ready": true,
+          "serving_healthy": true,
+          "bootstrap_eligible": true,
+          "bootstrap_valid_until": "2026-09-18T05:16:57.661523852Z",
+          "inventory_sequence": 94052,
+          "inventory_generation": "inventory-0adb381bb6ea079c3dff91c5505aa7e9a68a278e8b6670f74e25431e93e3819f",
+          "inventory_producer_generation": 94052,
+          "inventory_producer_nodes": 1,
+          "inventory_heartbeat_at": "2026-09-17T05:31:53.551493183Z",
+          "authority_sequence": 31845,
+          "publication_sequence": 31845,
+          "current_publication_sequence": 31845,
+          "publication_decision": "published",
+          "bundle_generation": "edgegroupbundle_009becc0b9e58d14d253ba39ffcc2c0d5b9074e9b78b7201adb100e130ac35b0",
+          "published_bundle_digest": "sha256:f7203b7aba5417759155e78d41712eb541ccfb843ec61420a793905369618c86",
+          "recovery_epoch": 516,
+          "bundle_valid_until": "2026-09-17T05:46:57.661523852Z",
+          "lkg_state": "current"
+        }
+      },
+      {
+        "edge_group_id": "edge-group-country-us",
+        "service": "edge-control-us",
+        "ready": true,
+        "source": "edge-control-authority",
+        "status": {
+          "edge_group_id": "edge-group-country-us",
+          "status": "ready",
+          "ready": true,
+          "serving_healthy": true,
+          "bootstrap_eligible": true,
+          "bootstrap_valid_until": "2026-09-18T05:26:10.231981856Z",
+          "inventory_sequence": 143311,
+          "inventory_generation": "inventory-328714e287268aea9c5dc104924f1d8828648a6c7be47ffd43f015b2d461e637",
+          "inventory_producer_generation": 143311,
+          "inventory_producer_nodes": 2,
+          "inventory_heartbeat_at": "2026-09-17T05:32:00.089493795Z",
+          "authority_sequence": 45556,
+          "publication_sequence": 45556,
+          "current_publication_sequence": 45556,
+          "publication_decision": "published",
+          "bundle_generation": "edgegroupbundle_daefddeab442e86d729dd1244235f70d66828ddea701fb328201d5d7d1ebf6bf",
+          "published_bundle_digest": "sha256:66f927f26ad0b749467688037c337ff33272d04231c8d872d6ad820a6a31b305",
+          "recovery_epoch": 177,
+          "bundle_valid_until": "2026-09-17T05:56:10.231981856Z",
+          "lkg_state": "current"
+        }
+      }
+    ]
+  },
+  "convergence": [
+    {
+      "artifact_kind": "caddy_route_config",
+      "state": "unknown",
+      "pass": false,
+      "required_expected": 3,
+      "required_observed": 0,
+      "required_passing": 0
+    },
+    {
+      "artifact_kind": "dns_answer_bundle",
+      "state": "fail",
+      "pass": false,
+      "required_expected": 9,
+      "required_observed": 2,
+      "required_passing": 0
+    },
+    {
+      "artifact_kind": "edge_route_bundle",
+      "state": "fail",
+      "pass": false,
+      "required_expected": 3,
+      "required_observed": 3,
+      "required_passing": 0
+    }
+  ],
+  "components": [
+    {
+      "component": "api",
+      "image_tag": "3d0a19b76f08c6b900903c49056bd75a82599c04",
+      "ready_replicas": 2,
+      "updated_replicas": 2,
+      "desired_replicas": 2
+    },
+    {
+      "component": "controller",
+      "image_tag": "252a52806b2b54acf758d53f7c165cb81a4d15b1",
+      "ready_replicas": 2,
+      "updated_replicas": 2,
+      "desired_replicas": 2
+    }
+  ],
+  "direct_authorities": [
+    {
+      "edge_group_id": "edge-group-country-de",
+      "status": "ready",
+      "ready": true,
+      "serving_healthy": true,
+      "bootstrap_eligible": true,
+      "bootstrap_valid_until": "2026-09-18T05:16:57.661523852Z",
+      "inventory_sequence": 94052,
+      "inventory_generation": "inventory-0adb381bb6ea079c3dff91c5505aa7e9a68a278e8b6670f74e25431e93e3819f",
+      "inventory_producer_generation": 94052,
+      "inventory_producer_nodes": 1,
+      "inventory_heartbeat_at": "2026-09-17T05:31:53.551493183Z",
+      "authority_sequence": 31845,
+      "publication_sequence": 31845,
+      "current_publication_sequence": 31845,
+      "publication_decision": "published",
+      "bundle_generation": "edgegroupbundle_009becc0b9e58d14d253ba39ffcc2c0d5b9074e9b78b7201adb100e130ac35b0",
+      "published_bundle_digest": "sha256:f7203b7aba5417759155e78d41712eb541ccfb843ec61420a793905369618c86",
+      "recovery_epoch": 516,
+      "bundle_valid_until": "2026-09-17T05:46:57.661523852Z",
+      "lkg_state": "current"
+    },
+    {
+      "edge_group_id": "edge-group-country-us",
+      "status": "ready",
+      "ready": true,
+      "serving_healthy": true,
+      "bootstrap_eligible": true,
+      "bootstrap_valid_until": "2026-09-18T05:26:10.231981856Z",
+      "inventory_sequence": 143311,
+      "inventory_generation": "inventory-328714e287268aea9c5dc104924f1d8828648a6c7be47ffd43f015b2d461e637",
+      "inventory_producer_generation": 143311,
+      "inventory_producer_nodes": 2,
+      "inventory_heartbeat_at": "2026-09-17T05:32:00.089493795Z",
+      "authority_sequence": 45556,
+      "publication_sequence": 45556,
+      "current_publication_sequence": 45556,
+      "publication_decision": "published",
+      "bundle_generation": "edgegroupbundle_daefddeab442e86d729dd1244235f70d66828ddea701fb328201d5d7d1ebf6bf",
+      "published_bundle_digest": "sha256:66f927f26ad0b749467688037c337ff33272d04231c8d872d6ad820a6a31b305",
+      "recovery_epoch": 177,
+      "bundle_valid_until": "2026-09-17T05:56:10.231981856Z",
+      "lkg_state": "current"
+    }
+  ],
+  "active_workers": [
+    {
+      "node": "bwg",
+      "pod": "fugue-fugue-edge-worker-a-ljxw5",
+      "status": {
+        "status": "ok",
+        "healthy": true,
+        "serving_generation": "edgegroupbundle_daefddeab442e86d729dd1244235f70d66828ddea701fb328201d5d7d1ebf6bf",
+        "edge_group_id": "edge-group-country-us",
+        "route_count": 135,
+        "stale_cache": false,
+        "caddy_last_error": null,
+        "platform_candidate": {
+          "state": "shadow_verified",
+          "artifact_id": "artifact_1789290147_3ae6084f214d",
+          "digest": "sha256:aa3453c3d79efef9c915163030f1d20df4186a69c3fe0cb24a567ef166ab69f9",
+          "release_set_id": "artifact_1789290147_22038f948fad",
+          "route_count": 2,
+          "route_index_digest": "sha256:f6958a4ef201e1ee19ddce09cbd25cd283ab5923d878e7b1be4b6de56de8cdca",
+          "sequence": 1789623140377525489,
+          "verified_at": "2026-09-17T05:32:20.377525599Z",
+          "reported_at": "2026-09-17T05:32:20.417642876Z"
+        }
+      },
+      "source_commit": "3d0a19b76f08c6b900903c49056bd75a82599c04",
+      "containers": [
+        {
+          "name": "caddy",
+          "imageID": "docker.io/library/caddy@sha256:4c6e91c6ed0e2fa03efd5b44747b625fec79bc9cd06ac5235a779726618e530d",
+          "ready": true,
+          "restartCount": 0
+        },
+        {
+          "name": "edge",
+          "imageID": "ghcr.io/yym68686/fugue-edge@sha256:4ca9436542e0f1267df636152d0b500ee47718233b5f5c918331ddd4e4dd665f",
+          "ready": true,
+          "restartCount": 0
+        }
+      ]
+    },
+    {
+      "node": "vps-591f4447",
+      "pod": "fugue-fugue-edge-worker-a-hh9l4",
+      "status": {
+        "status": "ok",
+        "healthy": true,
+        "serving_generation": "edgegroupbundle_daefddeab442e86d729dd1244235f70d66828ddea701fb328201d5d7d1ebf6bf",
+        "edge_group_id": "edge-group-country-us",
+        "route_count": 135,
+        "stale_cache": false,
+        "caddy_last_error": null,
+        "platform_candidate": {
+          "state": "shadow_verified",
+          "artifact_id": "artifact_1789290147_3ae6084f214d",
+          "digest": "sha256:aa3453c3d79efef9c915163030f1d20df4186a69c3fe0cb24a567ef166ab69f9",
+          "release_set_id": "artifact_1789290147_22038f948fad",
+          "route_count": 2,
+          "route_index_digest": "sha256:f6958a4ef201e1ee19ddce09cbd25cd283ab5923d878e7b1be4b6de56de8cdca",
+          "sequence": 1789623120131018725,
+          "verified_at": "2026-09-17T05:32:00.131019014Z",
+          "reported_at": "2026-09-17T05:32:00.14131263Z"
+        }
+      },
+      "source_commit": "3d0a19b76f08c6b900903c49056bd75a82599c04",
+      "containers": [
+        {
+          "name": "caddy",
+          "imageID": "docker.io/library/caddy@sha256:4c6e91c6ed0e2fa03efd5b44747b625fec79bc9cd06ac5235a779726618e530d",
+          "ready": true,
+          "restartCount": 0
+        },
+        {
+          "name": "edge",
+          "imageID": "ghcr.io/yym68686/fugue-edge@sha256:4ca9436542e0f1267df636152d0b500ee47718233b5f5c918331ddd4e4dd665f",
+          "ready": true,
+          "restartCount": 0
+        }
+      ]
+    },
+    {
+      "node": "vps-84c8f0a9",
+      "pod": "fugue-fugue-edge-country-de-worker-b-dmcjh",
+      "status": {
+        "status": "ok",
+        "healthy": true,
+        "serving_generation": "edgegroupbundle_009becc0b9e58d14d253ba39ffcc2c0d5b9074e9b78b7201adb100e130ac35b0",
+        "edge_group_id": "edge-group-country-de",
+        "route_count": 135,
+        "stale_cache": false,
+        "caddy_last_error": null,
+        "platform_candidate": {
+          "state": "shadow_verified",
+          "artifact_id": "artifact_1789290147_3ae6084f214d",
+          "digest": "sha256:aa3453c3d79efef9c915163030f1d20df4186a69c3fe0cb24a567ef166ab69f9",
+          "release_set_id": "artifact_1789290147_22038f948fad",
+          "route_count": 2,
+          "route_index_digest": "sha256:b3bd34a3fc31e68bf669ee45b0e95506ef4d9d7e5b72598cb9f4cf8d0080c0d8",
+          "sequence": 1789623145513607264,
+          "verified_at": "2026-09-17T05:32:25.513607397Z",
+          "reported_at": "2026-09-17T05:32:25.741039198Z"
+        }
+      },
+      "source_commit": "3d0a19b76f08c6b900903c49056bd75a82599c04",
+      "containers": [
+        {
+          "name": "caddy",
+          "imageID": "docker.io/library/caddy@sha256:4c6e91c6ed0e2fa03efd5b44747b625fec79bc9cd06ac5235a779726618e530d",
+          "ready": true,
+          "restartCount": 0
+        },
+        {
+          "name": "edge",
+          "imageID": "ghcr.io/yym68686/fugue-edge@sha256:5eb8454e0fcfc36e257f5afd2d2e48f22b5c74975c9c799c69f2adddcf9527ce",
+          "ready": true,
+          "restartCount": 0
+        }
+      ]
+    }
+  ],
+  "route_comparison": {
+    "source_route_count": 135,
+    "artifact_route_count": 2,
+    "matching_route_count": 1,
+    "equivalent": false,
+    "artifact_id": "artifact_1789290147_3ae6084f214d",
+    "artifact_digest": "sha256:aa3453c3d79efef9c915163030f1d20df4186a69c3fe0cb24a567ef166ab69f9",
+    "artifact_generation": "route-915ca009dc70243f7b4a29462bd0844b9319c16e8c7f67a78cdafed488a3cadf",
+    "snapshot_differences": [
+      "tls_allowlist",
+      "cache_policies"
+    ]
+  },
+  "guardian": {
+    "state": "stable",
+    "health": {
+      "dependency": {
+        "evidenceDigest": "sha256:6423d5f713c2197229df9a2f259d0d859e0852143df96334e2ffbae8c4db8b13",
+        "observedAt": "2026-09-17T05:32:34.646358794Z",
+        "state": "healthy"
+      },
+      "local": {
+        "evidenceDigest": "sha256:d3bff82275b37f03a4a0a7d39251b93e6fc8e1eaf461387f312e65c2803dedd7",
+        "observedAt": "2026-09-17T05:32:34.646358794Z",
+        "state": "healthy"
+      },
+      "route": {
+        "evidenceDigest": "sha256:4003ef5e72051996b2da7f5dd081f162c31f9964547363a0b3b523ed510371da",
+        "observedAt": "2026-09-17T05:32:27.751312318Z",
+        "state": "healthy"
+      }
+    },
+    "observedAt": "2026-09-17T05:32:36.546259959Z",
+    "currentRecordDigest": "sha256:0506f79cc4d088dc1e4c999e0cfd367515a3571541619a44ca832fecb6cc1e12",
+    "lastSuccessfulLkg": "sha256:0506f79cc4d088dc1e4c999e0cfd367515a3571541619a44ca832fecb6cc1e12"
+  },
+  "expected_candidate_digests": {
+    "edge-group-country-de": "sha256:b3bd34a3fc31e68bf669ee45b0e95506ef4d9d7e5b72598cb9f4cf8d0080c0d8",
+    "edge-group-country-us": "sha256:f6958a4ef201e1ee19ddce09cbd25cd283ab5923d878e7b1be4b6de56de8cdca"
+  },
+  "backend_commit": "3d0a19b76f08c6b900903c49056bd75a82599c04",
+  "ci_run": "https://github.com/yym68686/fugue/actions/runs/35184254091",
+  "verified_at": "2026-09-17T05:32:40.454884+00:00",
+  "edge_guardians": {
+    "edge-worker-de": {
+      "state": "stable",
+      "observedAt": "2026-09-17T05:34:22.193670122Z",
+      "currentRecordDigest": "sha256:50cef7af69b3051bf427e4d3781e9a99924bf7271fadbf6d61bc850009557d85",
+      "lastSuccessfulLkg": "sha256:50cef7af69b3051bf427e4d3781e9a99924bf7271fadbf6d61bc850009557d85",
+      "health": {
+        "dependency": {
+          "evidenceDigest": "sha256:cc27cbb60829549fecab4432c5aacf90724603d69be83cb7bdb99fd9431839fe",
+          "observedAt": "2026-09-17T05:34:17.899044915Z",
+          "state": "healthy"
+        },
+        "local": {
+          "evidenceDigest": "sha256:aebabe12c25c7d813d8102a69321cf986da5f9a11bd5cf329fe75f343d4e9c80",
+          "observedAt": "2026-09-17T05:34:17.899044915Z",
+          "state": "healthy"
+        },
+        "route": {
+          "evidenceDigest": "sha256:082095393f261d496484c3334f8be581eae8b703f4565616255ea457cf32c8a4",
+          "observedAt": "2026-09-17T05:34:18.093183781Z",
+          "state": "healthy"
+        }
+      }
+    },
+    "edge-worker-us": {
+      "state": "stable",
+      "observedAt": "2026-09-17T05:34:21.295898814Z",
+      "currentRecordDigest": "sha256:9ef9032edda0e9ba068adef7540f1634ca68d3535b01cf13a69d0c84f8a316d0",
+      "lastSuccessfulLkg": "sha256:9ef9032edda0e9ba068adef7540f1634ca68d3535b01cf13a69d0c84f8a316d0",
+      "health": {
+        "dependency": {
+          "evidenceDigest": "sha256:5ea44fd7c986975bbd203cb27f4f30cc934bbd9756e58460af3efefc6d031849",
+          "observedAt": "2026-09-17T05:34:17.247058511Z",
+          "state": "healthy"
+        },
+        "local": {
+          "evidenceDigest": "sha256:ecf913aa439e1ee6e38a36d444c3585840f3ba436d38a01413ed45be447f1d17",
+          "observedAt": "2026-09-17T05:34:17.247058511Z",
+          "state": "healthy"
+        },
+        "route": {
+          "evidenceDigest": "sha256:851baf3852ee3e3fbdafd55fbe999865d9138dcfa8bfd9e593d6e701edf2f108",
+          "observedAt": "2026-09-17T05:34:17.887744181Z",
+          "state": "healthy"
+        }
+      }
+    }
+  },
+  "step": "P0-CO",
+  "web_commit": "1cd065491a92324aa4290da666b3e7a7de9e5c8e",
+  "web_ci_run": "https://github.com/yym68686/fugue-web/actions/runs/35184353466",
+  "validation": [
+    "GOMAXPROCS=2 make test (before and after rebase onto concurrent main changes)",
+    "Real Edge Control compiler versus detached candidate bundle route-proof comparison",
+    "Path/owner/upstream/group/cache/generation drift rejection and serving pointer/cache preservation",
+    "Frontend contract:check and contract-drift",
+    "Exact parent/head release planner: api, edge-worker-de, edge-worker-us only"
+  ],
+  "configuration_identity_unchanged": true,
+  "limits": [
+    "No serving configuration promotion. Candidate has 2 routes; serving graph has 135.",
+    "No Caddy candidate apply, origin availability probe, fresh TLS receipt, gray/full convergence, or rollback acceptance is claimed.",
+    "Existing policy LKG remains absent (404)."
+  ]
+}

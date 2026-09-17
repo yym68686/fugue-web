@@ -32,7 +32,7 @@ Runtime Facts / ACK / LKG
 
 ## 当前状态判断
 
-2026-09-17 生产核查：API 已运行 commit `230b7de1`（2/2 Ready），Controller 仍运行 `a7229fa2`（2/2 Ready）。DE/US Edge Authority 原始响应均为 serving healthy，API 的健康字段丢失误报已修复（P0-CN）。三个活动 Edge 各服务 135 条 route，候选仍只有 2 条 route，保持 `staged/shadow_validated`；route required observed 3、passing 0，未发生 gray/full 接管。policy LKG 查询仍为 404，不能视为 verified policy LKG 已完成；全量配置等价、真正 candidate apply/probe、恢复演练和旧路径删除仍未完成。
+2026-09-17 生产核查：API 已运行 commit `3d0a19b7`（2/2 Ready）；Controller 由并行恢复任务推进，以各自发布收据为准。DE/US Edge Authority 原始响应均为 serving healthy，API 的健康字段丢失误报已修复（P0-CN）。三个活动 Edge 各服务 135 条 route，候选仍只有 2 条 route，保持 `staged/shadow_validated`；route required observed 3、passing 0，未发生 gray/full 接管。policy LKG 查询仍为 404，不能视为 verified policy LKG 已完成；全量配置等价、真正 candidate apply/probe、恢复演练和旧路径删除仍未完成。
 
 Fugue 已经具备相当一部分基础设施：`PlatformArtifact` 已有 generation、content hash、签名、验证状态、release channel、fencing token 和 LKG；Edge 与 DNS 也有签名校验、本地缓存和过期控制。
 
@@ -2623,7 +2623,7 @@ P0-BK 验收范围说明：管理 SSH 通道在本轮核查时于密钥交换前
 - [x] 实现提交 `3d758877` 的后端全量 `make test` 通过；最终 US `2d9daf1c` 与 DE `c1fdb535` 已经分别通过声明式部署，三个活动 worker 均上报候选索引摘要。
 - [x] 生产核对：三个活动 worker 均 healthy、非 stale、Caddy 加载版本匹配；各自继续服务 135 条 route，候选仅 2 条，route convergence passing 为 0。
 - [x] 记录发布中断原因：此前手工 generation 修复出现回退/跳代而被预检拒绝；改为从直接父提交计算 +1、引用生产真实 LKG 收据后通过。DE 的 A/B sequence conflict 经精确 supersede 失败提交恢复，未绕过 Guardian。
-- [ ] 统一候选与 serving 的 route materialization，验证 enabled/disabled、多路径、placement、upstream eligibility、cache 等语义；当前 hostname lookup 和摘要不能证明完整执行行为。
+- [x] 统一候选与 serving 的 route materialization，验证 enabled/disabled、多路径、placement、upstream eligibility、cache 等语义；P0-CO 已用真实 Edge Control compiler 和生产逐节点摘要核对。该结果仍不等于 Caddy apply 或 origin/TLS 健康证明。
 - [ ] 完成真正 candidate apply、Caddy/route probe、gray/full 与 rollback。不得把当前 `shadow_validated` 改名为 `passed` 来满足 gate。
 
 证据：[candidate-route-index-2026-09-17.json](verification/candidate-route-index-2026-09-17.json)。此步骤只验收候选索引与 serving 隔离和部署事实，完整 candidate 执行仍未完成。
@@ -2639,3 +2639,19 @@ P0-BK 验收范围说明：管理 SSH 通道在本轮核查时于密钥交换前
 - [x] 发布前后 shadow ReleaseSet、route artifact identity/digest、full channel 和 policy LKG 查询状态一致；三个活动 worker 继续服务 135 条 route，candidate 2 条且 required passing 仍为 0。
 
 证据：[authority-health-projection-2026-09-17.json](verification/authority-health-projection-2026-09-17.json)。该修复属于 runtime facts 的保真读取，不代表候选配置已经 apply、policy LKG 已激活或全量迁移完成。
+
+
+### P0-CO：候选与 serving 共用路由语义，并验证路径查找
+
+- [x] 将 API 的 artifact → EdgeRouteIntent 投影、默认值、路由 generation 和 legacy normalization 收敛到 `internal/routeartifact`。API 使用同一实现，候选按实际 group 通过共享 `routebinding` 生成不可服务的 detached bundle，不读取业务表或 live facts。
+- [x] 删除 Edge candidate 的独立逐字段复制；保留 enabled/disabled、unavailable origin、默认及显式 streaming、分组固定、runtime placement、policy exclusions、min healthy、80/20 release eligibility、request-body 与 cache 行为。
+- [x] 修复 cache ID 大小写引用：按校验器的大小写不敏感规则绑定声明的准确 policy ID；禁用 cache 清空 active reference，分组 bundle 只携带本组引用的 cache policies。
+- [x] 候选探测从 hostname-only 改为 hostname/path 查找，并比较实际返回 route 的完整行为 proof；缺路径后落到父路由、错误 owner、upstream、group、cache 和 generation 均被拒绝。
+- [x] 测试使用同一 compiled artifact 同时驱动真实 Edge Control compiler 与候选 materializer，比较每条路由 proof 和 cache policy；验证没有伪造健康数量、签名或有效期，artifact 不被修改。shadow 同步和失败路径仍保持 serving index pointer 与 cache 不变。
+- [x] 原始及重放到最新 main 后的完整 `GOMAXPROCS=2 make test` 均通过；前端契约同步、typecheck 和 [contract-drift 35184353466](https://github.com/yym68686/fugue-web/actions/runs/35184353466) 通过。
+- [x] 后端 `3d0a19b7` 通过本地精确 release planner；[CI 35184254091](https://github.com/yym68686/fugue/actions/runs/35184254091) 的 API、DE/US Edge 部署全部成功。前驱从各组件 Guardian 成功收据读取，未覆盖并行任务的 main 更新。
+- [x] 2026-09-17 05:32 UTC 生产验收：API 2/2 Ready；三个活动 worker 的 source commit 均为 `3d0a19b7`、Ready 且零重启，候选 digest 分别与本地生产 artifact 重放精确相等；各自继续服务 135 条 route，Caddy 版本一致、无 error。API 和两地 Edge Guardian 均 stable，local/dependency/route 均 healthy。
+- [x] 发布前后 shadow ReleaseSet、route artifact identity/digest、full channel 和 policy LKG 状态一致；route required expected/observed 为 3，passing 为 0，2 条 route 的候选仍与完整业务输出不等价。
+- [ ] 真正 apply 到隔离 executor/Caddy，生成精确 candidate apply/probe receipt，并完成完整配置的 gray/full 与 rollback；此步骤仍只证明路由转换与查找一致性。
+
+证据：[shared-route-materialization-2026-09-17.json](verification/shared-route-materialization-2026-09-17.json)。DE 切换期间出现过旧 record 的 canary unknown；最终两地 Guardian 的 fresh 证据均通过并恢复 stable，未降低门槛或把 shadow 结果计入 serving convergence。
