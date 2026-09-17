@@ -2754,3 +2754,14 @@ P0-BK 验收范围说明：管理 SSH 通道在本轮核查时于密钥交换前
 - [x] API 提交 `8196648bb8c37ea76160235544c652b0e2661e4c` 的 [CI 35228644963](https://github.com/yym68686/fugue/actions/runs/35228644963) 成功，生产两个副本均更新就绪且 Guardian stable。对同一 artifact 只读比较，snapshot differences 从 TLS/cache 两项变为仅 TLS allowlist；origin/policy/exclusion 真实差异仍在、equivalent=false。期间业务配置继续变化，当前匹配 106 条，不能把两次 route 匹配数变化归因于本次排序修复。前后配置指针未变，两地活动代码授权保持一致。
 
 证据：[cache-policy-comparison-2026-09-17.json](verification/cache-policy-comparison-2026-09-17.json)。前端契约 [CI 35228670770](https://github.com/yym68686/fugue-web/actions/runs/35228670770) 成功。仍需修复真正的 TLS allowlist、停用路由状态/策略、exclusion lifecycle 差异和完整 serving 发布验收。
+
+### P0-CX：停用意图、路由策略与 origin 事实分别保留
+
+- [x] 回归复现：旧 artifact 投影将 `enabled=false` 的显式 edge policy 改写为 `route_a_only`，丢失 replicas=0 的原因，并将实际 unavailable origin 改写为 disabled。
+- [x] compiler v16 保留固定快照中的非 active origin 状态/原因，显式 maintenance intent 仍优先；artifact 投影保留明确配置的 route policy，用独立停用状态阻止 upstream，缺省旧策略仍按 legacy route_a_only 处理。
+- [x] 端到端 compile→projection 回归覆盖缩容为零、runtime 缺失、origin 恢复、显式 maintenance 和旧 payload 缺省策略；停用 route 的普通/加权 upstream 始终为空，固定输入重放不受 wall clock 影响且不修改 intent/facts。compiler/artifact/Edge 测试、完整 `make test` 和前端契约检查通过。
+- [x] OpenAPI 优先更新并同步前端。`13311f51ccef6f7c6147429b86632f4631dcbf25` 已推送，声明式计划仅选择 API 和 DE/US Edge。
+- [x] [CI 35230472183](https://github.com/yym68686/fugue/actions/runs/35230472183) 全部成功。API 两个副本、DE/US 三台活动 Worker 与 Front 均为 `13311f51`；德国 B 槽位/generation 258、美国 B 槽位/generation 822，实际镜像、CurrentAuthority、cache/bundle/Caddy 和 fresh 隔离回执均一致，Guardian stable，旧配置指针不变。
+- [x] 重新采集完整生产输入及 DNS placement 证明，v16 编译得到 137 条 route、165 条 DNS record、136 条 TLS 引用。route artifact `artifact_1789653944_e6c2e79486b9`、ReleaseSet `artifact_1789653944_8972c2c5b107` 均 validated，未 promote；route 匹配提升为 126/137，剩余 11 条差异全部为 exclusion_lifecycle，snapshot 差异仅 TLS allowlist。生产输入在本地直接重放，五类 artifact content/generation 和 lineage 完全相等，未重写 placement digest。
+
+证据：[disabled-route-policy-origin-2026-09-17.json](verification/disabled-route-policy-origin-2026-09-17.json)。前端契约 [CI 35230502568](https://github.com/yym68686/fugue-web/actions/runs/35230502568) 成功；完整配置尚未 promote，required passing 仍为 0，整个架构重构尚未完成。
