@@ -2798,3 +2798,12 @@ P0-BK 验收范围说明：管理 SSH 通道在本轮核查时于密钥交换前
 - [x] 新采集的 v18 生产输入生成 137 条 route、165 条 DNS record、136 条 TLS 引用；route artifact `artifact_1789659600_5325e89e6692`、DNS `artifact_1789659600_2491179f0697`、TLS `artifact_1789659600_472a827c80f9`、ReleaseSet `artifact_1789659600_e4e70915870d` 均 validated，未 promote。route 比较 137/137 相同，TLS allowlist/cache policies 均相同，equivalent=true。route/TLS 两份产物有相同的 11 条 allowlist，原始 domain events 完整保留；同一输入本地重放五类 content/generation 与 lineage 相同。
 
 证据：[domain-tls-artifact-equivalence-2026-09-18.json](verification/domain-tls-artifact-equivalence-2026-09-18.json)。前端契约 [CI 35240842288](https://github.com/yym68686/fugue-web/actions/runs/35240842288) 成功。这里的 equivalent 是 route 投影（含 TLS allowlist/cache）等价；DNS 实际输出、完整 shadow/gray/full、serving convergence 和恢复演练仍未完成。
+
+### P0-DB：DNS 消费者兼容当前 versioned policy
+
+- [x] 核实生产 DNS/SSH client 仍为 `b120cd3b`，其严格 policy 解码早于当前 exclusion 元数据；完整 shadow 切换前先更新消费者，不放宽 unknown-field 校验。
+- [x] 以 legacy policy 与包含 tenant_hostname scope、owner digest、generation、fence、expiry 的 policy 分别运行签名 artifact shadow 回归；真实 DNS 回答、serving/LKG bytes 不变，错误签名拒绝、重启游标单调且不伪报 serving。完整 `make test` 通过。
+- [x] `921bbd90d6bd5663373b7d77c8031ffd267c940a` 已推送，声明式计划仅升级 edge-client-de/us，前驱绑定各组精确 `b120cd3b` 镜像。
+- [x] [CI 35245043626](https://github.com/yym68686/fugue/actions/runs/35245043626) 全部成功。两台 DNS 与三台 SSH front 均为 `921bbd90`、Ready 且零重启；DNS 健康、无 stale cache、仍验证原 13 条记录 shadow artifact 并报告新鲜心跳，SSH 无错误。API/三台 Edge Worker 保持 `2a232bdf`、两地 authority 健康，原配置指针未变。
+
+证据：[dns-versioned-policy-consumer-2026-09-18.json](verification/dns-versioned-policy-consumer-2026-09-18.json)。本步骤完成消费者代码兼容；完整 DNS artifact 输出和 shadow/serving 发布仍待下一步验证。
