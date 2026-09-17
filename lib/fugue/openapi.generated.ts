@@ -423,14 +423,14 @@ export interface paths {
   "/v1/admin/platform-config/release-set/prepare-consumers": {
     /**
      * Prepare ReleaseSet Consumer Expectations
-     * @description Builds immutable expectations from current node policy topology. Edge and DNS membership is independent of heartbeat freshness; missing or stale heartbeats cannot remove an existing required consumer. DNS zone rows are owned by one physical DNS process identified by physical_node_id (or id when absent); per-zone rows do not create separate process consumers. Unknown or unhealthy existing processes remain required.
+     * @description Builds immutable expectations for an active ReleaseSet release from authoritative node policy topology. Same release and topology is idempotent; a new release authority or changed topology creates increasing revisions without overwriting historical sets. Edge and DNS membership is independent of heartbeat freshness; missing or stale heartbeats cannot remove an existing required consumer. DNS zone rows belong to one physical process. Incomplete preparation never satisfies full promotion.
      */
     post: operations["preparePlatformReleaseSetConsumers"];
   };
   "/v1/admin/platform-state/convergence": {
     /**
      * List Platform Consumer Convergence
-     * @description Projects immutable expected sets onto current authoritative node policy topology. Heartbeat freshness is assessed after membership, so a silent or stale Edge or DNS process remains required and cannot make a partial cohort pass. DNS zone aliases are attributed to their physical process and duplicate expectations are collapsed; missing or unhealthy processes are not treated as successful. Empty required topology remains unknown. Full promotion uses the same projection.
+     * @description Projects immutable expected sets onto current authoritative node policy topology. Heartbeat freshness is assessed after membership, so a silent or stale Edge or DNS process remains required. ReleaseSet assessments require verified consumer identity and exact expected-set, ReleaseSet, active release fence and child artifact generation sequence; missing binding context is unknown and old or unverified receipts cannot pass. DNS zone aliases belong to one physical process. Full promotion selects the newest active release publication for the target ReleaseSet, requires the latest expected set for every referenced traffic artifact, and applies the same assessment. Historical expected sets remain available without granting current promotion authority. CLI state queries use these server assessments.
      */
     get: operations["listPlatformConsumerConvergence"];
   };
@@ -13546,7 +13546,7 @@ export interface operations {
   };
   /**
    * Prepare ReleaseSet Consumer Expectations
-   * @description Builds immutable expectations from current node policy topology. Edge and DNS membership is independent of heartbeat freshness; missing or stale heartbeats cannot remove an existing required consumer. DNS zone rows are owned by one physical DNS process identified by physical_node_id (or id when absent); per-zone rows do not create separate process consumers. Unknown or unhealthy existing processes remain required.
+   * @description Builds immutable expectations for an active ReleaseSet release from authoritative node policy topology. Same release and topology is idempotent; a new release authority or changed topology creates increasing revisions without overwriting historical sets. Edge and DNS membership is independent of heartbeat freshness; missing or stale heartbeats cannot remove an existing required consumer. DNS zone rows belong to one physical process. Incomplete preparation never satisfies full promotion.
    */
   preparePlatformReleaseSetConsumers: {
     requestBody: {
@@ -13571,7 +13571,7 @@ export interface operations {
   };
   /**
    * List Platform Consumer Convergence
-   * @description Projects immutable expected sets onto current authoritative node policy topology. Heartbeat freshness is assessed after membership, so a silent or stale Edge or DNS process remains required and cannot make a partial cohort pass. DNS zone aliases are attributed to their physical process and duplicate expectations are collapsed; missing or unhealthy processes are not treated as successful. Empty required topology remains unknown. Full promotion uses the same projection.
+   * @description Projects immutable expected sets onto current authoritative node policy topology. Heartbeat freshness is assessed after membership, so a silent or stale Edge or DNS process remains required. ReleaseSet assessments require verified consumer identity and exact expected-set, ReleaseSet, active release fence and child artifact generation sequence; missing binding context is unknown and old or unverified receipts cannot pass. DNS zone aliases belong to one physical process. Full promotion selects the newest active release publication for the target ReleaseSet, requires the latest expected set for every referenced traffic artifact, and applies the same assessment. Historical expected sets remain available without granting current promotion authority. CLI state queries use these server assessments.
    */
   listPlatformConsumerConvergence: {
     parameters: {
