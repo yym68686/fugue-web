@@ -1,0 +1,116 @@
+{
+  "step": "P0-CM",
+  "verified_at": "2026-09-17T04:36:07.164053+00:00",
+  "implementation_commit": "3d7588779460f3ca823d7956ea8f16e7ad534a15",
+  "deployed_commits": {
+    "us": "2d9daf1c98e47183b385ffdb33a98390ea5b6f76",
+    "de": "c1fdb53580f9e96066adab1ada1995f7ba3eff04"
+  },
+  "ci_runs": {
+    "us_lane": "https://github.com/yym68686/fugue/actions/runs/35091722560",
+    "de_recovery": "https://github.com/yym68686/fugue/actions/runs/35097571525"
+  },
+  "active_workers": [
+    {
+      "node": "bwg",
+      "pod": "fugue-fugue-edge-worker-b-rvsb4",
+      "status": {
+        "status": "ok",
+        "healthy": true,
+        "serving_generation": "edgegroupbundle_c379ffae346f727a6dcc16c038785c111525b555091431eff756887b6ad66c02",
+        "route_count": 135,
+        "stale_cache": false,
+        "caddy_last_error": null,
+        "platform_candidate": {
+          "state": "shadow_verified",
+          "artifact_id": "artifact_1789290147_3ae6084f214d",
+          "digest": "sha256:aa3453c3d79efef9c915163030f1d20df4186a69c3fe0cb24a567ef166ab69f9",
+          "release_set_id": "artifact_1789290147_22038f948fad",
+          "route_count": 2,
+          "route_index_digest": "sha256:acd7621b078565305ad553c61f459407b161a5b6744f69cd7a0aa3644598961a",
+          "sequence": 1789619730592545570,
+          "verified_at": "2026-09-17T04:35:30.59254566Z",
+          "reported_at": "2026-09-17T04:35:30.633739208Z"
+        }
+      }
+    },
+    {
+      "node": "vps-591f4447",
+      "pod": "fugue-fugue-edge-worker-b-w8bn9",
+      "status": {
+        "status": "ok",
+        "healthy": true,
+        "serving_generation": "edgegroupbundle_c379ffae346f727a6dcc16c038785c111525b555091431eff756887b6ad66c02",
+        "route_count": 135,
+        "stale_cache": false,
+        "caddy_last_error": null,
+        "platform_candidate": {
+          "state": "shadow_verified",
+          "artifact_id": "artifact_1789290147_3ae6084f214d",
+          "digest": "sha256:aa3453c3d79efef9c915163030f1d20df4186a69c3fe0cb24a567ef166ab69f9",
+          "release_set_id": "artifact_1789290147_22038f948fad",
+          "route_count": 2,
+          "route_index_digest": "sha256:acd7621b078565305ad553c61f459407b161a5b6744f69cd7a0aa3644598961a",
+          "sequence": 1789619738989698014,
+          "verified_at": "2026-09-17T04:35:38.989698166Z",
+          "reported_at": "2026-09-17T04:35:39.00505738Z"
+        }
+      }
+    },
+    {
+      "node": "vps-84c8f0a9",
+      "pod": "fugue-fugue-edge-country-de-worker-a-b644c",
+      "status": {
+        "status": "ok",
+        "healthy": true,
+        "serving_generation": "edgegroupbundle_c6f08734161de1e8e2296e7f868e293672efe6c8d132651e2439b6acaf41a844",
+        "route_count": 135,
+        "stale_cache": false,
+        "caddy_last_error": null,
+        "platform_candidate": {
+          "state": "shadow_verified",
+          "artifact_id": "artifact_1789290147_3ae6084f214d",
+          "digest": "sha256:aa3453c3d79efef9c915163030f1d20df4186a69c3fe0cb24a567ef166ab69f9",
+          "release_set_id": "artifact_1789290147_22038f948fad",
+          "route_count": 2,
+          "route_index_digest": "sha256:01ab8d090a1b534f1b0cffea9aac64b69d251f34e5f1af8f1cdfb1573cbfdea6",
+          "sequence": 1789619734925962953,
+          "verified_at": "2026-09-17T04:35:34.925963108Z",
+          "reported_at": "2026-09-17T04:35:35.747414621Z"
+        }
+      }
+    }
+  ],
+  "convergence": [
+    {
+      "artifact_kind": "caddy_route_config",
+      "state": "unknown",
+      "pass": false,
+      "required_expected": 3,
+      "required_observed": 0,
+      "required_passing": 0
+    },
+    {
+      "artifact_kind": "dns_answer_bundle",
+      "state": "fail",
+      "pass": false,
+      "required_expected": 9,
+      "required_observed": 2,
+      "required_passing": 0
+    },
+    {
+      "artifact_kind": "edge_route_bundle",
+      "state": "fail",
+      "pass": false,
+      "required_expected": 3,
+      "required_observed": 3,
+      "required_passing": 0
+    }
+  ],
+  "limits": [
+    "Candidate has 2 routes; each active worker continues to serve 135 routes.",
+    "A detached index digest and hostname lookup are not complete execution semantics validation or evidence of Caddy apply, origin health, or serving.",
+    "Enabled/disabled, path lookup, placement, cache policy, and serving projection equivalence require further validation before using candidate evidence for promotion."
+  ],
+  "failed_release_history": "Several erroneous manual intent-generation changes were rejected by preflight. The final script-derived consecutive generations passed. US deployed; DE required explicit supersession after A/B authority sequence conflict, then deployed successfully. No protection was disabled."
+}

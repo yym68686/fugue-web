@@ -32,7 +32,7 @@ Runtime Facts / ACK / LKG
 
 ## 当前状态判断
 
-2026-09-16 生产核查：API 已运行 commit `ee19260c`（2/2 Ready），Controller 已运行 `a7229fa2`（2/2 Ready）。最新业务迁移草稿包含 135 条 route；共享 hostname path owner 冲突已清零，未被冻结 route graph 引用的 release facts 已过滤，当前保留 7 条被引用的 release observations。动态 DNS placement、ACME/flatten、TLS readiness、剩余 release freshness、全量等价以及 consumer gray/full 接管仍未完成；migration_ready 继续为 false。现有 shadow ReleaseSet 未提升为 serving，policy LKG 仍未激活；这些结果不能作为全局迁移完成证明。
+2026-09-17 生产核查：API 已运行 commit `230b7de1`（2/2 Ready），Controller 仍运行 `a7229fa2`（2/2 Ready）。DE/US Edge Authority 原始响应均为 serving healthy，API 的健康字段丢失误报已修复（P0-CN）。三个活动 Edge 各服务 135 条 route，候选仍只有 2 条 route，保持 `staged/shadow_validated`；route required observed 3、passing 0，未发生 gray/full 接管。policy LKG 查询仍为 404，不能视为 verified policy LKG 已完成；全量配置等价、真正 candidate apply/probe、恢复演练和旧路径删除仍未完成。
 
 Fugue 已经具备相当一部分基础设施：`PlatformArtifact` 已有 generation、content hash、签名、验证状态、release channel、fencing token 和 LKG；Edge 与 DNS 也有签名校验、本地缓存和过期控制。
 
@@ -2615,3 +2615,27 @@ P0-BK 验收范围说明：管理 SSH 通道在本轮核查时于密钥交换前
 - [x] 本地完整 `GOMAXPROCS=2 make test` 通过；API 与 Edge atom 均通过 planner、CI/build/deploy。
 - [x] 生产三个 Edge consumer 持续上报相同 candidate generation，同时保留各自 serving actual generation；required observed 为 3、passing 为 0，full promotion 仍被阻止。证据：[candidate-generation-runtime-fact-2026-09-16.json](verification/candidate-generation-runtime-fact-2026-09-16.json)。
 - [ ] 实现真正 candidate apply、离线/隔离 probe、applied/passed heartbeat 和 gray/full/rollback 验收。
+
+
+### P0-CM：隔离候选路由索引落盘与部署核对
+
+- [x] 构建与 serving pointer 分离的候选 route index，保存 `route_index_digest` 到独立 shadow 文件和 consumer 状态；不调用 Caddy apply，不覆盖当前 bundle/cache/LKG。
+- [x] 实现提交 `3d758877` 的后端全量 `make test` 通过；最终 US `2d9daf1c` 与 DE `c1fdb535` 已经分别通过声明式部署，三个活动 worker 均上报候选索引摘要。
+- [x] 生产核对：三个活动 worker 均 healthy、非 stale、Caddy 加载版本匹配；各自继续服务 135 条 route，候选仅 2 条，route convergence passing 为 0。
+- [x] 记录发布中断原因：此前手工 generation 修复出现回退/跳代而被预检拒绝；改为从直接父提交计算 +1、引用生产真实 LKG 收据后通过。DE 的 A/B sequence conflict 经精确 supersede 失败提交恢复，未绕过 Guardian。
+- [ ] 统一候选与 serving 的 route materialization，验证 enabled/disabled、多路径、placement、upstream eligibility、cache 等语义；当前 hostname lookup 和摘要不能证明完整执行行为。
+- [ ] 完成真正 candidate apply、Caddy/route probe、gray/full 与 rollback。不得把当前 `shadow_validated` 改名为 `passed` 来满足 gate。
+
+证据：[candidate-route-index-2026-09-17.json](verification/candidate-route-index-2026-09-17.json)。此步骤只验收候选索引与 serving 隔离和部署事实，完整 candidate 执行仍未完成。
+
+### P0-CN：Authority 健康事实完整读取，修复 false 误报
+
+- [x] API 不再对 Edge Authority 请求 legacy inventory cursor 表示，改为读取完整 authority projection，保留 `serving_healthy`、`bootstrap_eligible` 和 publication/authority sequence。
+- [x] 缺失或 null 的健康字段返回明确的 evidence unavailable 错误，不把缺失事实解码成 false；真实的 false 仍原样保留。
+- [x] 回归直接调用 Edge Control 的真实 content-negotiation handler，覆盖显式不健康、缺失/null 字段与健康投影；后端全量 `GOMAXPROCS=2 make test` 通过。
+- [x] OpenAPI 先更新，并同步 web generated client；前端 `contract:check` 与 [contract-drift 35182036855](https://github.com/yym68686/fugue-web/actions/runs/35182036855) 通过。
+- [x] 后端 `230b7de1`、API intent generation 468、本地精确 release plan（仅 API）和 [CI 35182003877](https://github.com/yym68686/fugue/actions/runs/35182003877) 通过，生产 API 2/2 Ready，Guardian stable 且全部健康证据通过。
+- [x] 生产交叉验证：修复前 DE/US 原始 authority 的 serving health 为 true，legacy cursor 省略字段，而 API 错报 false；修复后 API 两组均为 true，与原始响应一致。此前关于“混合 A/B 版本导致不健康”的推断撤回；A/B 的 inactive slot 保留旧 LKG 本身不构成活动流量故障。
+- [x] 发布前后 shadow ReleaseSet、route artifact identity/digest、full channel 和 policy LKG 查询状态一致；三个活动 worker 继续服务 135 条 route，candidate 2 条且 required passing 仍为 0。
+
+证据：[authority-health-projection-2026-09-17.json](verification/authority-health-projection-2026-09-17.json)。该修复属于 runtime facts 的保真读取，不代表候选配置已经 apply、policy LKG 已激活或全量迁移完成。
