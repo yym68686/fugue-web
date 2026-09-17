@@ -10824,7 +10824,7 @@ export interface components {
       /** @description Desired release references and weights. Compilation requires matching fresh release observations. Unsupported sticky routing is rejected, never silently ignored. */
       traffic_constraints?: components["schemas"]["PlatformTrafficPolicyConstraint"][];
     };
-    /** @description By default applies only to paths matching the specified app owner, or all paths at the hostname when app_id is empty. Explicit tenant_hostname scope preserves legacy hostname policy behavior across apps within one tenant and requires tenant_id. Every referenced constraint must match at least one route. A tenant mismatch is always rejected, including other paths at the same hostname. Exclusion expiry remains evidence metadata and does not silently remove an exclusion. */
+    /** @description By default applies only to paths matching the specified app owner, or all paths at the hostname when app_id is empty. Explicit tenant_hostname scope preserves legacy hostname policy behavior across apps within one tenant and requires tenant_id. Every referenced constraint must match at least one route. A tenant mismatch is always rejected, including other paths at the same hostname. Exclusion owner digest, generation and fence retain versioned authorization metadata. Compilation derives exclusion_lifecycle using fixed runtime_snapshot.captured_at when a fully identified exclusion has an expiry; that timestamp is required for this case. Missing authorization metadata yields legacy_hold. Exclusion expiry never silently removes an exclusion, including expired_hold and legacy_hold. */
     PlatformRoutePolicyConstraint: {
       id: string;
       hostname: string;
@@ -10842,6 +10842,9 @@ export interface components {
       exclusion_reason?: string;
       /** Format: date-time */
       exclusion_expires_at?: string | null;
+      exclusion_owner_digest?: string;
+      exclusion_generation?: number;
+      exclusion_fence?: string;
       min_healthy_edge_nodes?: number;
       /** @enum {string} */
       route_policy: "route_a_only" | "edge_canary" | "edge_enabled";
