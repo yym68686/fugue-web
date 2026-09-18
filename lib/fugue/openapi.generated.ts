@@ -10864,6 +10864,18 @@ export interface components {
       a?: string[];
       aaaa?: string[];
     };
+    PlatformDNSClientPolicy: {
+      node_id: string;
+      /** @description Ordered first-match mappings. An empty array explicitly disables client geography overrides. */
+      rules: components["schemas"]["PlatformDNSClientRule"][];
+    };
+    PlatformDNSClientRule: {
+      cidr: string;
+      country?: string;
+      region?: string;
+      asn?: string;
+      edge_group_id?: string;
+    };
     PlatformDNSAnswerRule: {
       node_id: string;
       hostname: string;
@@ -10941,6 +10953,7 @@ export interface components {
       aaaa?: string[];
     };
     PlatformConfigPolicySnapshot: {
+      dns_client_policies?: components["schemas"]["PlatformDNSClientPolicy"][];
       dns_answer_rules?: components["schemas"]["PlatformDNSAnswerRule"][];
       dns_readiness?: components["schemas"]["PlatformDNSReadinessPolicy"];
       schema_version?: string;
