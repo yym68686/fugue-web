@@ -32,7 +32,7 @@ Runtime Facts / ACK / LKG
 
 ## 当前状态判断
 
-2026-09-18 状态：API 为 `d0ef6320`，两地 DNS/SSH 客户端为 `d723d70f`，Edge 为 `8cfb9786`；CI 与独立生产验收通过。compiler v20 从固定输入生成 137 route、214 全局 DNS record、136 TLS reference 和 6 个 DNS consumer zone 视图，route/TLS/cache 137/137 等价，固定输入重放一致。zone 期望来自 DNS workload 主/静态 zone 与固定 hosted-zone 声明，已修复历史心跳复活旧 zone 的问题；两台 DNS 各验证 3 views/3 probe records，12 次公网 UDP/TCP probe 地址检查通过。完整候选已进入 shadow（ReleaseSet `artifact_1789701583_d70fcc81cd86`，fence 3），route/TLS/DNS observed 为 3/3/2、passing 均为 0；正式 serving/LKG 指针不变。DNS geo/ECS/latency/TTL 与优先组语义、持续有效的 readiness facts、serving apply/gray/full/rollback、policy verified LKG 和旧配置来源删除仍待完成。
+2026-09-18 状态：API、两地 Edge 与 DNS/SSH 客户端均为 `312272fc`，CI 与独立生产验收通过，德国 B/generation 264、美国 B/generation 828。compiler v21 的完整 shadow 为 138 route、214 全局 DNS record、137 TLS reference、6 个 DNS consumer zone 视图，138 路由含 TLS/cache 等价，固定输入重放一致。候选另包含 396 个去重的 route/TLS 探测要求，覆盖 202 条 DNS 记录；两台 DNS 已独立采集并持续刷新事实。业务路由在 capture 后发布时，精确摘要不匹配的事实保持未就绪，未延长 artifact 中的旧地址租期。当前完整 shadow ReleaseSet `artifact_1789709559_769cd5b03ec0`、fence 4，route/TLS/DNS observed 为 3/3/2、passing 均为 0；正式 serving/LKG 指针不变。DNS 查询选择策略、将稳定授权与新鲜 facts 接入 serving、gray/full/rollback、policy verified LKG 和旧配置来源删除仍待完成。
 
 Fugue 已经具备相当一部分基础设施：`PlatformArtifact` 已有 generation、content hash、签名、验证状态、release channel、fencing token 和 LKG；Edge 与 DNS 也有签名校验、本地缓存和过期控制。
 
@@ -2932,3 +2932,17 @@ DNS 尚有明确待完成的行为：disabled/unavailable 自定义目标在现�
 - [x] 对当前完整 shadow 的 6 个视图逐一查询成功，6 个 reference scope 唯一且 digest 完整。每个主 zone 两侧各 213 条声明 RRset、12 条匹配，201 条报告差异；每个主 zone 的候选有 385 个值按原始期限到期。两个附加 zone 各有 2 条记录，probe 均匹配，其余记录的状态或选择/租期差异如实报告。结果 equivalent 均为 false，查询前后配置指针不变。
 
 证据：[dns-scoped-migration-comparison-2026-09-18.json](verification/dns-scoped-migration-comparison-2026-09-18.json)。接口已完成验收，报告中的 DNS 语义缺口尚未消除。下一步迁移选择策略及候选事实，并解决短期 readiness lease 与长期恢复 artifact 的分离，不能仅延长旧证明或忽略差异来完成 full 发布。
+
+
+### P0-DN：DNS 独立采集与 artifact 绑定的新鲜 route/TLS 事实
+
+- [x] compiler v21 增加显式 `dns_readiness` 策略，配置探测周期、超时、事实有效期、并发和总预算。固定 `dns_edge_endpoints` 只保存身份/group/公网地址及捕获时间，权威拓扑中的失联节点仍被保留；heartbeat 健康不会改变授权对象。原有限期 DNS 地址与 readiness requirements 分开，要求不直接授权任何 DNS 答案。
+- [x] 将 route artifact 投影合并到 compiler 内部，执行器通过同一实现使用它；从每条 DNS 的所有 hostname/path 依赖生成精确 group route digest，保留 active/disabled/unavailable 语义并去重 probe。既有 API placement 与 DNS 共享 HTTPS nonce-bound 探测实现，校验 Host/SNI、真实证书、节点/group、原始 bundle version/expiry，事实期限取策略 freshness 与证书/bundle 原期限的最小值。
+- [x] DNS shadow 持续读取签名要求，在预算内独立探测并保存绑定 artifact digest、ReleaseSet、expected set、fence 与 DNS node 的事实；重新读取 assignment 后才能发布结果，变更时拒绝旧 scan。重启缓存重算全部 proof 归属和期限，不相信缓存中的成功计数，不续期旧事实，损坏文件不静默重置；失败/缺失事实未就绪，每个地址要求全部路径、每条记录要求 quorum 与声明的双栈条件。
+- [x] `platform_candidate.readiness` 报告 plan digest、探测/记录计数、观察时间、期限和 `serving=false`。不写 serving bundle、不延长 ValueExpirations、不伪报 applied/passed、positive LKG 或解开 gray/full 保护；ACME TXT 等内容期限继续使用原始绝对时间。
+- [x] 测试覆盖共享投影摘要、多个依赖路径、排序重放、输入不可变、明确 inactive policy、地址归属/私网/未来 observation/预算拒绝、错误摘要/身份/状态/未来或过期 proof、quorum、缓存重算、重启、取消与 assignment fence 改变。完整 make test、补充发布切换回归与前端 contract:check 通过。
+- [x] `312272fc3e7dd37f3a8bdc2b31ee352f06329cf3` 的 [CI 35309037781](https://github.com/yym68686/fugue/actions/runs/35309037781) 全部成功，API、两地 Edge 和两地 DNS/SSH 均通过声明式发布；前端契约 [CI 35309061138](https://github.com/yym68686/fugue-web/actions/runs/35309061138) 成功。德国 B/generation 264、美国 B/generation 828，精确镜像/authority、零重启、Front/Worker、API 两副本、五个客户端及 Guardian 通过独立核对。
+- [x] 并发业务发布导致摘要不匹配时拒绝完整编译；稳定 capture 得到 138 route、214 DNS、137 TLS，138/138 路由含 TLS/cache 等价，6 views、396 probes、202 readiness records、3 authorized edges；固定输入重放内容、generation、lineage 和 ReleaseSet membership 一致。完整候选进入 shadow：ReleaseSet `artifact_1789709559_769cd5b03ec0`、release `artifactrel_1789709659_82f824c89623`、fence 4，三台 Worker 各完成 138 条隔离探测，TLS 137 引用/11 allowlist，8 个 consumer 身份绑定与心跳通过。
+- [x] 两台 DNS 首次实际探测各 390/396 probes、199/202 records 就绪；capture 后两项业务发布使 6 个摘要不匹配，独立路由字段对比确认 cache namespace/deployment generation 已改变。数分钟后同一 artifact/plan 的事实继续刷新，均为 387/396 probes、198/202 records；9 个失配证明保持拒绝。此时 artifact 内 387 个临时地址值仍按原始期限到期，未被新事实续期；正式 serving/LKG 指针及历史 expected sets 不变。
+
+证据：[dns-independent-readiness-2026-09-18.json](verification/dns-independent-readiness-2026-09-18.json)。此步骤完成独立事实采集与失配识别，尚未让这些 facts 驱动 DNS serving。继续迁移 query policy/geo/ECS/latency/TTL，建立稳定授权候选与新鲜事实的实际执行流程，并处理 verified LKG 下的 route proof、gray/full/rollback 与故障恢复演练。
