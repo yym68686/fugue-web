@@ -2907,3 +2907,17 @@ DNS 尚有明确待完成的行为：disabled/unavailable 自定义目标在现�
 - [x] 生产 API 两副本新版本就绪。此前续期成功的停用自定义域名，shared_tls_certificate/tls_ready 通过，route_active 失败并明确 replicas=0；证书到期时间保持 2026-12-16。八个真实 consumer 的当前发布绑定、3×137 路由隔离执行、TLS 校验、DNS/SSH 健康及 Guardian 状态均正常，原始 expected sets 和正式配置/LKG 指针不变。
 
 证据：[domain-runtime-diagnosis-2026-09-18.json](verification/domain-runtime-diagnosis-2026-09-18.json)。route_active 的运行态判断不替代 ReleaseSet 的独立 Edge apply/probe 和 serving 收敛门。
+
+
+### P0-DL：签名 DNS consumer zone 视图与声明来源修复
+
+- [x] compiler v20 增加 `DNSConsumerIntent` 和独立 endpoint observation：intent 保存 physical node、group、zones、probe label、TTL；地址和 capture time 进入 runtime snapshot digest。DNS artifact 保存按 node/zone 排序的 `consumer_views`，不把两地 listener 地址合并成全局 probe 答案，也不将 listener 可达性当作应用 route/TLS readiness。
+- [x] 迁移投影从 DNS DaemonSet 模板读取主 zone、静态附加 zone，从同一固定业务快照读取 publishable hosted zones；节点策略决定 required membership，失联节点不会因健康过滤而消失。历史 zone 心跳不能新增期望 zone；缺失/冲突 workload 声明、归属冲突、probe 碰撞和无 endpoint 的 required consumer 均拒绝。
+- [x] DNS shadow consumer 仅按签名的 node/group/zone materialize，使用最长 zone 归属和实际 wire encoder 校验，保留逐值原始期限；全局 record_count 与本进程的 consumer_view_count/probe_record_count 分开。校验失败不更新已验证统计或持久化候选，不写 serving/LKG，也不报告 applied/passed。
+- [x] 回归覆盖多物理进程同 zone、嵌套 zone、删除/暂停 zone、无历史心跳的新声明、静态附加 zone、失联节点、地址/group 冲突、缺失/未来 observation、不可变输入、排序重放、错误身份和坏签名。实现和修复两次完整 make test、前端 contract:check 均通过。
+- [x] `d723d70f3c3de1c60cced3e00083a4be8fc7ca81` 更新 API 和两地 DNS/SSH 客户端，[CI 35299287543](https://github.com/yym68686/fugue/actions/runs/35299287543) 成功。验收发现旧投影将已移除 zone 的心跳重新加入，生成 8 个视图；该候选未发布。修复 `fce36906bd5c603c71e3a3573d0426de303646be` 仅更新 API，[CI 35300664667](https://github.com/yym68686/fugue/actions/runs/35300664667) 成功；两次前端契约 CI 亦成功。
+- [x] 业务应用同时发布期间，旧/新 generation 的路由证明不匹配时两次编译拒绝，配置指针不变。应用部署稳定后重新采集成功：137 route、214 全局 DNS record、136 TLS reference、2 physical DNS consumer × 3 zones = 6 views。137 路由含 TLS/cache 对比全部等价；固定原始输入重放 intent/policy/route/DNS/TLS 内容和 generation、lineage 相同，另核对持久化 child ID 的 ReleaseSet membership，未改写 placement 证明或延长 lease。
+- [x] 新完整 shadow ReleaseSet `artifact_1789701583_d70fcc81cd86`、release `artifactrel_1789702981_7536bdc990e2`、fence 3 已由真实消费者验证：两台 DNS 各 3 views/3 probe records，三台 Worker 各 137 条隔离探测，TLS 各 136 引用/11 allowlist；可信发布绑定为 TLS 3/3/0、Edge 3/3/0、DNS 2/2/0（expected/observed/passing）。API 两副本、五个 DNS/SSH 客户端、Front/Worker 和 Guardian 健康，原始历史 expected sets 及正式 serving/LKG 指针不变。
+- [x] 对候选声明的每个节点/zone 执行公网 UDP/TCP probe，共 12 项通过，地址与签名视图一致。这证明 listener 声明匹配当前 DNS 端点，不代表新候选已承载 serving。
+
+证据：[dns-consumer-zone-views-2026-09-18.json](verification/dns-consumer-zone-views-2026-09-18.json)。继续完成 DNS geo/ECS/latency/TTL 与每 consumer 优先组、持续有效的 readiness facts、真正的 serving apply/gray/full/rollback、policy verified LKG 和旧路径删除；此步骤不勾选完整 DNS 语义等价或 serving 收敛。
