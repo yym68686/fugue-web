@@ -2898,3 +2898,12 @@ DNS 尚有明确待完成的行为：disabled/unavailable 自定义目标在现�
 - [x] 生产 API 两副本更新就绪，全部 8 个实际 consumer 的身份/expected set/ReleaseSet/fence/sequence 绑定通过独立核对；TLS 3/3/0、Edge 3/3/0、DNS 2/2/0，未通过原因仅为 shadow 尚未 applied/serving。三台 Worker 的 137 路由隔离执行、TLS 引用校验、五个 DNS/SSH 客户端及 Guardian 状态正常；原始 expected sets、shadow/serving/LKG 指针未变。
 
 证据：[current-release-consumer-binding-2026-09-18.json](verification/current-release-consumer-binding-2026-09-18.json)。这一步收紧发布证据；gray/full 实际 serving、原子提交时复核、回滚/恢复和其余 DNS 输出迁移仍待完成。
+
+### P0-DK：域名 TLS 与应用 route 活跃状态独立诊断
+
+- [x] domain diagnosis 不再用 DNS/domain/TLS 元数据推导 route_active。期望 replicas=0 明确失败；其他应用复用现有运行态 observation 和 appObservedReadyForServing 判断，只有新鲜、当前 generation、具备 cluster/endpoint/image/replica 证据才通过，缺失或陈旧事实显示 unknown。
+- [x] 保留证书有效性和 TLS 检查独立结果；只读诊断不修改 app spec、serving、证书或原始 domain events。回归覆盖停用但历史 ready、有效证书、缺失/陈旧证据、旧 generation、未知 cluster、缺少 endpoint 和正向完整证据。
+- [x] OpenAPI 优先更新，专项测试、完整 make test 和前端 contract:check 通过。`abe2456ff3cf4a3c03ea7297e28fee645fa4d468` 仅发布 API，[CI 35297455450](https://github.com/yym68686/fugue/actions/runs/35297455450) 成功；前端契约 [CI 35297471054](https://github.com/yym68686/fugue-web/actions/runs/35297471054) 成功。
+- [x] 生产 API 两副本新版本就绪。此前续期成功的停用自定义域名，shared_tls_certificate/tls_ready 通过，route_active 失败并明确 replicas=0；证书到期时间保持 2026-12-16。八个真实 consumer 的当前发布绑定、3×137 路由隔离执行、TLS 校验、DNS/SSH 健康及 Guardian 状态均正常，原始 expected sets 和正式配置/LKG 指针不变。
+
+证据：[domain-runtime-diagnosis-2026-09-18.json](verification/domain-runtime-diagnosis-2026-09-18.json)。route_active 的运行态判断不替代 ReleaseSet 的独立 Edge apply/probe 和 serving 收敛门。
