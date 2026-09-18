@@ -32,7 +32,7 @@ Runtime Facts / ACK / LKG
 
 ## 当前状态判断
 
-2026-09-17 19:23 UTC 状态：API 与两地 Edge 已更新为 `8cfb9786`，DNS/SSH 客户端保持 `57264616`，CI 与全组独立验收通过。停用自定义域名的证书维护与过期诊断已修复，实际过期证书通过正常 Edge 流程续期至 2026-12-16，三节点 HTTPS 状态证明通过。compiler v19 新鲜编译得到 137 route、214 DNS record、136 TLS reference，route 含 TLS/cache 137/137 等价，并通过固定输入本地重放；新配置未 promote。与已保存现网 DNS 记录集合比较只缺四条 zone probe，但 geo/ECS/latency、TTL、持续 serving 的租期处理仍待完成。原完整 shadow 的 route/TLS/DNS observed 为 3/3/2、passing 均为 0；正式 serving/LKG 指针不变。
+2026-09-18 状态：API 为 `fce36906`，两地 DNS/SSH 客户端为 `d723d70f`，Edge 为 `8cfb9786`；CI 与独立生产验收通过。compiler v20 从固定输入生成 137 route、214 全局 DNS record、136 TLS reference 和 6 个 DNS consumer zone 视图，route/TLS/cache 137/137 等价，固定输入重放一致。zone 期望来自 DNS workload 主/静态 zone 与固定 hosted-zone 声明，已修复历史心跳复活旧 zone 的问题；两台 DNS 各验证 3 views/3 probe records，12 次公网 UDP/TCP probe 地址检查通过。完整候选已进入 shadow（ReleaseSet `artifact_1789701583_d70fcc81cd86`，fence 3），route/TLS/DNS observed 为 3/3/2、passing 均为 0；正式 serving/LKG 指针不变。DNS geo/ECS/latency/TTL 与优先组语义、持续有效的 readiness facts、serving apply/gray/full/rollback、policy verified LKG 和旧配置来源删除仍待完成。
 
 Fugue 已经具备相当一部分基础设施：`PlatformArtifact` 已有 generation、content hash、签名、验证状态、release channel、fencing token 和 LKG；Edge 与 DNS 也有签名校验、本地缓存和过期控制。
 
@@ -41,7 +41,7 @@ Fugue 已经具备相当一部分基础设施：`PlatformArtifact` 已有 genera
 - serving intent 仍分散在业务表、环境变量和即时计算逻辑中；
 - route/DNS bundle 仍可能从 mutable app、domain、runtime 状态即时推导；
 - policy 参数和决策分散在代码与环境变量中；
-- route、DNS、TLS、cache 等 artifact 没有统一的一等 ReleaseSet；
+- route、DNS、TLS 已使用统一 TrafficReleaseSet 做完整 shadow，但正式 serving、verified LKG 与恢复尚未完成；
 - runtime facts、期望状态和 release ledger 仍需要进一步分离；
 - executor 仍需要逐步脱离控制面业务数据库。
 
