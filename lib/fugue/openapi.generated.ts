@@ -358,6 +358,13 @@ export interface paths {
      */
     post: operations["compilePlatformConfigFromArtifacts"];
   };
+  "/v1/admin/platform-config/dns/compare": {
+    /**
+     * Compare a Signed DNS Consumer View with its Current Published DNS Bundle
+     * @description Read-only platform administrator diagnostic for one exact physical DNS node and zone. Validates the candidate artifact signature, schema, policy lineage and consumer ownership, then compares its materialized records with the current trusted full DNS bundle or verified LKG used by the legacy bundle endpoint. Both sides use one server observation time and absolute value expirations; expired values are not renewed. Compares RRset values, effective TTL, policy, candidates, scoped candidates and ownership metadata; ignores record_generation and record ordering, but preserves nested selection order and TXT bytes. A missing, ambiguous or untrusted source is unavailable, never equivalent. Does not regenerate legacy records from business tables, write artifacts or releases, attest actual serving, or authorize promotion. Equivalence covers only the requested node/zone.
+     */
+    get: operations["comparePlatformDNSMigration"];
+  };
   "/v1/admin/platform-config/routes/compare": {
     /**
      * Compare Business Route Projection with a Signed Artifact
@@ -10958,6 +10965,31 @@ export interface components {
       /** @enum {string} */
       relation: "requires";
     };
+    PlatformDNSMigrationComparison: {
+      artifact_id: string;
+      artifact_digest: string;
+      artifact_generation: string;
+      node_id: string;
+      edge_group_id: string;
+      zone: string;
+      source_generation: string;
+      source_digest: string;
+      source_scope_key: string;
+      /** Format: date-time */
+      captured_at: string;
+      source_record_count: number;
+      artifact_record_count: number;
+      matching_record_count: number;
+      expired_candidate_value_count: number;
+      equivalent: boolean;
+      differences: ({
+          hostname: string;
+          type: string;
+          /** @enum {string} */
+          kind: "missing_from_artifact" | "extra_in_artifact" | "changed";
+          fields: string[];
+        })[];
+    };
     PlatformRouteMigrationComparison: {
       artifact_id: string;
       artifact_digest: string;
@@ -13307,6 +13339,52 @@ export interface operations {
         };
       };
       default: components["responses"]["ErrorResponse"];
+    };
+  };
+  /**
+   * Compare a Signed DNS Consumer View with its Current Published DNS Bundle
+   * @description Read-only platform administrator diagnostic for one exact physical DNS node and zone. Validates the candidate artifact signature, schema, policy lineage and consumer ownership, then compares its materialized records with the current trusted full DNS bundle or verified LKG used by the legacy bundle endpoint. Both sides use one server observation time and absolute value expirations; expired values are not renewed. Compares RRset values, effective TTL, policy, candidates, scoped candidates and ownership metadata; ignores record_generation and record ordering, but preserves nested selection order and TXT bytes. A missing, ambiguous or untrusted source is unavailable, never equivalent. Does not regenerate legacy records from business tables, write artifacts or releases, attest actual serving, or authorize promotion. Equivalence covers only the requested node/zone.
+   */
+  comparePlatformDNSMigration: {
+    parameters: {
+      query: {
+        artifact_id: string;
+        /** @description Physical DNS process identity, not a zone alias. */
+        node_id: string;
+        zone: string;
+      };
+    };
+    responses: {
+      /** @description Comparison for the requested node and zone at captured_at. */
+      200: {
+        content: {
+          "application/json": components["schemas"]["PlatformDNSMigrationComparison"];
+        };
+      };
+      /** @description Required comparison identity is missing or invalid. */
+      400: {
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"];
+        };
+      };
+      /** @description Artifact not found. */
+      404: {
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"];
+        };
+      };
+      /** @description Candidate is untrusted, incompatible, or lacks the exact consumer view. */
+      409: {
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"];
+        };
+      };
+      /** @description Current DNS inventory or trusted published reference is unavailable or ambiguous. */
+      503: {
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"];
+        };
+      };
     };
   };
   /**
