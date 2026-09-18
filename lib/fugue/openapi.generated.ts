@@ -10864,6 +10864,67 @@ export interface components {
       a?: string[];
       aaaa?: string[];
     };
+    PlatformDNSAnswerRule: {
+      node_id: string;
+      hostname: string;
+      /** @enum {string} */
+      type: "A" | "AAAA";
+      /** @enum {string} */
+      selection_mode: "geo" | "latency_aware" | "global" | "weighted" | "pinned" | "disabled";
+      /** @enum {string} */
+      scoped_selection_mode?: "geo" | "latency_aware" | "global" | "weighted" | "pinned" | "disabled";
+      preferred_edge_groups?: string[];
+      fallback_edge_groups?: string[];
+      ttl_seconds: number;
+      ecs_enabled: boolean;
+      exploration_percent: number;
+      switch_cooldown_seconds: number;
+    };
+    PlatformDNSSelectionObservation: {
+      node_id: string;
+      hostname: string;
+      /** @enum {string} */
+      type: "A" | "AAAA";
+      source_generation: string;
+      source_digest: string;
+      /** Format: date-time */
+      observed_at: string;
+      selected_edge_group_id?: string;
+      shadow_selected_edge_group_id?: string;
+      ranking_version?: string;
+      ranking_scope?: string;
+      reason?: string;
+      shadow_reason?: string;
+      weight?: number;
+      candidates: components["schemas"]["PlatformDNSSelectionCandidate"][];
+      scoped_candidates?: components["schemas"]["PlatformDNSSelectionScope"][];
+    };
+    PlatformDNSSelectionCandidate: {
+      ip: string;
+      edge_id: string;
+      edge_group_id: string;
+      country?: string;
+      region?: string;
+      priority?: number;
+      weight?: number;
+      score?: number;
+      traffic_class?: string;
+      reason?: string;
+      score_breakdown?: {
+        [key: string]: number;
+      };
+    };
+    PlatformDNSSelectionScope: {
+      scope_key: string;
+      country?: string;
+      region?: string;
+      asn?: string;
+      selected_edge_group_id?: string;
+      /** Format: date-time */
+      cooldown_until?: string;
+      reason?: string;
+      candidates: components["schemas"]["PlatformDNSSelectionCandidate"][];
+    };
     PlatformDNSReadinessPolicy: {
       probe_interval_seconds: number;
       probe_timeout_seconds: number;
@@ -10880,6 +10941,7 @@ export interface components {
       aaaa?: string[];
     };
     PlatformConfigPolicySnapshot: {
+      dns_answer_rules?: components["schemas"]["PlatformDNSAnswerRule"][];
       dns_readiness?: components["schemas"]["PlatformDNSReadinessPolicy"];
       schema_version?: string;
       generation: string;
@@ -11056,6 +11118,7 @@ export interface components {
       omitted_runtime_fields: string[];
     };
     PlatformRuntimeSnapshot: {
+      dns_selections?: components["schemas"]["PlatformDNSSelectionObservation"][];
       dns_edge_endpoints?: components["schemas"]["PlatformDNSEdgeEndpoint"][];
       /** @description Fixed endpoint ownership observations; health and application readiness are not implied. */
       dns_consumers?: components["schemas"]["PlatformDNSConsumerObservation"][];
