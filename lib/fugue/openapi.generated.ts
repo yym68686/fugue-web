@@ -10864,7 +10864,23 @@ export interface components {
       a?: string[];
       aaaa?: string[];
     };
+    PlatformDNSReadinessPolicy: {
+      probe_interval_seconds: number;
+      probe_timeout_seconds: number;
+      fact_freshness_seconds: number;
+      max_concurrency: number;
+      max_probes: number;
+    };
+    PlatformDNSEdgeEndpoint: {
+      edge_id: string;
+      edge_group_id: string;
+      /** Format: date-time */
+      observed_at: string;
+      a?: string[];
+      aaaa?: string[];
+    };
     PlatformConfigPolicySnapshot: {
+      dns_readiness?: components["schemas"]["PlatformDNSReadinessPolicy"];
       schema_version?: string;
       generation: string;
       scope?: string;
@@ -11040,6 +11056,7 @@ export interface components {
       omitted_runtime_fields: string[];
     };
     PlatformRuntimeSnapshot: {
+      dns_edge_endpoints?: components["schemas"]["PlatformDNSEdgeEndpoint"][];
       /** @description Fixed endpoint ownership observations; health and application readiness are not implied. */
       dns_consumers?: components["schemas"]["PlatformDNSConsumerObservation"][];
       tls_domains?: components["schemas"]["PlatformTLSDomainObservation"][];
