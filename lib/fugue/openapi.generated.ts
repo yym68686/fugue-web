@@ -931,7 +931,10 @@ export interface paths {
     post: operations["createApp"];
   };
   "/v1/apps/import-github": {
-    /** Import Git Hub App */
+    /**
+     * Import Git Hub App
+     * @description Import a GitHub topology. Entrypoints without explicit domains use the allocated public service hostname for both runtime environment references and the persisted project route table. For a new managed database without an explicit storage class, an explicit physical runtime uses a platform-approved PostgreSQL class with observed capacity when the configured default is exhausted.
+     */
     post: operations["importGitHubApp"];
   };
   "/v1/templates/inspect-github": {
@@ -16214,7 +16217,10 @@ export interface operations {
       default: components["responses"]["ErrorResponse"];
     };
   };
-  /** Import Git Hub App */
+  /**
+   * Import Git Hub App
+   * @description Import a GitHub topology. Entrypoints without explicit domains use the allocated public service hostname for both runtime environment references and the persisted project route table. For a new managed database without an explicit storage class, an explicit physical runtime uses a platform-approved PostgreSQL class with observed capacity when the configured default is exhausted.
+   */
   importGitHubApp: {
     parameters: {
       header?: {
