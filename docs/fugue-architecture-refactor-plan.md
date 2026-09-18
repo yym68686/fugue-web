@@ -32,7 +32,7 @@ Runtime Facts / ACK / LKG
 
 ## 当前状态判断
 
-2026-09-18 状态：API、两地 Edge 与 DNS/SSH 客户端均为 `312272fc`，CI 与独立生产验收通过，德国 B/generation 264、美国 B/generation 828。compiler v21 的完整 shadow 为 138 route、214 全局 DNS record、137 TLS reference、6 个 DNS consumer zone 视图，138 路由含 TLS/cache 等价，固定输入重放一致。候选另包含 396 个去重的 route/TLS 探测要求，覆盖 202 条 DNS 记录；两台 DNS 已独立采集并持续刷新事实。业务路由在 capture 后发布时，精确摘要不匹配的事实保持未就绪，未延长 artifact 中的旧地址租期。当前完整 shadow ReleaseSet `artifact_1789709559_769cd5b03ec0`、fence 4，route/TLS/DNS observed 为 3/3/2、passing 均为 0；正式 serving/LKG 指针不变。DNS 查询选择策略、将稳定授权与新鲜 facts 接入 serving、gray/full/rollback、policy verified LKG 和旧配置来源删除仍待完成。
+2026-09-18 状态：API 为 `c2560ec7`，两地 Edge 为 `aaa32747`（德国 B/generation 266、美国 B/generation 830），DNS/SSH 客户端为 `fa8047bf`；对应 CI、完整本地测试与独立生产验收通过。compiler v22 完整 shadow 为 137 route、213 全局 DNS record、136 TLS reference、6 个 consumer/query views；402 条显式查询规则与排名 observation 分离，137 路由含 TLS/cache 等价，固定输入重放一致。两台 DNS 均完成 393/393 实际 route/TLS 探测，201/201 动态记录就绪，隔离执行各 216 条记录、601 次查询并编码 603 条答案；同一 artifact 通过新鲜事实持续查询，原始 585 个地址租期仍自然到期。当前 ReleaseSet `artifact_1789717017_88dabc19ac08`、fence 5，route/TLS/DNS observed 为 3/3/2、serving passing 均为 0，正式 serving/LKG 指针不变。公网 TCP 小样本 29/36 答案一致，差异涉及排名输入变化及尚待同客户端/同时间窗排查的探索选择；完整 DNS serving 等价、GeoIP 配置、gray/full/rollback、policy verified LKG 和旧配置来源删除仍待完成。
 
 Fugue 已经具备相当一部分基础设施：`PlatformArtifact` 已有 generation、content hash、签名、验证状态、release channel、fencing token 和 LKG；Edge 与 DNS 也有签名校验、本地缓存和过期控制。
 
@@ -2956,3 +2956,18 @@ DNS 尚有明确待完成的行为：disabled/unavailable 自定义目标在现�
 - [x] 使用原始大请求并显式发送 `Expect: 100-continue`，通过公网 HTTPS 分别直连三台 Edge，全部返回正确 201，artifact ID 与 lineage 保持同一组；请求前后配置指针不变。
 
 证据：[http-informational-status-2026-09-18.json](verification/http-informational-status-2026-09-18.json)。DNS 查询策略代码 `c2560ec7` 已通过代码发布健康验收，但隔离查询的完整生产验收及部分 TXT 过期修复尚未在此项中勾选。
+
+
+### P0-DP：DNS 查询策略编译并结合新鲜事实执行隔离查询
+
+- [x] compiler v22 增加按 physical consumer/hostname/type 绑定的 `DNSAnswerRule`：选择模式、scoped 模式、首选/回退 group、TTL、ECS、探索比例和冷却时间进入 PolicySnapshot。签名源 generation/digest、原始生成时间、排名/score/candidate 元数据进入独立 RuntimeSnapshot；不复制 legacy healthy/route-ready/TLS-ready 等正向状态。
+- [x] 迁移适配器只读取当前可信 full DNS bundle 或 verified LKG，并按声明的最长 zone 归属捕获配置与排名；不在查询执行器读取业务表。编译得到 `query_views`，地址与 edge/group 必须受同一个 readiness plan 的全部 route/path 要求限制，static/probe 原始内容保持独立。错误归属、缺失规则/事实、未来观察、无效 score、越界策略或伪造 readiness 拒绝。
+- [x] DNS 将签名 query views 与同一 artifact/ReleaseSet/expected set/fence/node 的新鲜事实关联，要求每个地址全部路径与节点 quorum/双栈门槛，再复用原 DNS geo/latency/scoped/exploration selector 编码 wire answer。TTL 受所有相关 required 证明的剩余期限限制；不把旧 ValueExpirations 延长，不写正在 serving 的 bundle，不发 applied/passed 或 positive LKG。
+- [x] 新增 `platform_candidate.query` 和持久化隔离回执，记录 view digest、记录/可用记录、查询/答案计数、观察时间及 `serving=false`。覆盖 global 和有界客户端 geo 提示矩阵，不读取环境中的 GeoIP override 充当新配置；实际公网入口仍待切换。
+- [x] 回归覆盖 geo/ECS 开关、延迟、scoped 候选、探索顺序、动态地址的全部路径/quorum/过期/TTL 上限、错误事实身份、政策变更进入 digest、排序/墙钟重放与输入不可变。完整 make test、补充绑定/TTL 回归和前端 contract:check 通过。`c2560ec7b0fa7b5aa05989286bd4a90dba171f6e` 的 [CI 35314008025](https://github.com/yym68686/fugue/actions/runs/35314008025) 成功，前端契约 [CI 35314035724](https://github.com/yym68686/fugue-web/actions/runs/35314035724) 成功。
+- [x] 部分 TXT 值到期的补充回归发现重复编码时仍保留已移除值的 expiry 引用，导致未到期值被错误丢弃；隔离投影现只保留存活值对应的原始期限。修复前复现、修复后重复读取与 TTL 递减通过，完整 make test 通过；`fa8047bf5cc005d2c93ad741c506ce2e1e139ff9` 仅更新两地 DNS/SSH 客户端，[CI 35318939155](https://github.com/yym68686/fugue/actions/runs/35318939155) 成功。未伪造生产 ACME challenge 来宣称业务 E2E。
+- [x] 新鲜完整编译得到 137 route、213 DNS、136 TLS、6 consumer/query views、402 query rules/selection observations、393 probes/201 readiness records；137/137 路由含 TLS/cache 等价，固定输入重放一致。候选进入 shadow：ReleaseSet `artifact_1789717017_88dabc19ac08`、release `artifactrel_1789717145_08f9db34a36f`、fence 5。
+- [x] 两台 DNS 均 393/393 probes、201/201 readiness records 通过，各有 216/216 可用记录，隔离执行 601 次查询并编码 603 条答案；从实际持久化事实独立重放各 801 个查询/803 条答案。数分钟后同一 artifact/view digest 的回执继续刷新，原始快照中 585 个临时地址值保持到期，没有续期旧证明。三台 Worker 各 137 条隔离探测、TLS 136 引用/11 allowlist、8 个可信 consumer、API 两副本、五个客户端、authority 与 Guardian 正常，正式 serving/LKG 指针及历史 expected sets 不变。
+- [x] 记录有限公网对照：36 个 TCP A/AAAA 请求全部成功，29 个答案与固定快照一致，7 个差异均在 latency 策略，其中 3 个确认排名输入变化，4 个仍待同客户端提示/同探索时间窗验证；全部公网答案均在候选授权集合内。本机 UDP 超时，双向生产节点 UDP probe 正常；不将本机连通性问题写成 DNS server 故障，也不把 29/36 样本写成完整等价。
+
+证据：[dns-query-policy-shadow-2026-09-18.json](verification/dns-query-policy-shadow-2026-09-18.json)。此步骤完成查询配置分层及真实消费者隔离执行，尚未完成公网 serving 切换。继续消除 legacy selection 迁移适配器作为持续来源的依赖，迁移 GeoIP/客户端作用域配置，解决动态排名事实与完整查询等价、verified LKG 的 proof、gray/full/rollback 和故障恢复演练。
