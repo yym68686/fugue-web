@@ -32,7 +32,7 @@ Runtime Facts / ACK / LKG
 
 ## 当前状态判断
 
-2026-09-18 状态：API 为 `c2560ec7`，两地 Edge 为 `aaa32747`（德国 B/generation 266、美国 B/generation 830），DNS/SSH 客户端为 `fa8047bf`；对应 CI、完整本地测试与独立生产验收通过。compiler v22 完整 shadow 为 137 route、213 全局 DNS record、136 TLS reference、6 个 consumer/query views；402 条显式查询规则与排名 observation 分离，137 路由含 TLS/cache 等价，固定输入重放一致。两台 DNS 均完成 393/393 实际 route/TLS 探测，201/201 动态记录就绪，隔离执行各 216 条记录、601 次查询并编码 603 条答案；同一 artifact 通过新鲜事实持续查询，原始 585 个地址租期仍自然到期。当前 ReleaseSet `artifact_1789717017_88dabc19ac08`、fence 5，route/TLS/DNS observed 为 3/3/2、serving passing 均为 0，正式 serving/LKG 指针不变。公网 TCP 小样本 29/36 答案一致，差异涉及排名输入变化及尚待同客户端/同时间窗排查的探索选择；完整 DNS serving 等价、GeoIP 配置、gray/full/rollback、policy verified LKG 和旧配置来源删除仍待完成。
+2026-09-18 最新状态：API/controller 为 `52073eda`，两地 Edge 和 DNS/SSH 客户端为 `5d2e3457`（德国 A/generation 267、美国 A/generation 831）；对应 CI、完整本地测试与独立生产验收通过。P0-DQ 将 full ReleaseSet 收敛门纳入发布事务；P0-DR 合并消费者传输并在观察结束后复核 assignment。compiler v22 的完整 shadow 仍为 137 route、213 全局 DNS record、136 TLS reference、6 个 consumer/query views，ReleaseSet `artifact_1789717017_88dabc19ac08`、fence 5。三台 Worker 各完成 137 条隔离路由探测；两台 DNS 最新均为 363/393 probes、184/201 readiness records，30 个 route digest 失配继续拒绝，216 条隔离查询记录中 199 条可用、567 次查询/552 条答案。route/TLS/DNS observed 为 3/3/2，serving passing 均为 0。global ReleaseSet shadow/full、policy LKG 响应及历史 expected sets 未变；旧 serving bundle 仍按原流程正常刷新，不宣称其 generation 固定。首次完整 shadow 的全部通过结果和固定输入重放证据见 P0-DP；完整 DNS serving 等价、GeoIP 配置、gray/full/rollback、policy verified LKG 和旧配置来源删除仍待完成。
 
 Fugue 已经具备相当一部分基础设施：`PlatformArtifact` 已有 generation、content hash、签名、验证状态、release channel、fencing token 和 LKG；Edge 与 DNS 也有签名校验、本地缓存和过期控制。
 
@@ -1870,7 +1870,7 @@ conclusion: success
 - [x] shadow release 使用独立 fencing token 和 idempotency key，状态为 `serving_unverified`。
 - [x] shadow 发布不改变当前 full serving artifact 或 API workload。
 - [x] 生产 `/healthz` 和 `/readyz` 仍返回 `ok`，API config 保持原 serving atom。
-- [ ] 在 required Edge、DNS、TLS consumer 完成 heartbeat、apply、probe 和 convergence 前禁止 full promotion。
+- [x] 在 required Edge、DNS、TLS consumer 完成 heartbeat、apply、probe 和 convergence 前禁止 full promotion；API 拒绝与事务内复核已由 P0-AH、P0-DJ、P0-DQ 验证。真实 serving 收敛仍未完成。
 
 生产证据：
 
@@ -1961,7 +1961,7 @@ full_promotion_after_expected_sets: 409 conflict
 - [x] 后端 CI 和 `deploy_api` 成功；web OpenAPI 同步、`contract:check` 和 contract-drift 成功。
 - [x] 生产以临时签名身份只读查询 route/DNS/TLS assignment，均返回 200，digest 和 token 与实际 shadow release 一致；匿名/admin key 为 401，无 assignment 的身份为 404。
 - [x] API 2/2 Ready，`/healthz`、`/readyz` 正常。
-- [ ] 真实消费者尚未接入 assignment 的持续读取；此次查询没有上报 heartbeat，也不证明 apply/probe 已完成。
+- [x] DNS、Edge、TLS 真实消费者已持续读取 assignment 并上报可信 shadow heartbeat，后续证据见 P0-AN、P0-AO、P0-DF、P0-DR；原只读查询与当前 shadow 均不证明 serving apply/probe 已完成。
 
 ```text
 backend implementation: 32490b38 (replaces the incomplete assignment implementation in 6420e29f)
@@ -2983,3 +2983,16 @@ DNS 尚有明确待完成的行为：disabled/unavailable 自定义目标在现�
 - [x] disposable PostgreSQL `fugue_test_atomic_promotion` 的并发集成验证 6 个场景全部通过：完整 full publication 成功；事实变坏、过期、拓扑变更、并发 publication 和旧 revision 均被拒绝并保持账本/LKG不变；scope lock 等待后重新复核，未使用 stale preflight。
 
 证据：[atomic-release-convergence-2026-09-18.json](verification/atomic-release-convergence-2026-09-18.json)。这一步只完成发布门的原子复核和并发安全，当前仍保持 shadow；后续继续完成真实 serving apply、gray/full/rollback、positive policy LKG、故障恢复和旧配置来源删除。
+
+
+### P0-DR：合并消费者传输与观察结束后的 assignment 复核
+
+- [x] DNS 的 Pod 身份交换、assignment 下载、HTTP JSON 边界和受限文件读取合并到 `internal/platformconsumer`，删除重复实现；DNS 现在与 Edge/TLS 一样校验精确 scope 和 artifact capability，并拒绝超限或含尾随 JSON 的响应。
+- [x] 公共客户端增加显式 `SyncChannel`，只读取调用方指定的 shadow/gray/full 通道，未知值拒绝、缺失 assignment 不跨通道回退。当前真实消费者仍调用 shadow；没有新增决定 serving 的环境变量。
+- [x] Edge 隔离执行、TLS 双 artifact 验证和 DNS 查询观察结束后，持久化/上报前统一重读 assignment；相同通道的 fence、revision 或其他绑定变化、缺失、重复及请求失败均拒绝。DNS 无 readiness plan 的旧 artifact 同样复核。服务端事务内绑定验证继续作为最终约束。
+- [x] DNS 持久化 sequence 到达 int64 上限时拒绝，不通过溢出重置单调游标。覆盖多通道同时存在、身份 scope/capability、发布变更、无 plan、重复 assignment、重启、损坏缓存和游标溢出；完整 `make test` 通过。
+- [x] 后端 `5d2e3457ee0afe0f4ddc0fbbc63e3c97e006372e` 已推送，声明式计划仅含两地 Edge Worker 和 DNS/SSH 客户端；[CI 35332602428](https://github.com/yym68686/fugue/actions/runs/35332602428) 的四次构建及四次部署全部成功。API/controller 保持 `52073eda`、2/2 Ready，六次连续 `/healthz`、`/readyz` 采样全部 200。
+- [x] 独立核对新镜像、Front activation 和 authority：德国 A/generation 267、美国 A/generation 831；三台 Worker 各 137 条隔离执行，TLS 各 136 引用/11 allowlist，两台 DNS 与三个 SSH 客户端健康，活跃容器零重启。八个可信 consumer 保持精确 ReleaseSet/expected set/fence 绑定，TLS/Edge/DNS 分别 3/3/0、3/3/0、2/2/0，Guardian stable。
+- [x] 两台 DNS 均保留 216 条 query records，实际 199 条可用、567 次查询/552 条答案；新鲜 readiness 为 363/393 probes、184/201 records，30 条 `route_digest_mismatch` 均未变成正向证明。核对持久化候选、query/readiness 归属和原始期限；global ReleaseSet/policy LKG 响应与 immutable expected sets 不变，不将隔离结果计作 serving ACK。
+
+证据：[consumer-transport-consolidation-2026-09-18.json](verification/consumer-transport-consolidation-2026-09-18.json)。此步骤合并传输与绑定校验；继续完成 gray/full serving apply、positive policy LKG、恢复演练与旧配置来源删除。
