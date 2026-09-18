@@ -1058,7 +1058,7 @@ export interface paths {
   "/v1/apps/{id}/domains/diagnosis": {
     /**
      * Get App Domain Diagnosis
-     * @description Checks actual shared certificate validity and ownership independently from historical TLS status. Presence alone cannot pass shared_tls_certificate, tls_ready or route_active.
+     * @description Checks actual shared certificate validity and ownership independently from historical TLS status. Presence alone cannot pass shared_tls_certificate or tls_ready. The separate route_active check also requires positive fresh current-generation application runtime evidence; desired replicas zero fails, missing or stale runtime evidence is unknown. A valid certificate cannot make a stopped application active. Diagnosis does not change serving configuration or synthesize runtime observations.
      */
     get: operations["getAppDomainDiagnosis"];
   };
@@ -16825,7 +16825,7 @@ export interface operations {
   };
   /**
    * Get App Domain Diagnosis
-   * @description Checks actual shared certificate validity and ownership independently from historical TLS status. Presence alone cannot pass shared_tls_certificate, tls_ready or route_active.
+   * @description Checks actual shared certificate validity and ownership independently from historical TLS status. Presence alone cannot pass shared_tls_certificate or tls_ready. The separate route_active check also requires positive fresh current-generation application runtime evidence; desired replicas zero fails, missing or stale runtime evidence is unknown. A valid certificate cannot make a stopped application active. Diagnosis does not change serving configuration or synthesize runtime observations.
    */
   getAppDomainDiagnosis: {
     parameters: {
