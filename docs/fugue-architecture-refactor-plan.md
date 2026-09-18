@@ -2886,3 +2886,15 @@ DNS 尚有明确待完成的行为：disabled/unavailable 自定义目标在现�
 - [x] 生产 API 两副本更新就绪，原完整 shadow 的 TLS/Edge 分别 3 expected / 3 observed、DNS 2/2，passing 仍全为 0；原始 expected sets、shadow/serving/LKG 指针未变。三台 Worker 的 137 路由隔离执行与独立 TLS consumer、五个 DNS/SSH 客户端保持健康。
 
 证据：[required-edge-membership-2026-09-18.json](verification/required-edge-membership-2026-09-18.json)。后续必须继续收紧 ReleaseSet 回执身份、expected set、fence、generation sequence 绑定，并确保 full gate 要求全部成员的当前 expected set；当前尚未 full 发布。
+
+### P0-DJ：收敛结果绑定完整的当前 ReleaseSet 证据
+
+- [x] ReleaseSet 收敛要求服务器校验后的 active release 与 child artifact 上下文，以及真实 verified consumer identity、credential/token、精确 expected set/ReleaseSet、fence、artifact generation sequence、sequence/issued-at/nonce/evidence hash。缺上下文为 unknown，错误或未验证身份不能 pass；原始事实与 expected set 不被重写。
+- [x] full gate 选择目标 ReleaseSet 最新的 active publication，必须包含全部成员的最新 expected set。lane fence 各自计数，跨 channel 按发布记录时间排序；旧 shadow 回执不能授权新 gray，缺 DNS/TLS 期望或新增 required 节点未收敛均阻止发布。
+- [x] prepare 同一发布/拓扑保持幂等；新 release 或 topology 创建递增 immutable revision，历史行保留，并处理并发冲突的身份核对。可信 heartbeat 在更新持久化 cursor 前验证当前发布、child sequence 与最新 expectation。CLI 读取服务器收敛结果并检查全部 ReleaseSet 成员，不再用缺少上下文的本地计算宣称通过。
+- [x] 合法跨 lane 切换必须由同一数据库事务加载的旧/新 expected set、release 和锁定的新 lane 证明；只切换 fence 比较域，保留 sequence、issued-at、artifact sequence 和 nonce 防重放。PostgreSQL 同步支持同一发布、相同 fence/generation 下的新 topology revision，拒绝冻结、旧发布或错配 lane。
+- [x] 完整 make test、前端 contract:check、拒绝性回归和真实临时 PostgreSQL 集成通过；实际执行 shadow fence 2 → gray fence 1、缺成员、旧回执、新 topology revision、幂等重试及历史不变测试。临时数据库已停止，没有修改生产数据库或跳过 schema migration。
+- [x] `5deb506412a21e8212654d835aa95babadfe563e` 仅发布 API，[CI 35270308142](https://github.com/yym68686/fugue/actions/runs/35270308142) 成功，前端契约 [CI 35270359027](https://github.com/yym68686/fugue-web/actions/runs/35270359027) 成功。
+- [x] 生产 API 两副本更新就绪，全部 8 个实际 consumer 的身份/expected set/ReleaseSet/fence/sequence 绑定通过独立核对；TLS 3/3/0、Edge 3/3/0、DNS 2/2/0，未通过原因仅为 shadow 尚未 applied/serving。三台 Worker 的 137 路由隔离执行、TLS 引用校验、五个 DNS/SSH 客户端及 Guardian 状态正常；原始 expected sets、shadow/serving/LKG 指针未变。
+
+证据：[current-release-consumer-binding-2026-09-18.json](verification/current-release-consumer-binding-2026-09-18.json)。这一步收紧发布证据；gray/full 实际 serving、原子提交时复核、回滚/恢复和其余 DNS 输出迁移仍待完成。
