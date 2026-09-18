@@ -629,7 +629,10 @@ export interface paths {
     get: operations["getConsoleProject"];
   };
   "/v1/projects/{id}": {
-    /** Delete Project */
+    /**
+     * Delete Project
+     * @description Delete a project after its resources are removed. Import idempotency results for removed apps are discarded so the same creation request can create a fresh project.
+     */
     delete: operations["deleteProject"];
     /** Patch Project */
     patch: operations["patchProject"];
@@ -14678,7 +14681,10 @@ export interface operations {
       default: components["responses"]["ErrorResponse"];
     };
   };
-  /** Delete Project */
+  /**
+   * Delete Project
+   * @description Delete a project after its resources are removed. Import idempotency results for removed apps are discarded so the same creation request can create a fresh project.
+   */
   deleteProject: {
     parameters: {
       query?: {
