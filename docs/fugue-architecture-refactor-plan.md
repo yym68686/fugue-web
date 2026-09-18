@@ -2946,3 +2946,13 @@ DNS 尚有明确待完成的行为：disabled/unavailable 自定义目标在现�
 - [x] 两台 DNS 首次实际探测各 390/396 probes、199/202 records 就绪；capture 后两项业务发布使 6 个摘要不匹配，独立路由字段对比确认 cache namespace/deployment generation 已改变。数分钟后同一 artifact/plan 的事实继续刷新，均为 387/396 probes、198/202 records；9 个失配证明保持拒绝。此时 artifact 内 387 个临时地址值仍按原始期限到期，未被新事实续期；正式 serving/LKG 指针及历史 expected sets 不变。
 
 证据：[dns-independent-readiness-2026-09-18.json](verification/dns-independent-readiness-2026-09-18.json)。此步骤完成独立事实采集与失配识别，尚未让这些 facts 驱动 DNS serving。继续迁移 query policy/geo/ECS/latency/TTL，建立稳定授权候选与新鲜事实的实际执行流程，并处理 verified LKG 下的 route proof、gray/full/rollback 与故障恢复演练。
+
+
+### P0-DO：修复大配置请求被临时 HTTP 响应改写最终状态
+
+- [x] 查询策略迁移验收发现：1,129,142 字节的编译请求通过公网返回 200，但 API 契约与 origin 为 201；关闭 Expect 时同一输入返回 201，两次 artifact ID 与 lineage 相同。根因是 Edge observation/cache response writer 把 100 Continue 或 103 Early Hints 当成最终状态，抑制后续 201，发送正文时隐式提交 200。
+- [x] 两个 response writer 对普通 1xx 只转发、不记录最终状态/TTFB/cache；101 协议升级仍为最终响应，已提交最终响应后不再转发临时状态。真实 net/http origin + reverse proxy 回归复现两个包装器的旧错误，修复后保留最终 status/header/body；WebSocket 升级专项与完整 make test 通过。
+- [x] `aaa32747ecce4b2a6a82721ee9e5e2c09260888b` 仅更新两地 Edge，[CI 35316314814](https://github.com/yym68686/fugue/actions/runs/35316314814) 全部成功，德国 B/generation 266、美国 B/generation 830。独立核对 Front/Worker authority、镜像、零重启、Guardian 健康及全部现有 shadow consumer，正式 serving/LKG 指针不变。
+- [x] 使用原始大请求并显式发送 `Expect: 100-continue`，通过公网 HTTPS 分别直连三台 Edge，全部返回正确 201，artifact ID 与 lineage 保持同一组；请求前后配置指针不变。
+
+证据：[http-informational-status-2026-09-18.json](verification/http-informational-status-2026-09-18.json)。DNS 查询策略代码 `c2560ec7` 已通过代码发布健康验收，但隔离查询的完整生产验收及部分 TXT 过期修复尚未在此项中勾选。
