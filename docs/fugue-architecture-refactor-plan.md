@@ -32,7 +32,7 @@ Runtime Facts / ACK / LKG
 
 ## 当前状态判断
 
-2026-09-18 状态：API 为 `fce36906`，两地 DNS/SSH 客户端为 `d723d70f`，Edge 为 `8cfb9786`；CI 与独立生产验收通过。compiler v20 从固定输入生成 137 route、214 全局 DNS record、136 TLS reference 和 6 个 DNS consumer zone 视图，route/TLS/cache 137/137 等价，固定输入重放一致。zone 期望来自 DNS workload 主/静态 zone 与固定 hosted-zone 声明，已修复历史心跳复活旧 zone 的问题；两台 DNS 各验证 3 views/3 probe records，12 次公网 UDP/TCP probe 地址检查通过。完整候选已进入 shadow（ReleaseSet `artifact_1789701583_d70fcc81cd86`，fence 3），route/TLS/DNS observed 为 3/3/2、passing 均为 0；正式 serving/LKG 指针不变。DNS geo/ECS/latency/TTL 与优先组语义、持续有效的 readiness facts、serving apply/gray/full/rollback、policy verified LKG 和旧配置来源删除仍待完成。
+2026-09-18 状态：API 为 `d0ef6320`，两地 DNS/SSH 客户端为 `d723d70f`，Edge 为 `8cfb9786`；CI 与独立生产验收通过。compiler v20 从固定输入生成 137 route、214 全局 DNS record、136 TLS reference 和 6 个 DNS consumer zone 视图，route/TLS/cache 137/137 等价，固定输入重放一致。zone 期望来自 DNS workload 主/静态 zone 与固定 hosted-zone 声明，已修复历史心跳复活旧 zone 的问题；两台 DNS 各验证 3 views/3 probe records，12 次公网 UDP/TCP probe 地址检查通过。完整候选已进入 shadow（ReleaseSet `artifact_1789701583_d70fcc81cd86`，fence 3），route/TLS/DNS observed 为 3/3/2、passing 均为 0；正式 serving/LKG 指针不变。DNS geo/ECS/latency/TTL 与优先组语义、持续有效的 readiness facts、serving apply/gray/full/rollback、policy verified LKG 和旧配置来源删除仍待完成。
 
 Fugue 已经具备相当一部分基础设施：`PlatformArtifact` 已有 generation、content hash、签名、验证状态、release channel、fencing token 和 LKG；Edge 与 DNS 也有签名校验、本地缓存和过期控制。
 
@@ -2921,3 +2921,14 @@ DNS 尚有明确待完成的行为：disabled/unavailable 自定义目标在现�
 - [x] 对候选声明的每个节点/zone 执行公网 UDP/TCP probe，共 12 项通过，地址与签名视图一致。这证明 listener 声明匹配当前 DNS 端点，不代表新候选已承载 serving。
 
 证据：[dns-consumer-zone-views-2026-09-18.json](verification/dns-consumer-zone-views-2026-09-18.json)。继续完成 DNS geo/ECS/latency/TTL 与每 consumer 优先组、持续有效的 readiness facts、真正的 serving apply/gray/full/rollback、policy verified LKG 和旧路径删除；此步骤不勾选完整 DNS 语义等价或 serving 收敛。
+
+
+### P0-DM：按物理节点和 zone 查询真实 DNS 迁移差异
+
+- [x] 增加管理员只读接口 `GET /v1/admin/platform-config/dns/compare?artifact_id=...&node_id=...&zone=...`。必须指定精确 validated、签名可信的 global DNS artifact 和其中的 physical node/zone；校验 schema、policy lineage 和 view 归属。参考侧使用现有 bundle 端点选择的可信 full artifact 或 verified LKG，不重新读取业务表生成 DNS 内容。
+- [x] 使用同一个服务器观察时间比较 RRset 值、有效 TTL、policy、candidate/scoped candidate、归属和原始期限，保留 TXT 字节及嵌套选择顺序；忽略 record_generation 与顶层记录枚举顺序。到期值不会续期，保留已声明 RRset 名称并计数 expired_candidate_value_count。结果绑定双方 digest、reference scope/generation 与 captured_at，只覆盖请求的 node/zone，不作为 serving ACK 或 promote 授权。
+- [x] 回归覆盖相同 IP 下的 ECS/preference/candidate/TLS/scope/TTL/owner 差异、TXT 空格、绝对过期、空权威名称、重复 RRset、lease 与动态 candidate 的不兼容、错误类型/ID/身份/zone、缺参考、坏签名和冲突 alias。验证比较前后 artifact 与 full publication 不变；完整 make test、前端 contract:check 通过。
+- [x] `d0ef632026924e0af70da58c8873c23b7fbec921` 仅更新 API，[CI 35306322653](https://github.com/yym68686/fugue/actions/runs/35306322653) 成功；前端契约 [CI 35306347028](https://github.com/yym68686/fugue-web/actions/runs/35306347028) 成功。API 两副本就绪，三台 Worker 各 137 条隔离探测、TLS consumer、两台 DNS/三个 SSH 客户端、Front 与 Guardian 均正常，8 个 consumer 仍为 staged/shadow_validated，正式 serving/LKG 指针不变。
+- [x] 对当前完整 shadow 的 6 个视图逐一查询成功，6 个 reference scope 唯一且 digest 完整。每个主 zone 两侧各 213 条声明 RRset、12 条匹配，201 条报告差异；每个主 zone 的候选有 385 个值按原始期限到期。两个附加 zone 各有 2 条记录，probe 均匹配，其余记录的状态或选择/租期差异如实报告。结果 equivalent 均为 false，查询前后配置指针不变。
+
+证据：[dns-scoped-migration-comparison-2026-09-18.json](verification/dns-scoped-migration-comparison-2026-09-18.json)。接口已完成验收，报告中的 DNS 语义缺口尚未消除。下一步迁移选择策略及候选事实，并解决短期 readiness lease 与长期恢复 artifact 的分离，不能仅延长旧证明或忽略差异来完成 full 发布。
