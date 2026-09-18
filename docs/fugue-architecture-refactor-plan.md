@@ -2971,3 +2971,15 @@ DNS 尚有明确待完成的行为：disabled/unavailable 自定义目标在现�
 - [x] 记录有限公网对照：36 个 TCP A/AAAA 请求全部成功，29 个答案与固定快照一致，7 个差异均在 latency 策略，其中 3 个确认排名输入变化，4 个仍待同客户端提示/同探索时间窗验证；全部公网答案均在候选授权集合内。本机 UDP 超时，双向生产节点 UDP probe 正常；不将本机连通性问题写成 DNS server 故障，也不把 29/36 样本写成完整等价。
 
 证据：[dns-query-policy-shadow-2026-09-18.json](verification/dns-query-policy-shadow-2026-09-18.json)。此步骤完成查询配置分层及真实消费者隔离执行，尚未完成公网 serving 切换。继续消除 legacy selection 迁移适配器作为持续来源的依赖，迁移 GeoIP/客户端作用域配置，解决动态排名事实与完整查询等价、verified LKG 的 proof、gray/full/rollback 和故障恢复演练。
+
+
+### P0-DQ：ReleaseSet full publication 的事务内收敛复核
+
+- [x] Store full ReleaseSet 发布不再依赖 API 先前的只读收敛结果。文件存储在 state lock 内复核；PostgreSQL 按规范化 scope 获取 advisory transaction lock，并在同一事务重新加载 parent/child artifact、最新 active publication、最新 expected-set revision、trusted consumer facts、fence、generation sequence 和完整 lineage。
+- [x] expected-set 创建、trusted heartbeat 写入和 ReleaseSet full publication 共用同一个 scope 锁；发布等待并发 writer 提交后再复核。required topology 发生变化必须先生成新的 immutable expected-set revision；live inventory 不会在 full gate 中静默减少 required 成员。heartbeat scope 以可信 component identity 为准，不能用空或大小写变体绕过锁。
+- [x] 失败的 probe、过期 heartbeat、错误 fence、未验证 identity、旧 expected revision、child integrity/lineage 变化、并发 active publication、未知或重复 member 都在 Store 内拒绝；失败路径不新增 release/message、不推进 lane、不改 verified LKG。soft override 不能绕过收敛。
+- [x] 回归覆盖完整成功、失败探测、事实过期、拓扑 revision、并发新 publication、expected-set 等待 scope lock、identity scope 绑定、幂等成功和已有 heartbeat SQL 语义；完整 make test、API convergence 回归与前端 contract:check 通过。
+- [x] `52073edadc6ba98cd758052a9a896723a7d0c4a6` 已推送，发布计划含 API/controller；[CI 35327448002](https://github.com/yym68686/fugue/actions/runs/35327448002) 成功，前端契约 [CI 35327568570](https://github.com/yym68686/fugue-web/actions/runs/35327568570) 成功。生产 API/controller 均 2/2 Ready，API、controller、Guardian stable，两地 authority ready；8 个 consumer 仍 staged/shadow_validated，TLS/Edge/DNS passing 仍为 0，正式 serving/LKG 和历史 expected sets 不变。
+- [x] disposable PostgreSQL `fugue_test_atomic_promotion` 的并发集成验证 6 个场景全部通过：完整 full publication 成功；事实变坏、过期、拓扑变更、并发 publication 和旧 revision 均被拒绝并保持账本/LKG不变；scope lock 等待后重新复核，未使用 stale preflight。
+
+证据：[atomic-release-convergence-2026-09-18.json](verification/atomic-release-convergence-2026-09-18.json)。这一步只完成发布门的原子复核和并发安全，当前仍保持 shadow；后续继续完成真实 serving apply、gray/full/rollback、positive policy LKG、故障恢复和旧配置来源删除。
