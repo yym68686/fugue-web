@@ -40,7 +40,7 @@ export interface paths {
   "/v1/edge/route-intents": {
     /**
      * Edge Route Intents
-     * @description Returns Core's inventory-independent desired-route projection. Only the edge-control component identity with global edge_route_intent capability is accepted; tenant and platform-admin API keys are not accepted. A verified global route artifact takes precedence over the legacy source. An unusable artifact or LKG returns 503 so Edge Control retains its last serving bundle rather than recompiling from mutable business tables. Artifact-backed serving and candidate validation share one route projection. Cache references resolve case-insensitively to the declared policy ID; disabled cache policies are not materialized as active bindings.
+     * @description Returns Core's inventory-independent desired-route projection. Only the edge-control component identity with global edge_route_intent capability is accepted; tenant and platform-admin API keys are not accepted. A verified global route artifact takes precedence over the legacy source. An unusable artifact or LKG returns 503 so Edge Control retains its last serving bundle rather than recompiling from mutable business tables. Artifact-backed serving and candidate validation share one route projection. Cache references resolve case-insensitively to the declared policy ID; disabled cache policies are not materialized as active bindings. With edge_group_id, the newest applicable gray/full TrafficReleaseSet selects serving routes; gray applies only to its signed cohort. A newer full supersedes an older gray lane. Without an applicable release the verified route LKG remains the migration fallback. A selected release must have immutable expected topology for that group and verified parent/child integrity and lineage. Invalid or unprepared selected releases return 503 without falling back to business data. Shadow releases never select serving configuration. A legacy request without a group is rejected while a gray or full TrafficReleaseSet is active. Group projections retain traffic_release provenance; their signatures include cache policies.
      */
     get: operations["edgeRouteIntents"];
   };
@@ -12066,9 +12066,14 @@ export interface operations {
   };
   /**
    * Edge Route Intents
-   * @description Returns Core's inventory-independent desired-route projection. Only the edge-control component identity with global edge_route_intent capability is accepted; tenant and platform-admin API keys are not accepted. A verified global route artifact takes precedence over the legacy source. An unusable artifact or LKG returns 503 so Edge Control retains its last serving bundle rather than recompiling from mutable business tables. Artifact-backed serving and candidate validation share one route projection. Cache references resolve case-insensitively to the declared policy ID; disabled cache policies are not materialized as active bindings.
+   * @description Returns Core's inventory-independent desired-route projection. Only the edge-control component identity with global edge_route_intent capability is accepted; tenant and platform-admin API keys are not accepted. A verified global route artifact takes precedence over the legacy source. An unusable artifact or LKG returns 503 so Edge Control retains its last serving bundle rather than recompiling from mutable business tables. Artifact-backed serving and candidate validation share one route projection. Cache references resolve case-insensitively to the declared policy ID; disabled cache policies are not materialized as active bindings. With edge_group_id, the newest applicable gray/full TrafficReleaseSet selects serving routes; gray applies only to its signed cohort. A newer full supersedes an older gray lane. Without an applicable release the verified route LKG remains the migration fallback. A selected release must have immutable expected topology for that group and verified parent/child integrity and lineage. Invalid or unprepared selected releases return 503 without falling back to business data. Shadow releases never select serving configuration. A legacy request without a group is rejected while a gray or full TrafficReleaseSet is active. Group projections retain traffic_release provenance; their signatures include cache policies.
    */
   edgeRouteIntents: {
+    parameters: {
+      query?: {
+        edge_group_id?: string;
+      };
+    };
     responses: {
       /** @description Successful response */
       200: {
