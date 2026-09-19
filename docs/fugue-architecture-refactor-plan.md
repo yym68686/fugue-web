@@ -3017,8 +3017,17 @@ DNS 尚有明确待完成的行为：disabled/unavailable 自定义目标在现�
 - [x] 处理中断发生在 monitor 已提交、Desired 尚未完成时的重试。候选记录与 canonical monitor 允许不同的 LKG/envelope digest，但代码、镜像、manifest 和健康契约必须完全一致；保留原始候选的前驱引用，拒绝其他目标。未知回执/失败进程不能标记 verified。
 - [x] Guardian memory limit 从 384Mi 调整为 1Gi、request 128Mi；主进程 Go 内存预算 256MiB，子执行器独立 96MiB。恢复失败原因进入日志，观察期间主进程约 100MiB、零重启；不是通过放宽健康 gate 消除错误。
 - [x] 自动复核识别另一项实际缺口：同组慢节点 inventory 心跳持续 409，没有成功 heartbeat timestamp/generation。客户端对明确 sequence_conflict 和传输错误有界重试，每次读取新游标并生成新 nonce/身份，加随机延迟；其他 HTTP 错误不重试，持续冲突最多三次且不伪造成功。
-- [ ] 两地 Worker 修复发布与生产验证，包括两个美国 producer、持续成功心跳、Guardian stable/monitor 一致、原配置继续 serving。
+- [x] 两地 Worker 修复发布与生产验证，包括两个美国 producer、持续成功心跳、Guardian stable/monitor 一致、原配置继续 serving。
 
 进行中记录（2026-09-19）：P0-DS 代码 `c537952a` 已在 API、DNS/SSH 和两地 Worker 执行，但原 [CI 35336454692](https://github.com/yym68686/fugue/actions/runs/35336454692) 因 Guardian OOM 后发布账本未收尾而失败，不能视为整步上线成功。Guardian 修复 `40deeb2a`、`b6d0ccfb` 的 CI 成功；进一步发现正常已提交发布被重复纳入恢复，已补 `a726cc6d`，当前 [CI 35411135744](https://github.com/yym68686/fugue/actions/runs/35411135744) 正在执行。inventory CAS 重试 `2ccc23c6` 的德国 authority 已更新到 A/generation 269，但 [CI 35409950644](https://github.com/yym68686/fugue/actions/runs/35409950644) 已取消以释放等待中的生产 runner；美国尚未更新。待 Guardian 修复上线后重跑原发布流程，验证全部消费者，再完成 P0-DS 的新 shadow 配置发布。当前不勾选这些生产终态。
 
 进行中证据：[dns-client-policy-recovery-progress-2026-09-19.json](verification/dns-client-policy-recovery-progress-2026-09-19.json)。
+
+P0-DT 后续修复：明确 `supersedesFailedConfigSha` 的候选发布，在活跃 producer 身份仍有效、签名 group publication 和完整 Worker cohort 一致时，允许缺失或陈旧 inventory 心跳不阻塞候选重试与配置 publication witness 刷新。普通发布和 standby 不使用此例外；source/image、activation/slot、required node 集合、ready/restart、publication 不得回退或变更。新版本提交后的健康 gate 仍要求新鲜 inventory 心跳，不生成伪造的成功事实。
+
+另修复 inventory sequence conflict 响应解析：严格接受生产 `edge-control-error/v1` 的 `schema` 与 `error=sequence_conflict`，拒绝未知/缺失 schema、其他冲突和尾随数据。每次有界重试重新读取 cursor、重新签名并使用新 nonce。测试覆盖持续冲突上限，以及恢复时错误代码身份、镜像、inactive producer、authority 缺失、activation 改变和普通发布拒绝；最终提交 `892249bae11cbab9fb320c94562ded49b09c9a71` 完整 make test 通过。CI：[35412800639](https://github.com/yym68686/fugue/actions/runs/35412800639)。
+
+- [x] `892249ba` 的上述 CI 全部成功，Guardian 和两地 Worker 均新版本；德国 B/generation 270、美国 A/generation 833。三台活动 Worker 连续五轮（超过两分钟）成功心跳，每轮 generation 递增；原持续 409 的节点恢复，两地 Guardian stable，活跃容器零重启。
+- [x] 独立核对三台 Front/Worker 的精确镜像和 authority、3×137 路由隔离执行、TLS 136 引用/11 allowlist、DNS/SSH 健康、八个可信 consumer 与不可变 expected sets。正式 serving/policy LKG 指针未变，shadow passing 仍为 0；没有把 shadow 验证写成 full serving。
+
+完成证据：[inventory-recovery-2026-09-19.json](verification/inventory-recovery-2026-09-19.json)。上面的进行中记录保留为真实故障历史，终态以本次完整 CI 和运行证据为准。P0-DS 的新 policy shadow 发布仍独立验收。
