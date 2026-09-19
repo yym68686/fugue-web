@@ -32,9 +32,9 @@ Runtime Facts / ACK / LKG
 
 ## 当前状态判断
 
-2026-09-19 最新状态：API 为 `08ae59b9`，Controller 为 `26924da3`，两地 Worker 与 DNS/SSH 客户端为 `b2821959`，两地 Edge Control 为 `a786d6eb`；德国 B/generation 278、美国 A/generation 841。P0-DZ 完成原子 traffic/policy verified LKG 恢复引用；P0-EA 限制代码恢复不能改变上层 traffic binding；P0-EB 支持明确授权的旧 artifact consumer 回滚；P0-EC 补齐 Edge 失败事实；P0-ED 让八个消费者声明可信版本化执行能力；P0-EE 在文件/数据库发布事务内检查 leased TrafficReleaseSet 的兼容性；P0-EF 合并可直接调用的业务捕获与编译持久化流程，相关 Actions 与生产验收通过。
+2026-09-20 最新状态：API/Controller 为 `85303876`，两地 Worker 与 DNS/SSH 客户端为 `b2821959`，两地 Edge Control 为 `a786d6eb`；德国 B/generation 278、美国 A/generation 841。P0-EG 已接通签名版本化策略控制的后台 shadow 发布，完成真实启用、暂停、策略回滚恢复、运行快照持久化和精确重放；Actions 与生产验收通过。
 
-生产仍为 compiler v26 的完整 shadow：147 route、231 编译 DNS records、146 TLS references，ReleaseSet `artifact_1789808249_13038b2c4d0a`、shadow fence 9。三台 Worker 完成隔离 route/TLS 验证，route/TLS/DNS observed 为 3/3/2、serving passing 均为 0。当前业务已经变化，最新 intent 有 15 条 route 与固定快照不同；固定快照的 DNS 观察为 382/423 probes、193/219 readiness records、208/234 eligible query records，错误或失配的证据持续拒绝。global serving/LKG 和 immutable expected topology 未改变，旧 serving 正常刷新。下一阶段是业务变更到 intent/artifact 的自动发布、最新输入等价性、真实 gray/full/rollback、policy positive LKG 与旧配置来源删除；未将 shadow 或局部测试记为正式切流完成。
+生产自动 shadow 为 compiler v26：148 route、230 编译 DNS records、147 TLS references。恢复策略后 ReleaseSet `artifact_1789836294_e16c1fbad7d2`、shadow fence 11；启用的 producer 后续会按输入变化/刷新期限创建新 shadow，所以这里的 ID 是验收时快照。三台 Worker 完成隔离 route/TLS 验证，两台 DNS 均为 426/426 ready probes、218/218 readiness records、233/233 eligible query records。required/observed 为 8/8，serving passing 仍为 0；global serving/LKG 未改变，旧 serving 正常续期。下一阶段是删除 producer 对 legacy migration 输入的依赖、输出等价性、真实 gray/full/rollback、policy positive LKG 与旧配置来源删除；shadow 全部通过不等于正式切流完成。
 
 Fugue 已经具备相当一部分基础设施：`PlatformArtifact` 已有 generation、content hash、签名、验证状态、release channel、fencing token 和 LKG；Edge 与 DNS 也有签名校验、本地缓存和过期控制。
 
@@ -3268,3 +3268,32 @@ P0-EF 生产验证（2026-09-19）：
 - [x] 两地 authority 的序号和未来租期持续推进，公网 200。固定 shadow 输入已有 15 条 route 的 deployment generation/cache namespace 与最新业务不同，其中 4 条启用状态变化；两台 DNS 分别拒绝 29 个 digest 失配和 12 个 probe failure。本步没有将旧快照声明为可切流，也没有启用自动调度。
 
 证据：[shared-platform-producer-2026-09-19.json](verification/shared-platform-producer-2026-09-19.json)。下一步应将这些共享入口接入受版本化 intent/policy 控制的后台协调流程，实际完成变更捕获、输入选择、幂等编译和 shadow 发布；复用现有 release ledger、锁和恢复引用，不新增一套发布状态机。正式 gray/full/rollback 及旧来源删除仍未完成。
+
+
+### P0-EG：版本化策略控制的后台 shadow 发布
+
+- [x] 用现有 `policy_snapshot`、shadow lane 和签名控制 `platform-config-producer`；强类型策略只允许 paused/shadow、business-migration/global 和有界周期，禁止任意动作与 gray/full 控制。
+- [x] API 副本通过现有 advisory lock 选出发布者；实际捕获业务变化、编译、保存和发布 shadow，准备最新 consumer topology。输入未变时复用当前 producer 发布，按策略期限刷新运行快照，重启后仍能复用和完成中断的准备。
+- [x] 文件/真实 PostgreSQL 的提交边界重新检查当前策略、fence/frozen、目标前驱、三个签名成员和 lineage；计算期间暂停、冻结或手动发布不能被旧任务覆盖，失败不修改 serving/LKG。
+- [x] 编译器返回精确规范化运行快照并保存在现有内容存储；新增受 artifact.read 保护的 compiler-input 查询，验证 digest/generation。管理员可用保存的 intent/policy/input 重放，保留首次作者和 producer 来源，缺失或损坏时禁止从 live 数据补齐。
+- [x] 完成类型边界、业务变化/重启/重复执行、失败/取消/并发撤销、快照持久化和重放测试，真实 PostgreSQL/race、完整 make test、干净 prepush、前端契约检查通过。
+- [x] main/Actions 部署后先验证旧配置不变，再通过正常 artifact API 启用、暂停与恢复策略；验证自动 shadow、八个消费者、代码版本、旧 serving/LKG、持续续期及真实固定输入重放，保存证据后勾选。
+
+本步是现有业务/迁移输入的自动写入阶段。它不声明 legacy serving 输入已删除，也不自动推进 gray/full 或 verified LKG；后续仍需完成独立 intent/policy 输入、输出等价性与真实切流恢复。
+
+
+P0-EG 生产验证（2026-09-20）：
+
+- [x] 后端 `85303876dcde627d28788821f1c7d5748c242074` 经 [CI 35454496419](https://github.com/yym68686/fugue/actions/runs/35454496419) 第 2 次执行成功完成 API/Controller 部署，CLI 成功。首次 API 镜像 registry manifest 返回 404，缺少有效回执导致部署在写入前停止；同一 Actions 重试通过原有完整校验，没有降低门槛。前端契约 `f3f78ec7` 的 [CI 35454496622](https://github.com/yym68686/fugue-web/actions/runs/35454496622) 通过并自动部署 2/2 Ready，公网 200。
+- [x] 新代码且没有 producer policy 时保留原 fence 9；发布 paused 策略并跨过后台检查周期后仍不变。启用 shadow 策略后自动发布 fence 10，捕获 148 route/230 DNS/147 TLS，并准备 8 个 required consumer。一次 DNS 迁移来源短暂不可用保留旧版本，下一周期恢复发布。
+- [x] 暂停策略后跨多个周期保留 fence 10。通过 compiler-input 读取保存的规范化运行快照，管理员使用 inline 与 stored-artifact 两个编译入口重放，六份 artifact 的 ID、generation、完整内容、digest、metadata、签名和原作者全部一致，serving/LKG 不变。
+- [x] 通过普通 policy rollback 恢复原 enabled artifact，新策略 fence 4 授权后台自动产生 traffic shadow fence 11；后续周期日志 unchanged，复用同一发布。全程只有一个 API 副本写入，八个消费者均有新鲜可信 shadow 事实，passing=0。
+- [x] 两次自动候选均验证三台 Worker 的 148 条 route 和 147 TLS；两台 DNS 均有 3 个 zone、426/426 readiness probes、218/218 records 和 233/233 eligible query records。活跃 Worker/Front/DNS/SSH、控制面实际版本和容器健康正常；两地 authority 序号/有效租期继续推进，global serving/LKG 未改变。
+
+证据：[platform-shadow-producer-2026-09-20.json](verification/platform-shadow-producer-2026-09-20.json)。producer 保持 shadow 启用；production 使用 PostgreSQL。另发现文件存储的 advisory lock 原先没有按名称隔离，长期 leader 会阻塞其他 writer，下一原子步骤修复该通用行为。
+
+### P0-EH：文件存储后台任务锁隔离
+
+- [ ] 文件存储按 lock name 互斥，同名 producer 排他、不同名 writer 独立；退出/错误释放锁，取消上下文不启动任务。
+- [ ] 验证实际后台 producer 获得/释放领导权、取消退出及无关 writer 继续运行；race、完整测试、prepush 后经 main/Actions 发布，检查启用中的自动 shadow 和旧 serving。
+- [ ] 保存生产证据并勾选。
