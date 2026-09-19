@@ -1,0 +1,100 @@
+{
+  "observed_at": "2026-09-19T01:02:40.435343+00:00",
+  "status": "in_progress",
+  "dns_client_policy_commit": "c537952a5b0daca352e371620893975e556572ff",
+  "dns_client_policy_ci": {
+    "id": 35336454692,
+    "conclusion": "failure",
+    "cause": "Guardian OOM after authority commit and before monitor commit"
+  },
+  "guardian_recovery_commits": [
+    "40deeb2a0af05fe769f4de10e9222c75a64691f8",
+    "b6d0ccfb843d1062cf21e78318a0ae13b68814d2"
+  ],
+  "settled_publication_fix": {
+    "commit": "a726cc6d4b0af3401db87d6477b89e61f7b33c1c",
+    "ci": 35411135744,
+    "status": "in_progress"
+  },
+  "inventory_retry": {
+    "commit": "2ccc23c64e340fd67dbc826d5a92bd4bbd517d68",
+    "ci": 35409950644,
+    "status": "cancelled_for_guardian_recovery",
+    "germany_authority_generation": 269,
+    "us_updated": false
+  },
+  "verified_health_samples": [
+    {
+      "observed_at": "2026-09-19T00:48:26.398084+00:00",
+      "health": {
+        "/healthz": 200,
+        "/readyz": 200
+      }
+    },
+    {
+      "observed_at": "2026-09-19T00:48:57.530123+00:00",
+      "health": {
+        "/healthz": 200,
+        "/readyz": 200
+      }
+    },
+    {
+      "observed_at": "2026-09-19T00:49:28.723545+00:00",
+      "health": {
+        "/healthz": 200,
+        "/readyz": 200
+      }
+    },
+    {
+      "observed_at": "2026-09-19T00:49:59.912029+00:00",
+      "health": {
+        "/healthz": 200,
+        "/readyz": 200
+      }
+    },
+    {
+      "observed_at": "2026-09-19T00:50:31.204513+00:00",
+      "health": {
+        "/healthz": 200,
+        "/readyz": 200
+      }
+    },
+    {
+      "observed_at": "2026-09-19T00:51:02.342490+00:00",
+      "health": {
+        "/healthz": 200,
+        "/readyz": 200
+      }
+    },
+    {
+      "observed_at": "2026-09-19T00:51:33.762347+00:00",
+      "health": {
+        "/healthz": 200,
+        "/readyz": 200
+      }
+    },
+    {
+      "observed_at": "2026-09-19T00:52:05.236654+00:00",
+      "health": {
+        "/healthz": 200,
+        "/readyz": 200
+      }
+    },
+    {
+      "observed_at": "2026-09-19T00:52:36.407938+00:00",
+      "health": {
+        "/healthz": 200,
+        "/readyz": 200
+      }
+    },
+    {
+      "observed_at": "2026-09-19T00:53:07.624073+00:00",
+      "health": {
+        "/healthz": 200,
+        "/readyz": 200
+      }
+    }
+  ],
+  "full_make_test": "passed",
+  "full_reconstruction_complete": false
+}

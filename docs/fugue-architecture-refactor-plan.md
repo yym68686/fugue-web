@@ -2996,3 +2996,29 @@ DNS 尚有明确待完成的行为：disabled/unavailable 自定义目标在现�
 - [x] 两台 DNS 均保留 216 条 query records，实际 199 条可用、567 次查询/552 条答案；新鲜 readiness 为 363/393 probes、184/201 records，30 条 `route_digest_mismatch` 均未变成正向证明。核对持久化候选、query/readiness 归属和原始期限；global ReleaseSet/policy LKG 响应与 immutable expected sets 不变，不将隔离结果计作 serving ACK。
 
 证据：[consumer-transport-consolidation-2026-09-18.json](verification/consumer-transport-consolidation-2026-09-18.json)。此步骤合并传输与绑定校验；继续完成 gray/full serving apply、positive policy LKG、恢复演练与旧配置来源删除。
+
+
+### P0-DS：DNS 客户端 GeoIP 匹配规则进入强类型 policy
+
+- [x] OpenAPI 优先新增按物理 consumer 绑定的 `dns_client_policies`；规则包含有序 CIDR、country、region、ASN 和 group 提示。compiler v23 将规则及顺序纳入 PolicySnapshot digest；规则 first-match，不因排序改变重叠优先级，声明 owner 必须与完整 DNS consumer topology 一致。
+- [x] 同一次 DNS DaemonSet 读取同时冻结 zones 和显式 GeoIP 声明，逐 consumer 生成独立 policy。无变量生成显式空数组；重复、未知字段、尾随 JSON、无效 CIDR、超限、间接 ValueFrom/EnvFrom、缺少 group/consumer 映射均拒绝。失败不会部分写入草稿，执行器不读取 workload 或业务表。
+- [x] DNS 隔离 query 使用签名 policy 编译的 CIDR matcher。IPv4/IPv6 ECS 先验证 family、prefix、scope 和唯一性，再应用网段掩码；没有有效 ECS 时可以使用 resolver 地址。查询选择仍受每记录 ECS 开关、授权候选、全路径 readiness、quorum 和期限限制。
+- [x] `platform_candidate.query` 与持久化回执增加 client policy digest 和规则数，最多 16 类客户端提示进入隔离查询矩阵。任何 GeoIP 提示均不能授权新地址、延长证明或产生 serving ACK。
+- [x] 测试覆盖重叠优先级/顺序版本、固定输入重放、输入不变、IPv4/IPv6、坏 ECS、未授权 owner、缺少 consumer、显式空映射、冲突环境、迁移失败原子性。完整 `make test` 与前端 `contract:check` 通过。
+- [ ] 代码发布、完整真实配置 capture/compile/replay 与生产 shadow 证据验收。
+
+当前生产两个 DNS workload 均未声明 GeoIP override；真实 capture 应为两个显式空映射。非空匹配由合成配置回归验证，不写成公网 serving 验证。后续仍需执行正式 serving apply、gray/full/rollback、policy verified LKG 和旧配置来源删除。
+
+
+### P0-DT：代码发布提交后的恢复与 inventory CAS 冲突
+
+- [x] P0-DS 的美国发布已提交新 authority，但 Guardian 在 2026-09-18 11:17:58 UTC OOM（exit 137），丢失终态回执。保留真实现场：旧 stable monitor、新 authority、健康路由、错误状态和容器退出信息，不把失败 CI 写成成功。
+- [x] Guardian 增加已提交版本的精确复核入口：只在发布候选、旧 LKG、Desired、健康与 Edge A/B 归属完全绑定时尝试；复核 CurrentAuthority、Front、当前/上一槽、镜像、manifest、ownership 和完整观察窗口后，在组件 Lease 与 CAS 下补齐发布账本，不执行 rollout/rollback。
+- [x] 处理中断发生在 monitor 已提交、Desired 尚未完成时的重试。候选记录与 canonical monitor 允许不同的 LKG/envelope digest，但代码、镜像、manifest 和健康契约必须完全一致；保留原始候选的前驱引用，拒绝其他目标。未知回执/失败进程不能标记 verified。
+- [x] Guardian memory limit 从 384Mi 调整为 1Gi、request 128Mi；主进程 Go 内存预算 256MiB，子执行器独立 96MiB。恢复失败原因进入日志，观察期间主进程约 100MiB、零重启；不是通过放宽健康 gate 消除错误。
+- [x] 自动复核识别另一项实际缺口：同组慢节点 inventory 心跳持续 409，没有成功 heartbeat timestamp/generation。客户端对明确 sequence_conflict 和传输错误有界重试，每次读取新游标并生成新 nonce/身份，加随机延迟；其他 HTTP 错误不重试，持续冲突最多三次且不伪造成功。
+- [ ] 两地 Worker 修复发布与生产验证，包括两个美国 producer、持续成功心跳、Guardian stable/monitor 一致、原配置继续 serving。
+
+进行中记录（2026-09-19）：P0-DS 代码 `c537952a` 已在 API、DNS/SSH 和两地 Worker 执行，但原 [CI 35336454692](https://github.com/yym68686/fugue/actions/runs/35336454692) 因 Guardian OOM 后发布账本未收尾而失败，不能视为整步上线成功。Guardian 修复 `40deeb2a`、`b6d0ccfb` 的 CI 成功；进一步发现正常已提交发布被重复纳入恢复，已补 `a726cc6d`，当前 [CI 35411135744](https://github.com/yym68686/fugue/actions/runs/35411135744) 正在执行。inventory CAS 重试 `2ccc23c6` 的德国 authority 已更新到 A/generation 269，但 [CI 35409950644](https://github.com/yym68686/fugue/actions/runs/35409950644) 已取消以释放等待中的生产 runner；美国尚未更新。待 Guardian 修复上线后重跑原发布流程，验证全部消费者，再完成 P0-DS 的新 shadow 配置发布。当前不勾选这些生产终态。
+
+进行中证据：[dns-client-policy-recovery-progress-2026-09-19.json](verification/dns-client-policy-recovery-progress-2026-09-19.json)。
