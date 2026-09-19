@@ -3041,3 +3041,23 @@ P0-DT 后续修复：明确 `supersedesFailedConfigSha` 的候选发布，在活
 - [x] 核对两地 workload 无 GeoIP override、无 ValueFrom/EnvFrom；非空规则、优先级和 ECS 只记为合成配置回归结果，不冒充生产非空映射测试。
 
 证据：[dns-client-policy-shadow-2026-09-19.json](verification/dns-client-policy-shadow-2026-09-19.json)。P0-DS 与 P0-DT 已完成；当前架构仍处于 shadow，鲜活 TLS 证据、实际 gray/full apply、verified policy LKG、恢复演练及旧路径删除继续待办。
+
+### P0-DU：签名策略驱动本机 TLS 新鲜证据
+
+- [x] OpenAPI 优先增加可选 `tls_readiness`，与 DNS 共用强类型探测参数结构，各自独立纳入 PolicySnapshot digest。compiler v24 校验时间、并发、探测数量上限和固定输入重放；迁移投影显式提供参数，执行器不读取业务表。
+- [x] Worker 只连接本机 Caddy，按自身 group 的签名 route projection 选择 hostname，且当前 serving bundle 必须有一致的 hostname/path/owner/policy；自定义域名还需同一 bundle 的唯一 verified allowlist。平台通配符证书没有 tenant owner 时，从签名 route 获得 owner，不能放宽成通配授权。
+- [x] 真实 TLS 握手验证系统信任链、SNI hostname、有效期和 PROXY protocol。独立回执绑定 TLS/route artifact、assignment、ReleaseSet、expected set、fence、generation、node/group、policy 和当前 bundle；每条事实记录证书指纹、有效期、观察时间和期限，失败保留明确负向原因。
+- [x] 原始期限取 policy freshness、整条已验证证书链到期、serving bundle deadline 的最小值；每次状态查询重新计算 freshness，Caddy 未加载对应 bundle 不显示 TLS verified。仅复用同进程内同 binding/同 bundle 的短期事实，重启重新握手；assignment 或 activation 改变拒绝上报。TLS 结果不宣称 route apply、origin health、serving 或 positive LKG。
+- [x] 回归覆盖真实握手信任/hostname/过期/未来证书、PROXY header、超时、owner/allowlist/局部 group、部分失败、变更 binding/bundle、取消和重启；完整 make test、针对性 race 与前端 contract:check 通过。
+- [x] 完成声明式代码发布，并以新的完整 v24 ReleaseSet 进行真实 shadow 验收，保存生产证据。
+
+
+P0-DU 发布恢复记录：原提交 `aaaecf18` 的 API、DNS/SSH 和德国 Worker 已成功，美国连续两次在五分钟 prewrite 总期限内失败，分别最终报在 registry 和备用 DaemonSet 读取；均未生成 mutation 执行计划，旧 authority/LKG 正常。后续 `0566bc39` 在单次 release execution 内按精确镜像 digest/revision 复用已成功验证的不可变 registry 身份，失败结果不缓存、新执行重新验证；US intent 显式 supersede 原失败 atom，并保留最终完整健康 gate。恢复 CI [35418194340](https://github.com/yym68686/fugue/actions/runs/35418194340) 全部成功，美国 B/generation 834、Guardian stable。德国仍为 `aaaecf18` A/generation 271；API 随其他任务更新到包含该功能的 `aa09ad20`，客户端为 `aaaecf18`。完整 make test 与专项 race 通过，第一次全量检查因本地磁盘耗尽失败，清理可再生成 Go 缓存后重跑通过，未把该环境失败当成代码通过。
+
+
+- [x] 完整 v24 capture/compile/replay：139 route、216 DNS records、138 TLS references，route 行为完全等价，全部 content/generation/lineage 精确重放。新 ReleaseSet `artifact_1789788804_65581461056e` 仅 shadow/fence 7，所有八个 consumer 完成精确绑定。
+- [x] 三台 Worker 每台 138/138 TLS hostname 实际握手通过；逐条校验证书指纹、NotBefore/NotAfter、verified-chain expiry、原始 bundle deadline 和 policy freshness。每台抽查两个公网 hostname（平台/自定义）指纹与本地事实一致；跨刷新周期再验仍 138/138，并有更新的实际握手时间。
+- [x] 三台 Worker 各 139 条路由隔离执行，两台 DNS 各 399/399 readiness probes、204/204 records、219 eligible query records。TLS/Edge/DNS expected/observed/passing 仍为 3/3/0、3/3/0、2/2/0，真实 TLS 结果没有伪装成配置 applied/serving。
+- [x] 精确镜像/源码、Front authority、Caddy 版本、活跃容器零重启、inventory、DNS/SSH、Guardian stable、immutable expected sets 与正式配置/policy LKG 保留均通过独立复核。前端契约 CI 35416021065 成功。
+
+证据：[tls-readiness-shadow-2026-09-19.json](verification/tls-readiness-shadow-2026-09-19.json)。本步骤补齐独立新鲜 TLS 观察；gray/full 的实际 artifact apply、verified policy LKG、故障演练、唯一配置来源切换和旧路径删除仍未完成。
