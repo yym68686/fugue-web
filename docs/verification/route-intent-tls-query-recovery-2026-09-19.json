@@ -1,0 +1,273 @@
+{
+  "before": {
+    "configured": true,
+    "answer_model": "edge-control-authority",
+    "all_ready": false,
+    "authorities": [
+      {
+        "edge_group_id": "edge-group-country-de",
+        "service": "edge-control-de",
+        "ready": false,
+        "source": "edge-control-authority",
+        "status": {
+          "edge_group_id": "edge-group-country-de",
+          "status": "unavailable",
+          "ready": false,
+          "serving_healthy": false,
+          "bootstrap_eligible": true,
+          "bootstrap_valid_until": "2026-09-20T07:18:39.485959234Z",
+          "inventory_sequence": 100180,
+          "inventory_generation": "inventory-cefbe95682f3d46269969a52c855ffaa25ce1443c9360364bb186efd16111b65",
+          "inventory_producer_generation": 100180,
+          "inventory_producer_nodes": 1,
+          "inventory_heartbeat_at": "2026-09-19T08:34:26.26165924Z",
+          "authority_sequence": 32755,
+          "publication_sequence": 32755,
+          "current_publication_sequence": 32755,
+          "candidate_epoch": 32756,
+          "publication_decision": "published",
+          "bundle_generation": "edgegroupbundle_fb828200c90e90ac11b6b2ee32da0dfe9ab31e2c62330596dffb4422c7462a26",
+          "published_bundle_digest": "sha256:d6fddb1381f093b34d956e9b576458ce0ef25fd2791d7cbb3c447ce915ef2cce",
+          "recovery_epoch": 516,
+          "bundle_valid_until": "2026-09-19T07:48:39.485959234Z",
+          "lkg_state": "current"
+        },
+        "error": "Edge Control authority is not ready (http_status=503)"
+      },
+      {
+        "edge_group_id": "edge-group-country-us",
+        "service": "edge-control-us",
+        "ready": false,
+        "source": "edge-control-authority",
+        "status": {
+          "edge_group_id": "edge-group-country-us",
+          "status": "unavailable",
+          "ready": false,
+          "serving_healthy": false,
+          "bootstrap_eligible": true,
+          "bootstrap_valid_until": "2026-09-20T07:28:28.078003547Z",
+          "inventory_sequence": 153808,
+          "inventory_generation": "inventory-02e23418ddd7e531231cbc3c3812e2b36364bbfc1c3949b82b948c3872748ad4",
+          "inventory_producer_generation": 153808,
+          "inventory_producer_nodes": 2,
+          "inventory_heartbeat_at": "2026-09-19T08:34:31.523422782Z",
+          "authority_sequence": 46503,
+          "publication_sequence": 46503,
+          "current_publication_sequence": 46503,
+          "candidate_epoch": 46504,
+          "publication_decision": "published",
+          "bundle_generation": "edgegroupbundle_d38fdd37a4b195c2140347e4a3bf05dc26969a60f19ed4ff0856786c1e9e711a",
+          "published_bundle_digest": "sha256:51f48350ff286792af23aa7323f8fbfc47aedbc6747d3eba39290886e5ba3de6",
+          "recovery_epoch": 179,
+          "bundle_valid_until": "2026-09-19T07:58:28.078003547Z",
+          "lkg_state": "current"
+        },
+        "error": "Edge Control authority is not ready (http_status=503)"
+      }
+    ]
+  },
+  "first_after": {
+    "configured": true,
+    "answer_model": "edge-control-authority",
+    "all_ready": true,
+    "authorities": [
+      {
+        "edge_group_id": "edge-group-country-de",
+        "service": "edge-control-de",
+        "ready": true,
+        "source": "edge-control-authority",
+        "status": {
+          "edge_group_id": "edge-group-country-de",
+          "status": "ready",
+          "ready": true,
+          "serving_healthy": true,
+          "bootstrap_eligible": true,
+          "bootstrap_valid_until": "2026-09-20T08:45:17.074115659Z",
+          "inventory_sequence": 100202,
+          "inventory_generation": "inventory-5edb81ebb33e7927be82b077f3cc16561e6fdf2c032a9466cde8eaa828dfb95f",
+          "inventory_producer_generation": 100202,
+          "inventory_producer_nodes": 1,
+          "inventory_heartbeat_at": "2026-09-19T08:45:16.001746796Z",
+          "authority_sequence": 32757,
+          "publication_sequence": 32757,
+          "current_publication_sequence": 32757,
+          "publication_decision": "published",
+          "bundle_generation": "edgegroupbundle_6480ea5e3ac4bdd31750d49db5108a435ce50cce428fa034f2f85ba92f52230b",
+          "published_bundle_digest": "sha256:0379d5e5d91e3938d2628534c4f37f105ed7bb914895d0ac06d2b90be31b7c42",
+          "recovery_epoch": 516,
+          "bundle_valid_until": "2026-09-19T09:15:17.074115659Z",
+          "lkg_state": "current"
+        }
+      },
+      {
+        "edge_group_id": "edge-group-country-us",
+        "service": "edge-control-us",
+        "ready": true,
+        "source": "edge-control-authority",
+        "status": {
+          "edge_group_id": "edge-group-country-us",
+          "status": "ready",
+          "ready": true,
+          "serving_healthy": true,
+          "bootstrap_eligible": true,
+          "bootstrap_valid_until": "2026-09-20T08:45:24.234079537Z",
+          "inventory_sequence": 153852,
+          "inventory_generation": "inventory-457f77e1ee69f3e81cd761b3530dee4e86b26bea43441ef73e1dcdfb8ad4e146",
+          "inventory_producer_generation": 153852,
+          "inventory_producer_nodes": 2,
+          "inventory_heartbeat_at": "2026-09-19T08:45:31.523753083Z",
+          "authority_sequence": 46505,
+          "publication_sequence": 46505,
+          "current_publication_sequence": 46505,
+          "publication_decision": "published",
+          "bundle_generation": "edgegroupbundle_d148b4211afba8bfd18cec441552366b95dc6b5efd0a13405db6973e1dfe62b2",
+          "published_bundle_digest": "sha256:25c003d991ff60ecadb8dcdfeba447aa7fa6d778acdd67c175e9cf3466cfe634",
+          "recovery_epoch": 180,
+          "bundle_valid_until": "2026-09-19T09:15:24.234079537Z",
+          "lkg_state": "current"
+        }
+      }
+    ]
+  },
+  "verified_after": {
+    "configured": true,
+    "answer_model": "edge-control-authority",
+    "all_ready": true,
+    "authorities": [
+      {
+        "edge_group_id": "edge-group-country-de",
+        "service": "edge-control-de",
+        "ready": true,
+        "source": "edge-control-authority",
+        "status": {
+          "edge_group_id": "edge-group-country-de",
+          "status": "ready",
+          "ready": true,
+          "serving_healthy": true,
+          "bootstrap_eligible": true,
+          "bootstrap_valid_until": "2026-09-20T08:46:15.116698093Z",
+          "inventory_sequence": 100214,
+          "inventory_generation": "inventory-124fb84a7a070bbf372f7fe0660f48749e73fde256282fdaeb60ee869f1cab58",
+          "inventory_producer_generation": 100214,
+          "inventory_producer_nodes": 1,
+          "inventory_heartbeat_at": "2026-09-19T08:51:15.995950667Z",
+          "authority_sequence": 32759,
+          "publication_sequence": 32759,
+          "current_publication_sequence": 32759,
+          "publication_decision": "published",
+          "bundle_generation": "edgegroupbundle_8c587c73c09cd2b79009b361e6e796db4e0f7995705fbda2a39ee18ec779661a",
+          "published_bundle_digest": "sha256:87a7c40f5b1f433bf636264e561646a37940d2a7ff5e2a9e00de5113b5b51173",
+          "recovery_epoch": 516,
+          "bundle_valid_until": "2026-09-19T09:16:15.116698093Z",
+          "lkg_state": "current"
+        }
+      },
+      {
+        "edge_group_id": "edge-group-country-us",
+        "service": "edge-control-us",
+        "ready": true,
+        "source": "edge-control-authority",
+        "status": {
+          "edge_group_id": "edge-group-country-us",
+          "status": "ready",
+          "ready": true,
+          "serving_healthy": true,
+          "bootstrap_eligible": true,
+          "bootstrap_valid_until": "2026-09-20T08:51:22.593066464Z",
+          "inventory_sequence": 153876,
+          "inventory_generation": "inventory-b7a6b6dd339796d464c7969b42b8e3bc959759e10279c6467c59e7f688679e70",
+          "inventory_producer_generation": 153876,
+          "inventory_producer_nodes": 2,
+          "inventory_heartbeat_at": "2026-09-19T08:51:28.186170387Z",
+          "authority_sequence": 46511,
+          "publication_sequence": 46511,
+          "current_publication_sequence": 46511,
+          "publication_decision": "published",
+          "bundle_generation": "edgegroupbundle_e435975f2bb4de29921d3b6e5dd5782d7a6e707d7af93d44d78e35d54b5d22b7",
+          "published_bundle_digest": "sha256:facc43ef50bd1bd6fbdfb7ed656bea0d6843efd97e5b94dbc9a2a4e647f97e90",
+          "recovery_epoch": 180,
+          "bundle_valid_until": "2026-09-19T09:21:22.593066464Z",
+          "lkg_state": "current"
+        }
+      }
+    ]
+  },
+  "logs": [
+    {
+      "pod": "edge-control-us-6bc99b759f-vlj4l",
+      "logs": "2026/09/19 08:50:06 edge-control worker candidate stage conflict group=edge-group-country-us detail=serving_authority_current_mismatch expected_version=edgegroupbundle_49702f0e8cc676e061bd28a4b9a70390b9ad06304092930b63581935dfe20927.p46508.r180 current_version=edgegroupbundle_6623c491aaf01f6059eb10ce7f82d50d401e407ad2439c5cefd08e65f4a0132e.p46509.r180: edge-control group authority candidate CAS conflict\n2026/09/19 08:50:06 edge-control worker candidate stage conflict group=edge-group-country-us detail=serving_authority_current_mismatch expected_version=edgegroupbundle_49702f0e8cc676e061bd28a4b9a70390b9ad06304092930b63581935dfe20927.p46508.r180 current_version=edgegroupbundle_6623c491aaf01f6059eb10ce7f82d50d401e407ad2439c5cefd08e65f4a0132e.p46509.r180: edge-control group authority candidate CAS conflict\n2026/09/19 08:50:07 edge-control worker candidate stage conflict group=edge-group-country-us detail=serving_authority_current_mismatch expected_version=edgegroupbundle_49702f0e8cc676e061bd28a4b9a70390b9ad06304092930b63581935dfe20927.p46508.r180 current_version=edgegroupbundle_6623c491aaf01f6059eb10ce7f82d50d401e407ad2439c5cefd08e65f4a0132e.p46509.r180: edge-control group authority candidate CAS conflict\n2026/09/19 08:50:24 edge-control group authority reconcile status=observed generation=routeintents_a14b8145c64a116f87a5a82790783849fb866d4e95350749db646b0e11531fb3 published=1 failed=0 authority=edge-control publication=enabled\n2026/09/19 08:50:49 edge-control group authority reconcile status=unchanged generation=routeintents_a14b8145c64a116f87a5a82790783849fb866d4e95350749db646b0e11531fb3 authority=edge-control publication=enabled\n2026/09/19 08:51:25 edge-control group authority reconcile status=observed generation=routeintents_d1fc043d0c915979b4f3a745e962399e088036298c4d1728831f9845a3bbce30 published=1 failed=0 authority=edge-control publication=enabled\n"
+    },
+    {
+      "pod": "edge-control-de-5b8f957696-qc4gd",
+      "logs": "2026/09/19 08:48:44 edge-control group authority reconcile status=unchanged generation=routeintents_a14b8145c64a116f87a5a82790783849fb866d4e95350749db646b0e11531fb3 authority=edge-control publication=enabled\n2026/09/19 08:49:14 edge-control group authority reconcile status=unchanged generation=routeintents_a14b8145c64a116f87a5a82790783849fb866d4e95350749db646b0e11531fb3 authority=edge-control publication=enabled\n2026/09/19 08:49:44 edge-control group authority reconcile status=unchanged generation=routeintents_a14b8145c64a116f87a5a82790783849fb866d4e95350749db646b0e11531fb3 authority=edge-control publication=enabled\n2026/09/19 08:50:13 edge-control group authority reconcile status=unchanged generation=routeintents_a14b8145c64a116f87a5a82790783849fb866d4e95350749db646b0e11531fb3 authority=edge-control publication=enabled\n2026/09/19 08:50:43 edge-control group authority reconcile status=unchanged generation=routeintents_a14b8145c64a116f87a5a82790783849fb866d4e95350749db646b0e11531fb3 authority=edge-control publication=enabled\n2026/09/19 08:51:14 edge-control group authority reconcile status=observed generation=routeintents_a14b8145c64a116f87a5a82790783849fb866d4e95350749db646b0e11531fb3 published=1 failed=0 authority=edge-control publication=enabled\n"
+    }
+  ],
+  "verified_at": "2026-09-19T08:51:36.789458+00:00",
+  "api_fix": "d3cf7568b8c046735a1788ecb1cb91becb085e71",
+  "ci": "https://github.com/yym68686/fugue/actions/runs/35432343799",
+  "continued_renewal_verified": true,
+  "later_renewal": {
+    "configured": true,
+    "answer_model": "edge-control-authority",
+    "all_ready": true,
+    "authorities": [
+      {
+        "edge_group_id": "edge-group-country-de",
+        "service": "edge-control-de",
+        "ready": true,
+        "source": "edge-control-authority",
+        "status": {
+          "edge_group_id": "edge-group-country-de",
+          "status": "ready",
+          "ready": true,
+          "serving_healthy": true,
+          "bootstrap_eligible": true,
+          "bootstrap_valid_until": "2026-09-20T08:54:45.904205932Z",
+          "inventory_sequence": 100239,
+          "inventory_generation": "inventory-23a6c8a372180037558abe2234266cea18c0669892fa87d15d1736c6ce4c17d2",
+          "inventory_producer_generation": 100239,
+          "inventory_producer_nodes": 1,
+          "inventory_heartbeat_at": "2026-09-19T09:03:45.995723569Z",
+          "authority_sequence": 32762,
+          "publication_sequence": 32762,
+          "current_publication_sequence": 32762,
+          "publication_decision": "published",
+          "bundle_generation": "edgegroupbundle_d247867576de7063bfb40a4a3b48ea3fe458fed3c4d4a8d20a689ec3f0601fd7",
+          "published_bundle_digest": "sha256:f5eb83668602d587f38aa9b25d3fefae9ef269e51da801029b8d92c3f4a467d6",
+          "recovery_epoch": 516,
+          "bundle_valid_until": "2026-09-19T09:24:45.904205932Z",
+          "lkg_state": "current"
+        }
+      },
+      {
+        "edge_group_id": "edge-group-country-us",
+        "service": "edge-control-us",
+        "ready": true,
+        "source": "edge-control-authority",
+        "status": {
+          "edge_group_id": "edge-group-country-us",
+          "status": "ready",
+          "ready": true,
+          "serving_healthy": true,
+          "bootstrap_eligible": true,
+          "bootstrap_valid_until": "2026-09-20T08:54:22.363511853Z",
+          "inventory_sequence": 153925,
+          "inventory_generation": "inventory-a35d5b4fc22e99c37066598df6678e8e9469c7f80a88b2b44409f3c90cc9fcfd",
+          "inventory_producer_generation": 153925,
+          "inventory_producer_nodes": 2,
+          "inventory_heartbeat_at": "2026-09-19T09:03:46.712480344Z",
+          "authority_sequence": 46514,
+          "publication_sequence": 46514,
+          "current_publication_sequence": 46514,
+          "publication_decision": "published",
+          "bundle_generation": "edgegroupbundle_e9f2e92ac13e59860db2c1b4ac956f228d037c986e66b54fb8e829b1178b6e82",
+          "published_bundle_digest": "sha256:2fc282aec15f0a257ae17daf8516d0f7a703cea79713b1096c35bb99dcef18c7",
+          "recovery_epoch": 180,
+          "bundle_valid_until": "2026-09-19T09:24:22.363511853Z",
+          "lkg_state": "current"
+        }
+      }
+    ]
+  },
+  "later_verified_at": "2026-09-19T09:03:54.342102+00:00"
+}

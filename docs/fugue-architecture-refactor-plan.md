@@ -3115,3 +3115,31 @@ P0-DU 发布恢复记录：原提交 `aaaecf18` 的 API、DNS/SSH 和德国 Work
 - [x] 现有 v25 ReleaseSet `artifact_1789793583_74b25402c918`、shadow fence 8、完整 expected topology 与代码发布前一致；shadow/full 配置、policy 和 artifact LKG 指针保持不变。
 
 证据：[traffic-release-source-2026-09-19.json](verification/traffic-release-source-2026-09-19.json)。此处完成的是正式执行入口及报告代码的生产发布；实际配置切流与回滚尚未验收，相关总任务不打勾。
+
+### P0-DX 续期故障修复：专用 TLS 入口遗漏 group query
+
+- [x] 后续巡检发现 P0-DX 新增的 `edge_group_id` 被 API 专用 TLS wrapper 的旧“禁止所有 query”规则拦截，Edge Control 持续 fetch_failed，旧 bundle 租期耗尽后 authority 变为 unavailable。先前短时 Ready 验收未覆盖持续拉取，这是已确认的验收遗漏。
+- [x] `d3cf7568b8c046735a1788ecb1cb91becb085e71` 只允许契约声明的单个 canonical group 参数，保留路径、Host/SNI、认证和其他参数拒绝规则；专用 TLS wrapper、合法/重复/非法参数回归及完整 make test、干净 prepush 通过，经 [CI 35432343799](https://github.com/yym68686/fugue/actions/runs/35432343799) 正常部署 API，未手工修改生产。
+- [x] 两地 authority 恢复 Ready，API 为 2/2 Ready；修复后的连续日志显示 published=1/failed=0，publication sequence 与未来租期跨多个后续周期持续推进。验证同时比较故障前、首次恢复和后续续期，避免只用一次缓存健康作为证明。公网 API/网站抽查均为 200。
+
+证据：[route-intent-tls-query-recovery-2026-09-19.json](verification/route-intent-tls-query-recovery-2026-09-19.json)。后续发布验收必须包含定期拉取成功和租期持续前进。
+
+### P0-DY：DNS artifact 回答、逐次租期校验与本地恢复
+
+- [x] PolicySnapshot 增加按 physical consumer/zone 绑定的强类型 DNS authority（NS、TTL、SOA 时间参数）；迁移捕获一次性读取明确 workload 声明和原默认值，compiler v26 将其纳入 policy digest，并验证完整 zone 所有权。消费者不再从 ambient 环境推导这些参数。
+- [x] assignment 支持 serving_only，DNS 与 Group Authority 使用相同的最新适用 gray/full 选择与 immutable topology；parent/child 签名、成员关系、lineage、cohort、release/fence 均独立校验。路由 HTTPS 证明携带已应用 TrafficReleaseBinding，跨父 artifact 或发布批次的 readiness 被拒绝。
+- [x] 一个 immutable DNS snapshot 负责本机全部 zone，真正 ServeDNS 路径使用签名 client matcher、authority 和 query records；按最长 zone 归属处理 NS/SOA、CNAME、通配符、空 NOERROR 与 NXDOMAIN。每次请求按所有依赖 path、quorum 和原始 proof 截止时间重新筛选动态地址，TTL 不得超出 quorum/证据剩余时间；静态 ACME/address value expiry 保留。
+- [x] 候选先通过完整 detached wire 验证，再原子替换内存 snapshot，真实 UDP/TCP listener 验证和持久化失败会恢复原 snapshot。旧 legacy sync、动态 zone worker 和 ambient override 不能覆盖 bound serving；真实成功后才发送 applied/passed，当前 serving readiness 失败立即发送失败事实。
+- [x] 持久化本地 authenticated positive checkpoint，包括 signed parent/child、assignment 和 release 引用。重启校验完整性并丢弃 transient readiness；当前文件丢失/损坏只回退另一个已验证 positive predecessor，没有有效记录时 fail closed。控制面不可用时保留配置并独立刷新 readiness；重连清除 fallback 状态且不续期旧证据。
+- [x] 本地回归覆盖真实 UDP/TCP serving、quorum 与逐值过期、错发布/签名/所有权、失败候选/监听器保留旧 snapshot、重启/损坏恢复、API 断连与重连、失败心跳、实际 TLS/nonce/provenance 传输；完整 make test、关键路径 race、干净 prepush 和前端契约检查通过。
+- [x] 经 main/Actions 部署验证全部生产组件；编译完整 v26 配置并在 shadow 上执行新的 DNS answerer，验证六个 zone policy 和完整 query snapshot。正式配置仍保持原 serving/LKG，gray/full 保护门尚未解除。
+
+本步完成 DNS 正式执行与本地恢复实现，并以生产完整 shadow 输入验证新回答器。首次 positive policy/ReleaseSet LKG、跨 channel/旧 artifact rollback、全局灰度和公网配置切流仍未验收，不能将本步记为生产已切换 artifact serving。
+
+- [x] DNS 执行代码 `e9e206fb99e44ab9b8ffd07634b1a63f70f5caea` 的 [CI 35431746521](https://github.com/yym68686/fugue/actions/runs/35431746521) 九个组件全部构建/部署成功；前端契约 `3d14a7f0` 的 [CI 35431754464](https://github.com/yym68686/fugue-web/actions/runs/35431754464) 成功。API 后续使用上述 TLS 修复版本。
+- [x] 德国 A/generation 275、美国 B/generation 838，三台活跃 Worker、Front、两地 Edge Control、DNS/SSH 客户端精确镜像一致，活跃容器零重启，Guardian 均 stable。先验证旧 v25 配置继续工作，再捕获 v26，期间 serving/LKG 指针保持不变。
+- [x] 最新完整 v26 为 147 route、231 DNS records、146 TLS references、6 个 authority policy；147 条路由全部等价，固定输入重放的 intent/policy/route/DNS/TLS digest 与 lineage 一致。业务路由变化后重新捕获，未使用过时比较结果。
+- [x] ReleaseSet `artifact_1789808249_13038b2c4d0a` 只发布 shadow/fence 9。三台 Worker 各完成 147 条隔离路由与 146/146 TLS 验证；两台 DNS 各执行 3 个 authority policy、234 个回答快照记录，并完成已有 query 矩阵。八个 required consumer 保持准确的 shadow 事实，passing=0。
+- [x] 两台 DNS 和三台 Worker 均明确 awaiting_release，正式 serving 和 policy/artifact LKG 不变。对真实 v26 进行合法 cohort gray/full 请求仍返回 409，保护门未绕过；必须完成首次 LKG 和 rollback 条件后再解除。
+
+证据：[dns-artifact-serving-2026-09-19.json](verification/dns-artifact-serving-2026-09-19.json)。生产公网配置尚未切换为 v26 artifact serving；本步骤验证执行实现、完整 shadow 输入和旧版本兼容，实际灰度/全量/回滚的总任务保持未完成。
