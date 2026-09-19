@@ -3178,3 +3178,20 @@ P0-DU 发布恢复记录：原提交 `aaaecf18` 的 API、DNS/SSH 和德国 Work
 - [x] 两地 authority 的 sequence 与有效租期均比发布前继续推进，周期日志 `published=1、failed=0`，间隔内正常返回 unchanged。公网 API/网站 200，global serving/LKG 指针和 expected topology 不变，required 8/observed 8/passing 0。
 
 证据：[group-traffic-recovery-boundary-2026-09-19.json](verification/group-traffic-recovery-boundary-2026-09-19.json)。实际 bound traffic 的历史恢复拒绝由本地真实签名/持久化/HTTP 回归验证；生产仍是旧 serving 加新完整 shadow，不宣称已完成正式 traffic 切流。
+
+### P0-EB：旧 artifact 回滚的可信 consumer 游标
+
+- [x] 降低 artifact generation 仅接受明确 rollback ledger message，核验当前 lane/fence、最新 expected set、签名 parent/三个 child、lineage、cohort 与目标 generation；普通发布的 pinned rollback target 不视为授权。
+- [x] 允许同 lane 的新 fence 和跨 lane 的较低数字 fence 恢复旧 artifact，但完整保留 sequence、issued-at、nonce/evidence 校验；重放、冻结、superseded 或更新的适用 serving 发布保持旧 consumer fact。
+- [x] 文件与 PostgreSQL 使用相同授权证明。PostgreSQL 预判 generation 回退后取得 scope 排他锁，避免持有行锁时升级共享锁；提交事实前阻止 publication/LKG 并发改变授权。
+- [x] 测试覆盖 route/DNS/TLS 三类旧成员、同/跨 channel、恢复后的持续心跳、普通 message、签名篡改、最新 topology、cohort、sequence/nonce/时间重放和排队期间撤销授权；真实 PostgreSQL、race、完整 make test、干净 prepush 和前端契约检查通过。
+- [x] main/Actions 完成 API/Controller 部署，验证当前业务配置持续 serving、完整 shadow、持续 authority 续期和实际代码版本，再保存证据。
+
+本步实现回滚后的事实接收能力。正式生产旧 artifact 回滚演练仍须与 Edge 失败事实、gray/full 切流一起完成，不以局部测试代替端到端恢复验收。
+
+- [x] 后端 `cf3c54c1030666d19d2f245ddae4a70c31d36cc6` 经 [CI 35439439717](https://github.com/yym68686/fugue/actions/runs/35439439717) 完成 API/Controller 部署，均为 2/2 Ready；CLI 构建通过。前端契约 `a60ce9cb` 的 [CI 35439451560](https://github.com/yym68686/fugue-web/actions/runs/35439451560) 通过并自动部署为 2/2 Ready，公网 200。
+- [x] 两地 Edge Control 保持 `a786d6eb`；三台 Worker、Front、两台 DNS 与三个 SSH 客户端保持 `90240dc3`，活跃容器零重启，德国 B/276、美国 A/839 的镜像和 authority 一致。
+- [x] 三台 Worker 各完成 147 route/146 TLS shadow 验证，两台 DNS 各完成 3 zone/234 回答记录；8 个 required consumer 全部观察到，passing=0。expected topology、global serving、policy/artifact LKG 指针不变。
+- [x] 两地 authority 的 sequence 和有效租期均继续推进，周期日志 published=1、failed=0。文件与真实 PostgreSQL 测试覆盖合法旧 generation 回滚、三类成员、防重放和并发撤销；完整 make test、race、干净 prepush、前端契约检查通过。
+
+证据：[consumer-rollback-cursor-2026-09-19.json](verification/consumer-rollback-cursor-2026-09-19.json)。生产仍运行旧 serving 与完整新 shadow；本步不宣称已完成实际 traffic gray/full 或端到端回滚演练。
