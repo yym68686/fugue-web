@@ -32,7 +32,7 @@ Runtime Facts / ACK / LKG
 
 ## 当前状态判断
 
-2026-09-20 最新状态：API/Controller 为 `85303876`，两地 Worker 与 DNS/SSH 客户端为 `b2821959`，两地 Edge Control 为 `a786d6eb`；德国 B/generation 278、美国 A/generation 841。P0-EG 已接通签名版本化策略控制的后台 shadow 发布，完成真实启用、暂停、策略回滚恢复、运行快照持久化和精确重放；Actions 与生产验收通过。
+2026-09-20 最新状态：API/Controller 为 `542fd6c5`，两地 Worker 与 DNS/SSH 客户端为 `b2821959`，两地 Edge Control 为 `a786d6eb`；德国 B/generation 278、美国 A/generation 841。P0-EG 已接通签名版本化策略控制的后台 shadow 发布，完成真实启用、暂停、策略回滚恢复、运行快照持久化和精确重放；P0-EH 修复文件存储命名锁隔离并完成生产接管验证；Actions 与生产验收通过。
 
 生产自动 shadow 为 compiler v26：148 route、230 编译 DNS records、147 TLS references。恢复策略后 ReleaseSet `artifact_1789836294_e16c1fbad7d2`、shadow fence 11；启用的 producer 后续会按输入变化/刷新期限创建新 shadow，所以这里的 ID 是验收时快照。三台 Worker 完成隔离 route/TLS 验证，两台 DNS 均为 426/426 ready probes、218/218 readiness records、233/233 eligible query records。required/observed 为 8/8，serving passing 仍为 0；global serving/LKG 未改变，旧 serving 正常续期。下一阶段是删除 producer 对 legacy migration 输入的依赖、输出等价性、真实 gray/full/rollback、policy positive LKG 与旧配置来源删除；shadow 全部通过不等于正式切流完成。
 
@@ -3294,6 +3294,16 @@ P0-EG 生产验证（2026-09-20）：
 
 ### P0-EH：文件存储后台任务锁隔离
 
-- [ ] 文件存储按 lock name 互斥，同名 producer 排他、不同名 writer 独立；退出/错误释放锁，取消上下文不启动任务。
-- [ ] 验证实际后台 producer 获得/释放领导权、取消退出及无关 writer 继续运行；race、完整测试、prepush 后经 main/Actions 发布，检查启用中的自动 shadow 和旧 serving。
-- [ ] 保存生产证据并勾选。
+- [x] 文件存储按 lock name 互斥，同名 producer 排他、不同名 writer 独立；退出/错误释放锁，取消上下文不启动任务。
+- [x] 验证实际后台 producer 获得/释放领导权、取消退出及无关 writer 继续运行；race、完整测试、prepush 后经 main/Actions 发布，检查启用中的自动 shadow 和旧 serving。
+- [x] 保存生产证据并勾选。
+
+
+P0-EH 生产验证（2026-09-20）：
+
+- [x] 后端 `542fd6c5a8fd4f1e3921f31cbf514a7eae0b3b53` 经 [CI 35456481744](https://github.com/yym68686/fugue/actions/runs/35456481744) 完成 API/Controller 发布，CLI 构建通过。完整 make test、race、命名锁回归和干净 prepush（143 秒）通过；前端 `1b5e67e5` 的 [CI 35456254831](https://github.com/yym68686/fugue/actions/runs/35456254831) 通过并完成 2/2 Ready、2 endpoints、公网 200。
+- [x] 新 API 两个副本实际运行 `542fd6c5`，一个副本取得 producer 领导权，另一个没有重复写入；日志显示领导权获取和 unchanged 复用。不同名称的文件锁可同时进入，无关 writer 不被长期 producer 锁阻塞；取消后台 producer 后锁释放由真实测试证明。
+- [x] producer 策略保持 shadow，自动 shadow 当前为 `artifact_1789837433_3fe06cb430a2`、release `artifactrel_1789837433_d83c90c59608`、fence 16；3 Worker、2 DNS、3 Front 动态检查通过，8/8 consumer observed、passing=0，148 route、147 TLS、230 DNS records 保持 shadow，serving/LKG 不变。
+- [x] 两台 DNS 的最新候选持续执行 426/426 readiness probes、218/218 records、233/233 eligible query records；两地 authority 序号和租期继续推进。代码发布失败保护、业务 readiness 失败保留旧 shadow、producer unchanged 重用和文件锁隔离均已验证。
+
+证据：[named-file-locks-2026-09-20.json](verification/named-file-locks-2026-09-20.json)。
