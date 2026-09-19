@@ -4993,6 +4993,7 @@ export interface components {
       /** @enum {string} */
       mode?: "dedicated_pvc" | "movable_rwo";
       storage_path?: string;
+      /** @description Requested PVC allocation. When updating an existing app through PATCH, deploy, or source upload, an explicit reduction is rejected with HTTP 400; omission preserves the current requested size. Kubernetes PVCs cannot be shrunk in place. */
       storage_size?: string;
       /** @description Explicit Kubernetes StorageClass. When creating an app or first enabling an app-owned RWO volume through deploy, omission uses the platform's configured app storage class. Updates preserve an existing volume's class (including a legacy omitted class). An explicit claim_name keeps its existing binding and does not receive a default class. */
       storage_class_name?: string;
@@ -6954,6 +6955,7 @@ export interface components {
       /** Format: int32 */
       image_mirror_limit?: number;
       startup_command?: string;
+      /** @description Updates the existing app volume. Explicit storage_size reductions are rejected with HTTP 400 before a deploy is queued. Omitted storage_size preserves the current requested allocation; removing all mounts disables the volume without shrinking the existing PVC. */
       persistent_storage?: components["schemas"]["AppPersistentStorageSpec"];
       volume_replication?: components["schemas"]["AppVolumeReplicationSpec"];
       /** @description Control-plane recommendation policy. Updating this field is synchronous and does not create or apply a workload deployment. */
@@ -16517,6 +16519,12 @@ export interface operations {
           "application/json": components["schemas"]["AppPatchResponse"];
         };
       };
+      /** @description Invalid patch, including a persistent storage size smaller than the current allocation. No deploy operation is queued for a rejected shrink. */
+      400: {
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"];
+        };
+      };
       default: components["responses"]["ErrorResponse"];
     };
   };
@@ -18546,6 +18554,7 @@ export interface operations {
           "application/json": components["schemas"]["OperationResponse"];
         };
       };
+      400: components["responses"]["ErrorResponse"];
       default: components["responses"]["ErrorResponse"];
     };
   };
