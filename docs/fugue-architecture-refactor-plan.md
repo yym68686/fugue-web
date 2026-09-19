@@ -3353,3 +3353,27 @@ P0-EJ 生产验证（2026-09-20）：
 - [x] 新 API/Controller 各 2/2 Ready；三台 Worker 的 151 route/150 TLS、两台 DNS 的 3 zone/239 query records 完整验证通过。两台均为 435/435 ready probes、224/224 readiness records、239/239 eligible records，八个可信消费者 observed、passing=0。active Worker/Front/DNS/SSH 镜像与容器健康正常，authority 租期有效且相对发布前推进，global serving/LKG 不变。
 
 证据：[pinned-dns-inputs-2026-09-20.json](verification/pinned-dns-inputs-2026-09-20.json)。hosted-zone 增删、历史别名、地址变化和声明缺失的边界由明确回归验证；生产本步保持原 zone/authority 行为。下一步继续移除 base-domain/默认值及 legacy query selection 来源，不将本次 shadow 成功记为正式切流完成。
+
+
+### P0-EK：producer 应用域名声明脱离进程配置
+
+- [x] 基础 PlatformIntent 保存 application_domains：应用域名范围、自定义域名 target 范围、保留主机名与默认 DNS TTL；严格校验完整字段、规范域名、重复声明和 TTL 范围，摘要覆盖声明。
+- [x] producer 的应用路由、项目路径路由、平台域名 DNS、应用默认 DNS 与共享自定义域名 target 使用同一显式声明；旧兼容入口复用相同函数，producer 不读取 ambient namespace 配置。
+- [x] require_application_domains 在捕获和文件/PG 发布事务中要求来源声明存在；缺失、无效、失效来源均拒绝，不回退环境。一次性 importer 保存有效配置与 source digest，保留基础 intent 的原 DNS consumers 和静态数据。
+- [x] 签名 TTL 按声明生效，旧 60–120 秒截取仅留在迁移适配器；默认值不再在新路径被静默覆盖。原始已存在业务 hostname 不被域名声明重命名。
+- [x] 完整本地测试、环境隔离/等价性、必需字段、真实 PostgreSQL 事务和 race、干净 prepush、前端契约检查通过。
+- [x] main/Actions 发布后对比完整 desired 输出，正常 API 保存并启用新签名来源，验证自动 shadow、来源 lineage 与固定输入重放、真实消费者、持续租期及 serving/LKG，保存证据后勾选。
+
+本步骤覆盖 producer 的应用域名投影来源；业务创建 API 的默认域名、路由健康阈值、DNS query selection 以及最终 gray/full/rollback、旧路径删除仍分别待完成，不把 shadow 当作实际 serving 验收。
+
+
+P0-EK 生产验证（2026-09-20）：
+
+- [x] 后端 `af35d3a85b3979f0bb4781d280a72a34e4892f55` 经 [CI 35463459889](https://github.com/yym68686/fugue/actions/runs/35463459889) 完成 API/Controller 更新，CLI 成功；完整 make test、专项 race、真实 PostgreSQL 和 137 秒干净 prepush 通过。前端契约 `38d222b8` 的 [CI 35463467342](https://github.com/yym68686/fugue-web/actions/runs/35463467342) 成功并自动部署为 2/2 Ready、2 endpoints、公网 200。
+- [x] 新代码保持原 producer 来源时完整验证通过，再从 importer 预览取得有效声明：app base `fugue.pro`、custom target base `dns.fugue.pro`、保留 `api.fugue.pro` / `registry.fugue.internal`、默认 TTL 60。复制现有基础 intent 后原静态路由、DNS records 和 consumer 声明完全保留；新旧 producer preview 的完整 intent/policy/DNS exclusions 第一次比较一致，共 151 routes。
+- [x] 新基础 intent `artifact_1789848966_aa79d274ac50`（hash `sha256:600a016b39260fd64d8d8ef9dcb5027cd88c3c1872396fda982ae760489d2d92`）由 producer policy `artifact_1789848968_c42d6ed6d2be` 固定；正常 policy release `artifactrel_1789849201_fc85391dc4cf`、fence 7 启用必需域名声明，原 DNS policy 引用和 hosted-zone 模板不变。
+- [x] 自动生成并验证 traffic shadow `artifact_1789850444_a447c6de4fa7`、fence 53，包含 151 routes、236 DNS records、150 TLS references。两台 DNS 均为 435/435 readiness probes、224/224 readiness records、239/239 eligible query records、3 zones；八个消费者 trusted observed，passing=0，保持正确的 shadow 语义。
+- [x] 来源完整性、签名、作者、metadata 与 digest 不变；保留的 compiler input、inline 和 stored 两种 replay 复用六个 artifact，lineage 为 compiler v27，重放不改变配置指针。旧 intent/新 policy 内容均保持不可变，缺失及 generation 别名拒绝。
+- [x] 新 API/Controller 各 2/2 Ready；Worker/Front/DNS/SSH 健康，global serving/LKG 不变，两地 authority 序号和租期推进。扩大只读日志窗口后确认新 API 仅一个 producer leader，持续 published/unchanged，之后自动推进到 fence 55，仍绑定同一新来源。
+
+证据：[application-domain-intent-2026-09-20.json](verification/application-domain-intent-2026-09-20.json)。验证时发生的两次 release/heartbeat 不一致来自自动 shadow 更新，重新采集当前 release 后按原门槛通过；未放宽 consumer 验证。环境隔离、TTL 可修改、缺失声明及事务拒绝由回归测试验证，生产保持原域名和 TTL 行为。
