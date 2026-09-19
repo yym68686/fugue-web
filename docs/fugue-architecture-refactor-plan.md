@@ -3061,3 +3061,21 @@ P0-DU 发布恢复记录：原提交 `aaaecf18` 的 API、DNS/SSH 和德国 Work
 - [x] 精确镜像/源码、Front authority、Caddy 版本、活跃容器零重启、inventory、DNS/SSH、Guardian stable、immutable expected sets 与正式配置/policy LKG 保留均通过独立复核。前端契约 CI 35416021065 成功。
 
 证据：[tls-readiness-shadow-2026-09-19.json](verification/tls-readiness-shadow-2026-09-19.json)。本步骤补齐独立新鲜 TLS 观察；gray/full 的实际 artifact apply、verified policy LKG、故障演练、唯一配置来源切换和旧路径删除仍未完成。
+
+### P0-DV：TrafficReleaseSet 的 gray 目标绑定签名 cohort
+
+- [x] PolicySnapshot 增加有界强类型 `traffic_rollout_cohorts`，明确 cohort ID 和 Edge group 集合；compiler v25 规范化但不修改输入，将其纳入 policy digest，并把相同不可变投影保存在 ReleaseSet。父 artifact 与三个 child 的完整 policy digest、release generation 和 cohort 必须一致，不能产生第二个可编辑配置来源。
+- [x] gray TrafficReleaseSet 只接受 `cohort=<id>` 指向已签名的规则；自由字符串 selector、未知/非规范 ID、重复/无效 group 和超限内容拒绝。File/PostgreSQL 在同一发布/回滚事务验证所有 child；soft/break-glass 不绕过 cohort 边界，失败保持 lane、账本及 LKG。
+- [x] assignment 与 download 只向 cohort 内的 immutable expected members 暴露 gray artifact；非目标 group 保留 shadow/full assignment。可信 heartbeat 和 convergence 拒绝非目标 gray 事实。prepare 要求目标 group 存在完整 Edge/DNS 声明，失联节点不会因心跳过滤消失。
+- [x] expected sets 始终保存完整 topology，full gate 继续要求全部 required 成员；单 group canary 不等于全平台通过，只有显式覆盖全部 group 的签名 cohort 且全部成员实际 applied/probed 才能进入完整收敛。
+- [x] 固定输入重放、跨 policy/父子篡改、未授权下载/心跳、保留其他 channel、单 group 不通过 full、回滚拒绝和真实 PostgreSQL 原子/并发门回归通过；完整 make test 与前端 contract:check 通过。
+- [x] 完成代码发布，捕获真实完整 v25 配置并验证 lineage/cohort/消费者 shadow；保留 DNS 租期及实际 serving apply 尚未完成的发布门，不把本步骤记为 gray serving 成功。
+
+
+- [x] 后端 `5eeab38a8317c302668aef65100611e3ac6594a8` 的 [CI 35420893190](https://github.com/yym68686/fugue/actions/runs/35420893190) 九个组件构建/部署全部成功：API、controller、Guardian、两地 Edge Control、Worker 和 DNS/SSH 客户端。前端契约 [CI 35420906362](https://github.com/yym68686/fugue-web/actions/runs/35420906362) 成功。
+- [x] API/controller 2/2 Ready；德国 B/generation 272、美国 A/generation 835，精确镜像/Front/authority 一致，活跃容器零重启，全部 Guardian 健康。旧 v24 配置在升级后的九个组件上继续运行，正式 serving/LKG 指针不变。
+- [x] 最新 v25 capture 为 142 route、220 DNS records、141 TLS references；路由比较完全等价，全部 artifact 与 lineage 固定输入重放一致。policy/ReleaseSet 同时绑定德国、美国与两地完整集合三个 cohort。
+- [x] ReleaseSet `artifact_1789793583_74b25402c918` 只发布 shadow/fence 8，八个消费者完成精确 binding；三台各 142 路由隔离执行、141/141 TLS 实际验证，公网证书指纹抽查一致，DNS/SSH 健康，expected sets 保持不可变。
+- [x] 生产独立 scope 的合法 cohort 发布返回 200；自由 selector、未知/非规范 cohort 及非法回滚共五项返回 409，原 lane/fence 与全局配置不变。真实全局 ReleaseSet 即使使用合法 cohort，gray/full 仍因 DNS value expiration serving 支持未完成而返回 409；未绕开旧门或把隔离 scope 验证冒充生产切流。
+
+证据：[traffic-canary-policy-2026-09-19.json](verification/traffic-canary-policy-2026-09-19.json)。本步骤完成配置化的 gray 作用范围和授权边界，未完成实际 gray/full serving。后续沿现有唯一 Group Authority 执行链绑定 ReleaseSet，完成 DNS 租期执行、actual apply/probe、positive policy LKG 与恢复演练，再删除旧 serving 来源。
