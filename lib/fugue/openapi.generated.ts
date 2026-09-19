@@ -2318,6 +2318,25 @@ export interface components {
       unresolved_backend_count: number;
       /** Format: date-time */
       observed_at: string;
+      /**
+       * Format: date-time
+       * @description Start of the paginated observation interval; LIST is not a transactional snapshot.
+       */
+      scan_started_at?: string;
+      /** Format: date-time */
+      scan_finished_at?: string;
+      /** @description A newer inventory scan is in progress. Existing measurements retain their original observation time. */
+      refreshing?: boolean;
+      stale?: boolean;
+      /** Format: date-time */
+      last_attempt_at?: string;
+      /** Format: date-time */
+      last_success_at?: string;
+      scanned_pages?: number;
+      scanned_objects?: number;
+      scan_generation?: string;
+      /** @description Low-cardinality classification of the last scan error, without credentials or object names. */
+      scan_error?: string;
       message?: string;
     };
     BackupUsage: {
