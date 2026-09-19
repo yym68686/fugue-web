@@ -32,9 +32,9 @@ Runtime Facts / ACK / LKG
 
 ## 当前状态判断
 
-2026-09-19 最新状态：API/Controller 为 `26924da3`，两地 Worker 与 DNS/SSH 客户端为 `b2821959`，两地 Edge Control 为 `a786d6eb`；德国 B/generation 278、美国 A/generation 841。P0-DZ 完成原子 traffic/policy verified LKG 恢复引用；P0-EA 限制代码恢复不能改变上层 traffic binding；P0-EB 支持明确授权的旧 artifact consumer 回滚；P0-EC 补齐 Edge 失败事实；P0-ED 让八个消费者声明可信版本化执行能力；P0-EE 在文件/数据库发布事务内检查 leased TrafficReleaseSet 的兼容性，相关 Actions 与生产验收通过。
+2026-09-19 最新状态：API 为 `08ae59b9`，Controller 为 `26924da3`，两地 Worker 与 DNS/SSH 客户端为 `b2821959`，两地 Edge Control 为 `a786d6eb`；德国 B/generation 278、美国 A/generation 841。P0-DZ 完成原子 traffic/policy verified LKG 恢复引用；P0-EA 限制代码恢复不能改变上层 traffic binding；P0-EB 支持明确授权的旧 artifact consumer 回滚；P0-EC 补齐 Edge 失败事实；P0-ED 让八个消费者声明可信版本化执行能力；P0-EE 在文件/数据库发布事务内检查 leased TrafficReleaseSet 的兼容性；P0-EF 合并可直接调用的业务捕获与编译持久化流程，相关 Actions 与生产验收通过。
 
-生产仍为 compiler v26 的完整 shadow：147 route、231 编译 DNS records、146 TLS references，ReleaseSet `artifact_1789808249_13038b2c4d0a`、shadow fence 9。三台 Worker 完成隔离 route/TLS 验证，route/TLS/DNS observed 为 3/3/2、serving passing 均为 0。当前业务已经变化，固定快照的 DNS 稳定观察为 384/423 probes、195/219 readiness records、210/234 eligible query records，错误或失配的证据持续拒绝。global serving/LKG 和 immutable expected topology 未改变，旧 serving 正常刷新。下一阶段是业务变更到 intent/artifact 的自动发布、最新输入等价性、真实 gray/full/rollback、policy positive LKG 与旧配置来源删除；未将 shadow 或局部测试记为正式切流完成。
+生产仍为 compiler v26 的完整 shadow：147 route、231 编译 DNS records、146 TLS references，ReleaseSet `artifact_1789808249_13038b2c4d0a`、shadow fence 9。三台 Worker 完成隔离 route/TLS 验证，route/TLS/DNS observed 为 3/3/2、serving passing 均为 0。当前业务已经变化，最新 intent 有 15 条 route 与固定快照不同；固定快照的 DNS 观察为 382/423 probes、193/219 readiness records、208/234 eligible query records，错误或失配的证据持续拒绝。global serving/LKG 和 immutable expected topology 未改变，旧 serving 正常刷新。下一阶段是业务变更到 intent/artifact 的自动发布、最新输入等价性、真实 gray/full/rollback、policy positive LKG 与旧配置来源删除；未将 shadow 或局部测试记为正式切流完成。
 
 Fugue 已经具备相当一部分基础设施：`PlatformArtifact` 已有 generation、content hash、签名、验证状态、release channel、fencing token 和 LKG；Edge 与 DNS 也有签名校验、本地缓存和过期控制。
 
@@ -3249,3 +3249,22 @@ P0-EE 生产验证（2026-09-19）：
 - [x] 生产隔离 scope 编译带 ACME expiration 的完整签名 ReleaseSet 并准备 8 个消费者；缺少该 scope 的能力事实时，gray 发布、gray 回滚均为 409，单独 leased DNS 发布仍为 409。发布状态与五份 LKG 引用不变，全局配置和健康不受影响。成功 admission、负向能力事实和并发撤销由文件/真实 PostgreSQL 回归验证，本步未执行全局切流。
 
 证据：[leased-traffic-admission-2026-09-19.json](verification/leased-traffic-admission-2026-09-19.json)。目标 topology 来自该 parent 已准备的最新各成员声明；能力事实可以来自同一节点当前运行的其他 generation。实际 serving assignment 和 applied/passed/LKG 仍要求新发布的精确 release、fence、topology 与新鲜证据。下一步优先接通业务变更到 intent/artifact 的自动编译发布，之后再刷新生产输入并验证真实 gray/full/rollback。
+
+
+### P0-EF：共享业务捕获与编译持久化流程
+
+- [x] 业务快照捕获使用 context/principal 接口，HTTP handler 与未来后台 producer 可直接调用同一流程；保留一次业务快照、运行观察原始时间和迁移问题。
+- [x] 合并 inline compile 与 artifact replay 的重复持久化流程；保留签名、lineage、原输入作者、完整 parent 引用校验及原有 API 行为。
+- [x] 开始前已取消时不写入；执行中取消在下一检查边界停止，部分 immutable 写入重试复用原 identity，重放保留原 intent/policy 引用，编译过程不修改 release lane 和 LKG。
+- [x] 直接调用回归、既有 API 回归、race、完整 make test、干净 prepush 通过；main/Actions 更新 API 后检查捕获、固定输入重放和全体生产消费者。
+- [x] 保存生产证据并勾选。本步提供后台自动发布要复用的内部入口；自动调度、版本化输入选择和实际发布推进仍须后续实现。
+
+
+P0-EF 生产验证（2026-09-19）：
+
+- [x] 后端 `08ae59b9227e444bbae6c8c26054ad21b61de96e` 经 [CI 35449822867](https://github.com/yym68686/fugue/actions/runs/35449822867) 仅更新 API，CLI 构建成功。完整 make test、关键 API race 与干净检出 prepush（129 秒）通过；接口和生成契约没有变化。
+- [x] API 2/2 Ready；Controller 保持 `26924da3` 且 2/2 Ready，四个控制面 Pod 的实际 source commit 与容器状态匹配、零重启。Worker/Front/DNS/SSH 保持 `b2821959`，Edge Control 保持 `a786d6eb`，八个 required consumer 持续可信 shadow 报告，passing=0，现有 serving 正常。
+- [x] 生产共享捕获返回 147 route、明确的业务 snapshot revision/time 和两项未完成的输出等价性问题。以保存的 v26 固定输入分别调用 inline compile 与 compile-from-artifacts，六个 artifact 的 ID、generation、内容、digest、metadata、签名和原作者全部一致，父子 lineage 一致，global serving/LKG 与 expected topology 不变。
+- [x] 两地 authority 的序号和未来租期持续推进，公网 200。固定 shadow 输入已有 15 条 route 的 deployment generation/cache namespace 与最新业务不同，其中 4 条启用状态变化；两台 DNS 分别拒绝 29 个 digest 失配和 12 个 probe failure。本步没有将旧快照声明为可切流，也没有启用自动调度。
+
+证据：[shared-platform-producer-2026-09-19.json](verification/shared-platform-producer-2026-09-19.json)。下一步应将这些共享入口接入受版本化 intent/policy 控制的后台协调流程，实际完成变更捕获、输入选择、幂等编译和 shadow 发布；复用现有 release ledger、锁和恢复引用，不新增一套发布状态机。正式 gray/full/rollback 及旧来源删除仍未完成。
