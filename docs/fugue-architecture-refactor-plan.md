@@ -3005,7 +3005,7 @@ DNS 尚有明确待完成的行为：disabled/unavailable 自定义目标在现�
 - [x] DNS 隔离 query 使用签名 policy 编译的 CIDR matcher。IPv4/IPv6 ECS 先验证 family、prefix、scope 和唯一性，再应用网段掩码；没有有效 ECS 时可以使用 resolver 地址。查询选择仍受每记录 ECS 开关、授权候选、全路径 readiness、quorum 和期限限制。
 - [x] `platform_candidate.query` 与持久化回执增加 client policy digest 和规则数，最多 16 类客户端提示进入隔离查询矩阵。任何 GeoIP 提示均不能授权新地址、延长证明或产生 serving ACK。
 - [x] 测试覆盖重叠优先级/顺序版本、固定输入重放、输入不变、IPv4/IPv6、坏 ECS、未授权 owner、缺少 consumer、显式空映射、冲突环境、迁移失败原子性。完整 `make test` 与前端 `contract:check` 通过。
-- [ ] 代码发布、完整真实配置 capture/compile/replay 与生产 shadow 证据验收。
+- [x] 代码发布、完整真实配置 capture/compile/replay 与生产 shadow 证据验收。原代码发布的 Guardian/inventory 故障经 P0-DT 修复，最终 CI 35412800639 全部成功，详情和证据见下方完成记录。
 
 当前生产两个 DNS workload 均未声明 GeoIP override；真实 capture 应为两个显式空映射。非空匹配由合成配置回归验证，不写成公网 serving 验证。后续仍需执行正式 serving apply、gray/full/rollback、policy verified LKG 和旧配置来源删除。
 
@@ -3031,3 +3031,13 @@ P0-DT 后续修复：明确 `supersedesFailedConfigSha` 的候选发布，在活
 - [x] 独立核对三台 Front/Worker 的精确镜像和 authority、3×137 路由隔离执行、TLS 136 引用/11 allowlist、DNS/SSH 健康、八个可信 consumer 与不可变 expected sets。正式 serving/policy LKG 指针未变，shadow passing 仍为 0；没有把 shadow 验证写成 full serving。
 
 完成证据：[inventory-recovery-2026-09-19.json](verification/inventory-recovery-2026-09-19.json)。上面的进行中记录保留为真实故障历史，终态以本次完整 CI 和运行证据为准。P0-DS 的新 policy shadow 发布仍独立验收。
+
+### P0-DS 生产完成记录（2026-09-19）
+
+- [x] API `9a221c24`、两地 DNS/SSH `c537952a` 执行 compiler v23/client policy 功能，两地 Edge 和 Guardian 使用恢复修复 `892249ba`；相关声明式发布及独立健康验收完成。
+- [x] 应用部署中一次 capture 因三个 hostname 的 route digest 变化返回 400，旧配置/LKG 不变；应用达到 2/2 Ready 后重新捕获，139 route、216 DNS records、138 TLS references、6 consumer/query views、408 answer rules/selection observations，route 比较完全等价，固定输入的全部 artifact 与 lineage 重放一致。
+- [x] 新 ReleaseSet `artifact_1789783049_273d40981040` 发布到 shadow/fence 6；八个可信 consumer 全部切换到精确 release/expected set/fence。三台 Worker 各 139 条真实隔离探测，TLS 各 138 引用/11 allowlist；原始 expected set 内容和正式 serving/policy LKG 不变。
+- [x] 两地 DNS 从签名 policy 读取各自显式空映射，运行状态与持久化 query receipt 的 policy digest 完全一致、rules=0。每台 219 query records、217 eligible、606 次查询/606 条答案；实际 readiness 为 396/399 probes、202/204 records，失败项保持排除，serving=false。
+- [x] 核对两地 workload 无 GeoIP override、无 ValueFrom/EnvFrom；非空规则、优先级和 ECS 只记为合成配置回归结果，不冒充生产非空映射测试。
+
+证据：[dns-client-policy-shadow-2026-09-19.json](verification/dns-client-policy-shadow-2026-09-19.json)。P0-DS 与 P0-DT 已完成；当前架构仍处于 shadow，鲜活 TLS 证据、实际 gray/full apply、verified policy LKG、恢复演练及旧路径删除继续待办。
