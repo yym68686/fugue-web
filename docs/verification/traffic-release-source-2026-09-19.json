@@ -1,0 +1,2588 @@
+{
+  "step": "P0-DX-traffic-source",
+  "backend_commit": "312fd174406802bbe7e7250cc027dc4e9c6115fb",
+  "api_commit": "312fd174406802bbe7e7250cc027dc4e9c6115fb",
+  "edge_commit": "312fd174406802bbe7e7250cc027dc4e9c6115fb",
+  "ci_run": "https://github.com/yym68686/fugue/actions/runs/35428158551",
+  "api": {
+    "component": "api",
+    "image_tag": "312fd174406802bbe7e7250cc027dc4e9c6115fb",
+    "ready_replicas": 2,
+    "updated_replicas": 2,
+    "desired_replicas": 2
+  },
+  "state": {
+    "observed_at": "2026-09-19T04:53:54.121041+00:00",
+    "release_set_id": "artifact_1789793583_74b25402c918",
+    "artifact_release_id": "artifactrel_1789793620_ab6a6884f791",
+    "route_artifact_id": "artifact_1789793583_e85634ccff05",
+    "dns_artifact_id": "artifact_1789793583_5fce6819f4e8",
+    "tls_artifact_id": "artifact_1789793583_5c8cccdc479a",
+    "route_count": 142,
+    "dns_record_count": 220,
+    "release_channel": "shadow",
+    "fencing_token": 8,
+    "serving_promotion": false,
+    "input_prefix": "/tmp/fugue-traffic-cohort"
+  },
+  "verified_at": "2026-09-19T07:35:24.773102+00:00",
+  "health": {
+    "/healthz": 200,
+    "/readyz": 200
+  },
+  "configuration": {
+    "/v1/platform-state/artifacts/release_set?scope_key=global&channel=shadow": {
+      "http_status": 200,
+      "identity": {
+        "artifact": {
+          "id": "artifact_1789793583_74b25402c918",
+          "artifact_kind": "release_set",
+          "generation": "release-e650426528e1c2aac9cf6eca55ec08ef53b1b72fe8d7eaa7d226a7c01c5830e7",
+          "status": "validated",
+          "content_hash": "sha256:8032b51cefc8bef7016e85c5262b7890e4494f452ea70d261d2e519f40921a71"
+        },
+        "release": {
+          "id": "artifactrel_1789793620_ab6a6884f791",
+          "artifact_id": "artifact_1789793583_74b25402c918",
+          "artifact_kind": "release_set",
+          "generation": "release-e650426528e1c2aac9cf6eca55ec08ef53b1b72fe8d7eaa7d226a7c01c5830e7",
+          "release_channel": "shadow",
+          "status": "active",
+          "fencing_token": 8
+        },
+        "generation": "release-e650426528e1c2aac9cf6eca55ec08ef53b1b72fe8d7eaa7d226a7c01c5830e7"
+      }
+    },
+    "/v1/platform-state/artifacts/release_set?scope_key=global&channel=full": {
+      "http_status": 200,
+      "identity": {}
+    },
+    "/v1/admin/platform-config/policy-lkg": {
+      "http_status": 404,
+      "identity": {}
+    },
+    "/v1/admin/artifacts/artifact_1789290147_3ae6084f214d/lineage": {
+      "http_status": 200,
+      "identity": {
+        "artifact": {
+          "id": "artifact_1789290147_3ae6084f214d",
+          "artifact_kind": "edge_route_bundle",
+          "generation": "route-915ca009dc70243f7b4a29462bd0844b9319c16e8c7f67a78cdafed488a3cadf",
+          "status": "validated",
+          "content_hash": "sha256:aa3453c3d79efef9c915163030f1d20df4186a69c3fe0cb24a567ef166ab69f9"
+        }
+      }
+    }
+  },
+  "serving_pointers_unchanged": true,
+  "full_promoted": false,
+  "workers": [
+    {
+      "pod": "fugue-fugue-edge-worker-a-gq2t4",
+      "serving_generation": "edgegroupbundle_d38fdd37a4b195c2140347e4a3bf05dc26969a60f19ed4ff0856786c1e9e711a",
+      "bundle_version": "edgegroupbundle_d38fdd37a4b195c2140347e4a3bf05dc26969a60f19ed4ff0856786c1e9e711a.p46503.r179",
+      "route_count": 147,
+      "inventory": {
+        "inventory_producer_active": true,
+        "inventory_heartbeat_at": "2026-09-19T07:35:19.593557919Z",
+        "inventory_heartbeat_generation": 153572,
+        "inventory_heartbeat_error": null
+      },
+      "candidate": {
+        "traffic_release": {
+          "schema": "fugue.traffic-release-binding/v1",
+          "release_set_id": "artifact_1789793583_74b25402c918",
+          "release_set_digest": "sha256:8032b51cefc8bef7016e85c5262b7890e4494f452ea70d261d2e519f40921a71",
+          "release_set_generation": "release-e650426528e1c2aac9cf6eca55ec08ef53b1b72fe8d7eaa7d226a7c01c5830e7",
+          "route_artifact_id": "artifact_1789793583_e85634ccff05",
+          "route_artifact_digest": "sha256:59873303b1d04f2ec710de304f9772d4c9257db23c84a92c36e9e46d25df0f08",
+          "route_artifact_generation": "route-e650426528e1c2aac9cf6eca55ec08ef53b1b72fe8d7eaa7d226a7c01c5830e7",
+          "route_artifact_sequence": 53,
+          "release_id": "artifactrel_1789793620_ab6a6884f791",
+          "release_channel": "shadow",
+          "fencing_token": 8,
+          "scope_key": "global",
+          "intent_digest": "sha256:dd3cb56e708162b41c8f662c3383243b3def54bd5941a0639078a768a397aeb4",
+          "policy_digest": "sha256:142825f6c99b3a82e3af10f4033af157ac62418f9ddc6b985225196278affe08",
+          "input_snapshot_digest": "sha256:24067ab1e9fd7d018bbf79f81796c08d3baf9be9d150663498f9aa4649ad2ae3",
+          "compiler_version": "platform-config-compiler/v25",
+          "projection_digest": "sha256:65171759c42b426366e9c91ad33841bfa5323328a1cb55749b8776421a9bfc4e"
+        },
+        "state": "shadow_verified",
+        "artifact_id": "artifact_1789793583_e85634ccff05",
+        "digest": "sha256:59873303b1d04f2ec710de304f9772d4c9257db23c84a92c36e9e46d25df0f08",
+        "release_set_id": "artifact_1789793583_74b25402c918",
+        "route_count": 142,
+        "route_index_digest": "sha256:c76242c9bc61b389951ae4f553480ccd9bf996e55331b17dc07ef2b2bb2afc90",
+        "sequence": 1789803321199582869,
+        "verified_at": "2026-09-19T07:35:21.199583569Z",
+        "reported_at": "2026-09-19T07:35:21.354403044Z",
+        "execution": {
+          "traffic_release": {
+            "schema": "fugue.traffic-release-binding/v1",
+            "release_set_id": "artifact_1789793583_74b25402c918",
+            "release_set_digest": "sha256:8032b51cefc8bef7016e85c5262b7890e4494f452ea70d261d2e519f40921a71",
+            "release_set_generation": "release-e650426528e1c2aac9cf6eca55ec08ef53b1b72fe8d7eaa7d226a7c01c5830e7",
+            "route_artifact_id": "artifact_1789793583_e85634ccff05",
+            "route_artifact_digest": "sha256:59873303b1d04f2ec710de304f9772d4c9257db23c84a92c36e9e46d25df0f08",
+            "route_artifact_generation": "route-e650426528e1c2aac9cf6eca55ec08ef53b1b72fe8d7eaa7d226a7c01c5830e7",
+            "route_artifact_sequence": 53,
+            "release_id": "artifactrel_1789793620_ab6a6884f791",
+            "release_channel": "shadow",
+            "fencing_token": 8,
+            "scope_key": "global",
+            "intent_digest": "sha256:dd3cb56e708162b41c8f662c3383243b3def54bd5941a0639078a768a397aeb4",
+            "policy_digest": "sha256:142825f6c99b3a82e3af10f4033af157ac62418f9ddc6b985225196278affe08",
+            "input_snapshot_digest": "sha256:24067ab1e9fd7d018bbf79f81796c08d3baf9be9d150663498f9aa4649ad2ae3",
+            "compiler_version": "platform-config-compiler/v25",
+            "projection_digest": "sha256:65171759c42b426366e9c91ad33841bfa5323328a1cb55749b8776421a9bfc4e"
+          },
+          "schema": "fugue.edge.candidate-execution/v1",
+          "mode": "isolated_http",
+          "result": "passed",
+          "artifact_id": "artifact_1789793583_e85634ccff05",
+          "artifact_digest": "sha256:59873303b1d04f2ec710de304f9772d4c9257db23c84a92c36e9e46d25df0f08",
+          "artifact_generation": "route-e650426528e1c2aac9cf6eca55ec08ef53b1b72fe8d7eaa7d226a7c01c5830e7",
+          "node_id": "bwg",
+          "edge_group_id": "edge-group-country-us",
+          "release_set_id": "artifact_1789793583_74b25402c918",
+          "expected_consumer_set_id": "expectedconsumerset_73c2097a01b7d6ae",
+          "generation_sequence": 53,
+          "fencing_token": 8,
+          "route_index_digest": "sha256:c76242c9bc61b389951ae4f553480ccd9bf996e55331b17dc07ef2b2bb2afc90",
+          "caddy_config_digest": "sha256:24736765737407fd76603b4707575ccb2b6c6bb287cf5c2ea925574e4443d492",
+          "probe_count": 142,
+          "observed_at": "2026-09-19T07:34:50.663916043Z",
+          "expires_at": "2026-09-19T07:36:50.663916043Z",
+          "serving": false,
+          "tls_verified": false,
+          "origin_verified": false,
+          "receipt_digest": "sha256:b7bd353d9f7c01677cf8864d4d79be630da44b6a750b1c40a4ba601e21734ace"
+        }
+      },
+      "tls_candidate": {
+        "readiness": {
+          "receipt_digest": "sha256:ab40aed764d88812b315a692bb735de1f93b4feac4b1efa490f0cc5ba43418db",
+          "policy_digest": "sha256:b4e3874467f10e03e050bf2fea4db0495ec461326fcf91e9c9bd0a446a4f1aaf",
+          "bundle_version": "edgegroupbundle_d38fdd37a4b195c2140347e4a3bf05dc26969a60f19ed4ff0856786c1e9e711a.p46503.r179",
+          "probes": 141,
+          "ready_probes": 141,
+          "failed_probes": 0,
+          "checked_at": "2026-09-19T07:34:52.348614114Z",
+          "fresh_until": "2026-09-19T07:36:51.862288887Z",
+          "serving": false
+        },
+        "state": "shadow_verified",
+        "artifact_id": "artifact_1789793583_5c8cccdc479a",
+        "digest": "sha256:e98a5fca76a846e41a93d0aa0ff46d05b14ddf45369857c6735e57cac8d35111",
+        "release_set_id": "artifact_1789793583_74b25402c918",
+        "route_artifact_id": "artifact_1789793583_e85634ccff05",
+        "route_digest": "sha256:59873303b1d04f2ec710de304f9772d4c9257db23c84a92c36e9e46d25df0f08",
+        "certificate_count": 141,
+        "allowlist_count": 11,
+        "sequence": 1789803322451318426,
+        "verified_at": "2026-09-19T07:35:22.451319017Z",
+        "reported_at": "2026-09-19T07:35:22.600229552Z",
+        "serving": false,
+        "tls_verified": true
+      },
+      "platform_serving": {
+        "state": "awaiting_release",
+        "route_probes": 0,
+        "tls_probes": 0,
+        "verified_at": "0001-01-01T00:00:00Z",
+        "reported_at": "0001-01-01T00:00:00Z"
+      },
+      "containers": [
+        {
+          "name": "caddy",
+          "imageID": "docker.io/library/caddy@sha256:4c6e91c6ed0e2fa03efd5b44747b625fec79bc9cd06ac5235a779726618e530d",
+          "ready": true,
+          "restartCount": 0
+        },
+        {
+          "name": "edge",
+          "imageID": "ghcr.io/yym68686/fugue-edge@sha256:cf15a5376704b79db1511ddadec496d35eeff36f974be5b75b59c1e23df1d96f",
+          "ready": true,
+          "restartCount": 0
+        }
+      ]
+    },
+    {
+      "pod": "fugue-fugue-edge-worker-a-99g4w",
+      "serving_generation": "edgegroupbundle_d38fdd37a4b195c2140347e4a3bf05dc26969a60f19ed4ff0856786c1e9e711a",
+      "bundle_version": "edgegroupbundle_d38fdd37a4b195c2140347e4a3bf05dc26969a60f19ed4ff0856786c1e9e711a.p46503.r179",
+      "route_count": 147,
+      "inventory": {
+        "inventory_producer_active": true,
+        "inventory_heartbeat_at": "2026-09-19T07:35:31.522657823Z",
+        "inventory_heartbeat_generation": 153573,
+        "inventory_heartbeat_error": null
+      },
+      "candidate": {
+        "traffic_release": {
+          "schema": "fugue.traffic-release-binding/v1",
+          "release_set_id": "artifact_1789793583_74b25402c918",
+          "release_set_digest": "sha256:8032b51cefc8bef7016e85c5262b7890e4494f452ea70d261d2e519f40921a71",
+          "release_set_generation": "release-e650426528e1c2aac9cf6eca55ec08ef53b1b72fe8d7eaa7d226a7c01c5830e7",
+          "route_artifact_id": "artifact_1789793583_e85634ccff05",
+          "route_artifact_digest": "sha256:59873303b1d04f2ec710de304f9772d4c9257db23c84a92c36e9e46d25df0f08",
+          "route_artifact_generation": "route-e650426528e1c2aac9cf6eca55ec08ef53b1b72fe8d7eaa7d226a7c01c5830e7",
+          "route_artifact_sequence": 53,
+          "release_id": "artifactrel_1789793620_ab6a6884f791",
+          "release_channel": "shadow",
+          "fencing_token": 8,
+          "scope_key": "global",
+          "intent_digest": "sha256:dd3cb56e708162b41c8f662c3383243b3def54bd5941a0639078a768a397aeb4",
+          "policy_digest": "sha256:142825f6c99b3a82e3af10f4033af157ac62418f9ddc6b985225196278affe08",
+          "input_snapshot_digest": "sha256:24067ab1e9fd7d018bbf79f81796c08d3baf9be9d150663498f9aa4649ad2ae3",
+          "compiler_version": "platform-config-compiler/v25",
+          "projection_digest": "sha256:65171759c42b426366e9c91ad33841bfa5323328a1cb55749b8776421a9bfc4e"
+        },
+        "state": "shadow_verified",
+        "artifact_id": "artifact_1789793583_e85634ccff05",
+        "digest": "sha256:59873303b1d04f2ec710de304f9772d4c9257db23c84a92c36e9e46d25df0f08",
+        "release_set_id": "artifact_1789793583_74b25402c918",
+        "route_count": 142,
+        "route_index_digest": "sha256:c76242c9bc61b389951ae4f553480ccd9bf996e55331b17dc07ef2b2bb2afc90",
+        "sequence": 1789803332437973774,
+        "verified_at": "2026-09-19T07:35:32.437974201Z",
+        "reported_at": "2026-09-19T07:35:32.58635363Z",
+        "execution": {
+          "traffic_release": {
+            "schema": "fugue.traffic-release-binding/v1",
+            "release_set_id": "artifact_1789793583_74b25402c918",
+            "release_set_digest": "sha256:8032b51cefc8bef7016e85c5262b7890e4494f452ea70d261d2e519f40921a71",
+            "release_set_generation": "release-e650426528e1c2aac9cf6eca55ec08ef53b1b72fe8d7eaa7d226a7c01c5830e7",
+            "route_artifact_id": "artifact_1789793583_e85634ccff05",
+            "route_artifact_digest": "sha256:59873303b1d04f2ec710de304f9772d4c9257db23c84a92c36e9e46d25df0f08",
+            "route_artifact_generation": "route-e650426528e1c2aac9cf6eca55ec08ef53b1b72fe8d7eaa7d226a7c01c5830e7",
+            "route_artifact_sequence": 53,
+            "release_id": "artifactrel_1789793620_ab6a6884f791",
+            "release_channel": "shadow",
+            "fencing_token": 8,
+            "scope_key": "global",
+            "intent_digest": "sha256:dd3cb56e708162b41c8f662c3383243b3def54bd5941a0639078a768a397aeb4",
+            "policy_digest": "sha256:142825f6c99b3a82e3af10f4033af157ac62418f9ddc6b985225196278affe08",
+            "input_snapshot_digest": "sha256:24067ab1e9fd7d018bbf79f81796c08d3baf9be9d150663498f9aa4649ad2ae3",
+            "compiler_version": "platform-config-compiler/v25",
+            "projection_digest": "sha256:65171759c42b426366e9c91ad33841bfa5323328a1cb55749b8776421a9bfc4e"
+          },
+          "schema": "fugue.edge.candidate-execution/v1",
+          "mode": "isolated_http",
+          "result": "passed",
+          "artifact_id": "artifact_1789793583_e85634ccff05",
+          "artifact_digest": "sha256:59873303b1d04f2ec710de304f9772d4c9257db23c84a92c36e9e46d25df0f08",
+          "artifact_generation": "route-e650426528e1c2aac9cf6eca55ec08ef53b1b72fe8d7eaa7d226a7c01c5830e7",
+          "node_id": "vps-591f4447",
+          "edge_group_id": "edge-group-country-us",
+          "release_set_id": "artifact_1789793583_74b25402c918",
+          "expected_consumer_set_id": "expectedconsumerset_73c2097a01b7d6ae",
+          "generation_sequence": 53,
+          "fencing_token": 8,
+          "route_index_digest": "sha256:c76242c9bc61b389951ae4f553480ccd9bf996e55331b17dc07ef2b2bb2afc90",
+          "caddy_config_digest": "sha256:213b53ba09ee0ba0270b862e91d82e944814b19fdc8a889e7f63b43a44ca5b42",
+          "probe_count": 142,
+          "observed_at": "2026-09-19T07:35:03.00177853Z",
+          "expires_at": "2026-09-19T07:37:03.00177853Z",
+          "serving": false,
+          "tls_verified": false,
+          "origin_verified": false,
+          "receipt_digest": "sha256:f6f2f700e4dfc7ac13916788319456f57280062a45dabce4b6984c369ca1e0e1"
+        }
+      },
+      "tls_candidate": {
+        "readiness": {
+          "receipt_digest": "sha256:7a665c34a43691d621a77fcff71cd66813cb568c9d1570fa9a8746b299c79ec5",
+          "policy_digest": "sha256:b4e3874467f10e03e050bf2fea4db0495ec461326fcf91e9c9bd0a446a4f1aaf",
+          "bundle_version": "edgegroupbundle_d38fdd37a4b195c2140347e4a3bf05dc26969a60f19ed4ff0856786c1e9e711a.p46503.r179",
+          "probes": 141,
+          "ready_probes": 141,
+          "failed_probes": 0,
+          "checked_at": "2026-09-19T07:35:33.745848146Z",
+          "fresh_until": "2026-09-19T07:37:33.319039699Z",
+          "serving": false
+        },
+        "state": "shadow_verified",
+        "artifact_id": "artifact_1789793583_5c8cccdc479a",
+        "digest": "sha256:e98a5fca76a846e41a93d0aa0ff46d05b14ddf45369857c6735e57cac8d35111",
+        "release_set_id": "artifact_1789793583_74b25402c918",
+        "route_artifact_id": "artifact_1789793583_e85634ccff05",
+        "route_digest": "sha256:59873303b1d04f2ec710de304f9772d4c9257db23c84a92c36e9e46d25df0f08",
+        "certificate_count": 141,
+        "allowlist_count": 11,
+        "sequence": 1789803334036564730,
+        "verified_at": "2026-09-19T07:35:34.036565231Z",
+        "reported_at": "2026-09-19T07:35:34.166715879Z",
+        "serving": false,
+        "tls_verified": true
+      },
+      "platform_serving": {
+        "state": "awaiting_release",
+        "route_probes": 0,
+        "tls_probes": 0,
+        "verified_at": "0001-01-01T00:00:00Z",
+        "reported_at": "0001-01-01T00:00:00Z"
+      },
+      "containers": [
+        {
+          "name": "caddy",
+          "imageID": "docker.io/library/caddy@sha256:4c6e91c6ed0e2fa03efd5b44747b625fec79bc9cd06ac5235a779726618e530d",
+          "ready": true,
+          "restartCount": 0
+        },
+        {
+          "name": "edge",
+          "imageID": "ghcr.io/yym68686/fugue-edge@sha256:cf15a5376704b79db1511ddadec496d35eeff36f974be5b75b59c1e23df1d96f",
+          "ready": true,
+          "restartCount": 0
+        }
+      ]
+    },
+    {
+      "pod": "fugue-fugue-edge-country-de-worker-b-k9tfp",
+      "serving_generation": "edgegroupbundle_fb828200c90e90ac11b6b2ee32da0dfe9ab31e2c62330596dffb4422c7462a26",
+      "bundle_version": "edgegroupbundle_fb828200c90e90ac11b6b2ee32da0dfe9ab31e2c62330596dffb4422c7462a26.p32755.r516",
+      "route_count": 147,
+      "inventory": {
+        "inventory_producer_active": true,
+        "inventory_heartbeat_at": "2026-09-19T07:35:56.260894414Z",
+        "inventory_heartbeat_generation": 100063,
+        "inventory_heartbeat_error": null
+      },
+      "candidate": {
+        "traffic_release": {
+          "schema": "fugue.traffic-release-binding/v1",
+          "release_set_id": "artifact_1789793583_74b25402c918",
+          "release_set_digest": "sha256:8032b51cefc8bef7016e85c5262b7890e4494f452ea70d261d2e519f40921a71",
+          "release_set_generation": "release-e650426528e1c2aac9cf6eca55ec08ef53b1b72fe8d7eaa7d226a7c01c5830e7",
+          "route_artifact_id": "artifact_1789793583_e85634ccff05",
+          "route_artifact_digest": "sha256:59873303b1d04f2ec710de304f9772d4c9257db23c84a92c36e9e46d25df0f08",
+          "route_artifact_generation": "route-e650426528e1c2aac9cf6eca55ec08ef53b1b72fe8d7eaa7d226a7c01c5830e7",
+          "route_artifact_sequence": 53,
+          "release_id": "artifactrel_1789793620_ab6a6884f791",
+          "release_channel": "shadow",
+          "fencing_token": 8,
+          "scope_key": "global",
+          "intent_digest": "sha256:dd3cb56e708162b41c8f662c3383243b3def54bd5941a0639078a768a397aeb4",
+          "policy_digest": "sha256:142825f6c99b3a82e3af10f4033af157ac62418f9ddc6b985225196278affe08",
+          "input_snapshot_digest": "sha256:24067ab1e9fd7d018bbf79f81796c08d3baf9be9d150663498f9aa4649ad2ae3",
+          "compiler_version": "platform-config-compiler/v25",
+          "projection_digest": "sha256:65171759c42b426366e9c91ad33841bfa5323328a1cb55749b8776421a9bfc4e"
+        },
+        "state": "shadow_verified",
+        "artifact_id": "artifact_1789793583_e85634ccff05",
+        "digest": "sha256:59873303b1d04f2ec710de304f9772d4c9257db23c84a92c36e9e46d25df0f08",
+        "release_set_id": "artifact_1789793583_74b25402c918",
+        "route_count": 142,
+        "route_index_digest": "sha256:ca204b768e3ddea2214a2a7186592e0ab20ae4918e5b1bbf17aa6d1427f0ac67",
+        "sequence": 1789803360723970632,
+        "verified_at": "2026-09-19T07:36:00.723971475Z",
+        "reported_at": "2026-09-19T07:36:01.337379424Z",
+        "execution": {
+          "traffic_release": {
+            "schema": "fugue.traffic-release-binding/v1",
+            "release_set_id": "artifact_1789793583_74b25402c918",
+            "release_set_digest": "sha256:8032b51cefc8bef7016e85c5262b7890e4494f452ea70d261d2e519f40921a71",
+            "release_set_generation": "release-e650426528e1c2aac9cf6eca55ec08ef53b1b72fe8d7eaa7d226a7c01c5830e7",
+            "route_artifact_id": "artifact_1789793583_e85634ccff05",
+            "route_artifact_digest": "sha256:59873303b1d04f2ec710de304f9772d4c9257db23c84a92c36e9e46d25df0f08",
+            "route_artifact_generation": "route-e650426528e1c2aac9cf6eca55ec08ef53b1b72fe8d7eaa7d226a7c01c5830e7",
+            "route_artifact_sequence": 53,
+            "release_id": "artifactrel_1789793620_ab6a6884f791",
+            "release_channel": "shadow",
+            "fencing_token": 8,
+            "scope_key": "global",
+            "intent_digest": "sha256:dd3cb56e708162b41c8f662c3383243b3def54bd5941a0639078a768a397aeb4",
+            "policy_digest": "sha256:142825f6c99b3a82e3af10f4033af157ac62418f9ddc6b985225196278affe08",
+            "input_snapshot_digest": "sha256:24067ab1e9fd7d018bbf79f81796c08d3baf9be9d150663498f9aa4649ad2ae3",
+            "compiler_version": "platform-config-compiler/v25",
+            "projection_digest": "sha256:65171759c42b426366e9c91ad33841bfa5323328a1cb55749b8776421a9bfc4e"
+          },
+          "schema": "fugue.edge.candidate-execution/v1",
+          "mode": "isolated_http",
+          "result": "passed",
+          "artifact_id": "artifact_1789793583_e85634ccff05",
+          "artifact_digest": "sha256:59873303b1d04f2ec710de304f9772d4c9257db23c84a92c36e9e46d25df0f08",
+          "artifact_generation": "route-e650426528e1c2aac9cf6eca55ec08ef53b1b72fe8d7eaa7d226a7c01c5830e7",
+          "node_id": "vps-84c8f0a9",
+          "edge_group_id": "edge-group-country-de",
+          "release_set_id": "artifact_1789793583_74b25402c918",
+          "expected_consumer_set_id": "expectedconsumerset_73c2097a01b7d6ae",
+          "generation_sequence": 53,
+          "fencing_token": 8,
+          "route_index_digest": "sha256:ca204b768e3ddea2214a2a7186592e0ab20ae4918e5b1bbf17aa6d1427f0ac67",
+          "caddy_config_digest": "sha256:33f3831838a56cd48056002022cabec47631f8f7062511e72abd4e9762032cd2",
+          "probe_count": 142,
+          "observed_at": "2026-09-19T07:35:30.67721073Z",
+          "expires_at": "2026-09-19T07:37:30.67721073Z",
+          "serving": false,
+          "tls_verified": false,
+          "origin_verified": false,
+          "receipt_digest": "sha256:6317cc308bb818a6f18b9bb26ef1b62785e5c86ba1f4bb1a21514d7b2b16577c"
+        }
+      },
+      "tls_candidate": {
+        "readiness": {
+          "receipt_digest": "sha256:4f1aff2da191e25df708bb78398fb158a22539c34aebed583e75f42d7873c69e",
+          "policy_digest": "sha256:b4e3874467f10e03e050bf2fea4db0495ec461326fcf91e9c9bd0a446a4f1aaf",
+          "bundle_version": "edgegroupbundle_fb828200c90e90ac11b6b2ee32da0dfe9ab31e2c62330596dffb4422c7462a26.p32755.r516",
+          "probes": 141,
+          "ready_probes": 141,
+          "failed_probes": 0,
+          "checked_at": "2026-09-19T07:35:34.0284651Z",
+          "fresh_until": "2026-09-19T07:37:33.710478239Z",
+          "serving": false
+        },
+        "state": "shadow_verified",
+        "artifact_id": "artifact_1789793583_5c8cccdc479a",
+        "digest": "sha256:e98a5fca76a846e41a93d0aa0ff46d05b14ddf45369857c6735e57cac8d35111",
+        "release_set_id": "artifact_1789793583_74b25402c918",
+        "route_artifact_id": "artifact_1789793583_e85634ccff05",
+        "route_digest": "sha256:59873303b1d04f2ec710de304f9772d4c9257db23c84a92c36e9e46d25df0f08",
+        "certificate_count": 141,
+        "allowlist_count": 11,
+        "sequence": 1789803334596432809,
+        "verified_at": "2026-09-19T07:35:34.596433373Z",
+        "reported_at": "2026-09-19T07:35:34.897443144Z",
+        "serving": false,
+        "tls_verified": true
+      },
+      "platform_serving": {
+        "state": "awaiting_release",
+        "route_probes": 0,
+        "tls_probes": 0,
+        "verified_at": "0001-01-01T00:00:00Z",
+        "reported_at": "0001-01-01T00:00:00Z"
+      },
+      "containers": [
+        {
+          "name": "caddy",
+          "imageID": "docker.io/library/caddy@sha256:4c6e91c6ed0e2fa03efd5b44747b625fec79bc9cd06ac5235a779726618e530d",
+          "ready": true,
+          "restartCount": 0
+        },
+        {
+          "name": "edge",
+          "imageID": "ghcr.io/yym68686/fugue-edge@sha256:85ad1977454201c0236ddf4630fdd0c2a1504f3cb345b69df0f3b6c159a0ed3a",
+          "ready": true,
+          "restartCount": 0
+        }
+      ]
+    }
+  ],
+  "dns": [
+    {
+      "pod": "fugue-fugue-dns-tm47x",
+      "serving_generation": "dnsenv_a8f58197e54f316665d408eca8a4128eb6d14730cdf309b69798d959bc0230bc",
+      "serving_record_count": 230,
+      "candidate": {
+        "query": {
+          "client_policy_digest": "sha256:b7e312c4f8355e711afc0f6077df5efd198992d6223f249af33526851bea2bac",
+          "client_policy_rules": 0,
+          "view_digest": "sha256:6f8788806ccff1861b64632e3610487aa60c966e564ccb767f66cbbed82fbe28",
+          "records": 223,
+          "eligible_records": 204,
+          "questions": 587,
+          "answers": 570,
+          "evaluated_at": "2026-09-19T07:35:31.247337859Z",
+          "serving": false
+        },
+        "readiness": {
+          "plan_digest": "sha256:b5fa225bffb3074b948898f75461df1b0797f15619d93b1e3c58d68208ce42ff",
+          "probes": 408,
+          "ready_probes": 374,
+          "failed_probes": 34,
+          "records": 208,
+          "ready_records": 189,
+          "checked_at": "2026-09-19T07:35:11.348513777Z",
+          "fresh_until": "2026-09-19T07:37:01.330438885Z",
+          "serving": false
+        },
+        "state": "shadow_verified",
+        "artifact_id": "artifact_1789793583_5fce6819f4e8",
+        "digest": "sha256:c46f17794b6ee480670c6ff9af0287b1c5a0dcdfdead031f3fb4362c9f76c0ef",
+        "release_set_id": "artifact_1789793583_74b25402c918",
+        "record_count": 12,
+        "sequence": 1789803331457055110,
+        "verified_at": "2026-09-19T07:35:31.457055226Z",
+        "reported_at": "2026-09-19T07:35:31.769151158Z",
+        "consumer_view_count": 3,
+        "probe_record_count": 3
+      }
+    },
+    {
+      "pod": "fugue-fugue-dns-country-de-t9wvs",
+      "serving_generation": "dnsenv_e96f2202114fb543b3e65d68e95c7ffaef038e6775da22d294a884572c71c687",
+      "serving_record_count": 230,
+      "candidate": {
+        "query": {
+          "client_policy_digest": "sha256:146152b0eda916671873317e66442a11161893ee20faa3c28104ab2d9110f48e",
+          "client_policy_rules": 0,
+          "view_digest": "sha256:fc6f1e685ca5557f9247c979dce21287f34dda8e11697849c72228890cc2c8eb",
+          "records": 223,
+          "eligible_records": 204,
+          "questions": 587,
+          "answers": 570,
+          "evaluated_at": "2026-09-19T07:35:31.776520823Z",
+          "serving": false
+        },
+        "readiness": {
+          "plan_digest": "sha256:b5fa225bffb3074b948898f75461df1b0797f15619d93b1e3c58d68208ce42ff",
+          "probes": 408,
+          "ready_probes": 374,
+          "failed_probes": 34,
+          "records": 208,
+          "ready_records": 189,
+          "checked_at": "2026-09-19T07:35:18.858870634Z",
+          "fresh_until": "2026-09-19T07:37:01.97362042Z",
+          "serving": false
+        },
+        "state": "shadow_verified",
+        "artifact_id": "artifact_1789793583_5fce6819f4e8",
+        "digest": "sha256:c46f17794b6ee480670c6ff9af0287b1c5a0dcdfdead031f3fb4362c9f76c0ef",
+        "release_set_id": "artifact_1789793583_74b25402c918",
+        "record_count": 12,
+        "sequence": 1789803332208045880,
+        "verified_at": "2026-09-19T07:35:32.208046002Z",
+        "reported_at": "2026-09-19T07:35:32.608380482Z",
+        "consumer_view_count": 3,
+        "probe_record_count": 3
+      }
+    }
+  ],
+  "front": [
+    {
+      "pod": "fugue-fugue-edge-front-cgj9t",
+      "activation": {
+        "schema": "edge-front-group-activation/v1",
+        "edge_group_id": "edge-group-country-us",
+        "generation": 837,
+        "active_slot": "a",
+        "previous_slot": "b",
+        "bundle_generation": "edgegroupbundle_d38fdd37a4b195c2140347e4a3bf05dc26969a60f19ed4ff0856786c1e9e711a.p46503.r179",
+        "worker_source_commit": "312fd174406802bbe7e7250cc027dc4e9c6115fb",
+        "worker_image_digest": "sha256:cf15a5376704b79db1511ddadec496d35eeff36f974be5b75b59c1e23df1d96f",
+        "authority": "edge-control",
+        "operation": "promote",
+        "reason": "promote Guardian verified candidate authority",
+        "updated_at": "2026-09-19T07:28:33.77062171Z"
+      },
+      "containers": [
+        {
+          "name": "edge-front",
+          "imageID": "ghcr.io/yym68686/fugue-edge@sha256:cf15a5376704b79db1511ddadec496d35eeff36f974be5b75b59c1e23df1d96f",
+          "ready": true,
+          "restartCount": 0
+        }
+      ]
+    },
+    {
+      "pod": "fugue-fugue-edge-front-4sblm",
+      "activation": {
+        "schema": "edge-front-group-activation/v1",
+        "edge_group_id": "edge-group-country-us",
+        "generation": 837,
+        "active_slot": "a",
+        "previous_slot": "b",
+        "bundle_generation": "edgegroupbundle_d38fdd37a4b195c2140347e4a3bf05dc26969a60f19ed4ff0856786c1e9e711a.p46503.r179",
+        "worker_source_commit": "312fd174406802bbe7e7250cc027dc4e9c6115fb",
+        "worker_image_digest": "sha256:cf15a5376704b79db1511ddadec496d35eeff36f974be5b75b59c1e23df1d96f",
+        "authority": "edge-control",
+        "operation": "promote",
+        "reason": "promote Guardian verified candidate authority",
+        "updated_at": "2026-09-19T07:28:33.956878419Z"
+      },
+      "containers": [
+        {
+          "name": "edge-front",
+          "imageID": "ghcr.io/yym68686/fugue-edge@sha256:cf15a5376704b79db1511ddadec496d35eeff36f974be5b75b59c1e23df1d96f",
+          "ready": true,
+          "restartCount": 0
+        }
+      ]
+    },
+    {
+      "pod": "fugue-fugue-edge-country-de-front-2bcnn",
+      "activation": {
+        "schema": "edge-front-group-activation/v1",
+        "edge_group_id": "edge-group-country-de",
+        "generation": 274,
+        "active_slot": "b",
+        "previous_slot": "a",
+        "bundle_generation": "edgegroupbundle_fb828200c90e90ac11b6b2ee32da0dfe9ab31e2c62330596dffb4422c7462a26.p32755.r516",
+        "worker_source_commit": "312fd174406802bbe7e7250cc027dc4e9c6115fb",
+        "worker_image_digest": "sha256:85ad1977454201c0236ddf4630fdd0c2a1504f3cb345b69df0f3b6c159a0ed3a",
+        "authority": "edge-control",
+        "operation": "promote",
+        "reason": "promote Guardian verified candidate authority",
+        "updated_at": "2026-09-19T07:18:45.107111058Z"
+      },
+      "containers": [
+        {
+          "name": "edge-front",
+          "imageID": "ghcr.io/yym68686/fugue-edge@sha256:85ad1977454201c0236ddf4630fdd0c2a1504f3cb345b69df0f3b6c159a0ed3a",
+          "ready": true,
+          "restartCount": 0
+        }
+      ]
+    }
+  ],
+  "convergence": [
+    {
+      "expected_consumer_set_id": "expectedconsumerset_bfbf62fd7afc2d95",
+      "artifact_kind": "caddy_route_config",
+      "scope_key": "global",
+      "expected_generation": "tls-e650426528e1c2aac9cf6eca55ec08ef53b1b72fe8d7eaa7d226a7c01c5830e7",
+      "state": "fail",
+      "pass": false,
+      "required_expected": 3,
+      "required_observed": 3,
+      "required_passing": 0,
+      "optional_expected": 0,
+      "assessments": [
+        {
+          "consumer_id": "edge-worker:bwg",
+          "state": "fail",
+          "required": true,
+          "reasons": [
+            "desired, actual, and LKG generations must all be reported",
+            "apply status is not applied",
+            "probe status is not passed"
+          ],
+          "fresh_until": "2026-09-19T07:36:52.576671Z"
+        },
+        {
+          "consumer_id": "edge-worker:vps-591f4447",
+          "state": "fail",
+          "required": true,
+          "reasons": [
+            "desired, actual, and LKG generations must all be reported",
+            "apply status is not applied",
+            "probe status is not passed"
+          ],
+          "fresh_until": "2026-09-19T07:36:34.442341Z"
+        },
+        {
+          "consumer_id": "edge-worker:vps-84c8f0a9",
+          "state": "fail",
+          "required": true,
+          "reasons": [
+            "desired, actual, and LKG generations must all be reported",
+            "apply status is not applied",
+            "probe status is not passed"
+          ],
+          "fresh_until": "2026-09-19T07:36:33.305872Z"
+        }
+      ],
+      "evaluated_at": "2026-09-19T07:35:23.069363439Z"
+    },
+    {
+      "expected_consumer_set_id": "expectedconsumerset_b92b337d1efa3a2d",
+      "artifact_kind": "dns_answer_bundle",
+      "scope_key": "global",
+      "expected_generation": "dns-e650426528e1c2aac9cf6eca55ec08ef53b1b72fe8d7eaa7d226a7c01c5830e7",
+      "state": "fail",
+      "pass": false,
+      "required_expected": 2,
+      "required_observed": 2,
+      "required_passing": 0,
+      "optional_expected": 0,
+      "assessments": [
+        {
+          "consumer_id": "dns-server:vps-591f4447",
+          "state": "fail",
+          "required": true,
+          "reasons": [
+            "desired or applied candidate generation does not match the expected generation",
+            "apply status is not applied",
+            "probe status is not passed"
+          ],
+          "fresh_until": "2026-09-19T07:36:43.880426Z"
+        },
+        {
+          "consumer_id": "dns-server:vps-84c8f0a9",
+          "state": "fail",
+          "required": true,
+          "reasons": [
+            "desired or applied candidate generation does not match the expected generation",
+            "apply status is not applied",
+            "probe status is not passed"
+          ],
+          "fresh_until": "2026-09-19T07:36:50.55426Z"
+        }
+      ],
+      "evaluated_at": "2026-09-19T07:35:23.17778513Z"
+    },
+    {
+      "expected_consumer_set_id": "expectedconsumerset_73c2097a01b7d6ae",
+      "artifact_kind": "edge_route_bundle",
+      "scope_key": "global",
+      "expected_generation": "route-e650426528e1c2aac9cf6eca55ec08ef53b1b72fe8d7eaa7d226a7c01c5830e7",
+      "state": "fail",
+      "pass": false,
+      "required_expected": 3,
+      "required_observed": 3,
+      "required_passing": 0,
+      "optional_expected": 0,
+      "assessments": [
+        {
+          "consumer_id": "edge-worker:bwg",
+          "state": "fail",
+          "required": true,
+          "reasons": [
+            "desired or applied candidate generation does not match the expected generation",
+            "apply status is not applied",
+            "probe status is not passed"
+          ],
+          "fresh_until": "2026-09-19T07:36:51.332067Z"
+        },
+        {
+          "consumer_id": "edge-worker:vps-591f4447",
+          "state": "fail",
+          "required": true,
+          "reasons": [
+            "desired or applied candidate generation does not match the expected generation",
+            "apply status is not applied",
+            "probe status is not passed"
+          ],
+          "fresh_until": "2026-09-19T07:36:33.22809Z"
+        },
+        {
+          "consumer_id": "edge-worker:vps-84c8f0a9",
+          "state": "fail",
+          "required": true,
+          "reasons": [
+            "desired or applied candidate generation does not match the expected generation",
+            "apply status is not applied",
+            "probe status is not passed"
+          ],
+          "fresh_until": "2026-09-19T07:36:30.431828Z"
+        }
+      ],
+      "evaluated_at": "2026-09-19T07:35:23.349083902Z"
+    }
+  ],
+  "compile": {
+    "observed_at": "2026-09-19T04:53:24.632228+00:00",
+    "compiler_version": "platform-config-compiler/v25",
+    "lineage": {
+      "intent_generation": "intent_c010d17a1767ee1bcf6fda8f403997052201967d56663e8bd4a3d6432bb09a66",
+      "policy_generation": "policy_816f00e26020adfbee4e943035fa807231fbb9ca97c6853c548ee408af1dbf06",
+      "intent_digest": "sha256:dd3cb56e708162b41c8f662c3383243b3def54bd5941a0639078a768a397aeb4",
+      "policy_digest": "sha256:142825f6c99b3a82e3af10f4033af157ac62418f9ddc6b985225196278affe08",
+      "input_snapshot_digest": "sha256:24067ab1e9fd7d018bbf79f81796c08d3baf9be9d150663498f9aa4649ad2ae3",
+      "compiler_version": "platform-config-compiler/v25"
+    },
+    "release_set_id": "artifact_1789793583_74b25402c918",
+    "artifacts": {
+      "intent_artifact": {
+        "id": "artifact_1789793583_1a34667756fb",
+        "artifact_kind": "platform_intent",
+        "generation": "intent_c010d17a1767ee1bcf6fda8f403997052201967d56663e8bd4a3d6432bb09a66",
+        "content_hash": "sha256:1df0dbfc521100ee2acec3bedd8a6cda35b08dafcdb477ba0c0bbcef494f8620",
+        "status": "validated"
+      },
+      "policy_artifact": {
+        "id": "artifact_1789793583_8f9a32a99063",
+        "artifact_kind": "policy_snapshot",
+        "generation": "policy_816f00e26020adfbee4e943035fa807231fbb9ca97c6853c548ee408af1dbf06",
+        "content_hash": "sha256:a97ff00d12361d7c03bc44789f0dfc2299656fb8d0ba4e3ebc6b66407b2ee346",
+        "status": "validated"
+      },
+      "route_artifact": {
+        "id": "artifact_1789793583_e85634ccff05",
+        "artifact_kind": "edge_route_bundle",
+        "generation": "route-e650426528e1c2aac9cf6eca55ec08ef53b1b72fe8d7eaa7d226a7c01c5830e7",
+        "content_hash": "sha256:59873303b1d04f2ec710de304f9772d4c9257db23c84a92c36e9e46d25df0f08",
+        "status": "validated"
+      },
+      "dns_artifact": {
+        "id": "artifact_1789793583_5fce6819f4e8",
+        "artifact_kind": "dns_answer_bundle",
+        "generation": "dns-e650426528e1c2aac9cf6eca55ec08ef53b1b72fe8d7eaa7d226a7c01c5830e7",
+        "content_hash": "sha256:c46f17794b6ee480670c6ff9af0287b1c5a0dcdfdead031f3fb4362c9f76c0ef",
+        "status": "validated"
+      },
+      "tls_artifact": {
+        "id": "artifact_1789793583_5c8cccdc479a",
+        "artifact_kind": "caddy_route_config",
+        "generation": "tls-e650426528e1c2aac9cf6eca55ec08ef53b1b72fe8d7eaa7d226a7c01c5830e7",
+        "content_hash": "sha256:e98a5fca76a846e41a93d0aa0ff46d05b14ddf45369857c6735e57cac8d35111",
+        "status": "validated"
+      },
+      "release_artifact": {
+        "id": "artifact_1789793583_74b25402c918",
+        "artifact_kind": "release_set",
+        "generation": "release-e650426528e1c2aac9cf6eca55ec08ef53b1b72fe8d7eaa7d226a7c01c5830e7",
+        "content_hash": "sha256:8032b51cefc8bef7016e85c5262b7890e4494f452ea70d261d2e519f40921a71",
+        "status": "validated"
+      }
+    },
+    "route_count": 142,
+    "dns_record_count": 220,
+    "tls_reference_count": 141,
+    "projection_issues": [
+      {
+        "code": "dns_output_equivalence_not_verified"
+      },
+      {
+        "code": "release_target_equivalence_not_verified"
+      }
+    ],
+    "route_comparison": {
+      "artifact_id": "artifact_1789793583_e85634ccff05",
+      "artifact_digest": "sha256:59873303b1d04f2ec710de304f9772d4c9257db23c84a92c36e9e46d25df0f08",
+      "artifact_generation": "route-e650426528e1c2aac9cf6eca55ec08ef53b1b72fe8d7eaa7d226a7c01c5830e7",
+      "source_generation": "routeintents_60451f7038687ce82d30205efed0b7dc3582ab8d07c00498943342f916a8f033",
+      "captured_at": "2026-09-19T04:53:12.361087186Z",
+      "source_route_count": 142,
+      "artifact_route_count": 142,
+      "matching_route_count": 142,
+      "equivalent": true,
+      "differences": [],
+      "snapshot_differences": []
+    },
+    "configuration_unchanged": true,
+    "promoted": false
+  },
+  "authorities": [
+    {
+      "apiVersion": "release.fugue.dev/v1",
+      "authorityEpoch": 26197,
+      "baselineReceiptDigest": "sha256:81c648131cb778f5e182bfbd75f55f2250aaac050a04513229558bfc7cf47ed5",
+      "currentBundleGeneration": "edgegroupbundle_fb828200c90e90ac11b6b2ee32da0dfe9ab31e2c62330596dffb4422c7462a26.p32755.r516",
+      "currentFrontGeneration": 274,
+      "currentRecordDigest": "sha256:a74271917d6b89aafbcac3b3c243c8fc2f40fabd5276b31fed888943ac5e2be8",
+      "currentWorkerImageDigest": "sha256:85ad1977454201c0236ddf4630fdd0c2a1504f3cb345b69df0f3b6c159a0ed3a",
+      "currentWorkerSlot": "b",
+      "currentWorkerSourceSha": "312fd174406802bbe7e7250cc027dc4e9c6115fb",
+      "groupId": "edge-group-country-de",
+      "kind": "CurrentAuthority",
+      "previousBundleGeneration": "edgegroupbundle_ed8ac22513b72178b3d8fffa7f5cb28ca942f0e0ebf39a33d823b371db2f0454.p32703.r516",
+      "previousFrontGeneration": 273,
+      "previousRecordDigest": "sha256:e90e147221870d23d7e8de027c788f12899722ff7f45aefb55630283d36b996c",
+      "previousWorkerImageDigest": "sha256:b58375f6ec10b16f95ef00b68e62d3f887fe7e4627b60b8c48a2c29251c2cce7",
+      "previousWorkerSlot": "a",
+      "previousWorkerSourceSha": "d607054bf27ceecdf43c7203e2da3f461d924313"
+    },
+    {
+      "apiVersion": "release.fugue.dev/v1",
+      "authorityEpoch": 40315,
+      "baselineReceiptDigest": "sha256:633d5ac0c4fc0d10505bc8fb34d27ca2377889bd4458465ee60a244086a193a4",
+      "currentBundleGeneration": "edgegroupbundle_d38fdd37a4b195c2140347e4a3bf05dc26969a60f19ed4ff0856786c1e9e711a.p46503.r179",
+      "currentFrontGeneration": 837,
+      "currentRecordDigest": "sha256:33a262c599874d773cc8f2dba30f26a7ad146bad114361c1555b96e31779c93f",
+      "currentWorkerImageDigest": "sha256:cf15a5376704b79db1511ddadec496d35eeff36f974be5b75b59c1e23df1d96f",
+      "currentWorkerSlot": "a",
+      "currentWorkerSourceSha": "312fd174406802bbe7e7250cc027dc4e9c6115fb",
+      "groupId": "edge-group-country-us",
+      "kind": "CurrentAuthority",
+      "previousBundleGeneration": "edgegroupbundle_af0d00befc6960aa022bd02ee50231f3203d1d48e799332bee11634c66f1c5f2.p46465.r179",
+      "previousFrontGeneration": 836,
+      "previousRecordDigest": "sha256:4d03e98b310b24ac32f88976310b7174862e087654d951a52681e82a8deccf2d",
+      "previousWorkerImageDigest": "sha256:fef60dabd608133e9f2cf2dea0e4b7c92d7ce826df31980285b61c82d5cb35b5",
+      "previousWorkerSlot": "b",
+      "previousWorkerSourceSha": "d607054bf27ceecdf43c7203e2da3f461d924313"
+    }
+  ],
+  "group_controls": [
+    {
+      "pod": "edge-control-de-546f86bf8b-9v8vj",
+      "source_commit": "312fd174406802bbe7e7250cc027dc4e9c6115fb",
+      "containers": [
+        {
+          "name": "edge-control",
+          "imageID": "ghcr.io/yym68686/fugue-edge-control@sha256:93b0a5a48e0a0ca822488c7594ef813d4239a5d89842cb1b64646cab3c476768",
+          "ready": true,
+          "restartCount": 0
+        }
+      ]
+    },
+    {
+      "pod": "edge-control-us-6c4fbfdf46-phrcb",
+      "source_commit": "312fd174406802bbe7e7250cc027dc4e9c6115fb",
+      "containers": [
+        {
+          "name": "edge-control",
+          "imageID": "ghcr.io/yym68686/fugue-edge-control@sha256:8f435ddc6eb0689931fec233ef0f194f3af9b2399ab56df7f366549c6925f72d",
+          "ready": true,
+          "restartCount": 0
+        }
+      ]
+    }
+  ],
+  "release_status": [
+    {
+      "apiVersion": "release.fugue.dev/v1",
+      "component": "api",
+      "currentRecordDigest": "sha256:90ec429a7f7303ef54e32ae1aaeaa0ac51820a07407c8f1eb78acee7348223e0",
+      "group": "global",
+      "health": {
+        "dependency": {
+          "evidenceDigest": "sha256:6423d5f713c2197229df9a2f259d0d859e0852143df96334e2ffbae8c4db8b13",
+          "observedAt": "2026-09-19T07:36:28.470412855Z",
+          "state": "healthy"
+        },
+        "local": {
+          "evidenceDigest": "sha256:4657f183c0b949f6cb0394c8acd623405f30791f86a260c3b1218482884e1b82",
+          "observedAt": "2026-09-19T07:36:28.470412855Z",
+          "state": "healthy"
+        },
+        "route": {
+          "evidenceDigest": "sha256:4003ef5e72051996b2da7f5dd081f162c31f9964547363a0b3b523ed510371da",
+          "observedAt": "2026-09-19T07:36:20.829815443Z",
+          "state": "healthy"
+        }
+      },
+      "kind": "ReleaseStatus",
+      "lastSuccessfulLkg": "sha256:90ec429a7f7303ef54e32ae1aaeaa0ac51820a07407c8f1eb78acee7348223e0",
+      "observedAt": "2026-09-19T07:36:30.560010351Z",
+      "reason": "local, dependency, and route health are verified",
+      "state": "stable",
+      "statusDigest": "sha256:760588fa977107e390dbacd12e2529cdab7dd78840522b9eaa923673d898a0d6",
+      "targetRecordDigest": "sha256:90ec429a7f7303ef54e32ae1aaeaa0ac51820a07407c8f1eb78acee7348223e0"
+    },
+    {
+      "apiVersion": "release.fugue.dev/v1",
+      "component": "edge-worker-de",
+      "currentRecordDigest": "sha256:5a3dcb338280f89f9914a2e0199d5b6ca6ba9015629ff5ec68f5161f5efbbf2b",
+      "group": "de",
+      "health": {
+        "dependency": {
+          "evidenceDigest": "sha256:cc27cbb60829549fecab4432c5aacf90724603d69be83cb7bdb99fd9431839fe",
+          "observedAt": "2026-09-19T07:36:25.20197061Z",
+          "state": "healthy"
+        },
+        "local": {
+          "evidenceDigest": "sha256:b23a6f1e3ac8ec11df00bd6d9abbc6fa63ae80a47782cc9df7102521e9884bd1",
+          "observedAt": "2026-09-19T07:36:25.20197061Z",
+          "state": "healthy"
+        },
+        "route": {
+          "evidenceDigest": "sha256:082095393f261d496484c3334f8be581eae8b703f4565616255ea457cf32c8a4",
+          "observedAt": "2026-09-19T07:36:21.890089501Z",
+          "state": "healthy"
+        }
+      },
+      "kind": "ReleaseStatus",
+      "lastSuccessfulLkg": "sha256:5a3dcb338280f89f9914a2e0199d5b6ca6ba9015629ff5ec68f5161f5efbbf2b",
+      "observedAt": "2026-09-19T07:36:28.870886997Z",
+      "reason": "local, dependency, and route health are verified",
+      "state": "stable",
+      "statusDigest": "sha256:d8e3f5f5aabb00bef2ea59fef4f02902dc0bbb13874e236cfd85583e40c0d74d",
+      "targetRecordDigest": "sha256:5a3dcb338280f89f9914a2e0199d5b6ca6ba9015629ff5ec68f5161f5efbbf2b"
+    },
+    {
+      "apiVersion": "release.fugue.dev/v1",
+      "component": "edge-worker-us",
+      "currentRecordDigest": "sha256:d55485d11ebfac0cdbc3eba702f10cfacde0b9c846695000428839d1632eca69",
+      "group": "us",
+      "health": {
+        "dependency": {
+          "evidenceDigest": "sha256:5ea44fd7c986975bbd203cb27f4f30cc934bbd9756e58460af3efefc6d031849",
+          "observedAt": "2026-09-19T07:36:22.987990508Z",
+          "state": "healthy"
+        },
+        "local": {
+          "evidenceDigest": "sha256:48b18b0f7895add85cb44f6af47e3a5c08b8fcd0e0b8b10b2a97d083293e00bf",
+          "observedAt": "2026-09-19T07:36:22.987990508Z",
+          "state": "healthy"
+        },
+        "route": {
+          "evidenceDigest": "sha256:851baf3852ee3e3fbdafd55fbe999865d9138dcfa8bfd9e593d6e701edf2f108",
+          "observedAt": "2026-09-19T07:36:21.888648907Z",
+          "state": "healthy"
+        }
+      },
+      "kind": "ReleaseStatus",
+      "lastSuccessfulLkg": "sha256:d55485d11ebfac0cdbc3eba702f10cfacde0b9c846695000428839d1632eca69",
+      "observedAt": "2026-09-19T07:36:26.780924486Z",
+      "reason": "local, dependency, and route health are verified",
+      "state": "stable",
+      "statusDigest": "sha256:cdb1662c946f77549ffcbd416d2c5578ea99121eec0e9c690eab77423708a57f",
+      "targetRecordDigest": "sha256:d55485d11ebfac0cdbc3eba702f10cfacde0b9c846695000428839d1632eca69"
+    }
+  ],
+  "immutable_expected_sets_unchanged": true,
+  "edge_clients": [
+    {
+      "pod": "fugue-fugue-dns-country-de-t9wvs",
+      "source_commit": "312fd174406802bbe7e7250cc027dc4e9c6115fb",
+      "containers": [
+        {
+          "name": "dns",
+          "imageID": "ghcr.io/yym68686/fugue-edge@sha256:0158c1e16866026b17a76db3f26d13d3f8fb96b7389bdaa9176b6806a0ef1c05",
+          "ready": true,
+          "restartCount": 0
+        }
+      ]
+    },
+    {
+      "pod": "fugue-fugue-dns-tm47x",
+      "source_commit": "312fd174406802bbe7e7250cc027dc4e9c6115fb",
+      "containers": [
+        {
+          "name": "dns",
+          "imageID": "ghcr.io/yym68686/fugue-edge@sha256:6632f0f2330c2724524a6dc2e4fa1453ab431206172b4933aad46240584d0075",
+          "ready": true,
+          "restartCount": 0
+        }
+      ]
+    },
+    {
+      "pod": "fugue-fugue-edge-country-de-ssh-front-qlp2r",
+      "source_commit": "312fd174406802bbe7e7250cc027dc4e9c6115fb",
+      "containers": [
+        {
+          "name": "ssh-front",
+          "imageID": "ghcr.io/yym68686/fugue-edge@sha256:0158c1e16866026b17a76db3f26d13d3f8fb96b7389bdaa9176b6806a0ef1c05",
+          "ready": true,
+          "restartCount": 0
+        }
+      ]
+    },
+    {
+      "pod": "fugue-fugue-edge-ssh-front-cpm8x",
+      "source_commit": "312fd174406802bbe7e7250cc027dc4e9c6115fb",
+      "containers": [
+        {
+          "name": "ssh-front",
+          "imageID": "ghcr.io/yym68686/fugue-edge@sha256:6632f0f2330c2724524a6dc2e4fa1453ab431206172b4933aad46240584d0075",
+          "ready": true,
+          "restartCount": 0
+        }
+      ]
+    },
+    {
+      "pod": "fugue-fugue-edge-ssh-front-fcbkm",
+      "source_commit": "312fd174406802bbe7e7250cc027dc4e9c6115fb",
+      "containers": [
+        {
+          "name": "ssh-front",
+          "imageID": "ghcr.io/yym68686/fugue-edge@sha256:6632f0f2330c2724524a6dc2e4fa1453ab431206172b4933aad46240584d0075",
+          "ready": true,
+          "restartCount": 0
+        }
+      ]
+    }
+  ],
+  "limitations": [
+    "Actual traffic configuration gray/full serving has not been performed.",
+    "DNS leases and artifact apply/rollback remain to be completed before releasing the traffic gate.",
+    "Consumer serving observer has been tested with local fixtures and real TLS transport; production state remains awaiting_release.",
+    "Central verified policy LKG, recovery exercises and legacy source removal remain incomplete."
+  ],
+  "ci": {
+    "conclusion": "success",
+    "headSha": "312fd174406802bbe7e7250cc027dc4e9c6115fb",
+    "jobs": [
+      {
+        "completedAt": "2026-09-19T07:03:52Z",
+        "conclusion": "success",
+        "databaseId": 105857658317,
+        "name": "prepush",
+        "startedAt": "2026-09-19T07:00:51Z",
+        "status": "completed",
+        "steps": [
+          {
+            "conclusion": "success",
+            "name": "Set up job",
+            "number": 1,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Checkout exact source",
+            "number": 2,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Setup Go",
+            "number": 3,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Setup Helm for bounded prepush",
+            "number": 4,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Download Go modules before the bounded test budget",
+            "number": 5,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Run the repository prepush contract",
+            "number": 6,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Materialize the exact declarative component plan",
+            "number": 7,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Upload the immutable release plan",
+            "number": 8,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Post Setup Go",
+            "number": 15,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Post Checkout exact source",
+            "number": 16,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Complete job",
+            "number": 17,
+            "status": "completed"
+          }
+        ],
+        "url": "https://github.com/yym68686/fugue/actions/runs/35428158551/job/105857658317"
+      },
+      {
+        "completedAt": "2026-09-19T07:00:49Z",
+        "conclusion": "skipped",
+        "databaseId": 105857658952,
+        "name": "audit",
+        "startedAt": "2026-09-19T07:00:49Z",
+        "status": "completed",
+        "steps": [],
+        "url": "https://github.com/yym68686/fugue/actions/runs/35428158551/job/105857658952"
+      },
+      {
+        "completedAt": "2026-09-19T07:01:01Z",
+        "conclusion": "success",
+        "databaseId": 105857659276,
+        "name": "observability_configuration",
+        "startedAt": "2026-09-19T07:00:51Z",
+        "status": "completed",
+        "steps": [
+          {
+            "conclusion": "success",
+            "name": "Set up job",
+            "number": 1,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Run actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0",
+            "number": 2,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Detect observability configuration change",
+            "number": 3,
+            "status": "completed"
+          },
+          {
+            "conclusion": "skipped",
+            "name": "Validate and reload the explicit scrape policy",
+            "number": 4,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Post Run actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0",
+            "number": 8,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Complete job",
+            "number": 9,
+            "status": "completed"
+          }
+        ],
+        "url": "https://github.com/yym68686/fugue/actions/runs/35428158551/job/105857659276"
+      },
+      {
+        "completedAt": "2026-09-19T07:01:10Z",
+        "conclusion": "success",
+        "databaseId": 105857659374,
+        "name": "postgres_protection",
+        "startedAt": "2026-09-19T07:01:03Z",
+        "status": "completed",
+        "steps": [
+          {
+            "conclusion": "success",
+            "name": "Set up job",
+            "number": 1,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Run actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0",
+            "number": 2,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Detect database protection configuration changes",
+            "number": 3,
+            "status": "completed"
+          },
+          {
+            "conclusion": "skipped",
+            "name": "Validate and reconcile durable database protection",
+            "number": 4,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Reconcile read-only storage capacity and attachment observation access",
+            "number": 5,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Post Run actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0",
+            "number": 10,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Complete job",
+            "number": 11,
+            "status": "completed"
+          }
+        ],
+        "url": "https://github.com/yym68686/fugue/actions/runs/35428158551/job/105857659374"
+      },
+      {
+        "completedAt": "2026-09-19T07:07:01Z",
+        "conclusion": "success",
+        "databaseId": 105858054160,
+        "name": "component-build (8657bf729fce2603, edge-worker-us)",
+        "startedAt": "2026-09-19T07:03:54Z",
+        "status": "completed",
+        "steps": [
+          {
+            "conclusion": "success",
+            "name": "Set up job",
+            "number": 1,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Checkout exact release commit",
+            "number": 2,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Setup Go",
+            "number": 3,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Setup Docker Buildx",
+            "number": 4,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Login to GHCR",
+            "number": 5,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Download the immutable release plan",
+            "number": 6,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Build and verify exactly one immutable component image",
+            "number": 7,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Upload the canonical component artifact receipt",
+            "number": 8,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Post Login to GHCR",
+            "number": 13,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Post Setup Docker Buildx",
+            "number": 14,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Post Setup Go",
+            "number": 15,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Post Checkout exact release commit",
+            "number": 16,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Complete job",
+            "number": 17,
+            "status": "completed"
+          }
+        ],
+        "url": "https://github.com/yym68686/fugue/actions/runs/35428158551/job/105858054160"
+      },
+      {
+        "completedAt": "2026-09-19T07:05:49Z",
+        "conclusion": "success",
+        "databaseId": 105858054170,
+        "name": "component-build (abe99e8ad6d2dca9, edge-control-us)",
+        "startedAt": "2026-09-19T07:03:54Z",
+        "status": "completed",
+        "steps": [
+          {
+            "conclusion": "success",
+            "name": "Set up job",
+            "number": 1,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Checkout exact release commit",
+            "number": 2,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Setup Go",
+            "number": 3,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Setup Docker Buildx",
+            "number": 4,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Login to GHCR",
+            "number": 5,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Download the immutable release plan",
+            "number": 6,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Build and verify exactly one immutable component image",
+            "number": 7,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Upload the canonical component artifact receipt",
+            "number": 8,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Post Login to GHCR",
+            "number": 13,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Post Setup Docker Buildx",
+            "number": 14,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Post Setup Go",
+            "number": 15,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Post Checkout exact release commit",
+            "number": 16,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Complete job",
+            "number": 17,
+            "status": "completed"
+          }
+        ],
+        "url": "https://github.com/yym68686/fugue/actions/runs/35428158551/job/105858054170"
+      },
+      {
+        "completedAt": "2026-09-19T07:07:18Z",
+        "conclusion": "success",
+        "databaseId": 105858054180,
+        "name": "component-build (8657bf729fce2603, edge-client-de)",
+        "startedAt": "2026-09-19T07:04:31Z",
+        "status": "completed",
+        "steps": [
+          {
+            "conclusion": "success",
+            "name": "Set up job",
+            "number": 1,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Checkout exact release commit",
+            "number": 2,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Setup Go",
+            "number": 3,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Setup Docker Buildx",
+            "number": 4,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Login to GHCR",
+            "number": 5,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Download the immutable release plan",
+            "number": 6,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Build and verify exactly one immutable component image",
+            "number": 7,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Upload the canonical component artifact receipt",
+            "number": 8,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Post Login to GHCR",
+            "number": 13,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Post Setup Docker Buildx",
+            "number": 14,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Post Setup Go",
+            "number": 15,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Post Checkout exact release commit",
+            "number": 16,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Complete job",
+            "number": 17,
+            "status": "completed"
+          }
+        ],
+        "url": "https://github.com/yym68686/fugue/actions/runs/35428158551/job/105858054180"
+      },
+      {
+        "completedAt": "2026-09-19T07:06:38Z",
+        "conclusion": "success",
+        "databaseId": 105858054183,
+        "name": "component-build (af12bba5ae0a3799, release-guardian)",
+        "startedAt": "2026-09-19T07:03:54Z",
+        "status": "completed",
+        "steps": [
+          {
+            "conclusion": "success",
+            "name": "Set up job",
+            "number": 1,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Checkout exact release commit",
+            "number": 2,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Setup Go",
+            "number": 3,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Setup Docker Buildx",
+            "number": 4,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Login to GHCR",
+            "number": 5,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Download the immutable release plan",
+            "number": 6,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Build and verify exactly one immutable component image",
+            "number": 7,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Upload the canonical component artifact receipt",
+            "number": 8,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Post Login to GHCR",
+            "number": 13,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Post Setup Docker Buildx",
+            "number": 14,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Post Setup Go",
+            "number": 15,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Post Checkout exact release commit",
+            "number": 16,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Complete job",
+            "number": 17,
+            "status": "completed"
+          }
+        ],
+        "url": "https://github.com/yym68686/fugue/actions/runs/35428158551/job/105858054183"
+      },
+      {
+        "completedAt": "2026-09-19T07:06:55Z",
+        "conclusion": "success",
+        "databaseId": 105858054184,
+        "name": "component-build (c94a713950b2e1d4, controller)",
+        "startedAt": "2026-09-19T07:03:55Z",
+        "status": "completed",
+        "steps": [
+          {
+            "conclusion": "success",
+            "name": "Set up job",
+            "number": 1,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Checkout exact release commit",
+            "number": 2,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Setup Go",
+            "number": 3,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Setup Docker Buildx",
+            "number": 4,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Login to GHCR",
+            "number": 5,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Download the immutable release plan",
+            "number": 6,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Build and verify exactly one immutable component image",
+            "number": 7,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Upload the canonical component artifact receipt",
+            "number": 8,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Post Login to GHCR",
+            "number": 13,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Post Setup Docker Buildx",
+            "number": 14,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Post Setup Go",
+            "number": 15,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Post Checkout exact release commit",
+            "number": 16,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Complete job",
+            "number": 17,
+            "status": "completed"
+          }
+        ],
+        "url": "https://github.com/yym68686/fugue/actions/runs/35428158551/job/105858054184"
+      },
+      {
+        "completedAt": "2026-09-19T07:05:55Z",
+        "conclusion": "success",
+        "databaseId": 105858054192,
+        "name": "component-build (abe99e8ad6d2dca9, edge-control-de)",
+        "startedAt": "2026-09-19T07:03:55Z",
+        "status": "completed",
+        "steps": [
+          {
+            "conclusion": "success",
+            "name": "Set up job",
+            "number": 1,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Checkout exact release commit",
+            "number": 2,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Setup Go",
+            "number": 3,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Setup Docker Buildx",
+            "number": 4,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Login to GHCR",
+            "number": 5,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Download the immutable release plan",
+            "number": 6,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Build and verify exactly one immutable component image",
+            "number": 7,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Upload the canonical component artifact receipt",
+            "number": 8,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Post Login to GHCR",
+            "number": 13,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Post Setup Docker Buildx",
+            "number": 14,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Post Setup Go",
+            "number": 15,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Post Checkout exact release commit",
+            "number": 16,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Complete job",
+            "number": 17,
+            "status": "completed"
+          }
+        ],
+        "url": "https://github.com/yym68686/fugue/actions/runs/35428158551/job/105858054192"
+      },
+      {
+        "completedAt": "2026-09-19T07:06:30Z",
+        "conclusion": "success",
+        "databaseId": 105858054203,
+        "name": "component-build (8657bf729fce2603, edge-worker-de)",
+        "startedAt": "2026-09-19T07:03:55Z",
+        "status": "completed",
+        "steps": [
+          {
+            "conclusion": "success",
+            "name": "Set up job",
+            "number": 1,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Checkout exact release commit",
+            "number": 2,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Setup Go",
+            "number": 3,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Setup Docker Buildx",
+            "number": 4,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Login to GHCR",
+            "number": 5,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Download the immutable release plan",
+            "number": 6,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Build and verify exactly one immutable component image",
+            "number": 7,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Upload the canonical component artifact receipt",
+            "number": 8,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Post Login to GHCR",
+            "number": 13,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Post Setup Docker Buildx",
+            "number": 14,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Post Setup Go",
+            "number": 15,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Post Checkout exact release commit",
+            "number": 16,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Complete job",
+            "number": 17,
+            "status": "completed"
+          }
+        ],
+        "url": "https://github.com/yym68686/fugue/actions/runs/35428158551/job/105858054203"
+      },
+      {
+        "completedAt": "2026-09-19T07:06:38Z",
+        "conclusion": "success",
+        "databaseId": 105858054210,
+        "name": "component-build (8657bf729fce2603, edge-client-us)",
+        "startedAt": "2026-09-19T07:03:54Z",
+        "status": "completed",
+        "steps": [
+          {
+            "conclusion": "success",
+            "name": "Set up job",
+            "number": 1,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Checkout exact release commit",
+            "number": 2,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Setup Go",
+            "number": 3,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Setup Docker Buildx",
+            "number": 4,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Login to GHCR",
+            "number": 5,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Download the immutable release plan",
+            "number": 6,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Build and verify exactly one immutable component image",
+            "number": 7,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Upload the canonical component artifact receipt",
+            "number": 8,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Post Login to GHCR",
+            "number": 13,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Post Setup Docker Buildx",
+            "number": 14,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Post Setup Go",
+            "number": 15,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Post Checkout exact release commit",
+            "number": 16,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Complete job",
+            "number": 17,
+            "status": "completed"
+          }
+        ],
+        "url": "https://github.com/yym68686/fugue/actions/runs/35428158551/job/105858054210"
+      },
+      {
+        "completedAt": "2026-09-19T07:06:59Z",
+        "conclusion": "success",
+        "databaseId": 105858054296,
+        "name": "component-build (e6fceb1bb5af7e63, api)",
+        "startedAt": "2026-09-19T07:03:54Z",
+        "status": "completed",
+        "steps": [
+          {
+            "conclusion": "success",
+            "name": "Set up job",
+            "number": 1,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Checkout exact release commit",
+            "number": 2,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Setup Go",
+            "number": 3,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Setup Docker Buildx",
+            "number": 4,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Login to GHCR",
+            "number": 5,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Download the immutable release plan",
+            "number": 6,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Build and verify exactly one immutable component image",
+            "number": 7,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Upload the canonical component artifact receipt",
+            "number": 8,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Post Login to GHCR",
+            "number": 13,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Post Setup Docker Buildx",
+            "number": 14,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Post Setup Go",
+            "number": 15,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Post Checkout exact release commit",
+            "number": 16,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Complete job",
+            "number": 17,
+            "status": "completed"
+          }
+        ],
+        "url": "https://github.com/yym68686/fugue/actions/runs/35428158551/job/105858054296"
+      },
+      {
+        "completedAt": "2026-09-19T07:03:52Z",
+        "conclusion": "skipped",
+        "databaseId": 105858054373,
+        "name": "traffic_safety_stage0",
+        "startedAt": "2026-09-19T07:03:53Z",
+        "status": "completed",
+        "steps": [],
+        "url": "https://github.com/yym68686/fugue/actions/runs/35428158551/job/105858054373"
+      },
+      {
+        "completedAt": "2026-09-19T07:08:06Z",
+        "conclusion": "success",
+        "databaseId": 105858483838,
+        "name": "deploy_edge_client (edge-client-de, fugue-production-edge-client-de)",
+        "startedAt": "2026-09-19T07:07:21Z",
+        "status": "completed",
+        "steps": [
+          {
+            "conclusion": "success",
+            "name": "Set up job",
+            "number": 1,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Run actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0",
+            "number": 2,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Run ./.github/actions/deploy-declarative-component",
+            "number": 3,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Post Run ./.github/actions/deploy-declarative-component",
+            "number": 5,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Post Run actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0",
+            "number": 6,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Complete job",
+            "number": 7,
+            "status": "completed"
+          }
+        ],
+        "url": "https://github.com/yym68686/fugue/actions/runs/35428158551/job/105858483838"
+      },
+      {
+        "completedAt": "2026-09-19T07:08:55Z",
+        "conclusion": "success",
+        "databaseId": 105858483892,
+        "name": "deploy_release_guardian",
+        "startedAt": "2026-09-19T07:08:08Z",
+        "status": "completed",
+        "steps": [
+          {
+            "conclusion": "success",
+            "name": "Set up job",
+            "number": 1,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Run actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0",
+            "number": 2,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Run ./.github/actions/deploy-declarative-component",
+            "number": 3,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Post Run ./.github/actions/deploy-declarative-component",
+            "number": 5,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Post Run actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0",
+            "number": 6,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Complete job",
+            "number": 7,
+            "status": "completed"
+          }
+        ],
+        "url": "https://github.com/yym68686/fugue/actions/runs/35428158551/job/105858483892"
+      },
+      {
+        "completedAt": "2026-09-19T07:07:19Z",
+        "conclusion": "skipped",
+        "databaseId": 105858484065,
+        "name": "deploy_schema",
+        "startedAt": "2026-09-19T07:07:19Z",
+        "status": "completed",
+        "steps": [],
+        "url": "https://github.com/yym68686/fugue/actions/runs/35428158551/job/105858484065"
+      },
+      {
+        "completedAt": "2026-09-19T07:09:31Z",
+        "conclusion": "success",
+        "databaseId": 105858484153,
+        "name": "deploy_controller",
+        "startedAt": "2026-09-19T07:08:57Z",
+        "status": "completed",
+        "steps": [
+          {
+            "conclusion": "success",
+            "name": "Set up job",
+            "number": 1,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Run actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0",
+            "number": 2,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Run ./.github/actions/deploy-declarative-component",
+            "number": 3,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Post Run ./.github/actions/deploy-declarative-component",
+            "number": 5,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Post Run actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0",
+            "number": 6,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Complete job",
+            "number": 7,
+            "status": "completed"
+          }
+        ],
+        "url": "https://github.com/yym68686/fugue/actions/runs/35428158551/job/105858484153"
+      },
+      {
+        "completedAt": "2026-09-19T07:07:19Z",
+        "conclusion": "skipped",
+        "databaseId": 105858484462,
+        "name": "deploy_telemetry",
+        "startedAt": "2026-09-19T07:07:19Z",
+        "status": "completed",
+        "steps": [],
+        "url": "https://github.com/yym68686/fugue/actions/runs/35428158551/job/105858484462"
+      },
+      {
+        "completedAt": "2026-09-19T07:10:11Z",
+        "conclusion": "success",
+        "databaseId": 105858584913,
+        "name": "deploy_edge_client (edge-client-us, fugue-production-edge-client-us)",
+        "startedAt": "2026-09-19T07:09:32Z",
+        "status": "completed",
+        "steps": [
+          {
+            "conclusion": "success",
+            "name": "Set up job",
+            "number": 1,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Run actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0",
+            "number": 2,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Run ./.github/actions/deploy-declarative-component",
+            "number": 3,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Post Run ./.github/actions/deploy-declarative-component",
+            "number": 5,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Post Run actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0",
+            "number": 6,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Complete job",
+            "number": 7,
+            "status": "completed"
+          }
+        ],
+        "url": "https://github.com/yym68686/fugue/actions/runs/35428158551/job/105858584913"
+      },
+      {
+        "completedAt": "2026-09-19T07:11:44Z",
+        "conclusion": "success",
+        "databaseId": 105858688649,
+        "name": "deploy_api",
+        "startedAt": "2026-09-19T07:10:12Z",
+        "status": "completed",
+        "steps": [
+          {
+            "conclusion": "success",
+            "name": "Set up job",
+            "number": 1,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Run actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0",
+            "number": 2,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Run ./.github/actions/deploy-declarative-component",
+            "number": 3,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Post Run ./.github/actions/deploy-declarative-component",
+            "number": 5,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Post Run actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0",
+            "number": 6,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Complete job",
+            "number": 7,
+            "status": "completed"
+          }
+        ],
+        "url": "https://github.com/yym68686/fugue/actions/runs/35428158551/job/105858688649"
+      },
+      {
+        "completedAt": "2026-09-19T07:09:31Z",
+        "conclusion": "skipped",
+        "databaseId": 105858759362,
+        "name": "deploy_image_cache",
+        "startedAt": "2026-09-19T07:09:31Z",
+        "status": "completed",
+        "steps": [],
+        "url": "https://github.com/yym68686/fugue/actions/runs/35428158551/job/105858759362"
+      },
+      {
+        "completedAt": "2026-09-19T07:13:05Z",
+        "conclusion": "success",
+        "databaseId": 105859043775,
+        "name": "deploy_edge_control (edge-control-de, fugue-production-edge-control-de)",
+        "startedAt": "2026-09-19T07:11:46Z",
+        "status": "completed",
+        "steps": [
+          {
+            "conclusion": "success",
+            "name": "Set up job",
+            "number": 1,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Run actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0",
+            "number": 2,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Run ./.github/actions/deploy-declarative-component",
+            "number": 3,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Post Run ./.github/actions/deploy-declarative-component",
+            "number": 5,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Post Run actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0",
+            "number": 6,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Complete job",
+            "number": 7,
+            "status": "completed"
+          }
+        ],
+        "url": "https://github.com/yym68686/fugue/actions/runs/35428158551/job/105859043775"
+      },
+      {
+        "completedAt": "2026-09-19T07:14:09Z",
+        "conclusion": "success",
+        "databaseId": 105859214012,
+        "name": "deploy_edge_control (edge-control-us, fugue-production-edge-control-us)",
+        "startedAt": "2026-09-19T07:13:07Z",
+        "status": "completed",
+        "steps": [
+          {
+            "conclusion": "success",
+            "name": "Set up job",
+            "number": 1,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Run actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0",
+            "number": 2,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Run ./.github/actions/deploy-declarative-component",
+            "number": 3,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Post Run ./.github/actions/deploy-declarative-component",
+            "number": 5,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Post Run actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0",
+            "number": 6,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Complete job",
+            "number": 7,
+            "status": "completed"
+          }
+        ],
+        "url": "https://github.com/yym68686/fugue/actions/runs/35428158551/job/105859214012"
+      },
+      {
+        "completedAt": "2026-09-19T07:23:23Z",
+        "conclusion": "success",
+        "databaseId": 105859345617,
+        "name": "deploy_edge_worker (edge-worker-de, fugue-production-edge-worker-de)",
+        "startedAt": "2026-09-19T07:14:11Z",
+        "status": "completed",
+        "steps": [
+          {
+            "conclusion": "success",
+            "name": "Set up job",
+            "number": 1,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Run actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0",
+            "number": 2,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Run ./.github/actions/deploy-declarative-component",
+            "number": 3,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Post Run ./.github/actions/deploy-declarative-component",
+            "number": 5,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Post Run actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0",
+            "number": 6,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Complete job",
+            "number": 7,
+            "status": "completed"
+          }
+        ],
+        "url": "https://github.com/yym68686/fugue/actions/runs/35428158551/job/105859345617"
+      },
+      {
+        "completedAt": "2026-09-19T07:33:21Z",
+        "conclusion": "success",
+        "databaseId": 105860561797,
+        "name": "deploy_edge_worker (edge-worker-us, fugue-production-edge-worker-us)",
+        "startedAt": "2026-09-19T07:23:26Z",
+        "status": "completed",
+        "steps": [
+          {
+            "conclusion": "success",
+            "name": "Set up job",
+            "number": 1,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Run actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0",
+            "number": 2,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Run ./.github/actions/deploy-declarative-component",
+            "number": 3,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Post Run ./.github/actions/deploy-declarative-component",
+            "number": 5,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Post Run actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0",
+            "number": 6,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Complete job",
+            "number": 7,
+            "status": "completed"
+          }
+        ],
+        "url": "https://github.com/yym68686/fugue/actions/runs/35428158551/job/105860561797"
+      }
+    ],
+    "status": "completed"
+  },
+  "tests": {
+    "make_test": "passed",
+    "focused_race": "passed",
+    "clean_checkout_prepush": {
+      "apiVersion": "prepush.fugue.dev/v1",
+      "baseCommit": "3e749ae9e5d234b664f766c7aec011fbb94bdb6d",
+      "changedFilesDigest": "sha256:f5ee0ec64a070e4746d065d3d489665395d7fdd9df47480a77437209b70dc0f2",
+      "checks": {
+        "affected-tests": {
+          "durationMs": 129172,
+          "status": "pass"
+        },
+        "affected-vet": {
+          "durationMs": 5740,
+          "status": "pass"
+        },
+        "compile-all": {
+          "durationMs": 18022,
+          "status": "pass"
+        },
+        "declarative-release-tests": {
+          "durationMs": 20000,
+          "status": "pass"
+        },
+        "diff-check": {
+          "durationMs": 332,
+          "status": "pass"
+        },
+        "gofmt": {
+          "durationMs": 95,
+          "status": "pass"
+        },
+        "helm-lint-render": {
+          "durationMs": 0,
+          "status": "skipped"
+        },
+        "openapi-generated": {
+          "durationMs": 1375,
+          "status": "pass"
+        },
+        "shell-syntax": {
+          "durationMs": 0,
+          "status": "pass"
+        }
+      },
+      "elapsedMs": 153409,
+      "kind": "PrepushReceipt",
+      "sourceCommit": "312fd174406802bbe7e7250cc027dc4e9c6115fb",
+      "status": "pass"
+    },
+    "frontend_contract": "passed",
+    "frontend_contract_ci": "https://github.com/yym68686/fugue-web/actions/runs/35428171170"
+  },
+  "production_scope": "Code rollout only. All three active workers await a gray/full traffic release, while signed shadow validation and prior serving remain healthy. No serving configuration promotion."
+}

@@ -3097,3 +3097,21 @@ P0-DU 发布恢复记录：原提交 `aaaecf18` 的 API、DNS/SSH 和德国 Work
 - [x] 每台 142 条 route 隔离执行通过，141/141 TLS 实际观察通过；两台 DNS 正常，8 个 required consumer 完成 shadow 观察，passing 仍为 0。新代码发布前后的 shadow/full 配置和 policy/artifact LKG 指针不变，expected topology 未改变。
 
 证据：[traffic-release-binding-2026-09-19.json](verification/traffic-release-binding-2026-09-19.json)。实际 serving 尚沿原 Group Authority 配置来源；后续必须完成上层 ReleaseSet 驱动的 apply/rollback，不能将本步骤视作全量 serving 迁移完成。
+
+### P0-DX：TrafficReleaseSet 驱动现有 Group Authority 与真实 serving 观察
+
+- [x] Edge Control 请求携带自身 canonical group；API 从最新适用 gray/full ReleaseSet 选择路由，gray 只作用于签名 cohort，后发 full 取代旧 gray。读取所有 route/DNS/TLS child 的签名和 immutable expected topology，未完成准备或验证失败时保留原 serving，不回退业务表。
+- [x] 实际 Group compiler/publisher 使用绑定投影，发布前重新确认上层 ReleaseSet；签名包含可执行 cache policy。已进入 ReleaseSet 的 group 拒绝无绑定配置降级、同 channel 旧 fence 和同 fence 不同内容；合法更高 fence 可携带旧 artifact 作为恢复目标。
+- [x] 活跃 Worker 增加真实 serving 观察，确认已应用的 Group bundle、Caddy version、路由索引和持久化 cache 完全一致，执行本地 Caddy HTTPS/nonce 路由证明及全部本地 TLS 引用检查。只在当前 assignment、activation 和新鲜证据一致时上报 route/TLS applied/passed；没有 serving ReleaseSet 时明确 awaiting_release。
+- [x] 当前运行事实只有一个报告来源：一旦 serving 配置带 ReleaseSet，旧 shadow 不再覆盖 applied 事实。probe interval/concurrency/freshness 读取签名 policy；在进程内复用尚新鲜证据时不延长原始时间，重启必须重新探测。回执持久化不自动提升中央 policy/artifact LKG。
+- [x] 回归覆盖未准备 topology、目标组移除、gray/full 顺序、shadow 不切流、签名撤销、并发发布变化、cache policy 篡改、无绑定降级；实际 TLS 传输和 Worker 成功/失败报告、缓存缺失、Caddy 未应用、伪造 proof、assignment/serving 中途变化、重启证据更新均通过。完整 make test、关键路径 race、干净检出 prepush、前端 contract:check 通过。
+- [x] 经 main/Actions 部署并验证三台 Worker、两台 DNS、Front/authority 和 Guardian 健康；当前生产仍为 shadow，serving observer 返回 awaiting_release，配置/LKG 指针不变。
+
+本步骤接通 route 的正式执行入口与 apply/probe 报告代码。当前生产尚未发布 gray/full：DNS 租期、artifact serving 切换与回滚协议仍需完成，不能将 awaiting_release 或 shadow 观察记录为生产实际 applied/passed。
+
+- [x] 后端 `312fd174406802bbe7e7250cc027dc4e9c6115fb` 的 [CI 35428158551](https://github.com/yym68686/fugue/actions/runs/35428158551) 九个组件构建/部署全部成功，CLI 构建通过；前端 `f40264c1` 的 [契约 CI 35428171170](https://github.com/yym68686/fugue-web/actions/runs/35428171170) 成功。干净检出 prepush 153 秒通过，完整 make test 与关键路径 race 均通过。
+- [x] API/controller 2/2 Ready，德国 B/generation 274、美国 A/generation 837 的 Worker/Front/authority 精确镜像一致，活跃容器零重启；两地 Edge Control、Guardian 均健康。US rollout 等待独立 canary 证据期间保留旧 authority，随后正常切换并变为 stable，无手工绕过。
+- [x] 三台 Worker 每台验证 142 条 route 隔离执行及 141/141 TLS；两台 DNS 健康，route/TLS/DNS 共 8 个 expected consumer 保持 shadow 观察且 passing=0。三个新 serving observer 均为 awaiting_release，不生成 applied/passed 假象。
+- [x] 现有 v25 ReleaseSet `artifact_1789793583_74b25402c918`、shadow fence 8、完整 expected topology 与代码发布前一致；shadow/full 配置、policy 和 artifact LKG 指针保持不变。
+
+证据：[traffic-release-source-2026-09-19.json](verification/traffic-release-source-2026-09-19.json)。此处完成的是正式执行入口及报告代码的生产发布；实际配置切流与回滚尚未验收，相关总任务不打勾。
