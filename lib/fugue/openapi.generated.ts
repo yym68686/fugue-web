@@ -10943,7 +10943,8 @@ export interface components {
       reason?: string;
       candidates: components["schemas"]["PlatformDNSSelectionCandidate"][];
     };
-    PlatformDNSReadinessPolicy: {
+    PlatformDNSReadinessPolicy: components["schemas"]["PlatformReadinessProbePolicy"];
+    PlatformReadinessProbePolicy: {
       probe_interval_seconds: number;
       probe_timeout_seconds: number;
       fact_freshness_seconds: number;
@@ -10962,6 +10963,7 @@ export interface components {
       dns_client_policies?: components["schemas"]["PlatformDNSClientPolicy"][];
       dns_answer_rules?: components["schemas"]["PlatformDNSAnswerRule"][];
       dns_readiness?: components["schemas"]["PlatformDNSReadinessPolicy"];
+      tls_readiness?: components["schemas"]["PlatformReadinessProbePolicy"];
       schema_version?: string;
       generation: string;
       scope?: string;
