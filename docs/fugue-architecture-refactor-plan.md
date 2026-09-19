@@ -3079,3 +3079,21 @@ P0-DU 发布恢复记录：原提交 `aaaecf18` 的 API、DNS/SSH 和德国 Work
 - [x] 生产独立 scope 的合法 cohort 发布返回 200；自由 selector、未知/非规范 cohort 及非法回滚共五项返回 409，原 lane/fence 与全局配置不变。真实全局 ReleaseSet 即使使用合法 cohort，gray/full 仍因 DNS value expiration serving 支持未完成而返回 409；未绕开旧门或把隔离 scope 验证冒充生产切流。
 
 证据：[traffic-canary-policy-2026-09-19.json](verification/traffic-canary-policy-2026-09-19.json)。本步骤完成配置化的 gray 作用范围和授权边界，未完成实际 gray/full serving。后续沿现有唯一 Group Authority 执行链绑定 ReleaseSet，完成 DNS 租期执行、actual apply/probe、positive policy LKG 与恢复演练，再删除旧 serving 来源。
+
+### P0-DW：签名 ReleaseSet 绑定到 Edge 投影与执行回执
+
+- [x] consumer 通过当前 child assignment 读取精确签名父 ReleaseSet；父子成员关系、policy digest、完整 lineage、发布 channel/fence/scope 与 generation 必须一致。未知父 artifact、非目标 cohort、错误 expected set 均被拒绝。
+- [x] EdgeRouteIntent 投影携带 `traffic_release`，保存 parent/child digest、ReleaseSet、release/fence、compiler、intent/policy/input digest 和 projection digest；Group compiler 保留这些字段并纳入 generation，runtime inventory 不能改写来源。
+- [x] Group authority 发布和 Worker bundle 验证拒绝 shadow 进入 serving、拒绝非目标 gray group；绑定进入 bundle 签名，删除绑定不能降级为 legacy 验证通过。旧无绑定的已签名 bundle 保持兼容。
+- [x] 活跃 Worker 下载并独立验证父子 artifact，将绑定保存在本地 shadow cache、状态和隔离执行回执中；下载和隔离 HTTP probe 仍然只上报 staged/shadow_validated。
+- [x] 回归覆盖篡改、错 release/fence、越组、未知 cohort、投影变更、channel 导致 generation 改变、删除签名字段与 shadow 拒绝保留旧 serving；完整 make test、干净检出 prepush 和前端 contract:check 通过。
+- [x] 代码经 main/Actions 部署生产；生产现有 v25 配置无需重新编译即被新 Worker 正确消费，确认生产配置和 LKG 指针不变。
+
+本步骤提供 Group Authority 使用 ReleaseSet 的可信输入结构和防误发布校验。当前 Group Authority 的默认 serving 来源尚未切换；真实配置 gray/full apply、DNS 租期 serving、policy positive LKG 和恢复演练仍未完成。
+
+- [x] 后端 `d607054bf27ceecdf43c7203e2da3f461d924313` 的 [CI 35424603837](https://github.com/yym68686/fugue/actions/runs/35424603837) 九个组件构建/部署全部成功。前端契约 [CI 35424607410](https://github.com/yym68686/fugue-web/actions/runs/35424607410) 成功；干净检出 prepush 150 秒全部通过。
+- [x] 德国 A/generation 273、美国 B/generation 836 已使用本步骤镜像，三台 Worker 和 Front/authority 的精确镜像及版本一致，活跃容器零重启。API/controller 后续正常更新至包含本步骤的 `33b9424d`（[CI 35425130628](https://github.com/yym68686/fugue/actions/runs/35425130628) 成功），均为 2/2 Ready，healthz/readyz 返回 200。
+- [x] 现有 v25 ReleaseSet `artifact_1789793583_74b25402c918`、shadow fence 8 无需重新编译；三台 Worker 均验证父子签名并保存相同 `projection_digest=sha256:65171759c42b426366e9c91ad33841bfa5323328a1cb55749b8776421a9bfc4e`，状态、本地文件、执行回执的 binding 完全一致。
+- [x] 每台 142 条 route 隔离执行通过，141/141 TLS 实际观察通过；两台 DNS 正常，8 个 required consumer 完成 shadow 观察，passing 仍为 0。新代码发布前后的 shadow/full 配置和 policy/artifact LKG 指针不变，expected topology 未改变。
+
+证据：[traffic-release-binding-2026-09-19.json](verification/traffic-release-binding-2026-09-19.json)。实际 serving 尚沿原 Group Authority 配置来源；后续必须完成上层 ReleaseSet 驱动的 apply/rollback，不能将本步骤视作全量 serving 迁移完成。
