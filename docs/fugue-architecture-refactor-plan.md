@@ -32,9 +32,9 @@ Runtime Facts / ACK / LKG
 
 ## 当前状态判断
 
-2026-09-20 最新状态：API/Controller 为 `542fd6c5`，两地 Worker 与 DNS/SSH 客户端为 `b2821959`，两地 Edge Control 为 `a786d6eb`；德国 B/generation 278、美国 A/generation 841。P0-EG 已接通签名版本化策略控制的后台 shadow 发布，完成真实启用、暂停、策略回滚恢复、运行快照持久化和精确重放；P0-EH 修复文件存储命名锁隔离并完成生产接管验证；Actions 与生产验收通过。
+2026-09-20 最新状态：API/Controller 为 `a6371ccf`，两地 Worker 与 DNS/SSH 客户端为 `b2821959`，两地 Edge Control 为 `a786d6eb`；德国 B/generation 278、美国 A/generation 841。P0-EG 接通版本化策略控制的后台 shadow 发布；P0-EH 修复文件锁隔离；P0-EI 将 producer 的平台 route/静态 DNS 改为固定引用签名 PlatformIntent，实际迁移、等价性和重放验收通过。
 
-生产自动 shadow 为 compiler v26：148 route、230 编译 DNS records、147 TLS references。恢复策略后 ReleaseSet `artifact_1789836294_e16c1fbad7d2`、shadow fence 11；启用的 producer 后续会按输入变化/刷新期限创建新 shadow，所以这里的 ID 是验收时快照。三台 Worker 完成隔离 route/TLS 验证，两台 DNS 均为 426/426 ready probes、218/218 readiness records、233/233 eligible query records。required/observed 为 8/8，serving passing 仍为 0；global serving/LKG 未改变，旧 serving 正常续期。下一阶段是删除 producer 对 legacy migration 输入的依赖、输出等价性、真实 gray/full/rollback、policy positive LKG 与旧配置来源删除；shadow 全部通过不等于正式切流完成。
+producer 保持 `business-static-intent`/shadow，引用 `artifact_1789839892_b3ca868a5aad`（2 条平台 route、13 条静态 DNS）；这两项 producer 输入不再从环境变量读取。详细验收的完整候选为 151 route、236 编译 DNS records、150 TLS references，shadow fence 28；随后业务变化自动推进到 fence 29。候选 ID 随后续更新变化，文档记录的是验收时快照。八个消费者 observed、passing=0；DNS 在详细检查时保留 3 个 route digest 失配的拒绝事实，未声称所有记录可切流。global serving/LKG 保持原状态且持续续期。下一阶段仍需迁移 authority/默认值/selection policy，完成输出等价性、真实 gray/full/rollback、policy positive LKG 与旧 serving 来源删除。
 
 Fugue 已经具备相当一部分基础设施：`PlatformArtifact` 已有 generation、content hash、签名、验证状态、release channel、fencing token 和 LKG；Edge 与 DNS 也有签名校验、本地缓存和过期控制。
 
@@ -3307,3 +3307,26 @@ P0-EH 生产验证（2026-09-20）：
 - [x] 两台 DNS 的最新候选持续执行 426/426 readiness probes、218/218 records、233/233 eligible query records；两地 authority 序号和租期继续推进。代码发布失败保护、业务 readiness 失败保留旧 shadow、producer unchanged 重用和文件锁隔离均已验证。
 
 证据：[named-file-locks-2026-09-20.json](verification/named-file-locks-2026-09-20.json)。
+
+
+### P0-EI：producer 静态输入绑定签名 PlatformIntent
+
+- [x] producer 策略支持 business-static-intent，必须固定 static intent 的 exact ID/content hash；现有 business-migration 保留为迁移兼容入口，显式引用失效时不得回退环境。
+- [x] 同一业务捕获流程显式传递静态 route/DNS 输入，不改共享 Server 字段；启用新模式后这两项输入不再读取 `FUGUE_PLATFORM_ROUTES_JSON`、`FUGUE_DNS_STATIC_RECORDS_JSON`，App/Domain 变更继续投影。
+- [x] 保留静态禁用状态、DNS 值到期和原有覆盖/排除语义；不支持的动态/路径/cache/TLS 字段明确拒绝。固定输入的签名、scope、generation 和 digest 在读取及发布事务内重验。
+- [x] 签名 parent 和保留的 runtime snapshot 均记录基础 intent ID/digest；切换引用产生新 shadow，管理员固定输入重放保留来源和原作者。
+- [x] 文件/真实 PostgreSQL 的并发失效、篡改/错误 digest、来源混用拒绝，以及 ambient 环境变化隔离、导入等价性、版本切换与重放测试通过；完整测试、race、prepush、前端契约检查通过。
+- [x] main/Actions 部署后通过正常 importer 保存生产的 2 条平台 route、13 条静态 DNS，比较显式投影再启用策略，验证自动 shadow、消费者、重放和旧 serving/LKG，保存证据后勾选。
+
+本步只迁移 producer 的两项静态输入；DNS authority、默认值、selection policy 和 legacy serving 路径的迁移仍须完成。
+
+
+P0-EI 生产验证（2026-09-20）：
+
+- [x] 后端 `a6371ccfe0731cbfc2b97a57e767d8039750d6f9` 经 [CI 35458484071](https://github.com/yym68686/fugue/actions/runs/35458484071) 完成 API/Controller 部署，CLI 成功。完整 make test、文件/真实 PostgreSQL race、导入等价性和干净 prepush（127 秒）通过；前端契约 `ac1ace51` 的 [CI 35458484629](https://github.com/yym68686/fugue-web/actions/runs/35458484629) 通过并自动部署 2/2 Ready、2 endpoints、公网 200。
+- [x] 正常 importer 保存静态 intent `artifact_1789839892_b3ca868a5aad`，content hash `sha256:e44c5337791a7e38ffc9dd43a6b5262e1bd82f402099bf5c574f5fbe8716f10b`，包含 2 route/13 DNS，并保存 env source digest、时间和操作者。第一次生产比较中显式输入与旧路径的完整 desired intent、policy、DNS exclusions 一致，均为 151 route。
+- [x] 新 producer policy `artifact_1789840050_cacf678b9f17`/release `artifactrel_1789840051_79f1a6bf97d5` 固定上述 ID/hash；后台自动发布 shadow fence 28 的 `artifact_1789840168_ff23a96cb992`，parent 和 runtime snapshot 均携带静态引用。基础 intent 的完整内容、metadata、签名和作者未变，错误 ID/generation 别名明确拒绝。
+- [x] 管理员用保存的输入经 inline 和 stored-artifact 两种入口重放，六份 artifact 完全复用原 ID、generation、内容、digest、签名、metadata 和作者，global serving/LKG 不变。三台 Worker 的 151 route/150 TLS、两台 DNS 的 3 zone/239 query records 完整检查通过；八个可信 consumer observed，passing=0。
+- [x] DNS 详细观察为 432/435 ready probes、222/224 readiness records、237/239 eligible query records，3 个 route digest 失配均拒绝。迁移期间旧 DNS 来源短暂不可用会保留旧 shadow，随后新静态来源发布成功；后续业务变化已自动生成 fence 29，仍绑定同一静态 intent，八个消费者继续上报。两地 authority 序号/租期推进，公网 200。
+
+证据：[static-producer-intent-2026-09-20.json](verification/static-producer-intent-2026-09-20.json)。静态来源环境隔离由改变 ambient 配置的回归验证，生产通过 importer、完整 desired 等价性、签名引用、重放与自动更新验证；未通过改坏生产环境来测试。当前残留的 DNS 迁移来源依赖是下一阶段的具体目标。
