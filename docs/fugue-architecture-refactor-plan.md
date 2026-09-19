@@ -32,7 +32,9 @@ Runtime Facts / ACK / LKG
 
 ## 当前状态判断
 
-2026-09-18 最新状态：API/controller 为 `52073eda`，两地 Edge 和 DNS/SSH 客户端为 `5d2e3457`（德国 A/generation 267、美国 A/generation 831）；对应 CI、完整本地测试与独立生产验收通过。P0-DQ 将 full ReleaseSet 收敛门纳入发布事务；P0-DR 合并消费者传输并在观察结束后复核 assignment。compiler v22 的完整 shadow 仍为 137 route、213 全局 DNS record、136 TLS reference、6 个 consumer/query views，ReleaseSet `artifact_1789717017_88dabc19ac08`、fence 5。三台 Worker 各完成 137 条隔离路由探测；两台 DNS 最新均为 363/393 probes、184/201 readiness records，30 个 route digest 失配继续拒绝，216 条隔离查询记录中 199 条可用、567 次查询/552 条答案。route/TLS/DNS observed 为 3/3/2，serving passing 均为 0。global ReleaseSet shadow/full、policy LKG 响应及历史 expected sets 未变；旧 serving bundle 仍按原流程正常刷新，不宣称其 generation 固定。首次完整 shadow 的全部通过结果和固定输入重放证据见 P0-DP；完整 DNS serving 等价、GeoIP 配置、gray/full/rollback、policy verified LKG 和旧配置来源删除仍待完成。
+2026-09-19 最新状态：API、两地 Worker 与 DNS/SSH 客户端为 `b2821959`，Controller 为 `cf3c54c1`，两地 Edge Control 为 `a786d6eb`；德国 B/generation 278、美国 A/generation 841。P0-DZ 完成原子 traffic/policy verified LKG 恢复引用；P0-EA 限制代码恢复不能改变上层 traffic binding；P0-EB 支持明确授权的旧 artifact consumer 回滚；P0-EC 补齐 Edge 失败事实；P0-ED 让八个消费者声明可信版本化执行能力，相关 Actions 与生产验收通过。
+
+生产仍为 compiler v26 的完整 shadow：147 route、231 编译 DNS records、146 TLS references，ReleaseSet `artifact_1789808249_13038b2c4d0a`、shadow fence 9。三台 Worker 完成隔离 route/TLS 验证，route/TLS/DNS observed 为 3/3/2、serving passing 均为 0。当前业务已经变化，固定快照的 DNS 稳定观察为 384/423 probes、195/219 readiness records、210/234 eligible query records，错误或失配的证据持续拒绝。global serving/LKG 和 immutable expected topology 未改变，旧 serving 正常刷新。下一阶段是基于可信 capability 的 admission、业务变更到 intent/artifact 的自动发布、最新输入等价性、真实 gray/full/rollback、policy positive LKG 与旧配置来源删除；未将 shadow 或局部测试记为正式切流完成。
 
 Fugue 已经具备相当一部分基础设施：`PlatformArtifact` 已有 generation、content hash、签名、验证状态、release channel、fencing token 和 LKG；Edge 与 DNS 也有签名校验、本地缓存和过期控制。
 
@@ -3213,3 +3215,18 @@ P0-DU 发布恢复记录：原提交 `aaaecf18` 的 API、DNS/SSH 和德国 Work
 - [x] 发布后两地 authority 继续增加 sequence 与租期，日志 published=1、failed=0。负向 fact 的实际失败/恢复语义由本地真实 HTTP、持久化、重启、race 回归验证；生产本步保持 awaiting_release，不伪造失败或应用事实。
 
 证据：[edge-negative-serving-facts-2026-09-19.json](verification/edge-negative-serving-facts-2026-09-19.json)。正式 gray/full、初始 positive policy LKG 和旧 artifact 生产回滚仍未完成。
+
+### P0-ED：可信 traffic 执行能力声明
+
+- [x] route/TLS/DNS executor 在 shadow 与 serving 的可信 heartbeat 中声明版本化 `traffic_release_v1`，声明受对应 component/node/kind 身份和 evidence hash 保护。
+- [x] 声明覆盖 signed parent/current assignment、持久化恢复、显式回滚；DNS 包含逐值和 proof 到期执行，Edge 包含 Caddy/route/TLS 观察及负向事实。声明不能来自 desired assignment。
+- [x] 能力声明不授予 applied/passed 或 LKG；现有 shadow 状态和生产 DNS 租期发布保护保持生效，下一步 admission 必须结合新鲜可信事实和 required topology。
+- [x] 回归覆盖三类 shadow/serving 回执、声明篡改拒绝、原有失败恢复行为；race、完整 make test、干净 prepush、前端契约检查通过。
+- [x] Actions 更新 API、两地 Worker 与 DNS/SSH 客户端，生产八个 required consumer 的新鲜可信回执均包含能力声明且仍 passing=0，验证真实版本、完整 shadow、旧 serving 和持续续期。
+
+- [x] 后端 `b28219599029a7c3400e1f1fcf26b1764fb471aa` 经 [CI 35442896880](https://github.com/yym68686/fugue/actions/runs/35442896880) 完成 API、两地 Worker 和 DNS/SSH 客户端发布；CLI 成功。前端契约 `e0b70df1` 的 [CI 35442922591](https://github.com/yym68686/fugue-web/actions/runs/35442922591) 成功并自动部署 2/2 Ready，公网 200。
+- [x] API 2/2；德国 B/278、美国 A/841，三台活跃 Worker/Front 镜像、source commit、authority 一致且零重启；两台 DNS、三个 SSH 客户端均为本步版本。Controller 保持 `cf3c54c1`，两地 Edge Control 保持 `a786d6eb`。
+- [x] route/TLS 各三条、DNS 两条，共八条新鲜且身份验证通过的 consumer fact 全部包含 `traffic_release_v1`；仍为 staged/shadow_validated、passing=0。147 route、146 TLS 与每个 DNS 的 3 zone/234 query records 完整消费，global serving/LKG 指针和 expected topology 不变。
+- [x] 两地 authority 序号及有效租期持续推进，Guardian stable，周期发布 failed=0。切换期美国 DNS shadow 曾出现额外探测失败，稳定后两台均为 384/423 ready probes、195/219 ready records、210/234 eligible query records；39 个拒绝分别为 27 个 route digest 失配和 12 个 probe failed，未进入 serving。
+
+证据：[traffic-executor-capability-2026-09-19.json](verification/traffic-executor-capability-2026-09-19.json)。最新只读业务投影与固定 v26 intent 有 13 条 route 的 deployment generation/cache namespace/启用状态不同。正式切流前必须重新捕获并验证 DNS/release target 等价性，并接通业务变更到 intent/artifact 的自动发布链路；不能把能力声明、全部消费者 observed 或旧 serving 健康解释为所有新 DNS 记录已具备 serving 条件。DNS 租期发布保护仍生效。
