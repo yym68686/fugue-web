@@ -32,9 +32,9 @@ Runtime Facts / ACK / LKG
 
 ## 当前状态判断
 
-2026-09-19 最新状态：API、两地 Worker 与 DNS/SSH 客户端为 `b2821959`，Controller 为 `cf3c54c1`，两地 Edge Control 为 `a786d6eb`；德国 B/generation 278、美国 A/generation 841。P0-DZ 完成原子 traffic/policy verified LKG 恢复引用；P0-EA 限制代码恢复不能改变上层 traffic binding；P0-EB 支持明确授权的旧 artifact consumer 回滚；P0-EC 补齐 Edge 失败事实；P0-ED 让八个消费者声明可信版本化执行能力，相关 Actions 与生产验收通过。
+2026-09-19 最新状态：API/Controller 为 `26924da3`，两地 Worker 与 DNS/SSH 客户端为 `b2821959`，两地 Edge Control 为 `a786d6eb`；德国 B/generation 278、美国 A/generation 841。P0-DZ 完成原子 traffic/policy verified LKG 恢复引用；P0-EA 限制代码恢复不能改变上层 traffic binding；P0-EB 支持明确授权的旧 artifact consumer 回滚；P0-EC 补齐 Edge 失败事实；P0-ED 让八个消费者声明可信版本化执行能力；P0-EE 在文件/数据库发布事务内检查 leased TrafficReleaseSet 的兼容性，相关 Actions 与生产验收通过。
 
-生产仍为 compiler v26 的完整 shadow：147 route、231 编译 DNS records、146 TLS references，ReleaseSet `artifact_1789808249_13038b2c4d0a`、shadow fence 9。三台 Worker 完成隔离 route/TLS 验证，route/TLS/DNS observed 为 3/3/2、serving passing 均为 0。当前业务已经变化，固定快照的 DNS 稳定观察为 384/423 probes、195/219 readiness records、210/234 eligible query records，错误或失配的证据持续拒绝。global serving/LKG 和 immutable expected topology 未改变，旧 serving 正常刷新。下一阶段是基于可信 capability 的 admission、业务变更到 intent/artifact 的自动发布、最新输入等价性、真实 gray/full/rollback、policy positive LKG 与旧配置来源删除；未将 shadow 或局部测试记为正式切流完成。
+生产仍为 compiler v26 的完整 shadow：147 route、231 编译 DNS records、146 TLS references，ReleaseSet `artifact_1789808249_13038b2c4d0a`、shadow fence 9。三台 Worker 完成隔离 route/TLS 验证，route/TLS/DNS observed 为 3/3/2、serving passing 均为 0。当前业务已经变化，固定快照的 DNS 稳定观察为 384/423 probes、195/219 readiness records、210/234 eligible query records，错误或失配的证据持续拒绝。global serving/LKG 和 immutable expected topology 未改变，旧 serving 正常刷新。下一阶段是业务变更到 intent/artifact 的自动发布、最新输入等价性、真实 gray/full/rollback、policy positive LKG 与旧配置来源删除；未将 shadow 或局部测试记为正式切流完成。
 
 Fugue 已经具备相当一部分基础设施：`PlatformArtifact` 已有 generation、content hash、签名、验证状态、release channel、fencing token 和 LKG；Edge 与 DNS 也有签名校验、本地缓存和过期控制。
 
@@ -3230,3 +3230,22 @@ P0-DU 发布恢复记录：原提交 `aaaecf18` 的 API、DNS/SSH 和德国 Work
 - [x] 两地 authority 序号及有效租期持续推进，Guardian stable，周期发布 failed=0。切换期美国 DNS shadow 曾出现额外探测失败，稳定后两台均为 384/423 ready probes、195/219 ready records、210/234 eligible query records；39 个拒绝分别为 27 个 route digest 失配和 12 个 probe failed，未进入 serving。
 
 证据：[traffic-executor-capability-2026-09-19.json](verification/traffic-executor-capability-2026-09-19.json)。最新只读业务投影与固定 v26 intent 有 13 条 route 的 deployment generation/cache namespace/启用状态不同。正式切流前必须重新捕获并验证 DNS/release target 等价性，并接通业务变更到 intent/artifact 的自动发布链路；不能把能力声明、全部消费者 observed 或旧 serving 健康解释为所有新 DNS 记录已具备 serving 条件。DNS 租期发布保护仍生效。
+
+### P0-EE：事务内的 leased traffic 兼容性 admission
+
+- [x] 将临时“包含 DNS expiration 即拒绝”保护收敛为完整签名 TrafficReleaseSet 的兼容性检查；单独 leased DNS 的 serving 发布与回滚仍拒绝。
+- [x] 目标 artifact 必须有完整 parent/route/DNS/TLS 签名、lineage、cohort 和 prepared expected topology；每个目标 required consumer 必须有新鲜、身份验证通过的 `traffic_release_v1` 事实。
+- [x] 文件与 PostgreSQL 发布/回滚在同一事务内检查，提交前复核事实新鲜度；scope 锁先于行锁取得，soft override 不可绕过。失败不修改 lane/ledger/LKG。
+- [x] 能力允许来自当前不同 generation 的执行器，便于恢复旧 artifact；负向事实可证明执行器支持协议，但不能证明 applied/passed 或 LKG。既有 full 收敛与 verified LKG 门保留。
+- [x] 覆盖 route/DNS/TLS 缺失能力、过期或缺失时间、未验证身份、topology 变化、cohort 缺员、单独 DNS、override、回滚、排队期间撤销；文件/真实 PostgreSQL、race、API、完整 make test、干净 prepush 和前端契约检查通过。
+- [x] main/Actions 部署 API/Controller 后验证新版本、全体消费者、旧 serving/LKG、持续续期，并在隔离 scope 验证无能力事实的发布仍拒绝；本步骤不发起全局 gray/full 切流。
+
+
+P0-EE 生产验证（2026-09-19）：
+
+- [x] 后端 `26924da381eada22086e80d782ec71c819d5b115` 经 [CI 35447468034](https://github.com/yym68686/fugue/actions/runs/35447468034) 完成 API/Controller 发布，CLI 构建成功。前端契约 `0c440a36` 的 [CI 35447468710](https://github.com/yym68686/fugue-web/actions/runs/35447468710) 通过，自动部署 2/2 Ready、2 endpoints，无待处理操作，公网 200。
+- [x] API/Controller 各 2/2 Ready，四个容器的实际 source commit 精确匹配且零重启；三台活跃 Worker/Front、两台 DNS、三个 SSH 客户端保持 `b2821959`，两地 Edge Control 保持 `a786d6eb`，Guardian 健康。
+- [x] 八条新鲜可信事实包含 `traffic_release_v1` 且保持 shadow/passing=0；147 route、146 TLS 和两台 DNS 的 3 zone/234 query records 继续执行。DNS 仍为 384/423 ready probes、195/219 ready records、210/234 eligible records，旧快照失配没有被能力声明掩盖。global serving/LKG 与 expected topology 不变，两地 authority 序号和有效租期推进。
+- [x] 生产隔离 scope 编译带 ACME expiration 的完整签名 ReleaseSet 并准备 8 个消费者；缺少该 scope 的能力事实时，gray 发布、gray 回滚均为 409，单独 leased DNS 发布仍为 409。发布状态与五份 LKG 引用不变，全局配置和健康不受影响。成功 admission、负向能力事实和并发撤销由文件/真实 PostgreSQL 回归验证，本步未执行全局切流。
+
+证据：[leased-traffic-admission-2026-09-19.json](verification/leased-traffic-admission-2026-09-19.json)。目标 topology 来自该 parent 已准备的最新各成员声明；能力事实可以来自同一节点当前运行的其他 generation。实际 serving assignment 和 applied/passed/LKG 仍要求新发布的精确 release、fence、topology 与新鲜证据。下一步优先接通业务变更到 intent/artifact 的自动编译发布，之后再刷新生产输入并验证真实 gray/full/rollback。
