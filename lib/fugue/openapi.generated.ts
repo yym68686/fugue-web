@@ -386,7 +386,7 @@ export interface paths {
   "/v1/admin/platform-config/import-env": {
     /**
      * Import Legacy Serving Environment
-     * @description Validates legacy serving environment values and persists one immutable validated PlatformIntent draft tagged with env-migration. The operation never promotes serving traffic.
+     * @description Validates legacy serving environment values and effective application domain settings (base domains, reserved hostnames and DNS TTL), includes both in source_digest, and persists one immutable validated PlatformIntent draft tagged with env-migration. The operation never promotes serving traffic.
      */
     post: operations["importPlatformEnvironment"];
   };
@@ -10905,10 +10905,18 @@ export interface components {
       /** Format: date-time */
       tls_ready_at?: string | null;
     };
+    /** @description Explicit business domain namespace in a base PlatformIntent. The producer expands this into concrete route, DNS and TLS intent; empty base domains disable that namespace. No process configuration is consulted when present. */
+    PlatformApplicationDomains: {
+      app_base_domain: string;
+      custom_domain_base_domain: string;
+      reserved_hostnames: string[];
+      default_dns_ttl: number;
+    };
     PlatformConfigIntent: {
       schema_version?: string;
       generation: string;
       scope?: string;
+      application_domains?: components["schemas"]["PlatformApplicationDomains"];
       dns_consumers?: components["schemas"]["PlatformDNSConsumerIntent"][];
       routes?: components["schemas"]["PlatformConfigRouteIntent"][];
       dns?: components["schemas"]["PlatformConfigDNSIntent"][];
@@ -11368,6 +11376,11 @@ export interface components {
       /** @description Optional exact validated global PolicySnapshot holding the DNS configuration subset. Requires business-static-intent and DNS consumers in the pinned intent. */
       dns_policy_artifact_id?: string;
       dns_policy_digest?: string;
+      /**
+       * @description Requires business-static-intent and explicit application_domains in that exact signed base intent. Missing or invalid declarations reject capture and publication without ambient fallback.
+       * @default false
+       */
+      require_application_domains?: boolean;
       /** @description Explicitly includes active business hosted zones for each listed DNS consumer, using the named base zone authority as its template. All consumers must have a template or the array must be empty. */
       hosted_zone_templates?: {
           node_id: string;
@@ -13684,7 +13697,7 @@ export interface operations {
       };
     };
     responses: {
-      /** @description Auditable PlatformIntent generated from legacy serving environment values */
+      /** @description Auditable PlatformIntent generated from legacy serving environment values and effective application domain settings */
       200: {
         content: {
           "application/json": {
@@ -13697,7 +13710,7 @@ export interface operations {
   };
   /**
    * Import Legacy Serving Environment
-   * @description Validates legacy serving environment values and persists one immutable validated PlatformIntent draft tagged with env-migration. The operation never promotes serving traffic.
+   * @description Validates legacy serving environment values and effective application domain settings (base domains, reserved hostnames and DNS TTL), includes both in source_digest, and persists one immutable validated PlatformIntent draft tagged with env-migration. The operation never promotes serving traffic.
    */
   importPlatformEnvironment: {
     requestBody: {
