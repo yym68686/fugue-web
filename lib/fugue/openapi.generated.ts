@@ -11239,6 +11239,8 @@ export interface components {
         configuration_producer?: {
           policy_release_id: string;
           source_digest: string;
+          static_intent_artifact_id?: string;
+          static_intent_digest?: string;
         };
         [key: string]: unknown;
       };
@@ -11356,7 +11358,11 @@ export interface components {
       /** @enum {string} */
       mode: "paused" | "shadow";
       /** @enum {string} */
-      input_source: "business-migration";
+      input_source: "business-migration" | "business-static-intent";
+      /** @description Required only for business-static-intent; an exact immutable platform_intent ID in global scope. */
+      static_intent_artifact_id?: string;
+      /** @description Exact content_hash of the pinned static intent. Required only for business-static-intent. */
+      static_intent_digest?: string;
       /** @enum {string} */
       target_scope: "global";
       interval_seconds: number;
@@ -13642,6 +13648,12 @@ export interface operations {
    * @description Read-only migration draft from one consistent business snapshot. PostgreSQL uses a read-only repeatable-read transaction; file storage reads under one lock. Returns the business snapshot revision/time and explicit migration issues. Runtime observations retain their own evidence timestamps and are not part of the database transaction. Desired release references and weights are projected into policy; release addresses and readiness retain their original observation timestamps in runtime_snapshot.releases. Explicit platform entries within configured authoritative base domains become FUGUE_ROUTE intents; same-name static A/AAAA/CNAME overrides are recorded as exclusions, while other static records are preserved. Verified business domain bindings owned by the application base domain also become owned FUGUE_ROUTE intents using the configured DNS TTL, replacing only exact static address inputs with an exclusion audit. Missing or conflicting route ownership rejects projection; conflicting hosted address records remain explicit issues and prevent compilation. Non-address records, reserved names and custom-domain target namespaces are not overwritten. Root application routes within the configured application base domain also project into owned FUGUE_ROUTE records, preserving explicit hosted address sources and protected names; default TTL comes from configured DNS policy. Placement collection uses at most eight concurrent workers, 4096 probes and a 30-second request budget. Exhausted or invalid evidence is reported as a migration issue and never authorizes promotion. Application and platform DNS placement capture probes each configured public candidate address with TLS hostname verification and the Edge route-proof protocol, checks every hostname path against the fixed compiled route, and binds the original inventory heartbeat and signed bundle expiry. Failed, stale or mismatched evidence stays an explicit issue; collection never extends a lease or authorizes promotion. migration_ready remains false until all serving inputs, policy execution, DNS/TLS readiness and output equivalence are verified. Writes no serving state.
    */
   projectPlatformIntent: {
+    parameters: {
+      query?: {
+        /** @description Optional exact signed validated global PlatformIntent used instead of ambient platform routes and static DNS. Only static representable records and routes are accepted; an explicit invalid reference is rejected without fallback. */
+        static_intent_artifact_id?: string;
+      };
+    };
     responses: {
       /** @description Draft intent, captured origin observations and unresolved migration issues. */
       200: {
