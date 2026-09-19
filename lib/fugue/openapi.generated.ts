@@ -10909,6 +10909,15 @@ export interface components {
       tls?: components["schemas"]["PlatformConfigTLSIntent"][];
       cache_policies?: components["schemas"]["CachePolicy"][];
     };
+    PlatformDNSAuthorityPolicy: {
+      node_id: string;
+      zone: string;
+      nameservers: string[];
+      ttl_seconds: number;
+      refresh_seconds: number;
+      retry_seconds: number;
+      expire_seconds: number;
+    };
     PlatformDNSConsumerIntent: {
       node_id: string;
       edge_group_id: string;
@@ -11020,6 +11029,7 @@ export interface components {
     };
     PlatformConfigPolicySnapshot: {
       traffic_rollout_cohorts?: components["schemas"]["PlatformTrafficRolloutCohort"][];
+      dns_authorities?: components["schemas"]["PlatformDNSAuthorityPolicy"][];
       dns_client_policies?: components["schemas"]["PlatformDNSClientPolicy"][];
       dns_answer_rules?: components["schemas"]["PlatformDNSAnswerRule"][];
       dns_readiness?: components["schemas"]["PlatformDNSReadinessPolicy"];
@@ -14034,6 +14044,12 @@ export interface operations {
    * @description Returns the latest expected set revision for each authorized artifact kind in each active ReleaseSet channel. Assignments are bound to the signed child artifact and the active release fencing token. Shadow assignments authorize validation only and must not replace serving state. Superseded releases and unrelated topology are excluded.
    */
   getPlatformConsumerAssignment: {
+    parameters: {
+      query?: {
+        /** @description Select only the newest applicable gray/full TrafficReleaseSet using immutable consumer group ownership. Shadow never authorizes serving. An incomplete selected topology fails closed. */
+        serving_only?: boolean;
+      };
+    };
     responses: {
       /** @description Assignments bound to the verified component identity. */
       200: {
