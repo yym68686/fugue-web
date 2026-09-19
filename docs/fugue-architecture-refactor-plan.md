@@ -3161,3 +3161,20 @@ P0-DU 发布恢复记录：原提交 `aaaecf18` 的 API、DNS/SSH 和德国 Work
 - [x] API/Controller 为 2/2 Ready，所有活跃 Edge/Front/DNS/SSH 容器零重启。两地 authority 续期的 sequence 与截止时间在后续巡检继续推进；Edge Control 日志 `published=1、failed=0`，公网 API/网站均为 200。
 
 证据：[traffic-lkg-atomic-recovery-2026-09-19.json](verification/traffic-lkg-atomic-recovery-2026-09-19.json)。首次生产 positive traffic/policy LKG 仍待真正 gray/full 及 rollback 验收，本步没有解除发布保护。
+
+### P0-EA：Group 代码恢复不得改写 TrafficReleaseSet
+
+- [x] 在 Group Authority 的持久化 CAS 边界校验恢复前后完整 TrafficReleaseBinding 一致；拒绝跨 channel 历史发布、旧父/子 digest、不同 release/fence/cohort 和退回无绑定来源，失败时 serving bundle 与 ledger 均保持不变。
+- [x] 对冲突返回明确的 `409 traffic_release_conflict`，避免将配置授权冲突误认为单纯 sequence 过期而反复重试。
+- [x] 保留当前 traffic 配置的正常续期，以及上层明确授权后以新 fence 通过普通配置发布路径恢复旧 artifact；legacy 无绑定 bundle 的既有恢复行为不变。
+- [x] 使用真实签名、持久化 store、认证恢复 HTTP、直接 CAS、重启和新 fence 旧 artifact 发布测试验证边界；关键路径 race、完整 make test、干净 prepush 和前端契约检查通过。
+- [x] main/Actions 部署后验证两地 Edge Control、新 API、现有 Worker/DNS/Front、真实周期续期与完整 shadow 输入，保存运行证据。
+
+本步收紧代码恢复权限，仍不代表生产已完成 traffic gray/full、首次 positive policy LKG 或旧 artifact 的 consumer heartbeat 回滚验收。
+
+- [x] 后端 `a786d6ebee7f1ffd4891519fb303115b9beb0c79` 经 [CI 35437768735](https://github.com/yym68686/fugue/actions/runs/35437768735) 完成 API 与两地 Edge Control 部署；前端契约 `05c35871` 的 [CI 35437769433](https://github.com/yym68686/fugue-web/actions/runs/35437769433) 通过并自动部署为 2/2 Ready。
+- [x] API 2/2、新 Edge Control 镜像精确匹配。既有三台 Worker、三个 Front、两台 DNS/三个 SSH 客户端保持 `90240dc3` 正常运行且零重启，德国 B/276、美国 A/839 未改变。
+- [x] 三台 Worker 各完成 147 route 和 146 TLS 引用验证，两台 DNS 各完成 3 zone/234 回答记录。一次初始检查遇到 DNS shadow 回执超出两分钟阈值，后续日志证实持续生成新回执，完整复验在原阈值下通过；没有降低新鲜度标准或误报 serving。
+- [x] 两地 authority 的 sequence 与有效租期均比发布前继续推进，周期日志 `published=1、failed=0`，间隔内正常返回 unchanged。公网 API/网站 200，global serving/LKG 指针和 expected topology 不变，required 8/observed 8/passing 0。
+
+证据：[group-traffic-recovery-boundary-2026-09-19.json](verification/group-traffic-recovery-boundary-2026-09-19.json)。实际 bound traffic 的历史恢复拒绝由本地真实签名/持久化/HTTP 回归验证；生产仍是旧 serving 加新完整 shadow，不宣称已完成正式 traffic 切流。
