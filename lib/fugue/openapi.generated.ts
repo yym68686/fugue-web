@@ -2296,6 +2296,13 @@ export interface components {
       unreferenced_object_count: number;
       /** Format: int64 */
       unreferenced_bytes: number;
+      /** @description Physical objects under a shared backup repository declared by durable snapshot metadata. Included in physical totals, excluded from direct-artifact orphan checks; internal repository reachability is not validated by this inventory. */
+      repository_managed_object_count?: number;
+      /**
+       * Format: int64
+       * @description Physical bytes managed by the snapshot repository engine, without per-tenant attribution for a shared namespace.
+       */
+      repository_managed_bytes?: number;
       /** @description Unreferenced objects whose last-modified time remains within failed-upload cleanup grace. */
       provisional_object_count: number;
       /** Format: int64 */
