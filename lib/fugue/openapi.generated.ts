@@ -10985,7 +10985,12 @@ export interface components {
       a?: string[];
       aaaa?: string[];
     };
+    PlatformTrafficRolloutCohort: {
+      id: string;
+      edge_group_ids: string[];
+    };
     PlatformConfigPolicySnapshot: {
+      traffic_rollout_cohorts?: components["schemas"]["PlatformTrafficRolloutCohort"][];
       dns_client_policies?: components["schemas"]["PlatformDNSClientPolicy"][];
       dns_answer_rules?: components["schemas"]["PlatformDNSAnswerRule"][];
       dns_readiness?: components["schemas"]["PlatformDNSReadinessPolicy"];
@@ -11076,6 +11081,8 @@ export interface components {
       compiler_version: string;
     };
     PlatformConfigReleaseSet: {
+      /** @description Immutable projection of the signed PolicySnapshot cohorts; every child policy must match. */
+      traffic_rollout_cohorts?: components["schemas"]["PlatformTrafficRolloutCohort"][];
       schema_version: string;
       generation: string;
       scope: string;
