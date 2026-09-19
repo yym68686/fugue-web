@@ -347,14 +347,14 @@ export interface paths {
   "/v1/admin/platform-config/compile": {
     /**
      * Compile Platform Intent And Policy
-     * @description Deterministically compiles typed platform intent and policy into immutable intent, policy, route, DNS, TLS, and release-set artifacts. The operation does not promote serving traffic.
+     * @description Deterministically compiles typed platform intent and policy into immutable intent, policy, route, DNS, TLS, and release-set artifacts. The normalized runtime input is retained by digest. Identical immutable artifacts retain their original creator even when replayed by another platform administrator. The operation does not promote serving traffic.
      */
     post: operations["compilePlatformConfig"];
   };
   "/v1/admin/platform-config/compile-from-artifacts": {
     /**
      * Compile Platform Artifacts
-     * @description Verifies both stored artifacts before replaying them into a deterministic ReleaseSet. Signed content, artifact kind, validation state, generation, scope and typed schema must agree. Rejected inputs produce no output artifacts. Inline serving configuration and business tables are not read.
+     * @description Verifies both stored artifacts before replaying them into a deterministic ReleaseSet. Signed content, artifact kind, validation state, generation, scope and typed schema must agree. Rejected inputs produce no output artifacts. Inline serving configuration and business tables are not read. The normalized runtime input is retained by digest, and producer provenance plus original creators are preserved when an identical artifact is reused.
      */
     post: operations["compilePlatformConfigFromArtifacts"];
   };
@@ -389,6 +389,13 @@ export interface paths {
      * @description Validates legacy serving environment values and persists one immutable validated PlatformIntent draft tagged with env-migration. The operation never promotes serving traffic.
      */
     post: operations["importPlatformEnvironment"];
+  };
+  "/v1/admin/artifacts/{artifact_id}/compiler-input": {
+    /**
+     * Read Frozen Compiler Runtime Input
+     * @description Platform administrators with artifact.read can retrieve the exact normalized runtime snapshot bound by a trusted artifact's input_snapshot_digest. Recomputes the digest and checks intent/policy generation binding. Older artifacts without a retained snapshot return 404; missing or corrupt input never falls back to live business data.
+     */
+    get: operations["getPlatformArtifactCompilerInput"];
   };
   "/v1/admin/artifacts/{artifact_id}/lineage": {
     /**
@@ -11228,6 +11235,11 @@ export interface components {
       intent_generation: string;
       policy_generation: string;
       facts?: {
+        /** @description Reserved producer provenance. Replays retain the binding and the original artifact creator; these fields grant no serving authority. */
+        configuration_producer?: {
+          policy_release_id: string;
+          source_digest: string;
+        };
         [key: string]: unknown;
       };
     };
@@ -11335,6 +11347,21 @@ export interface components {
       lineage: components["schemas"]["PlatformConfigLineage"];
       lkg?: components["schemas"]["PlatformLKGSnapshot"];
       dependencies?: components["schemas"]["PlatformArtifactLineageDependency"][];
+    };
+    /** @description Signed operational policy stored as policy_snapshot in the platform-config-producer scope. Activate or pause through the existing artifact shadow release API; a draft has no effect. */
+    PlatformProducerPolicy: {
+      /** @enum {string} */
+      schema_version: "fugue.platform.producer/v1";
+      generation: string;
+      /** @enum {string} */
+      mode: "paused" | "shadow";
+      /** @enum {string} */
+      input_source: "business-migration";
+      /** @enum {string} */
+      target_scope: "global";
+      interval_seconds: number;
+      /** @description Must be at least interval_seconds; bounds reuse of the previous runtime snapshot when desired intent and policy are unchanged. */
+      refresh_seconds: number;
     };
     PlatformArtifactCreateRequest: {
       artifact_kind: string;
@@ -13454,7 +13481,7 @@ export interface operations {
   };
   /**
    * Compile Platform Intent And Policy
-   * @description Deterministically compiles typed platform intent and policy into immutable intent, policy, route, DNS, TLS, and release-set artifacts. The operation does not promote serving traffic.
+   * @description Deterministically compiles typed platform intent and policy into immutable intent, policy, route, DNS, TLS, and release-set artifacts. The normalized runtime input is retained by digest. Identical immutable artifacts retain their original creator even when replayed by another platform administrator. The operation does not promote serving traffic.
    */
   compilePlatformConfig: {
     requestBody: {
@@ -13474,7 +13501,7 @@ export interface operations {
   };
   /**
    * Compile Platform Artifacts
-   * @description Verifies both stored artifacts before replaying them into a deterministic ReleaseSet. Signed content, artifact kind, validation state, generation, scope and typed schema must agree. Rejected inputs produce no output artifacts. Inline serving configuration and business tables are not read.
+   * @description Verifies both stored artifacts before replaying them into a deterministic ReleaseSet. Signed content, artifact kind, validation state, generation, scope and typed schema must agree. Rejected inputs produce no output artifacts. Inline serving configuration and business tables are not read. The normalized runtime input is retained by digest, and producer provenance plus original creators are preserved when an identical artifact is reused.
    */
   compilePlatformConfigFromArtifacts: {
     requestBody: {
@@ -13662,6 +13689,30 @@ export interface operations {
         content: {
           "application/json": {
             [key: string]: unknown;
+          };
+        };
+      };
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
+  /**
+   * Read Frozen Compiler Runtime Input
+   * @description Platform administrators with artifact.read can retrieve the exact normalized runtime snapshot bound by a trusted artifact's input_snapshot_digest. Recomputes the digest and checks intent/policy generation binding. Older artifacts without a retained snapshot return 404; missing or corrupt input never falls back to live business data.
+   */
+  getPlatformArtifactCompilerInput: {
+    parameters: {
+      path: {
+        artifact_id: string;
+      };
+    };
+    responses: {
+      /** @description Immutable runtime snapshot bound by the artifact lineage. */
+      200: {
+        content: {
+          "application/json": {
+            artifact_id: string;
+            input_snapshot_digest: string;
+            runtime_snapshot: components["schemas"]["PlatformRuntimeSnapshot"];
           };
         };
       };
