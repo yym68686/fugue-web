@@ -3143,3 +3143,21 @@ P0-DU 发布恢复记录：原提交 `aaaecf18` 的 API、DNS/SSH 和德国 Work
 - [x] 两台 DNS 和三台 Worker 均明确 awaiting_release，正式 serving 和 policy/artifact LKG 不变。对真实 v26 进行合法 cohort gray/full 请求仍返回 409，保护门未绕过；必须完成首次 LKG 和 rollback 条件后再解除。
 
 证据：[dns-artifact-serving-2026-09-19.json](verification/dns-artifact-serving-2026-09-19.json)。生产公网配置尚未切换为 v26 artifact serving；本步骤验证执行实现、完整 shadow 输入和旧版本兼容，实际灰度/全量/回滚的总任务保持未完成。
+
+### P0-DZ：真实收敛验证与成套 LKG 原子保存
+
+- [x] TrafficReleaseSet 首次 LKG 只允许显式 gray bootstrap；shadow 即使提交全部 true 也不能成为 serving LKG。已有 LKG 只能经 full 的新鲜实际收敛替换。
+- [x] 验证事务重新读取当前发布、lane/fence、三个成员签名和 lineage、最新 immutable expected topology 与所有 required 的可信 applied/passed 心跳；不以请求中的布尔值代替真实证据。
+- [x] 将父 ReleaseSet、route、DNS、TLS、匹配的 signed typed PolicySnapshot 五份恢复引用原子保存，绑定同一个 verification release/evidence hash。缺失、篡改、过期、错误 fence、并发探针失败均保留旧五份引用；历史可查询、重试不重签。
+- [x] Member LKG 不授予灰度范围外的 serving 权限。旧 route/DNS reader 使用现有 ledger 中最后一个独立验证的配置，直到父 ReleaseSet 明确选择该 group；不增加第二套发布状态机。
+- [x] 修复 gray→full 两个 lane 的 fence 数值相同导致 PostgreSQL 拒绝合法心跳的问题；只允许新且当前的跨 channel 发布，保留 sequence、issued-at、nonce 和 artifact generation 的防重放检查。
+- [x] 文件存储、真实 PostgreSQL 并发、race、完整 make test、干净 prepush、前端契约检查全部通过；main/Actions 部署后验证持续续期、完整 shadow、生产 LKG/serving 未被误推进。
+
+本步是恢复记录与验证事务的实现。首次生产 positive LKG、旧 artifact 的显式 rollback、Group 代码恢复与上层配置绑定、真正 gray/full 切流仍须后续步骤验收，不能据此解除流量发布保护门。
+
+- [x] 后端 `90240dc35e0a887c56d9052a51160ab844d2676b` 经 [CI 35435520598](https://github.com/yym68686/fugue/actions/runs/35435520598) 九个组件全部成功；前端契约 `f32f20f9` 经 [CI 35435527913](https://github.com/yym68686/fugue-web/actions/runs/35435527913) 通过并自动部署，两个副本/endpoints 和镜像一致。
+- [x] 生产独立测试 scope 验证 shadow 拒绝建立 LKG；合法 gray 但没有 trusted consumer facts 时，即使提交全部通过声明仍返回 409，五份恢复引用均不存在，全局 serving/LKG 未变化。
+- [x] 德国 B/276、美国 A/839 的活跃 Worker/Front 精确匹配新代码和 digest；三台 Worker 各验证 147 route、146 TLS，两台 DNS 完成六个 zone 的既有完整 shadow 回答。八个 required consumer 均有报告且 passing=0，未把隔离验证提升为 serving 成功。
+- [x] API/Controller 为 2/2 Ready，所有活跃 Edge/Front/DNS/SSH 容器零重启。两地 authority 续期的 sequence 与截止时间在后续巡检继续推进；Edge Control 日志 `published=1、failed=0`，公网 API/网站均为 200。
+
+证据：[traffic-lkg-atomic-recovery-2026-09-19.json](verification/traffic-lkg-atomic-recovery-2026-09-19.json)。首次生产 positive traffic/policy LKG 仍待真正 gray/full 及 rollback 验收，本步没有解除发布保护。
