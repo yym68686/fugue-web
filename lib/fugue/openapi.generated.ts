@@ -11241,6 +11241,8 @@ export interface components {
           source_digest: string;
           static_intent_artifact_id?: string;
           static_intent_digest?: string;
+          dns_policy_artifact_id?: string;
+          dns_policy_digest?: string;
         };
         [key: string]: unknown;
       };
@@ -11363,6 +11365,14 @@ export interface components {
       static_intent_artifact_id?: string;
       /** @description Exact content_hash of the pinned static intent. Required only for business-static-intent. */
       static_intent_digest?: string;
+      /** @description Optional exact validated global PolicySnapshot holding the DNS configuration subset. Requires business-static-intent and DNS consumers in the pinned intent. */
+      dns_policy_artifact_id?: string;
+      dns_policy_digest?: string;
+      /** @description Explicitly includes active business hosted zones for each listed DNS consumer, using the named base zone authority as its template. All consumers must have a template or the array must be empty. */
+      hosted_zone_templates?: {
+          node_id: string;
+          template_zone: string;
+        }[];
       /** @enum {string} */
       target_scope: "global";
       interval_seconds: number;
@@ -13652,6 +13662,8 @@ export interface operations {
       query?: {
         /** @description Optional exact signed validated global PlatformIntent used instead of ambient platform routes and static DNS. Only static representable records and routes are accepted; an explicit invalid reference is rejected without fallback. */
         static_intent_artifact_id?: string;
+        /** @description Optional exact validated signed producer policy for preview, mutually exclusive with static_intent_artifact_id. Uses its pinned static/DNS configuration references without activation; invalid references fail without ambient fallback. */
+        producer_policy_artifact_id?: string;
       };
     };
     responses: {
