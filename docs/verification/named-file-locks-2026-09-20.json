@@ -1719,5 +1719,22 @@
     "api": "542fd6c5a8fd4f1e3921f31cbf514a7eae0b3b53",
     "controller": "542fd6c5a8fd4f1e3921f31cbf514a7eae0b3b53"
   },
-  "producer_policy_enabled": true
+  "producer_policy_enabled": true,
+  "producer_restart": {
+    "verified_at": "2026-09-19T17:06:53.375909+00:00",
+    "leader": "fugue-fugue-api-6687fd5d8-6lb85",
+    "logs": {
+      "fugue-fugue-api-6687fd5d8-6lb85": [
+        "2026/09/19 17:05:28 platform configuration producer leadership acquired",
+        "2026/09/19 17:05:51 platform configuration producer unchanged policy_release=artifactrel_1789836252_1a34933eb13c release=artifactrel_1789837433_d83c90c59608 source_digest=sha256:2de916716e0a172221063799af7088efafe475bdda548330058883428b470be5"
+      ],
+      "fugue-fugue-api-6687fd5d8-rxdb5": []
+    },
+    "policy_artifact": "artifact_1789835886_21591d4de708",
+    "policy_release": "artifactrel_1789836252_1a34933eb13c",
+    "shadow_artifact": "artifact_1789837433_3fe06cb430a2",
+    "shadow_release": "artifactrel_1789837433_d83c90c59608",
+    "fence": 16,
+    "enabled": true
+  }
 }
