@@ -3195,3 +3195,21 @@ P0-DU 发布恢复记录：原提交 `aaaecf18` 的 API、DNS/SSH 和德国 Work
 - [x] 两地 authority 的 sequence 和有效租期均继续推进，周期日志 published=1、failed=0。文件与真实 PostgreSQL 测试覆盖合法旧 generation 回滚、三类成员、防重放和并发撤销；完整 make test、race、干净 prepush、前端契约检查通过。
 
 证据：[consumer-rollback-cursor-2026-09-19.json](verification/consumer-rollback-cursor-2026-09-19.json)。生产仍运行旧 serving 与完整新 shadow；本步不宣称已完成实际 traffic gray/full 或端到端回滚演练。
+
+### P0-EC：Edge 失败事实及时上报
+
+- [x] route/TLS serving observer 只查询当前适用的 gray/full assignment；后发 full、topology 或 activation 变更不能被旧观察覆盖。
+- [x] 验证签名 parent/route/TLS/policy 后，真实 Caddy apply、cache 或探测失败立即提交 route/TLS failed heartbeat，不声称未验证的 actual/LKG generation。
+- [x] 正负事实共用持久化递增游标；失败保留成功回执与现有 serving bundle，清除内存正向证据，恢复与重启后重新探测。
+- [x] 覆盖失败后恢复、重启、时钟落后持久化游标、部分上报拒绝、签名错误、配置/activation 中途变化、inactive Worker、游标损坏/不可写；race、完整 make test、干净 prepush、前端契约检查通过。
+- [x] main/Actions 部署 API 和两地 Worker 后验证实际镜像、Front/authority、持续续期、完整 shadow 和现有 serving，再记录证据并勾选。
+
+本步为正式 traffic promotion 提供及时的负向运行事实。生产实际 gray/full、首次 positive policy LKG 和端到端回滚仍须单独验收。
+
+- [x] 后端 `570f9c5a8e2bd1f393e5a6e3238b7f8c28fffae4` 经 [CI 35441052316](https://github.com/yym68686/fugue/actions/runs/35441052316) 完成 API、两地 Worker 发布，CLI 构建成功。前端契约 `21aa3401` 的 [CI 35441068639](https://github.com/yym68686/fugue-web/actions/runs/35441068639) 通过，自动部署 2/2 Ready，公网 200。
+- [x] API 2/2；德国 A/277、美国 B/840 的活跃 Worker/Front 镜像和 authority 精确匹配，零重启。两地 Edge Control 保持 `a786d6eb`，Controller 保持 `cf3c54c1`，DNS/SSH 保持 `90240dc3` 且健康。
+- [x] 德国等待独立 canary 新鲜证据时保留旧 serving，随后两地均正常完成 Actions 更新、Guardian stable；没有绕过门禁。一次中间库存读取遇到美国 Pod 被更新替换，最终重新取得库存后完整验证通过。
+- [x] 三台 Worker 各完成 147 route/146 TLS shadow 验证，两台 DNS 各完成 3 zone/234 回答记录；8 个 required consumer 全部观察到、passing=0。global 配置/LKG 指针与 immutable expected topology 不变。
+- [x] 发布后两地 authority 继续增加 sequence 与租期，日志 published=1、failed=0。负向 fact 的实际失败/恢复语义由本地真实 HTTP、持久化、重启、race 回归验证；生产本步保持 awaiting_release，不伪造失败或应用事实。
+
+证据：[edge-negative-serving-facts-2026-09-19.json](verification/edge-negative-serving-facts-2026-09-19.json)。正式 gray/full、初始 positive policy LKG 和旧 artifact 生产回滚仍未完成。
