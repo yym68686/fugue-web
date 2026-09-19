@@ -32,9 +32,9 @@ Runtime Facts / ACK / LKG
 
 ## 当前状态判断
 
-2026-09-20 最新状态：API/Controller 为 `a6371ccf`，两地 Worker 与 DNS/SSH 客户端为 `b2821959`，两地 Edge Control 为 `a786d6eb`；德国 B/generation 278、美国 A/generation 841。P0-EG 接通版本化策略控制的后台 shadow 发布；P0-EH 修复文件锁隔离；P0-EI 将 producer 的平台 route/静态 DNS 改为固定引用签名 PlatformIntent，实际迁移、等价性和重放验收通过。
+2026-09-20 最新状态：API/Controller 为 `9584db40`，两地 Worker 与 DNS/SSH 客户端为 `b2821959`，两地 Edge Control 为 `a786d6eb`；德国 B/generation 278、美国 A/generation 841。P0-EG 接通后台 shadow 发布；P0-EH 修复文件锁隔离；P0-EI 固定静态 route/DNS intent；P0-EJ 固定 DNS consumer/authority/client/probe/cohort 输入，移除 producer 对 DNS workload 环境的读取，生产验收通过。
 
-producer 保持 `business-static-intent`/shadow，引用 `artifact_1789839892_b3ca868a5aad`（2 条平台 route、13 条静态 DNS）；这两项 producer 输入不再从环境变量读取。详细验收的完整候选为 151 route、236 编译 DNS records、150 TLS references，shadow fence 28；随后业务变化自动推进到 fence 29。候选 ID 随后续更新变化，文档记录的是验收时快照。八个消费者 observed、passing=0；DNS 在详细检查时保留 3 个 route digest 失配的拒绝事实，未声称所有记录可切流。global serving/LKG 保持原状态且持续续期。下一阶段仍需迁移 authority/默认值/selection policy，完成输出等价性、真实 gray/full/rollback、policy positive LKG 与旧 serving 来源删除。
+producer 保持 `business-static-intent`/shadow：基础 intent `artifact_1789842728_1ad1da37faba` 保存 2 条平台 route、13 条静态 DNS 与 2 个 DNS consumer；DNS policy `artifact_1789842729_2859fa33ddd9` 保存 6 份 authority、2 份客户端规则和明确探测/cohort 参数。验收时完整 shadow 为 151 route、236 DNS records、150 TLS references，ReleaseSet `artifact_1789842949_13c989843440`、fence 35。两台 DNS 均为 435/435 ready probes、224/224 readiness records、239/239 eligible query records，八个消费者 observed、serving passing=0；全局 serving/LKG 保持原状态。producer 后续仍自动刷新，所以这里是验收快照。下一阶段仍需迁移 base-domain/应用默认值和 DNS query selection 来源，完成输出等价性、真实 gray/full/rollback、policy positive LKG 与旧 serving 路径删除。
 
 Fugue 已经具备相当一部分基础设施：`PlatformArtifact` 已有 generation、content hash、签名、验证状态、release channel、fencing token 和 LKG；Edge 与 DNS 也有签名校验、本地缓存和过期控制。
 
@@ -3330,3 +3330,26 @@ P0-EI 生产验证（2026-09-20）：
 - [x] DNS 详细观察为 432/435 ready probes、222/224 readiness records、237/239 eligible query records，3 个 route digest 失配均拒绝。迁移期间旧 DNS 来源短暂不可用会保留旧 shadow，随后新静态来源发布成功；后续业务变化已自动生成 fence 29，仍绑定同一静态 intent，八个消费者继续上报。两地 authority 序号/租期推进，公网 200。
 
 证据：[static-producer-intent-2026-09-20.json](verification/static-producer-intent-2026-09-20.json)。静态来源环境隔离由改变 ambient 配置的回归验证，生产通过 importer、完整 desired 等价性、签名引用、重放与自动更新验证；未通过改坏生产环境来测试。当前残留的 DNS 迁移来源依赖是下一阶段的具体目标。
+
+
+### P0-EJ：producer DNS 声明与执行策略脱离 workload 环境
+
+- [x] 基础 PlatformIntent 保存 DNS consumer 身份、group、基础 zone 和 probe 参数；producer 固定另一份签名 PolicySnapshot 的 exact ID/hash，提供完整 NS/SOA、客户端规则、route/TLS 探测参数和 rollout cohorts。
+- [x] 显式输入模式不再读取 DNS DaemonSet 环境；运行库存只提供已声明身份的 endpoint facts，缺失/冲突拒绝。历史 zone 心跳不能重新创建已删除的 desired zone。
+- [x] producer 策略中的 hosted_zone_templates 明确指定每个消费者的基础 authority 模板，保持新增 hosted zone 自动投影、删除/暂停退出的语义；空模板只保留显式基础 zone。
+- [x] 完整 producer policy 可只读预览；读取及文件/PG 发布事务重验两个来源签名、digest、scope、validation 和完整所有权，失效不回退旧环境。parent 和运行快照保留 DNS 来源，重放不改变来源/作者。
+- [x] 覆盖迁移等价性、runtime 地址与 intent 分离、旧别名、模板增删、探测参数保持、遗漏/错误引用、篡改/排队失效和精确重放；race、真实 PostgreSQL、完整测试、prepush、前端契约检查通过。
+- [x] main/Actions 部署后一次性保存生产 DNS 配置、比较完整 desired 输出、启用新引用，验证自动 shadow 与全体消费者、固定输入重放、持续续期及 serving/LKG 不变，保存证据后勾选。
+
+本步尚未迁移 base-domain/应用默认值与 DNS query selection 来源，不表示正式 gray/full 切流完成。
+
+
+P0-EJ 生产验证（2026-09-20）：
+
+- [x] 后端 `9584db4000ac1ab7338aff50cf90449dcdf1239b` 经 [CI 35460954343](https://github.com/yym68686/fugue/actions/runs/35460954343) 完成 API/Controller 发布，CLI 成功；完整 make test、API/文件/真实 PostgreSQL race、干净 prepush（136 秒）通过。前端契约 `ebe8742d` 的 [CI 35460955226](https://github.com/yym68686/fugue-web/actions/runs/35460955226) 通过并自动部署 2/2 Ready、2 endpoints、公网 200。
+- [x] 先验证新代码保持旧配置，再从明确的 workload 声明一次性保存两地基础 zone（fugue.pro/i00.pro/oaix.cc）、2 个 consumer、6 份 NS/SOA authority、2 份客户端策略、DNS/TLS 探测参数与三个 cohort。新引用保持未激活时，只读完整 producer preview 第一次比较即证明 intent/policy/DNS exclusions 与旧路径一致（151 route）。
+- [x] producer policy `artifact_1789842730_23e80fe8b01f` 的 source release `artifactrel_1789842886_452603416a35`（policy fence 6）固定新的基础 intent/DNS policy ID 和 hash，并为每个节点显式指定 fugue.pro authority 作为 hosted-zone 模板。正常发布后后台自动生成 traffic shadow fence 35，后续 unchanged 复用同一发布。
+- [x] 两个来源的完整内容、digest、metadata、签名和作者保持不变；编译结果的 consumer、authority、客户端规则、探测参数和 cohort 与输入精确一致。错误 ID、generation 别名及互斥 preview 参数均拒绝。保存的 runtime snapshot 和签名 parent 都携带两份来源引用；管理员 inline/stored 两种重放均复用六个 immutable artifact。
+- [x] 新 API/Controller 各 2/2 Ready；三台 Worker 的 151 route/150 TLS、两台 DNS 的 3 zone/239 query records 完整验证通过。两台均为 435/435 ready probes、224/224 readiness records、239/239 eligible records，八个可信消费者 observed、passing=0。active Worker/Front/DNS/SSH 镜像与容器健康正常，authority 租期有效且相对发布前推进，global serving/LKG 不变。
+
+证据：[pinned-dns-inputs-2026-09-20.json](verification/pinned-dns-inputs-2026-09-20.json)。hosted-zone 增删、历史别名、地址变化和声明缺失的边界由明确回归验证；生产本步保持原 zone/authority 行为。下一步继续移除 base-domain/默认值及 legacy query selection 来源，不将本次 shadow 成功记为正式切流完成。
