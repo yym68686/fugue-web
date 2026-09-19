@@ -11442,6 +11442,7 @@ export interface components {
       /** Format: int64 */
       fencing_token: number;
       reason: string;
+      /** @description Explicitly seed the first verified LKG. TrafficReleaseSet requires current trusted applied/probed evidence from a gray publication; shadow evidence is insufficient. Other kinds retain initial shadow seeding. Later replacement requires full publication. */
       allow_initial_lkg?: boolean;
       evidence: components["schemas"]["PlatformArtifactVerificationEvidence"];
     };
