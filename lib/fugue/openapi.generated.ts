@@ -489,7 +489,7 @@ export interface paths {
   "/v1/platform-state/consumers/artifacts/{artifact_id}": {
     /**
      * Pull an artifact assigned to a trusted consumer
-     * @description Returns a validated, signed child artifact only when the verified component identity is currently present in the active ReleaseSet expected topology. The endpoint is read-only and never records runtime facts.
+     * @description Returns a validated signed child artifact or its exact signed ReleaseSet parent only when the verified component identity is currently present in that child assignment. Parent reads require the same expected_consumer_set_id and retain the child assignment and release envelope; arbitrary parents and nonselected canary members are denied. The endpoint is read-only and never records runtime facts.
      */
     get: operations["getPlatformConsumerArtifact"];
   };
@@ -3425,7 +3425,33 @@ export interface components {
       /** Format: int32 */
       ttl?: number;
     };
+    TrafficReleaseBinding: {
+      /** @enum {string} */
+      schema: "fugue.traffic-release-binding/v1";
+      release_set_id: string;
+      release_set_digest: string;
+      release_set_generation: string;
+      route_artifact_id: string;
+      route_artifact_digest: string;
+      route_artifact_generation: string;
+      /** Format: int64 */
+      route_artifact_sequence: number;
+      release_id: string;
+      /** @enum {string} */
+      release_channel: "shadow" | "gray" | "full";
+      /** Format: int64 */
+      fencing_token: number;
+      scope_key: string;
+      intent_digest: string;
+      policy_digest: string;
+      input_snapshot_digest: string;
+      compiler_version: string;
+      projection_digest: string;
+      canary_rule_ref?: string;
+      edge_group_ids?: string[];
+    };
     EdgeRouteBundle: {
+      traffic_release?: components["schemas"]["TrafficReleaseBinding"];
       schema_version?: string;
       version: string;
       generation?: string;
@@ -3445,6 +3471,7 @@ export interface components {
       cache_policies?: components["schemas"]["CachePolicy"][];
     };
     EdgeRouteIntentSnapshot: {
+      traffic_release?: components["schemas"]["TrafficReleaseBinding"];
       /** @enum {string} */
       schema_version: "edge-route-intent/v1";
       generation: string;
@@ -14015,7 +14042,7 @@ export interface operations {
   };
   /**
    * Pull an artifact assigned to a trusted consumer
-   * @description Returns a validated, signed child artifact only when the verified component identity is currently present in the active ReleaseSet expected topology. The endpoint is read-only and never records runtime facts.
+   * @description Returns a validated signed child artifact or its exact signed ReleaseSet parent only when the verified component identity is currently present in that child assignment. Parent reads require the same expected_consumer_set_id and retain the child assignment and release envelope; arbitrary parents and nonselected canary members are denied. The endpoint is read-only and never records runtime facts.
    */
   getPlatformConsumerArtifact: {
     parameters: {
