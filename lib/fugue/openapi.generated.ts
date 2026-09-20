@@ -11402,7 +11402,14 @@ export interface components {
       schema_version: "fugue.platform.producer/v1";
       generation: string;
       /** @enum {string} */
-      mode: "paused" | "shadow";
+      mode: "paused" | "shadow" | "serving";
+      /** @description Required in serving mode. Automatic traffic releases require an existing full verified TrafficReleaseSet LKG, complete pinned inputs and consumer_readiness placement. Fresh actual gray convergence gates full, and fresh full convergence gates LKG. Timeout rolls back to the unchanged verified LKG and records failure of that candidate; the same desired source is not retried until it changes. These actions reuse existing release lanes, consumer facts and LKG records. */
+      serving?: {
+        canary_rule_ref: string;
+        gray_min_seconds: number;
+        full_min_seconds: number;
+        rollout_timeout_seconds: number;
+      };
       /** @enum {string} */
       input_source: "business-migration" | "business-static-intent";
       /** @description Required only for business-static-intent; an exact immutable platform_intent ID in global scope. */
