@@ -3529,11 +3529,11 @@ P0-EO 生产验证（2026-09-21）：
 
 这是 P0-EP 接管前的第一项兼容工作。原 compiler 输入只接受 app 级 single/100% stable 的 serving 观察，无法为 canary 中的两个独立工作负载建立 readiness。本步复用现有 Kubernetes 快照读取与编译输入存储，保留实际 serving 的 consumer apply/probe 门。
 
-- [ ] 按固定业务 snapshot 引用的 managed release 逐个核对 owner、runtime/image、Deployment UID/当前代次、Service owner/selector/port 和当前 Service UID 所属的 EndpointSlice。
-- [ ] 新 candidate 无需预先 serving；stable/candidate 均有独立 readiness。未知或读取失败不冒充成功，已确认缺失/不就绪保存带原始观察时间的负向事实。
-- [ ] 使用当前 Deployment 的完整副本和端点事实，正常扩缩容不受历史 code snapshot 的初始副本数阻塞。
-- [ ] `runtime_snapshot.facts.release_readiness` 保存 cluster/resource identity 和结果，使用强类型契约；不复制 workload 环境或秘密，不修改 intent/policy。
-- [ ] 完整业务捕获链覆盖目标镜像已前进、stable/candidate 并存且均没有 app 级 serving release 标记；编译得到正确 80/20 路由与 DNS 候选。身份、镜像、代次、selector、端口、旧 Service UID、读取失败/集群切换等反例均拒绝。
-- [ ] make test、race、生成契约、干净 prepush 通过，经 main/Actions 更新 API；生产验证新事实、编译重放、消费者和原 serving/LKG 后再勾选。
+- [x] 按固定业务 snapshot 引用的 managed release 逐个核对 owner、runtime/image、Deployment UID/当前代次、Service owner/selector/port 和当前 Service UID 所属的 EndpointSlice。
+- [x] 新 candidate 无需预先 serving；stable/candidate 均有独立 readiness。未知或读取失败不冒充成功，已确认缺失/不就绪保存带原始观察时间的负向事实。
+- [x] 使用当前 Deployment 的完整副本和端点事实，正常扩缩容不受历史 code snapshot 的初始副本数阻塞。
+- [x] `runtime_snapshot.facts.release_readiness` 保存 cluster/resource identity 和结果，使用强类型契约；不复制 workload 环境或秘密，不修改 intent/policy。
+- [x] 完整业务捕获链覆盖目标镜像已前进、stable/candidate 并存且均没有 app 级 serving release 标记；编译得到正确 80/20 路由与 DNS 候选。身份、镜像、代次、selector、端口、旧 Service UID、读取失败/集群切换等反例均拒绝。
+- [x] make test、race、生成契约、干净 prepush 通过，经 main/Actions 更新 API；生产验证新事实、编译重放、消费者和原 serving/LKG 后再勾选。
 
 应用 code rollout 的精确 release/权重确认、sticky 语义兼容、首次 gray/full 与自动 serving 启用仍由 P0-EP 后续步骤完成，不以本步 readiness 冒充 serving 成功。
