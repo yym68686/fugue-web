@@ -1177,12 +1177,19 @@ export interface paths {
     /** Get App Diagnostic Report */
     get: operations["getAppDiagnosticReport"];
   };
+  "/v1/admin/diagnostics/probes": {
+    /**
+     * List Registered Diagnostic Probes
+     * @description Lists the verified diagnostic catalog and input contracts. Platform administrator access is required. Probe packages and catalog configuration are published independently of application code.
+     */
+    get: operations["listPlatformDiagnosticProbes"];
+  };
   "/v1/admin/diagnostics/sessions": {
     /** List Platform Diagnostic Sessions */
     get: operations["listPlatformDiagnosticSessions"];
     /**
      * Start Platform Diagnostic Session
-     * @description Starts a bounded, temporary diagnostic probe for a Fugue platform component or an allowlisted node process. Platform administrator access is required.
+     * @description Starts a bounded diagnostic session using a built-in kind or a verified catalog probe_ref. Registered probes may select an exact Pod or node within the catalog target policy; legacy kinds retain their original component and process restrictions. Platform administrator access is required.
      */
     post: operations["startPlatformDiagnosticSession"];
   };
@@ -8944,27 +8951,67 @@ export interface components {
     };
     PlatformDiagnosticTargetRequest: {
       /** @enum {string} */
-      type: "platform_component" | "node_process";
-      /** @description Fugue component label. Required for platform_component targets. */
+      type: "platform_component" | "node_process" | "node";
+      /** @description Fugue component label for legacy probes. Registered probes may instead specify an exact Pod within the catalog namespace policy. */
       component?: string;
       /** @description Optional Fugue system namespace; defaults to the control-plane namespace. */
       namespace?: string;
-      /** @description Optional exact Pod name within the trusted component selector. */
+      /** @description Exact Pod name. Legacy kinds additionally require the trusted component selector; registered probes use the catalog namespace policy. */
       pod?: string;
       /** @description Required when the selected platform Pod contains multiple containers. */
       container?: string;
-      /** @description Required for node_process targets. */
+      /** @description Required for node_process and node targets. Node-only targets require a registered probe. */
       node?: string;
       /** @description Required allowlisted Fugue or k3s process name for node_process targets. */
       process_name?: string;
     };
+    DiagnosticProbeParameter: {
+      description?: string;
+      required?: boolean;
+      default?: string;
+      enum?: string[];
+      pattern?: string;
+      max_length?: number;
+    };
+    DiagnosticProbeDescriptor: {
+      id: string;
+      /** @description Digest of the verified probe manifest; can be appended to the id in probe_ref to pin an exact definition. */
+      digest: string;
+      description?: string;
+      /** @description Digest-addressed independently published probe image. */
+      image: string;
+      /** @description Execution capability profile authorized by the catalog policy. */
+      profile: string;
+      target_types: ("platform_component" | "node_process" | "node")[];
+      max_duration_seconds: number;
+      parameters: {
+        [key: string]: components["schemas"]["DiagnosticProbeParameter"];
+      };
+    };
+    DiagnosticProbeCatalogResponse: {
+      catalog_digest: string;
+      /** @enum {string} */
+      catalog_status: "current" | "last_known_good";
+      /** @description Git revision that published the signed catalog, when available. */
+      source_revision?: string;
+      /** @description Independent runner image used for compatible built-in probes. */
+      runner_image: string;
+      probes: components["schemas"]["DiagnosticProbeDescriptor"][];
+    };
     PlatformDiagnosticSessionStartRequest: {
       target: components["schemas"]["PlatformDiagnosticTargetRequest"];
       /**
+       * @description Built-in probe kind. Use probe (or omit kind) when probe_ref is supplied.
        * @default cpu-profile
        * @enum {string}
        */
-      kind?: "cpu-profile" | "memory-profile" | "process-snapshot";
+      kind?: "cpu-profile" | "memory-profile" | "process-snapshot" | "probe";
+      /** @description Registered probe id, optionally followed by @sha256 manifest digest. Caller-supplied images or executables are not accepted. */
+      probe_ref?: string;
+      /** @description Validated using the selected probe parameter contract. Unsupported keys are rejected. */
+      parameters?: {
+        [key: string]: string;
+      };
       /**
        * Format: int32
        * @default 60
@@ -8983,7 +9030,7 @@ export interface components {
     };
     PlatformDiagnosticTarget: {
       /** @enum {string} */
-      type: "platform_component" | "node_process";
+      type: "platform_component" | "node_process" | "node";
       app_id?: string;
       component?: string;
       namespace?: string;
@@ -8997,7 +9044,12 @@ export interface components {
     PlatformDiagnosticSession: {
       id: string;
       /** @enum {string} */
-      kind: "cpu-profile" | "memory-profile" | "process-snapshot";
+      kind: "cpu-profile" | "memory-profile" | "process-snapshot" | "probe";
+      /** @description Immutable image used by this diagnostic Job, independently of the observed target image. */
+      runner_image?: string;
+      probe_ref?: string;
+      probe_digest?: string;
+      catalog_digest?: string;
       /** @enum {string} */
       status: "queued" | "running" | "succeeded" | "failed";
       target: components["schemas"]["PlatformDiagnosticTarget"];
@@ -17812,6 +17864,21 @@ export interface operations {
       default: components["responses"]["ErrorResponse"];
     };
   };
+  /**
+   * List Registered Diagnostic Probes
+   * @description Lists the verified diagnostic catalog and input contracts. Platform administrator access is required. Probe packages and catalog configuration are published independently of application code.
+   */
+  listPlatformDiagnosticProbes: {
+    responses: {
+      /** @description Verified diagnostic probe catalog. */
+      200: {
+        content: {
+          "application/json": components["schemas"]["DiagnosticProbeCatalogResponse"];
+        };
+      };
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
   /** List Platform Diagnostic Sessions */
   listPlatformDiagnosticSessions: {
     responses: {
@@ -17826,7 +17893,7 @@ export interface operations {
   };
   /**
    * Start Platform Diagnostic Session
-   * @description Starts a bounded, temporary diagnostic probe for a Fugue platform component or an allowlisted node process. Platform administrator access is required.
+   * @description Starts a bounded diagnostic session using a built-in kind or a verified catalog probe_ref. Registered probes may select an exact Pod or node within the catalog target policy; legacy kinds retain their original component and process restrictions. Platform administrator access is required.
    */
   startPlatformDiagnosticSession: {
     requestBody: {
