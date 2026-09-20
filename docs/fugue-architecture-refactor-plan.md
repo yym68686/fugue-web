@@ -32,9 +32,11 @@ Runtime Facts / ACK / LKG
 
 ## 当前状态判断
 
-2026-09-20 最新状态：API/Controller 为 `9584db40`，两地 Worker 与 DNS/SSH 客户端为 `b2821959`，两地 Edge Control 为 `a786d6eb`；德国 B/generation 278、美国 A/generation 841。P0-EG 接通后台 shadow 发布；P0-EH 修复文件锁隔离；P0-EI 固定静态 route/DNS intent；P0-EJ 固定 DNS consumer/authority/client/probe/cohort 输入，移除 producer 对 DNS workload 环境的读取，生产验收通过。
+2026-09-20 最新验收快照：P0-EM 已完成。API 运行 `5431a9b1`（包含本步最终修复 `4574e3e8`），Controller 为 `0a07266b`，两地 Worker 与 DNS/SSH 客户端为 `2517d586`，德国/美国 Edge Control 分别为 `892aa09d` / `a786d6eb`。P0-EI–EL 已将静态 route/DNS、域名声明、DNS authority/client/probe/cohort 和路由默认约束固定到签名输入；P0-EM 进一步将 DNS 查询策略与独立库存/排名事实接入 producer，移除对旧 DNS bundle 的读取。
 
-producer 保持 `business-static-intent`/shadow：基础 intent `artifact_1789842728_1ad1da37faba` 保存 2 条平台 route、13 条静态 DNS 与 2 个 DNS consumer；DNS policy `artifact_1789842729_2859fa33ddd9` 保存 6 份 authority、2 份客户端规则和明确探测/cohort 参数。验收时完整 shadow 为 151 route、236 DNS records、150 TLS references，ReleaseSet `artifact_1789842949_13c989843440`、fence 35。两台 DNS 均为 435/435 ready probes、224/224 readiness records、239/239 eligible query records，八个消费者 observed、serving passing=0；全局 serving/LKG 保持原状态。producer 后续仍自动刷新，所以这里是验收快照。下一阶段仍需迁移 base-domain/应用默认值和 DNS query selection 来源，完成输出等价性、真实 gray/full/rollback、policy positive LKG 与旧 serving 路径删除。
+producer 已恢复 `business-static-intent`/shadow，固定基础 intent `artifact_1789848966_aa79d274ac50` 与输入 policy `artifact_1789878236_47513717480a`；启用策略为 `artifact_1789910205_9d856f3b606d`。验收 shadow `artifact_1789910274_1d5a9df763b0`、fence 180 包含 159 route、244 DNS records、158 TLS references；两台 DNS 均为 459/459 readiness probes、232/232 readiness records、247/247 eligible queries。八个消费者 observed，serving passing=0。生产持续自动刷新，这里只记录验收时点；全局 serving/LKG 尚未切换。
+
+下一步必须解除“新路由已 serving 才能编译对应 DNS 候选”的循环依赖，并完成受策略控制的持续发布、真实 gray/full/rollback、positive traffic/policy LKG、剩余策略迁移和旧 serving 来源删除。不能将 shadow 成功视为全部重构完成。
 
 Fugue 已经具备相当一部分基础设施：`PlatformArtifact` 已有 generation、content hash、签名、验证状态、release channel、fencing token 和 LKG；Edge 与 DNS 也有签名校验、本地缓存和过期控制。
 
@@ -3400,3 +3402,63 @@ P0-EL 生产验证（2026-09-20）：
 - [x] API/Controller 各 2/2 Ready、真实镜像匹配；Worker/Front/DNS/SSH 正常，两地 authority 持续续期，global serving/LKG 不变。单一 producer leader 后续持续 published/unchanged；没有用 shadow 结果替代 actual apply/probe convergence。
 
 证据：[pinned-route-defaults-2026-09-20.json](verification/pinned-route-defaults-2026-09-20.json)。不同阈值、新鲜度和 DNS inactive 行为由完整编译回归验证，生产迁移保持现有数值；后续策略可通过新 generation 和正常发布独立修订。
+
+
+### P0-EM：DNS 查询从固定 intent、查询策略与独立运行事实生成
+
+- [x] 扩展强类型 dns_query_policy，固定 ranking mode、runtime-locality 选择、ECS、探索比例、冷却时间与 TTL 范围；严格要求完整字段，沿用原签名 projection policy 引用。
+- [x] producer 显式查询路径不读取旧 DNS bundle；只使用冻结的 route/DNS intent、policy、声明消费者，以及 Edge 库存/独立排名观察。生成 per-consumer/per-record 查询投影和独立事实，保留原始观测时间/内容摘要。
+- [x] 新增/删除/嵌套 zone 和共享 target 由声明展开；保留地址/租户/路径所有权、显式 exclusions、原选择器与共享 target 排序语义。无效输入拒绝整个候选，不回退旧 bundle。
+- [x] required query policy 在捕获与文件/PG 发布事务重验；策略修订按原始 switched_at 计算冷却时间，不受旧进程默认值覆盖。独立 route/TLS readiness 仍是 DNS apply 的必要条件。
+- [x] 覆盖固定事实下旧/新语义比较、新域名增删、策略生效、无旧 bundle、冲突拒绝、完整编译/固定输入重放和 readiness 拒绝；完整/race/真实 PostgreSQL/prepush/前端契约通过。
+- [x] 代码 Actions 上线后验证原配置健康；保存未激活查询策略，比较真实完整输出并处理差异；正常激活后验证新来源、全部消费者、精确重放、持续续期及 serving/LKG，附生产证据后勾选。
+
+本步骤先移除 producer 查询对旧 DNS 发布物的依赖；排名采样、打分和默认业务策略仍有后续迁移项。正式 gray/full、verified traffic LKG、回滚与旧 serving 路径删除未因此自动完成。
+
+
+P0-EM 迁移中发现并已修复的恢复阻塞：
+
+- [x] 修复单一 DNS target 提前过滤 preferred group 的兼容差异；只有多来源共享 target 执行交集约束。
+- [x] 平台自有 apex 不作为外部自定义域名覆盖默认 target；保持 target 的实际路由与排名来源。
+- [x] DNS 捕获错误保留 hostname/release 证据上下文，避免所有失败都退化成来源不可用。
+- [x] stable release 初始化保存 canonical Deployment/Service 身份；历史隐式 canonical 引用只能在同一 tenant/app/runtime/image 和精确 service URL 下解析，并继续验证真实当前 Deployment 代次、镜像和 endpoint。缺失证据保留旧 artifact，不将 ready 状态标签当作 serving 事实。
+
+一次新增的 implicit stable release 暴露了“应用正常，但 release 身份无法观察，从而阻止整个配置编译”的真实缺口；修复与新 DNS 来源现已分别通过生产验收。
+
+
+P0-EM 消费者兼容与共享 target 确定性：
+
+- [x] 两地 Edge Worker、DNS/SSH 客户端在激活新 policy 前升级，严格 schema 能识别 dns_query_policy；新旧 artifact 的消费者回归均通过，真实 serving/LKG 不受代码更新影响。
+- [x] 共享 target 在流量类别和模式同优先级时先比较稳定路由偏好，再比较排名内容；不再通过包含 readiness/heartbeat generation 的整条记录哈希选择不同 policy。独立路线和旧兼容路线复用同一决胜函数。
+
+持续业务部署和排名变化导致不同采集时点不能直接当作同一 runtime snapshot；仍需完整固定输入回归、真实候选 apply/probe 和具体差异检查，不通过放宽签名、所有权或 readiness 门来满足比较。
+
+
+P0-EM 已完成的故障修复证据：`c116c486`（[CI 35491304236](https://github.com/yym68686/fugue/actions/runs/35491304236)）修复单目标偏好与平台 apex 所有权；`3606c3e4`（[CI 35506949728](https://github.com/yym68686/fugue/actions/runs/35506949728)）保留精确失败上下文；`4bbefb1f`（[CI 35508366498](https://github.com/yym68686/fugue/actions/runs/35508366498)）恢复隐式 stable release 的真实身份观察。后者生产验证确认原历史 release 完整内容不变，未填写的名称仍为空，但真实镜像/runtime/Deployment 代次/端点匹配后已有正确 serving_release_id；独立 endpoint 缺失仍由回归拒绝。producer 随后从 fence 163 恢复生成新 shadow，未更改 serving/LKG。
+
+这些修复已上生产；独立 DNS 来源、消费者兼容与共享 target 比较的最终验收见下方。
+
+
+P0-EM 生产验证（2026-09-20）：
+
+- [x] 最终成员排序修复 `4574e3e8` 经 [CI 35511984077](https://github.com/yym68686/fugue/actions/runs/35511984077) 发布；先按每个来源选择共享 target 排名，再执行地址交集，保留原 traffic-class 语义。消费者兼容与稳定决胜修复 `2517d586` 经 [CI 35509675425](https://github.com/yym68686/fugue/actions/runs/35509675425) 部署到两地 Worker、DNS/SSH。完整 make test、专项 race、文件/真实 PostgreSQL、固定输入与干净 prepush 通过。
+- [x] 同时点旧/新只读投影的完整 intent、非 query policy、DNS exclusions 与 464 条 query rules 完全一致；前一轮有 4 条排名观察变化，保留原比较门槛，重新成对捕获后全部一致。单一 target 偏好、共享 target 顺序、apex 所有权及历史 stable 身份缺口均有独立回归。
+- [x] 输入 policy `artifact_1789878236_47513717480a`、hash `sha256:351c731967a3d1289cd60935868001faf0946899cb6e73053b685c20e64df375` 保存 active ranking、runtime locality、ECS、5% exploration、1800 秒 cooldown、60–120 秒 TTL，保留所有已有策略字段及静态来源。正常发布启用新 producer policy `artifact_1789910205_9d856f3b606d`、release `artifactrel_1789910207_dbda531d2df4`。
+- [x] 为稳定检查暂时发布 paused 策略后，较早创建的草稿被 generation 单调保护以 409 拒绝；创建内容与引用完全相同的新 generation 后正常启用，未绕过版本保护，最终 producer 为 shadow。后台自动生成 fence 180，159 routes/244 DNS/158 TLS，全体八个可信 consumer observed，passing=0。
+- [x] 三台 Worker 各完成 159 条隔离 route probe 与 158 TLS reference 验证；两台 DNS 各有 459/459 readiness probes、232/232 readiness records、247/247 eligible queries 和 3 个 zone。实际持久化 candidate、签名 binding、fence、expected set、Front/Worker authority 与客户端镜像均匹配。
+- [x] parent、runtime snapshot 与六个 immutable artifact 的来源完整；查询 facts 使用独立 `dns-observation_` generation，无旧 bundle 来源。inline/stored 两种重放精确复用 ID、内容、digest、metadata、签名和原作者，重放期间配置指针不变；无效 exact reference 拒绝。
+- [x] 并行正常发布将 API 更新为包含上述修复的 `5431a9b1`，[CI 35512636505](https://github.com/yym68686/fugue/actions/runs/35512636505) 成功；按实际版本重新完成生产验证。API/Controller 各 2/2 Ready，单一 producer leader，两地 authority 持续续期，global serving/LKG 不变。前端契约 `5edd24eb` 已通过 [CI 35510343530](https://github.com/yym68686/fugue-web/actions/runs/35510343530)，实际 2/2 Ready、2 endpoints、无待处理操作、公网 200。
+
+证据：[direct-dns-selection-2026-09-20.json](verification/direct-dns-selection-2026-09-20.json)、[canonical-release-identity-2026-09-20.json](verification/canonical-release-identity-2026-09-20.json)。本步完成独立查询来源迁移，不代表真实 gray/full 或 positive LKG 已完成。
+
+
+### P0-EN：解除 DNS 编译与新路由 serving 的循环依赖
+
+代码核对确认：现有 placement 捕获要求每条新 route 的当前公网 proof digest 已匹配，compiler 随后才生成包含该 route 的 ReleaseSet。旧业务 serving 路径停用后，新增/修改路由会因此无法生成自己的发布物；placement 的短时事实租期还会把控制面持续重编译变成旧 artifact 继续服务的前提。必须把期望地址候选与实时回答资格分开，保留真实执行安全门。
+
+- [ ] 使用冻结的声明、端点库存和签名约束生成候选，不要求新 route 已在公网 serving；新建及变更 route 均有无旧 serving 来源的回归。
+- [ ] 候选 DNS 地址必须绑定同一 parent 的 route/TLS readiness plan；下载、schema 或 shadow 通过不授予回答资格。
+- [ ] DNS 实际回答继续要求新鲜、精确 identity/digest/fence 的 route/TLS proof，缺少证明、旧 parent、重启或证据过期均拒绝；已有 positive LKG 按原规则恢复。
+- [ ] 分离可持续重新探测的运行事实与内容本身的到期；ACME/flatten 等真实内容租期不可被新心跳续期。
+- [ ] 编译与消费者完整测试、race、真实 PostgreSQL/契约及 prepush 通过；分原子提交 main/Actions，先兼容消费者再启用新语义，逐步验证生产。
+- [ ] 正常策略发布后验证自动候选、全部消费者、固定输入重放、持续恢复能力与旧 serving/LKG，附证据后勾选。正式持续 promotion、gray/full 与 rollback 仍是后续独立验收。

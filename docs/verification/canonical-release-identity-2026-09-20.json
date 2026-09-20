@@ -1,0 +1,92 @@
+{
+  "verified_at": "2026-09-20T11:47:25.130580+00:00",
+  "app_id": "app_1779710657_c61313b4eabb",
+  "stable_release_id": "apprel_1789897774_91594a6938af",
+  "historical_release_unchanged": true,
+  "implicit_names_still_absent_in_store": true,
+  "observed_status": {
+    "phase": "deployed",
+    "runtime_id": "runtime_managed_shared_loc_country-de-6a832060",
+    "serving_release_id": "apprel_1789897774_91594a6938af",
+    "desired_replicas": 1,
+    "ready_replicas": 1,
+    "runtime_object_present": true,
+    "namespace_present": true,
+    "service_present": true,
+    "endpoint_present": true,
+    "endpoint_ready": true,
+    "physical_replicas": 1,
+    "physical_desired_replicas": 1,
+    "image_present": true,
+    "image_ref": "registry.fugue.internal:5000/fugue-apps/specforge:upload-dc2a2b2cce46-build-op_1788361704_1117b1406da3",
+    "fresh": true,
+    "observed_at": "2026-09-20T11:47:09.49419621Z",
+    "cluster_id": "1a08cd00-258e-44e6-a179-5d9d6fa8a1e9",
+    "generation": 135148,
+    "observed_generation": 135148,
+    "evidence_source": "kubernetes_api",
+    "evidence_sources": [
+      "kubernetes_api",
+      "image_location_store",
+      "app_release_traffic_policy"
+    ],
+    "reason": "managed_app_ready",
+    "message": "stable release apprel_1789897774_91594a6938af is serving the desired image"
+  },
+  "ready_pods": 1,
+  "endpoint_pods": 1,
+  "pending_operations": [],
+  "backend_commit": "4bbefb1f554799e4d2c1b78e0e1e6583abb4cccd",
+  "ci_run": "https://github.com/yym68686/fugue/actions/runs/35508366498",
+  "checks": {
+    "full_make_test": "passed",
+    "race": "passed",
+    "prepush": {
+      "apiVersion": "prepush.fugue.dev/v1",
+      "baseCommit": "d31c10bdd46b8fdc65b98e2d201fb8fb0cafb378",
+      "changedFilesDigest": "sha256:665e337342f6b60066a39f3047aa51495499c97c18465a5cd3e71f84a6dcec08",
+      "checks": {
+        "affected-tests": {
+          "durationMs": 118341,
+          "status": "pass"
+        },
+        "affected-vet": {
+          "durationMs": 3072,
+          "status": "pass"
+        },
+        "compile-all": {
+          "durationMs": 13891,
+          "status": "pass"
+        },
+        "declarative-release-tests": {
+          "durationMs": 14714,
+          "status": "pass"
+        },
+        "diff-check": {
+          "durationMs": 159,
+          "status": "pass"
+        },
+        "gofmt": {
+          "durationMs": 38,
+          "status": "pass"
+        },
+        "helm-lint-render": {
+          "durationMs": 0,
+          "status": "skipped"
+        },
+        "openapi-generated": {
+          "durationMs": 551,
+          "status": "pass"
+        },
+        "shell-syntax": {
+          "durationMs": 0,
+          "status": "pass"
+        }
+      },
+      "elapsedMs": 135414,
+      "kind": "PrepushReceipt",
+      "sourceCommit": "4bbefb1f554799e4d2c1b78e0e1e6583abb4cccd",
+      "status": "pass"
+    }
+  }
+}
