@@ -10924,6 +10924,18 @@ export interface components {
       tls?: components["schemas"]["PlatformConfigTLSIntent"][];
       cache_policies?: components["schemas"]["CachePolicy"][];
     };
+    /** @description Producer query strategy, independent of runtime ranking, locality and candidate eligibility. The producer observes inventory and ranking directly, expands concrete DNSAnswerRules, and never reads legacy DNS bundles when this policy is present. Readiness remains independently proven. */
+    PlatformDNSQueryPolicy: {
+      /** @enum {string} */
+      ranking_mode: "active" | "shadow" | "disabled";
+      /** @enum {string} */
+      preference_mode: "runtime_locality";
+      ecs_enabled: boolean;
+      exploration_percent: number;
+      switch_cooldown_seconds: number;
+      minimum_ttl_seconds: number;
+      maximum_ttl_seconds: number;
+    };
     PlatformDNSAuthorityPolicy: {
       node_id: string;
       zone: string;
@@ -11046,6 +11058,7 @@ export interface components {
       traffic_rollout_cohorts?: components["schemas"]["PlatformTrafficRolloutCohort"][];
       dns_authorities?: components["schemas"]["PlatformDNSAuthorityPolicy"][];
       dns_client_policies?: components["schemas"]["PlatformDNSClientPolicy"][];
+      dns_query_policy?: components["schemas"]["PlatformDNSQueryPolicy"];
       dns_answer_rules?: components["schemas"]["PlatformDNSAnswerRule"][];
       dns_readiness?: components["schemas"]["PlatformDNSReadinessPolicy"];
       tls_readiness?: components["schemas"]["PlatformReadinessProbePolicy"];
@@ -11373,9 +11386,14 @@ export interface components {
       static_intent_artifact_id?: string;
       /** @description Exact content_hash of the pinned static intent. Required only for business-static-intent. */
       static_intent_digest?: string;
-      /** @description Optional exact validated global PolicySnapshot holding DNS declarations and optional route defaults. Supported fields are schema_version, generation, scope, dns_authorities, dns_client_policies, dns_readiness, tls_readiness, traffic_rollout_cohorts; the optional route defaults group must include all four of minimum_healthy_edges (1..10000), max_stale_seconds (1..604800), route_constraints and dns_route_state_constraints. Explicit empty arrays are allowed; null, partial groups and unknown fields are rejected. Base route_constraints are defaults by hostname; an explicit business route policy takes precedence. Requires business-static-intent and DNS consumers in the pinned intent. */
+      /** @description Optional exact validated global PolicySnapshot holding DNS declarations and optional route defaults. Supported fields are schema_version, generation, scope, dns_authorities, dns_client_policies, dns_readiness, tls_readiness, traffic_rollout_cohorts, dns_query_policy; the optional route defaults group must include all four of minimum_healthy_edges (1..10000), max_stale_seconds (1..604800), route_constraints and dns_route_state_constraints. Explicit empty arrays are allowed; null, partial groups and unknown fields are rejected. Base route_constraints are defaults by hostname; an explicit business route policy takes precedence. Requires business-static-intent and DNS consumers in the pinned intent. */
       dns_policy_artifact_id?: string;
       dns_policy_digest?: string;
+      /**
+       * @description Requires dns_query_policy in the exact signed projection policy. Missing declarations reject capture and transactional publication; no legacy bundle fallback.
+       * @default false
+       */
+      require_dns_query_policy?: boolean;
       /**
        * @description Requires the paired pinned policy reference to supply the complete route defaults group. Missing defaults reject capture and transactional publication without hardcoded fallback. Defaults expand into the compiled PolicySnapshot; no new policy source or release lane is introduced.
        * @default false
