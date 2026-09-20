@@ -11076,6 +11076,11 @@ export interface components {
       traffic_rollout_cohorts?: components["schemas"]["PlatformTrafficRolloutCohort"][];
       dns_authorities?: components["schemas"]["PlatformDNSAuthorityPolicy"][];
       dns_client_policies?: components["schemas"]["PlatformDNSClientPolicy"][];
+      /**
+       * @description Omission preserves captured readiness leases. consumer_readiness plans addresses from frozen declared endpoint topology without requiring new routes to serve before compilation; DNS query/authority/client/cohort and DNS/TLS readiness policies are required. Addresses are only candidates, and standalone DNS publication is forbidden. Every answer requires fresh route/TLS proof for the exact serving ReleaseSet; static and ACME/flatten content expiration is unchanged.
+       * @enum {string}
+       */
+      dns_placement_mode?: "captured_readiness" | "consumer_readiness";
       dns_query_policy?: components["schemas"]["PlatformDNSQueryPolicy"];
       dns_answer_rules?: components["schemas"]["PlatformDNSAnswerRule"][];
       dns_readiness?: components["schemas"]["PlatformDNSReadinessPolicy"];
@@ -11316,7 +11321,7 @@ export interface components {
       /** Format: date-time */
       expires_at: string;
     };
-    /** @description Fixed application DNS evidence. input_digest is the canonical digest of {dns, routes, policy}, with compiled routes restricted to the DNS hostname, sorted by normalized path, including resolved origin and release upstreams and exclusions. Candidate health and readiness must come from the corresponding serving observations. Compilation binds data and checks freshness; a caller submitting runtime facts is responsible for their authenticity. A stale observation is usable only with stale_if_error. Missing evidence and insufficient eligible edges reject compilation; disabled routes produce no application DNS answers. Ready route and TLS evidence are mandatory for every published address regardless of optional policy flags. */
+    /** @description Fixed application DNS evidence. input_digest is the canonical digest of {dns, routes, policy}, with compiled routes restricted to the DNS hostname, sorted by normalized path, including resolved origin and release upstreams and exclusions. Candidate health and readiness must come from the corresponding serving observations. Compilation binds data and checks freshness; a caller submitting runtime facts is responsible for their authenticity. A stale observation is usable only with stale_if_error. In captured_readiness mode (the default), missing evidence and insufficient eligible edges reject compilation. consumer_readiness mode rejects these legacy placement observations and compiles address candidates from the fixed endpoint topology instead. Disabled routes follow explicit route-state policy. Actual DNS answers always require fresh route and TLS proof for the exact serving publication. */
     PlatformDNSPlacementObservation: {
       input_digest: string;
       /** Format: date-time */
@@ -11404,7 +11409,7 @@ export interface components {
       static_intent_artifact_id?: string;
       /** @description Exact content_hash of the pinned static intent. Required only for business-static-intent. */
       static_intent_digest?: string;
-      /** @description Optional exact validated global PolicySnapshot holding DNS declarations and optional route defaults. Supported fields are schema_version, generation, scope, dns_authorities, dns_client_policies, dns_readiness, tls_readiness, traffic_rollout_cohorts, dns_query_policy; the optional route defaults group must include all four of minimum_healthy_edges (1..10000), max_stale_seconds (1..604800), route_constraints and dns_route_state_constraints. Explicit empty arrays are allowed; null, partial groups and unknown fields are rejected. Base route_constraints are defaults by hostname; an explicit business route policy takes precedence. Requires business-static-intent and DNS consumers in the pinned intent. */
+      /** @description Optional exact validated global PolicySnapshot holding DNS declarations and optional route defaults. Supported fields are schema_version, generation, scope, dns_authorities, dns_client_policies, dns_readiness, tls_readiness, traffic_rollout_cohorts, dns_query_policy, dns_placement_mode; the optional route defaults group must include all four of minimum_healthy_edges (1..10000), max_stale_seconds (1..604800), route_constraints and dns_route_state_constraints. Explicit empty arrays are allowed; null, partial groups and unknown fields are rejected. Base route_constraints are defaults by hostname; an explicit business route policy takes precedence. Requires business-static-intent and DNS consumers in the pinned intent. */
       dns_policy_artifact_id?: string;
       dns_policy_digest?: string;
       /**
