@@ -32,11 +32,11 @@ Runtime Facts / ACK / LKG
 
 ## 当前状态判断
 
-2026-09-20 最新验收快照：P0-EN 已完成。API 运行 `f3704748`；Controller、两地 Worker 与 DNS/SSH 客户端运行 `f3f14685`；德国/美国 Edge Control 仍为 `892aa09d` / `a786d6eb`。德国 A/generation 281、美国 B/generation 844。P0-EI–EM 已固定静态 intent、DNS/域名/路由默认值和查询策略，P0-EN 将 DNS 地址候选的编译与实际 route/TLS readiness 解耦，compiler 升为 v29。
+2026-09-21 最新验收快照：P0-EO 已完成代码部署与现有生产路径的回归验证。API、Controller 运行 `4e6e0ecc`，两地 Worker 与 DNS/SSH 客户端仍为 `f3f14685`；德国/美国 Edge Control 为 `892aa09d` / `a786d6eb`。德国 A/generation 281、美国 B/generation 844。P0-EI–EN 已固定静态 intent 与主要编译 policy，DNS 候选编译不再依赖新 route 已经 serving；compiler 为 v29。P0-EO 增加复用现有发布账本的自动 gray/full/verify/rollback 能力。
 
-producer 保持 `business-static-intent`/shadow，固定基础 intent `artifact_1789848966_aa79d274ac50` 和输入 policy `artifact_1789917932_e90aeeb2510d`；启用策略为 `artifact_1789917933_9f90cbb02a89`，显式选择 `consumer_readiness`。验收 shadow `artifact_1789919427_d81554b77bae`、fence 199 包含 159 route、243 DNS records、158 TLS references，旧 placement facts 为 0；两台 DNS 均为 459/459 probes、231/231 readiness records、246/246 eligible queries。八个消费者 observed，serving passing=0；固定输入六 artifact 重放通过，全局 serving/LKG 未切换。
+生产 producer 仍为 `business-static-intent`/shadow，固定基础 intent `artifact_1789848966_aa79d274ac50` 和输入 policy `artifact_1789917932_e90aeeb2510d`；启用策略为 `artifact_1789917933_9f90cbb02a89`，显式选择 `consumer_readiness`。最新验收 shadow `artifact_1789924746_0593e3041d46`、fence 226 包含 160 route、245 DNS records、159 TLS references；两台 DNS 均为 462/462 probes、233/233 readiness records、248/248 eligible queries。八个消费者 observed，serving passing=0；六 artifact 精确重放通过，全局 serving/LKG 未切换。前端契约 `3979108b` 已实际部署，2/2 Ready、公网 200。
 
-下一步完成受策略控制的持续 serving 发布、真实 gray/full/rollback、positive traffic/policy LKG、剩余策略迁移和旧 serving 来源删除。不能将 shadow 成功视为全部重构完成。
+下一步 P0-EP 完成完整配置的首次真实 gray/full 接管、positive traffic/policy LKG、自动 serving 策略启用与恢复验证；随后完成剩余策略迁移和旧 serving 来源删除。自动发布代码已部署不代表生产已经启用自动 serving，也不能将 shadow 成功视为全部重构完成。
 
 Fugue 已经具备相当一部分基础设施：`PlatformArtifact` 已有 generation、content hash、签名、验证状态、release channel、fencing token 和 LKG；Edge 与 DNS 也有签名校验、本地缓存和过期控制。
 
@@ -3487,3 +3487,34 @@ P0-EN 生产验证（2026-09-20）：
 - [x] 保存的 compiler input 明确没有 DNSPlacements，使用固定 topology 与独立查询 observations。inline/stored 两种 replay 精确复用六份 artifact 的 ID、内容、digest、metadata、签名、作者和 lineage，重放期间配置指针不变。所有来源和旧 policy 保持不可变，无效 exact reference 拒绝。
 
 证据：[consumer-dns-placement-2026-09-20.json](verification/consumer-dns-placement-2026-09-20.json)。新增/修改路由在没有旧 serving bundle 时可以编译，由冷启动输入回归验证；生产本步迁移现有声明，未故意破坏真实路由来制造故障。正式持续 serving 发布、gray/full、positive LKG、回滚与旧路径删除仍未完成。
+
+### P0-EO：用现有发布账本驱动自动 serving 与失败恢复
+
+P0-EN 解决了新 route 编译前必须已经 serving 的循环依赖；还需要把已编译候选持续送入现有 gray/full 和 verified LKG 流程。本步复用当前 producer、发布 lane、可信 consumer facts 与 LKG，不增加第二套发布服务或状态机。首次完整配置的真实 gray/full 验收与切换在下一步单独执行。
+
+- [x] producer 签名策略增加显式 `serving` 模式；强类型配置 cohort、gray/full 最小观察时间及每阶段超时，要求完整固定 intent/policy 和 `consumer_readiness`。
+- [x] 已有 full verified TrafficReleaseSet LKG 才能自动推进；缺少初始 LKG 时只产生 shadow，不用 shadow ACK 或调用方布尔值制造成功。
+- [x] 当前 gray 的真实 apply/probe 收敛后才允许 full；full 使用自己的新鲜证明才能写入成套 LKG。事务内复核来源策略、当前发布、baseline、cohort、时间门和消费者证据。
+- [x] 超时或 serving 策略修订后，通过现有 rollback 恢复精确 verified LKG；旧候选/来源无效不阻塞恢复，失败证据与恢复发布原子写入。
+- [x] 同一策略下的同一失败输入不反复发布；修正后的输入或新策略可以重新推进。重启从现有发布账本续接；paused/shadow 停止自动 serving 操作，保留人工正常回滚入口。
+- [x] 连续回滚后独立 gray/full fence 仍可合法转换；保持全局防重放序号、artifact 代次、当前 lane/expected-set 校验，旧 artifact 仍必须经过独立 LKG 回滚证明。
+- [x] 后台流程、文件存储、真实 PostgreSQL、等待事务锁期间撤销策略、race、完整 make test、契约和干净 prepush 通过。
+- [x] main/Actions 正常发布后验证实际 API/Controller 版本、全部现有 consumer、producer 持续推进、authority 续期和原 serving/LKG；保存证据再勾选。
+
+P0-EO 生产验证（2026-09-21）：
+
+- [x] 后端 `4e6e0ecc` 经 [CI 35524800863](https://github.com/yym68686/fugue/actions/runs/35524800863) 正常部署 API、Controller，实际镜像和 source annotation 一致，各 2/2 Ready。完整 make test、后台流程与关键路径 race、真实 PostgreSQL 生命周期/排队撤销、前端契约及 136 秒干净 prepush 通过。
+- [x] 验收修复了三个恢复阻塞：无效 full 候选的 topology preparation 不得先于超时回滚；PostgreSQL 必须在同一事务中先记录失败再 supersede；连续回滚后独立 lane fence 不得按全局数字比较。拒绝的旧 shadow 不再阻塞修正输入的捕获。以上故障均由隔离回归验证，未在生产故意破坏路由。
+- [x] 新进程自动接管 producer leadership，保持原签名 shadow 策略，正常继续生成并复用候选。最终 fence 226 的 160 routes/245 DNS/159 TLS 被全部 8 consumer 观察，passing=0；3 台 Worker 的隔离执行/落盘记录、3 台 Front authority 与两地 DNS 精确证明通过。
+- [x] 六份 artifact inline/stored 重放的内容、digest、metadata、签名、作者与 lineage 相同；旧 serving、policy/LKG 和 immutable expected sets 不变；两地 authority 的 publication sequence 与原始 bundle 到期持续推进。
+- [x] 前端契约 `3979108b` 的 [CI 35525369183](https://github.com/yym68686/fugue-web/actions/runs/35525369183) 成功，Fugue 实际部署完成，2/2 Ready、2 endpoints、无待处理操作、公网 200。
+
+证据：[automatic-serving-producer-2026-09-21.json](verification/automatic-serving-producer-2026-09-21.json)。本步没有启用生产 serving 模式，没有初始 global full positive LKG；首次真实接管与启用继续由 P0-EP 验收。
+
+### P0-EP：完整配置首次接管与自动发布启用
+
+- [ ] 冻结同一版本的完整 intent/policy，核对所有 route、DNS、TLS、cache 与当前 serving 的差异、依赖闭包和回滚准备。
+- [ ] 通过正常配置发布执行首次 gray；逐个确认实际 Worker/Front/DNS 的 artifact identity、apply/probe 和对外服务，建立明确的初始 verified baseline。
+- [ ] full 发布使用自己的 expected sets 和新鲜 consumer 证明；确认成套 policy/artifact positive LKG，不把 shadow 观察当成 serving。
+- [ ] 正常签名策略启用自动 serving，验证后续配置 generation 自动经过 gray/full/verify，代码与配置发布仍分别推进。
+- [ ] 完成受控恢复与连续更新验证后，记录生产证据；随后删除旧 serving 输入/实时构造路径并完成最终清单核对。
