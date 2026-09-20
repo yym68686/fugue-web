@@ -3377,3 +3377,26 @@ P0-EK 生产验证（2026-09-20）：
 - [x] 新 API/Controller 各 2/2 Ready；Worker/Front/DNS/SSH 健康，global serving/LKG 不变，两地 authority 序号和租期推进。扩大只读日志窗口后确认新 API 仅一个 producer leader，持续 published/unchanged，之后自动推进到 fence 55，仍绑定同一新来源。
 
 证据：[application-domain-intent-2026-09-20.json](verification/application-domain-intent-2026-09-20.json)。验证时发生的两次 release/heartbeat 不一致来自自动 shadow 更新，重新采集当前 release 后按原门槛通过；未放宽 consumer 验证。环境隔离、TTL 可修改、缺失声明及事务拒绝由回归测试验证，生产保持原域名和 TTL 行为。
+
+
+### P0-EL：producer 路由默认约束固定到签名 PolicySnapshot
+
+- [x] 复用现有 pinned policy 引用，扩展完整四字段组：minimum_healthy_edges、max_stale_seconds、route_constraints、dns_route_state_constraints；不增加 artifact 引用、独立配置源或发布状态机。
+- [x] 显式来源不再注入代码中的每类路由健康数与不活跃 DNS 默认行为；全局健康数、每主机例外和 DNS 行为由输入声明，业务显式路由策略优先。新增主机遵守已声明全局值，不隐式继承路由 kind 的代码例外。
+- [x] require_route_defaults 同时保护捕获与文件/PG 发布事务；四字段必须完整，空数组明确表示没有例外，null/部分字段/非法范围拒绝，引用不存在的主机也拒绝。
+- [x] 回归证明同一 intent 下仅 policy 变化即可改变实际编译投影、事实新鲜度和 DNS inactive 行为；覆盖迁移等价、显式策略优先、租户隔离、不可变来源重放与事务拒绝，完整/race/真实 PostgreSQL/prepush/前端契约通过。
+- [x] 代码 main/Actions 上线后先验证旧配置健康，保存当前默认约束的新签名输入，比较完整 desired 等价后正常激活；验证自动 shadow、来源 lineage、六 artifact 重放、实际消费者、续期和 serving/LKG 不变并保存证据。
+
+本步骤只迁移上述默认约束。业务创建 API 默认域名、默认路由 enable/route-policy、DNS query selection 及其他仍在兼容适配器中的参数继续待迁移；正式 gray/full/rollback 与旧路径删除也尚未完成。
+
+
+P0-EL 生产验证（2026-09-20）：
+
+- [x] 后端 `a07807922e616ab173930d4d5c4767553d108ca4` 经 [CI 35475435925](https://github.com/yym68686/fugue/actions/runs/35475435925) 完成 API/Controller 发布，CLI 成功；完整 make test、专项 race、真实 PostgreSQL 事务回归和 138 秒干净 prepush 通过。前端契约 `67bb2021` 的 [CI 35475593139](https://github.com/yym68686/fugue-web/actions/runs/35475593139) 成功并确认 2/2 Ready、2 endpoints、公网 200。
+- [x] 新代码先保持旧来源完成全部生产检查，再一次性把现有 global minimum=1、max stale=86400、api 主机 minimum=2 的例外与 custom-domain-target 的 serve_error_page 保存到新签名 PolicySnapshot。新旧完整 intent/policy/DNS exclusions 首次比较一致，共 151 routes；原静态 intent、域名声明、DNS authority/client/probe/cohort 全部保留。
+- [x] 输入 policy `artifact_1789861465_909b18347c81`（hash `sha256:c8ae5f2ba2dba5363b344d4d40efd19a790455fc7ef8686d251970b728581a9a`）由 producer policy `artifact_1789861466_53baf5b54928` 精确固定；正常 release `artifactrel_1789861618_0cae6a778603`、policy fence 8 启用必需 route defaults。
+- [x] 首轮捕获因 DNS placement 缺少 route/TLS-ready 证据拒绝并保留旧 shadow；随后下一轮自动生成并验证 `artifact_1789861780_6d3e657ca8c7`、traffic shadow fence 78。完整内容为 151 routes、236 DNS records、150 TLS；两台 DNS 都是 435/435 probes、224/224 readiness records、239/239 eligible query records、3 zones。八个可信消费者 observed、passing=0。
+- [x] 生产编译 policy 与签名输入四字段及原 DNS 配置一致；前后 policy、静态 intent 的内容/摘要/签名/作者均不变。固定 runtime input 的 inline/stored 重放复用六个 immutable artifact，未改变配置指针；无效 exact reference 拒绝。
+- [x] API/Controller 各 2/2 Ready、真实镜像匹配；Worker/Front/DNS/SSH 正常，两地 authority 持续续期，global serving/LKG 不变。单一 producer leader 后续持续 published/unchanged；没有用 shadow 结果替代 actual apply/probe convergence。
+
+证据：[pinned-route-defaults-2026-09-20.json](verification/pinned-route-defaults-2026-09-20.json)。不同阈值、新鲜度和 DNS inactive 行为由完整编译回归验证，生产迁移保持现有数值；后续策略可通过新 generation 和正常发布独立修订。
