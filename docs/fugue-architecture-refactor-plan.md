@@ -3513,8 +3513,27 @@ P0-EO 生产验证（2026-09-21）：
 
 ### P0-EP：完整配置首次接管与自动发布启用
 
+接管前检查（2026-09-21）：当前 160 条 route、TLS allowlist/cache 和同一业务 snapshot 下 466 条 DNS 查询规则已通过等价检查。短暂暂停 producer 固定候选后，另一个应用正常代码发布改变了 upstream/版本，发布前检查按预期阻止 gray；已恢复 shadow，未创建 gray/full，原 serving/LKG 保持不变。随后代码审查发现 `servingReleaseTrafficTargetWithSnapshot` 仅支持 single/100% stable，compiler 的 release facts 仍来自该 app 级 serving 观察；而代码 canary 会先写入非 single 权重再等待 Edge apply。因此首次接管前必须补齐独立的逐 release readiness，不能借用或伪造 serving 证明。
+
+- [ ] 对 stable/candidate 分别从固定 runtime snapshot 取得精确 owner、deployment/image、replicas、service/endpoints readiness；允许真实 ready 的新 release 编译，缺失/过期/身份不符仍拒绝。
+- [ ] 应用代码发布的 Edge gate 核对目标 release/权重确实已应用，不能仅凭任意新鲜健康 bundle 判断成功；旧 runtime 的回收必须等待真实流量迁移。
+- [ ] 覆盖新应用、正常更新、canary、回滚和旧 runtime 保留的完整回归；核对 sticky 语义兼容，不能在去除 legacy 后让既有发布功能因 compiler 拒绝而失效。
+
 - [ ] 冻结同一版本的完整 intent/policy，核对所有 route、DNS、TLS、cache 与当前 serving 的差异、依赖闭包和回滚准备。
 - [ ] 通过正常配置发布执行首次 gray；逐个确认实际 Worker/Front/DNS 的 artifact identity、apply/probe 和对外服务，建立明确的初始 verified baseline。
 - [ ] full 发布使用自己的 expected sets 和新鲜 consumer 证明；确认成套 policy/artifact positive LKG，不把 shadow 观察当成 serving。
 - [ ] 正常签名策略启用自动 serving，验证后续配置 generation 自动经过 gray/full/verify，代码与配置发布仍分别推进。
 - [ ] 完成受控恢复与连续更新验证后，记录生产证据；随后删除旧 serving 输入/实时构造路径并完成最终清单核对。
+
+### P0-EQ：逐 release 的独立运行就绪事实
+
+这是 P0-EP 接管前的第一项兼容工作。原 compiler 输入只接受 app 级 single/100% stable 的 serving 观察，无法为 canary 中的两个独立工作负载建立 readiness。本步复用现有 Kubernetes 快照读取与编译输入存储，保留实际 serving 的 consumer apply/probe 门。
+
+- [ ] 按固定业务 snapshot 引用的 managed release 逐个核对 owner、runtime/image、Deployment UID/当前代次、Service owner/selector/port 和当前 Service UID 所属的 EndpointSlice。
+- [ ] 新 candidate 无需预先 serving；stable/candidate 均有独立 readiness。未知或读取失败不冒充成功，已确认缺失/不就绪保存带原始观察时间的负向事实。
+- [ ] 使用当前 Deployment 的完整副本和端点事实，正常扩缩容不受历史 code snapshot 的初始副本数阻塞。
+- [ ] `runtime_snapshot.facts.release_readiness` 保存 cluster/resource identity 和结果，使用强类型契约；不复制 workload 环境或秘密，不修改 intent/policy。
+- [ ] 完整业务捕获链覆盖目标镜像已前进、stable/candidate 并存且均没有 app 级 serving release 标记；编译得到正确 80/20 路由与 DNS 候选。身份、镜像、代次、selector、端口、旧 Service UID、读取失败/集群切换等反例均拒绝。
+- [ ] make test、race、生成契约、干净 prepush 通过，经 main/Actions 更新 API；生产验证新事实、编译重放、消费者和原 serving/LKG 后再勾选。
+
+应用 code rollout 的精确 release/权重确认、sticky 语义兼容、首次 gray/full 与自动 serving 启用仍由 P0-EP 后续步骤完成，不以本步 readiness 冒充 serving 成功。
