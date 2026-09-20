@@ -11279,6 +11279,31 @@ export interface components {
       intent_generation: string;
       policy_generation: string;
       facts?: {
+        /** @description Independent managed-release readiness from one cluster observation window. These facts may authorize compilation but never replace actual consumer serving proof. */
+        release_readiness?: {
+          /** @enum {string} */
+          schema: "fugue.release-runtime-readiness/v1";
+          cluster_id: string;
+          /** Format: date-time */
+          observed_at: string;
+          releases: {
+              release_id: string;
+              namespace: string;
+              deployment_name: string;
+              deployment_uid: string;
+              /** Format: int64 */
+              deployment_generation: number;
+              /** Format: int64 */
+              observed_generation: number;
+              service_name: string;
+              service_uid: string;
+              desired_replicas: number;
+              ready_replicas: number;
+              ready_endpoints: number;
+              ready: boolean;
+              reason?: string;
+            }[];
+        };
         /** @description Reserved producer provenance. Replays retain the binding and the original artifact creator; these fields grant no serving authority. */
         configuration_producer?: {
           policy_release_id: string;
@@ -11361,7 +11386,7 @@ export interface components {
       aaaa?: string[];
       target_ttl: number;
     };
-    /** @description Fixed release evidence. Migration drafts require matching owner, release, runtime, image and healthy serving evidence before reporting active. observed_at is the original runtime evidence time, never a business-row update time; absent evidence has zero observed_at and blocks compilation. */
+    /** @description Fixed release readiness evidence. Managed stable and candidate releases are observed independently from exact Kubernetes deployment, image, owner, service selector and current service-owned EndpointSlices. Active means ready to receive traffic, not already serving. The capture keeps cluster and resource identities in runtime_snapshot.facts.release_readiness. App-level serving status, desired weights and business-row timestamps cannot establish readiness. Transport or cluster-identity failure preserves unknown evidence; authoritative absent or unready resources produce a fresh unavailable observation. Actual serving still requires the separate trusted consumer apply and probe gates. */
     PlatformReleaseObservation: {
       id: string;
       app_id: string;
