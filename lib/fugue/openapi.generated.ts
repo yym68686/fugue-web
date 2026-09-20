@@ -1002,7 +1002,10 @@ export interface paths {
   "/v1/apps/{id}/releases": {
     /** List App Releases */
     get: operations["listAppReleases"];
-    /** Create App Release */
+    /**
+     * Create App Release
+     * @description Stable releases matching the current app identity, runtime, image and canonical service URL acquire canonical deployment/service names when both are omitted. Any provided spec snapshot must agree on image and runtime. This supplies workload identity only; runtime readiness must still be independently observed.
+     */
     post: operations["createAppRelease"];
   };
   "/v1/apps/{id}/release-attempts": {
@@ -16793,7 +16796,10 @@ export interface operations {
       default: components["responses"]["ErrorResponse"];
     };
   };
-  /** Create App Release */
+  /**
+   * Create App Release
+   * @description Stable releases matching the current app identity, runtime, image and canonical service URL acquire canonical deployment/service names when both are omitted. Any provided spec snapshot must agree on image and runtime. This supplies workload identity only; runtime readiness must still be independently observed.
+   */
   createAppRelease: {
     parameters: {
       path: {
