@@ -302,7 +302,8 @@ export interface paths {
      * Explain Request
      * @description Platform-admin lookup of recorded request facts by edge request ID, application
      * request ID, or trace ID. Reads per-request telemetry, including incomplete
-     * platform request facts stored as events; aggregate edge performance sample
+     * platform request facts with explicit platform route ownership and legacy
+     * incomplete platform facts stored as events; aggregate edge performance sample
      * IDs are not request IDs. Only a unique matching request is attributed.
      * Evidence identifies the source and lookup status. Missing records, disabled
      * telemetry, unavailable query backends, and ambiguous identifiers remain
@@ -5179,6 +5180,8 @@ export interface components {
     };
     /** @description Point-in-time runtime evidence kept separate from the desired spec and durable stored status. Omitted presence/readiness fields mean the observation could not determine that fact. */
     AppObservedStatus: {
+      /** @description Fresh Deployment ready/available replicas across the serving and target revisions. This is availability evidence, not proof that the desired release has converged. During a same-runtime rollout Edge may retain a previously serving route only with positive endpoint, namespace, service and image evidence; desired deployment readiness remains independent. */
+      serving_replicas?: number;
       /** @enum {string} */
       phase: "deployed" | "deploying" | "disabled" | "deleting" | "failed" | "unavailable" | "unknown";
       runtime_id?: string;
@@ -7668,6 +7671,15 @@ export interface components {
       last_error?: string;
       deep_health?: components["schemas"]["NodeDeepHealthResult"];
     };
+    /**
+     * @description refresh-join-config may carry pod_capacity_mode=resources to remove the
+     * kubelet default 110-Pod ceiling by setting max-pods to the int32 maximum
+     * and disabling pods-per-core. Physical PodCIDR address capacity remains finite. The mode is saved
+     * independently of the updater binary. This option requires platform-admin,
+     * a fresh task, and allow_restart=true outside dry-run. Memory requests and
+     * other scheduler resource constraints remain enforced. It never renumbers
+     * an existing PodCIDR. pod_capacity_mode=default restores kubelet defaults.
+     */
     CreateNodeUpdateTaskRequest: {
       node_updater_id?: string;
       cluster_node_name?: string;
@@ -13333,7 +13345,8 @@ export interface operations {
    * Explain Request
    * @description Platform-admin lookup of recorded request facts by edge request ID, application
    * request ID, or trace ID. Reads per-request telemetry, including incomplete
-   * platform request facts stored as events; aggregate edge performance sample
+   * platform request facts with explicit platform route ownership and legacy
+   * incomplete platform facts stored as events; aggregate edge performance sample
    * IDs are not request IDs. Only a unique matching request is attributed.
    * Evidence identifies the source and lookup status. Missing records, disabled
    * telemetry, unavailable query backends, and ambiguous identifiers remain
