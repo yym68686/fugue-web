@@ -3454,7 +3454,7 @@ P0-EM 生产验证（2026-09-20）：
 
 ### P0-EN：解除 DNS 编译与新路由 serving 的循环依赖
 
-代码核对确认：现有 placement 捕获要求每条新 route 的当前公网 proof digest 已匹配，compiler 随后才生成包含该 route 的 ReleaseSet。旧业务 serving 路径停用后，新增/修改路由会因此无法生成自己的发布物；placement 的短时事实租期还会把控制面持续重编译变成旧 artifact 继续服务的前提。必须把期望地址候选与实时回答资格分开，保留真实执行安全门。
+代码核对确认：现有 placement 捕获要求每条新 route 的当前公网 proof digest 已匹配，compiler 随后才生成包含该 route 的 ReleaseSet。旧业务 serving 路径停用后，新增/修改路由会因此无法生成自己的发布物；placement 的短时事实仍阻塞新候选生成。现有 query view 已分离动态 readiness 与内容到期，本步应复用这条执行链，解除编译前置循环，不再建立另一套 readiness 或续期机制。
 
 - [ ] 使用冻结的声明、端点库存和签名约束生成候选，不要求新 route 已在公网 serving；新建及变更 route 均有无旧 serving 来源的回归。
 - [ ] 候选 DNS 地址必须绑定同一 parent 的 route/TLS readiness plan；下载、schema 或 shadow 通过不授予回答资格。
@@ -3462,3 +3462,15 @@ P0-EM 生产验证（2026-09-20）：
 - [ ] 分离可持续重新探测的运行事实与内容本身的到期；ACME/flatten 等真实内容租期不可被新心跳续期。
 - [ ] 编译与消费者完整测试、race、真实 PostgreSQL/契约及 prepush 通过；分原子提交 main/Actions，先兼容消费者再启用新语义，逐步验证生产。
 - [ ] 正常策略发布后验证自动候选、全部消费者、固定输入重放、持续恢复能力与旧 serving/LKG，附证据后勾选。正式持续 promotion、gray/full 与 rollback 仍是后续独立验收。
+
+
+P0-EM 后续运行异常：候选拒绝不得否定已验证 serving LKG（2026-09-20）：
+
+本步验收与文档 `571e97a8` 已部署后，美国 Worker 拒绝一个可路由数量从 95 降到 32 的候选，仍保留有效的旧 Caddy bundle；但 inventory 将配置同步的 stale 状态当成 serving unhealthy。两台 Worker 同时报告负向状态，Group Authority 因 `no_healthy_active_instances` 无法继续生成恢复候选。实时应用检查随后确认镜像、端点、serving release 正常；这不能自动修复上述反馈循环。
+
+- [x] 仅在旧 group LKG 未到期、Caddy 已应用相同 bundle、generation 与 LKG 一致且无 failure/drain 时，继续报告真实 serving 健康；保留更新失败与 stale 诊断。
+- [x] 过期、缺失 lease、未应用、候选未激活、LKG 身份不符、signature/Caddy 错误和 draining 均不得借此声明健康。原发布 fence、签名及灾难性路由丢失保护保持生效。
+- [x] 使用真实签名下载、Caddy apply、坏候选拒绝与磁盘恢复测试，配合边界回归、race、完整 make test 和干净 prepush。
+- [x] `5f808282` 经 main/Actions 更新两地 Worker 后，验证 authority 恢复、续期、完整 DNS/route/TLS shadow、producer 自动推进和 serving/LKG，保存证据后勾选。
+
+生产证据：[serving-lkg-inventory-recovery-2026-09-20.json](verification/serving-lkg-inventory-recovery-2026-09-20.json)。部署后德国 authority 已切到 `5f808282`；美国随后在新版本发布前已通过精确旧 LKG 到期恢复恢复健康，之后新 Worker 发布完成。最终两地均 ready，shadow fence 183 的 159 route/243 DNS/158 TLS 被 8 个可信消费者观察，passing=0。此次记录区分了代码修复和既有到期恢复，未把后者归因于新代码。
