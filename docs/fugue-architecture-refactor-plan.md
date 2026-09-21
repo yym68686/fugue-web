@@ -32,7 +32,7 @@ Runtime Facts / ACK / LKG
 
 ## 当前状态判断
 
-2026-09-21 最新验收快照：P0-EQ 独立 release readiness 和 P0-EP-T 应用流量证明已部署；P0-EP-U 修复节点丢失与过期证明导致的错误放行。Controller 运行 `b28ad1fb`，API 运行 `2ddc6b91`，活动 Worker 为 `9b03be63`。三台 Front、两地 authority、API/Controller 副本健康；真实 HTTPS 门禁确认同一 stable release 的 100% 流量，required=3 / ready=3。P0-EP-V 使 compiler v30 接受 Edge 已实现的默认 release cookie，80/20 编译与六 artifact 重放通过。自动 gray/full/verify/rollback 代码已部署，但生产 producer 仍为 shadow。完整 canary、首次 gray/full、positive LKG 和旧 serving 输入删除尚未完成；自定义 sticky 名称仍需 executor 支持。
+2026-09-21 最新验收快照：P0-EQ 独立 release readiness 和 P0-EP-T 应用流量证明已部署；P0-EP-U 修复节点丢失与过期证明导致的错误放行。Controller 运行 `b0acde19`，API 运行 `afd99814`，活动 Worker 为 `9b03be63`。P0-EP-W 已完成真实应用 50/50 canary 到 100% stable 发布，三台 Edge 的精确流量证明通过，300 秒长连接完整返回。但 canonical 对齐后的独立 revision 保护存在缺口，P0-EP-X 继续修复；生产 sticky、完整退役和回滚仍待验收。P0-EP-V 使 compiler v30 接受 Edge 已实现的默认 release cookie。自动 gray/full/verify/rollback 代码已部署，但生产 producer 仍为 shadow；首次完整配置接管、positive LKG 和旧 serving 输入删除尚未完成。
 
 生产 producer 仍为 `business-static-intent`/shadow，固定基础 intent `artifact_1789848966_aa79d274ac50` 和输入 policy `artifact_1789917932_e90aeeb2510d`；启用策略为 `artifact_1789917933_9f90cbb02a89`，显式选择 `consumer_readiness`。最新验收 shadow `artifact_1789924746_0593e3041d46`、fence 226 包含 160 route、245 DNS records、159 TLS references；两台 DNS 均为 462/462 probes、233/233 readiness records、248/248 eligible queries。八个消费者 observed，serving passing=0；六 artifact 精确重放通过，全局 serving/LKG 未切换。前端契约 `3979108b` 已实际部署，2/2 Ready、公网 200。
 
@@ -3576,3 +3576,24 @@ P0-EO 生产验证（2026-09-21）：
 - [x] producer 自动继续产生 v30 shadow；八个消费者 observed，passing=0。代码更新前后 serving 指针、policy LKG 和 producer policy 身份保持一致；对比剔除了接口附带且正常推进的异步 shadow messages。三台 Front、两地 authority 和健康检查正常，前端契约 `ce43c5a5` 的 [CI 35553745058](https://github.com/yym68686/fugue-web/actions/runs/35553745058) 成功。
 
 证据：[default-release-stickiness-2026-09-21.json](verification/default-release-stickiness-2026-09-21.json)。默认 sticky 兼容已完成；真实双 release 代码发布、gray/full 接管与回滚恢复仍由 P0-EP 验收，不能把本步合成编译当作 serving 验证。
+
+### P0-EP-W：声明的 Edge 成员与候选资源生命周期
+
+首次真实 canary 暴露两个问题：已明确撤销 Edge 角色的历史 heartbeat 被要求确认，导致门禁超时；候选进入 failed 后，普通清理器可能在 Edge 回退前删除其 workload。本步修复并通过相同验证应用重试。
+
+- [x] 从 machine 的显式 `AllowEdge` 声明解析成员；明确撤销角色的历史节点可排除，仍声明 Edge 的失联或缺失节点继续阻止发布。成员读取失败和歧义不会放行。
+- [x] apply 前保存候选 Deployment/Service identity；creating 和 failed release 的已保存资源继续受保护，直到显式 retired。
+- [x] 全量 `make test`、race、prepush 通过；commit `b0acde19527dd142c604cf3e7b2ebe297d54a87e` 经 [CI 35555718027](https://github.com/yym68686/fugue/actions/runs/35555718027) 部署，Controller 2/2 Ready。
+- [x] 生产操作 `op_1789960043_73343115c9b8` 完成 50/50 canary、100% 提升和 canonical upstream 对齐；真实 observer 确认 required=3 / ready=3，三台 Edge 最终摘要一致，连续业务采样为 200。
+- [x] 300 秒长连接完整返回 300 条 tick，curl 正常退出；120 次额外短请求全部 200。该应用未回显 release 身份，且采样跨越 promotion，因此不据此认定 sticky 验收通过。
+- [ ] 完成退役与回滚验收。previous retire 因排空证据不足保留 draining；另发现 canonical 对齐覆盖 target 字段后，原 candidate revision 仍会被普通清理删除，见 P0-EP-X。
+
+证据：[canary-membership-retention-2026-09-21.json](verification/canary-membership-retention-2026-09-21.json)。这是应用代码发布验证，未接管全局 TrafficReleaseSet serving。
+
+### P0-EP-X：Canonical 对齐后的独立 revision 保护
+
+- [x] 回归复现 serving、draining、failed release 改指向 canonical 后，普通清理删除独立 revision 的问题。
+- [x] 同时保护保存的 target 和按不可变 release ID 推导的 revision；Controller 重启后仍有效，显式 retired 后才交给普通清理。
+- [x] Controller 全量测试、专门 race 和全量 `make test` 通过。
+- [ ] 通过 main/Actions 发布，验证新 Controller 和真实应用发布后 revision 保留，记录生产证据。
+- [ ] 补齐完整 retirement/retry 生命周期、生产 sticky、受控失败回滚与后续配置 serving 验收；不得以保留资源代替完整恢复闭环。

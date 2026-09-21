@@ -1,0 +1,159 @@
+{
+  "verified_at": "2026-09-21T03:13:07.925043+00:00",
+  "controller_commit": "b0acde19527dd142c604cf3e7b2ebe297d54a87e",
+  "ci_run": "https://github.com/yym68686/fugue/actions/runs/35555718027",
+  "operation": {
+    "id": "op_1789960043_73343115c9b8",
+    "status": "completed",
+    "error_message": null,
+    "result_message": "managed app reconciled in namespace fg-tenant-1774393589-e35b60a6fc11",
+    "updated_at": "2026-09-21T03:12:34.294555Z"
+  },
+  "traffic": {
+    "id": "apptp_1783440303_3271421d3798",
+    "tenant_id": "tenant_1774393589_e35b60a6fc11",
+    "app_id": "app_1783188884_8facd2b054e6",
+    "mode": "single",
+    "stable_release_id": "apprel_1789960046_7797986deda9",
+    "stable_weight": 100,
+    "candidate_weight": 0,
+    "sticky_cookie": "Fugue-Release-Stickiness",
+    "updated_by_type": "system",
+    "updated_by_id": "safe-rollout-controller",
+    "created_at": "2026-07-07T16:05:03.871294Z",
+    "updated_at": "2026-09-21T03:10:32.652094Z"
+  },
+  "audit": [
+    {
+      "id": "audit_1789960354_ce581d94273d",
+      "action": "app.release.previous_retire.paused",
+      "created_at": "2026-09-21T03:12:34.141412Z",
+      "resource_id": null,
+      "metadata": {
+        "active_connections": "0",
+        "app_id": "app_1783188884_8facd2b054e6",
+        "app_release_id": "apprel_1783440303_3510434a81f7",
+        "operation_id": "op_1789960043_73343115c9b8",
+        "phase": "previous_retire",
+        "reason": "active connections have not drained to zero"
+      }
+    },
+    {
+      "id": "audit_1789960232_b36f92dc8095",
+      "action": "app.release.promote",
+      "created_at": "2026-09-21T03:10:32.678821Z",
+      "resource_id": null,
+      "metadata": {
+        "app_id": "app_1783188884_8facd2b054e6",
+        "app_release_id": "apprel_1789960046_7797986deda9",
+        "mode": "safe_zero_downtime",
+        "operation_id": "op_1789960043_73343115c9b8"
+      }
+    },
+    {
+      "id": "audit_1789960232_ff6c7d89f117",
+      "action": "app.release.gate.pass",
+      "created_at": "2026-09-21T03:10:32.289045Z",
+      "resource_id": null,
+      "metadata": {
+        "app_id": "app_1783188884_8facd2b054e6",
+        "app_release_id": "apprel_1789960046_7797986deda9",
+        "candidate_release": "apprel_1789960046_7797986deda9",
+        "candidate_weight": "50",
+        "operation_id": "op_1789960043_73343115c9b8",
+        "phase": "canary_gate"
+      }
+    },
+    {
+      "id": "audit_1789960060_b4e685b4478d",
+      "action": "app.release.canary.shifted",
+      "created_at": "2026-09-21T03:07:40.150595Z",
+      "resource_id": null,
+      "metadata": {
+        "app_id": "app_1783188884_8facd2b054e6",
+        "app_release_id": "apprel_1789960046_7797986deda9",
+        "candidate_weight": "50",
+        "operation_id": "op_1789960043_73343115c9b8"
+      }
+    },
+    {
+      "id": "audit_1789960060_8c41597bd8fc",
+      "action": "app.release.gate.pass",
+      "created_at": "2026-09-21T03:07:40.143361Z",
+      "resource_id": null,
+      "metadata": {
+        "app_id": "app_1783188884_8facd2b054e6",
+        "app_release_id": "apprel_1789960046_7797986deda9",
+        "operation_id": "op_1789960043_73343115c9b8",
+        "phase": "gate_check"
+      }
+    }
+  ],
+  "local_checks": {
+    "make_test": "passed",
+    "prepush": {
+      "apiVersion": "prepush.fugue.dev/v1",
+      "baseCommit": "789c552c36f9bed52e97b60500b2a2e03a2d0351",
+      "changedFilesDigest": "sha256:5fc1fcc65ebbbf9ae9de5ad43911443b28456f2b433cdeb9824fdfa098a9612e",
+      "checks": {
+        "affected-tests": {
+          "durationMs": 9962,
+          "status": "pass"
+        },
+        "affected-vet": {
+          "durationMs": 2644,
+          "status": "pass"
+        },
+        "compile-all": {
+          "durationMs": 9224,
+          "status": "pass"
+        },
+        "declarative-release-tests": {
+          "durationMs": 10457,
+          "status": "pass"
+        },
+        "diff-check": {
+          "durationMs": 169,
+          "status": "pass"
+        },
+        "gofmt": {
+          "durationMs": 33,
+          "status": "pass"
+        },
+        "helm-lint-render": {
+          "durationMs": 0,
+          "status": "skipped"
+        },
+        "openapi-generated": {
+          "durationMs": 1260,
+          "status": "pass"
+        },
+        "shell-syntax": {
+          "durationMs": 0,
+          "status": "pass"
+        }
+      },
+      "elapsedMs": 11996,
+      "kind": "PrepushReceipt",
+      "sourceCommit": "b0acde19527dd142c604cf3e7b2ebe297d54a87e",
+      "status": "pass"
+    }
+  },
+  "long_connection": {
+    "seconds": 300,
+    "received_ticks": 300,
+    "curl_exit": 0
+  },
+  "canary_proof": {
+    "required_nodes": 3,
+    "ready_nodes": 3,
+    "weight": 50,
+    "expected_digest": "sha256:27024af7adef22a4f2a56675017f2e4b34f00e2befb398476b4e7a9fa1befead"
+  },
+  "limitations": [
+    "Cookie repeat test did not observe release identity and crossed promotion; sticky behavior remains unverified in production",
+    "Previous retire paused because drain evidence was insufficient",
+    "Canonical alignment lost independent revision retention; follow-up fix required",
+    "Global TrafficReleaseSet remains shadow; no full takeover or positive LKG claimed"
+  ]
+}
