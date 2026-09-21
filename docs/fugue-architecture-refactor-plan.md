@@ -32,7 +32,7 @@ Runtime Facts / ACK / LKG
 
 ## 当前状态判断
 
-2026-09-21 最新验收快照：P0-EO 已完成代码部署与现有生产路径的回归验证。API、Controller 运行 `4e6e0ecc`，两地 Worker 与 DNS/SSH 客户端仍为 `f3f14685`；德国/美国 Edge Control 为 `892aa09d` / `a786d6eb`。德国 A/generation 281、美国 B/generation 844。P0-EI–EN 已固定静态 intent 与主要编译 policy，DNS 候选编译不再依赖新 route 已经 serving；compiler 为 v29。P0-EO 增加复用现有发布账本的自动 gray/full/verify/rollback 能力。
+2026-09-21 最新验收快照：P0-EQ 独立 release readiness 和 P0-EP-T 应用流量证明已部署；P0-EP-U 修复节点丢失与过期证明导致的错误放行。Controller 运行 `b28ad1fb`，API 与活动 Worker 运行 `9b03be63`。三台 Front、两地 authority、API/Controller 副本健康；真实 HTTPS 门禁确认同一 stable release 的 100% 流量，required=3 / ready=3。P0-EI–EN 已固定静态 intent 与主要编译 policy，compiler 为 v29；自动 gray/full/verify/rollback 代码已部署，但生产 producer 仍为 shadow。完整 canary、sticky 兼容、首次 gray/full、positive LKG 和旧 serving 输入删除尚未完成。
 
 生产 producer 仍为 `business-static-intent`/shadow，固定基础 intent `artifact_1789848966_aa79d274ac50` 和输入 policy `artifact_1789917932_e90aeeb2510d`；启用策略为 `artifact_1789917933_9f90cbb02a89`，显式选择 `consumer_readiness`。最新验收 shadow `artifact_1789924746_0593e3041d46`、fence 226 包含 160 route、245 DNS records、159 TLS references；两台 DNS 均为 462/462 probes、233/233 readiness records、248/248 eligible queries。八个消费者 observed，serving passing=0；六 artifact 精确重放通过，全局 serving/LKG 未切换。前端契约 `3979108b` 已实际部署，2/2 Ready、公网 200。
 
@@ -3515,7 +3515,7 @@ P0-EO 生产验证（2026-09-21）：
 
 接管前检查（2026-09-21）：当前 160 条 route、TLS allowlist/cache 和同一业务 snapshot 下 466 条 DNS 查询规则已通过等价检查。短暂暂停 producer 固定候选后，另一个应用正常代码发布改变了 upstream/版本，发布前检查按预期阻止 gray；已恢复 shadow，未创建 gray/full，原 serving/LKG 保持不变。随后代码审查发现 `servingReleaseTrafficTargetWithSnapshot` 仅支持 single/100% stable，compiler 的 release facts 仍来自该 app 级 serving 观察；而代码 canary 会先写入非 single 权重再等待 Edge apply。因此首次接管前必须补齐独立的逐 release readiness，不能借用或伪造 serving 证明。
 
-- [ ] 对 stable/candidate 分别从固定 runtime snapshot 取得精确 owner、deployment/image、replicas、service/endpoints readiness；允许真实 ready 的新 release 编译，缺失/过期/身份不符仍拒绝。
+- [x] 对 stable/candidate 分别从固定 runtime snapshot 取得精确 owner、deployment/image、replicas、service/endpoints readiness；允许真实 ready 的新 release 编译，缺失/过期/身份不符仍拒绝。见 P0-EQ 的回归与生产证据。
 - [ ] 应用代码发布的 Edge gate 核对目标 release/权重确实已应用，不能仅凭任意新鲜健康 bundle 判断成功；旧 runtime 的回收必须等待真实流量迁移。
 - [ ] 覆盖新应用、正常更新、canary、回滚和旧 runtime 保留的完整回归；核对 sticky 语义兼容，不能在去除 legacy 后让既有发布功能因 compiler 拒绝而失效。
 
@@ -3547,6 +3547,19 @@ P0-EO 生产验证（2026-09-21）：
 - [x] Controller safe rollout gate 通过新鲜 HTTPS route probe 核对 Edge/Group identity、bundle version、目标 release 和期望权重摘要；缺 header、旧 worker、错误 release、错误权重、错误 bundle 或 probe 失败均阻止推进，旧 runtime 回收继续等待 gate 和 drain。
 - [x] 覆盖摘要 canonicalization、非法/重复 release、权重不完整、旧协议响应、candidate/过期/失败 apply、错误身份与错误 bundle；`make test`、目标 race、affected tests、vet、compile-all、OpenAPI 生成检查和干净 prepush 通过。
 - [x] 经 [CI 35548949497](https://github.com/yym68686/fugue/actions/runs/35548949497) 部署 commit `9b03be637fc8005b8dafe3460acff09cbdce1500`；生产 API/Controller 2/2 Ready，两个 Edge Front active slot 均报告相同 source commit，`/healthz`、`/readyz` 为 200，两地 authority ready。公网旧 single-upstream route 的 nonce-bound proof 返回 204 和 route digest，未错误返回 app traffic proof，证明 legacy 兼容和新门禁的 fail-closed 边界。
-- [ ] 生产首次真实 canary/weighted app release 产生正向 app traffic proof，并完成 stable/candidate、sticky、rollback、drain 与旧 runtime 保留的完整端到端验收；当前生产 route cache 尚无多 upstream active route，因此本项保持未勾选。
+- [ ] 生产首次真实 canary/weighted app release 产生正向 app traffic proof，并完成 stable/candidate、sticky、rollback、drain 与旧 runtime 保留的完整端到端验收。P0-EP-U 已确认带显式 release 的单目标 100% 路由能产生正向证明；它不代替双 release canary 验收。
 
 证据：[app-traffic-proof-2026-09-21.json](verification/app-traffic-proof-2026-09-21.json)。
+
+### P0-EP-U：流量门禁保留失联节点与回收前重新验证
+
+复查纠正：生产 cache 中有 10 条带显式 release 的单目标路由；上一轮仅筛选多 upstream，漏掉了已有正向证明。另发现原 observer 会跳过不健康/过期节点，并在节点集合为空时判成功，不能据此声称完整 fail-closed。本步修复该行为。
+
+- [x] 每次有界等待保留已经要求确认的节点与 group；失联、不健康、心跳过期、draining、group 改变和节点从库存消失均不减少成功门槛。空库存与缺少 traffic source 不再成功。
+- [x] 精确绑定 rollout state 的 release/upstream/runtime/image、policy owner/mode/weight；探测前后检查目标未改变。所有节点的证明须为本次新鲜探测，最终仍未过期，且 Caddy 与库存的 bundle 精确一致。
+- [x] 探测后复查库存，新增或变化节点要求重新确认；完整等待遵守 context deadline，取消不返回成功。等待期间的期望仅在内存中保存，不增加另一套发布账本。
+- [x] drain 完成后、标记 previous retired 和清理资源前重新验证流量；回归证明先前成功但随后失去证明时 previous 继续 draining，未执行回收。
+- [x] 全量 make test、rollout race、干净 prepush 及声明式发布计划通过；[CI 35552533597](https://github.com/yym68686/fugue/actions/runs/35552533597) 仅发布 Controller `b28ad1fbc9357c8c19f15c6c063f44fa29d662ae`，2/2 Ready。
+- [x] 使用 metadata-only 输入调用实际 Controller observer，三台公网 Edge 均通过 TLS/nonce/bundle/release 摘要验证，required=3 / ready=3。API/Controller、三台 Front、两地 authority 正常；八个配置消费者 observed，passing=0，生产仍为 shadow，未创建 full release。
+
+证据：[app-traffic-proof-membership-2026-09-21.json](verification/app-traffic-proof-membership-2026-09-21.json)。本步完成门禁错误放行修复与真实单 release 验证，P0-EP 完整 canary、sticky、gray/full 和恢复任务继续保持未完成。

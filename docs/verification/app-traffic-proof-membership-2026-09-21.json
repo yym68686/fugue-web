@@ -1,0 +1,205 @@
+{
+  "verified_at": "2026-09-21T02:05:25.280718+00:00",
+  "controller_commit": "b28ad1fbc9357c8c19f15c6c063f44fa29d662ae",
+  "components": [
+    {
+      "component": "api",
+      "image_tag": "9b03be637fc8005b8dafe3460acff09cbdce1500",
+      "image": "ghcr.io/yym68686/fugue-api@sha256:3f6fae532529856e6efda461e4c5bf2b079b35313049e71e8fce79a74fca45fb",
+      "ready_replicas": 2,
+      "updated_replicas": 2,
+      "desired_replicas": 2,
+      "status": "ready"
+    },
+    {
+      "component": "controller",
+      "image_tag": "b28ad1fbc9357c8c19f15c6c063f44fa29d662ae",
+      "image": "ghcr.io/yym68686/fugue-controller@sha256:68efe69da39eebb649a768467494924908986da72fbdcf5114d8bee72c187cd4",
+      "ready_replicas": 2,
+      "updated_replicas": 2,
+      "desired_replicas": 2,
+      "status": "ready"
+    }
+  ],
+  "fronts": [
+    {
+      "pod": "fugue-fugue-edge-front-ll46v",
+      "node": "bwg",
+      "activation": {
+        "activation_generation": 845,
+        "active_slot": "a",
+        "bundle_generation": "edgegroupbundle_f65b5df46e38876b4f58a50318ef92ad585d10fa61cdaf339e5124e53d0dd503.p47177.r181",
+        "route_authority": "edge-control",
+        "status": "ok",
+        "worker_image_digest": "sha256:f3fe5fca622255a9b7da3383bdc085d37febaddfa0ad4234f98826413386a88f",
+        "worker_source_commit": "9b03be637fc8005b8dafe3460acff09cbdce1500"
+      }
+    },
+    {
+      "pod": "fugue-fugue-edge-front-2fdt7",
+      "node": "vps-591f4447",
+      "activation": {
+        "activation_generation": 845,
+        "active_slot": "a",
+        "bundle_generation": "edgegroupbundle_f65b5df46e38876b4f58a50318ef92ad585d10fa61cdaf339e5124e53d0dd503.p47177.r181",
+        "route_authority": "edge-control",
+        "status": "ok",
+        "worker_image_digest": "sha256:f3fe5fca622255a9b7da3383bdc085d37febaddfa0ad4234f98826413386a88f",
+        "worker_source_commit": "9b03be637fc8005b8dafe3460acff09cbdce1500"
+      }
+    },
+    {
+      "pod": "fugue-fugue-edge-country-de-front-rs4mw",
+      "node": "vps-84c8f0a9",
+      "activation": {
+        "activation_generation": 282,
+        "active_slot": "b",
+        "bundle_generation": "edgegroupbundle_9ec7b309afb88650377670843e66db83a085c05c99535bacc3b672addd78b875.p33424.r516",
+        "route_authority": "edge-control",
+        "status": "ok",
+        "worker_image_digest": "sha256:e31054b22156f3f43ccc19b71442e3b042359f87b4a96ee41280fe7c65d8337c",
+        "worker_source_commit": "9b03be637fc8005b8dafe3460acff09cbdce1500"
+      }
+    }
+  ],
+  "health": {
+    "/healthz": 200,
+    "/readyz": 200
+  },
+  "authorities": {
+    "configured": true,
+    "answer_model": "edge-control-authority",
+    "all_ready": true,
+    "authorities": [
+      {
+        "edge_group_id": "edge-group-country-de",
+        "service": "edge-control-de",
+        "ready": true,
+        "source": "edge-control-authority",
+        "status": {
+          "edge_group_id": "edge-group-country-de",
+          "status": "ready",
+          "ready": true,
+          "serving_healthy": true,
+          "bootstrap_eligible": true,
+          "bootstrap_valid_until": "2026-09-22T02:04:37.369653831Z",
+          "inventory_sequence": 105163,
+          "inventory_generation": "inventory-1265966eb339fffcce46c43c15124dfc8d61b6e988f405a9fc716cb985833840",
+          "inventory_producer_generation": 105163,
+          "inventory_producer_nodes": 1,
+          "inventory_heartbeat_at": "2026-09-21T02:04:58.723269535Z",
+          "authority_sequence": 33452,
+          "publication_sequence": 33452,
+          "current_publication_sequence": 33452,
+          "publication_decision": "published",
+          "bundle_generation": "edgegroupbundle_8f4b9947a713ab12ad8ffba20b71954b52bb3a2d854a9f0418f64f1ddd35e546",
+          "published_bundle_digest": "sha256:5f045a884672b86788ab899deb94dd805e27033eccd7fe8f531d79f0a6170e8f",
+          "recovery_epoch": 516,
+          "bundle_valid_until": "2026-09-21T02:34:37.369653831Z",
+          "lkg_state": "current"
+        }
+      },
+      {
+        "edge_group_id": "edge-group-country-us",
+        "service": "edge-control-us",
+        "ready": true,
+        "source": "edge-control-authority",
+        "status": {
+          "edge_group_id": "edge-group-country-us",
+          "status": "ready",
+          "ready": true,
+          "serving_healthy": true,
+          "bootstrap_eligible": true,
+          "bootstrap_valid_until": "2026-09-22T02:04:16.677527361Z",
+          "inventory_sequence": 163772,
+          "inventory_generation": "inventory-dc094777bc5bad07798d11fb46f1fa7bb9fec01e7ea69408907a966f042cec46",
+          "inventory_producer_generation": 163772,
+          "inventory_producer_nodes": 2,
+          "inventory_heartbeat_at": "2026-09-21T02:05:12.202408891Z",
+          "authority_sequence": 47199,
+          "publication_sequence": 47199,
+          "current_publication_sequence": 47199,
+          "publication_decision": "published",
+          "bundle_generation": "edgegroupbundle_8453e27691c857ef1fb3feb5b6e24eec8c6d0207a0ab4e2a5d7e4430c5015173",
+          "published_bundle_digest": "sha256:c32593d10e66e90d9d512e2b79db732c601d8debff7f6e7c57a2a1c8ac43a424",
+          "recovery_epoch": 181,
+          "bundle_valid_until": "2026-09-21T02:34:16.677527361Z",
+          "lkg_state": "current"
+        }
+      }
+    ]
+  },
+  "production_mode": "shadow",
+  "producer_policy_id": "artifact_1789925849_9c281129631d",
+  "shadow_parent": "artifact_1789956281_dbb8f66e2779",
+  "shadow_fence": 303,
+  "observed_consumers": 8,
+  "passing_consumers": 0,
+  "full_release_created": false,
+  "ci_run": "https://github.com/yym68686/fugue/actions/runs/35552533597",
+  "prepush": {
+    "apiVersion": "prepush.fugue.dev/v1",
+    "baseCommit": "9b03be637fc8005b8dafe3460acff09cbdce1500",
+    "changedFilesDigest": "sha256:c993691b4b8a90a8d52bf8d72ec7856eaec30df45adcf5493b14f0b6bb57bdba",
+    "checks": {
+      "affected-tests": {
+        "durationMs": 10648,
+        "status": "pass"
+      },
+      "affected-vet": {
+        "durationMs": 2221,
+        "status": "pass"
+      },
+      "compile-all": {
+        "durationMs": 7942,
+        "status": "pass"
+      },
+      "declarative-release-tests": {
+        "durationMs": 8502,
+        "status": "pass"
+      },
+      "diff-check": {
+        "durationMs": 104,
+        "status": "pass"
+      },
+      "gofmt": {
+        "durationMs": 29,
+        "status": "pass"
+      },
+      "helm-lint-render": {
+        "durationMs": 0,
+        "status": "skipped"
+      },
+      "openapi-generated": {
+        "durationMs": 1015,
+        "status": "pass"
+      },
+      "shell-syntax": {
+        "durationMs": 0,
+        "status": "pass"
+      }
+    },
+    "elapsedMs": 10757,
+    "kind": "PrepushReceipt",
+    "sourceCommit": "b28ad1fbc9357c8c19f15c6c063f44fa29d662ae",
+    "status": "pass"
+  },
+  "verification": {
+    "make_test": "passed",
+    "race": "GOMAXPROCS=4 go test -p=2 -race ./internal/controller -run TestSafe(Rollout|ZeroDowntime) -count=1",
+    "race_result": "passed"
+  },
+  "live_observer_result": {
+    "app_id": "app_1783188884_8facd2b054e6",
+    "expected_app_traffic_digest": "sha256:882dbbbd5b8552fbb52b630095fdf34b80dcff7d0a405922c676b3c20fec0bb7",
+    "ready_nodes": 3,
+    "release_id": "apprel_1783440303_3510434a81f7",
+    "required_nodes": 3,
+    "serving_versions": [
+      "edgegroupbundle_8453e27691c857ef1fb3feb5b6e24eec8c6d0207a0ab4e2a5d7e4430c5015173.p47199.r181",
+      "edgegroupbundle_8f4b9947a713ab12ad8ffba20b71954b52bb3a2d854a9f0418f64f1ddd35e546.p33452.r516"
+    ],
+    "target_candidate_weight": 0,
+    "waiting_nodes": []
+  }
+}
