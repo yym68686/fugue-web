@@ -32,7 +32,7 @@ Runtime Facts / ACK / LKG
 
 ## 当前状态判断
 
-2026-09-21 最新验收快照：P0-EP-Y1 的 Service workload 隔离及迁移恢复已完成，Y2 修复实时应用证明领先 heartbeat 发布版本时的错误等待；Y3 移除 app 级 Loki 排空授权和 Deployment 消失即排空的回退，接入 nonce/Pod/端口绑定的只读观察协议。Controller 为 `874d2f52`，API 为 `da7a6272`，活动 Worker 为 `9b03be63`。此前生产操作完成 50% canary、100% 独立 revision 和 canonical 对齐，三阶段 required=3/ready=3，72 次 sticky origin 请求全部 200，候选 360 秒长连接完整返回。本次 Controller 更新后 15 个 workload 资源 UID、17 个 release 记录、traffic policy 和 serving/LKG 指针保持一致，12 次业务采样全部 200。新 agent 不可变镜像已通过 CI 真实 TCP 测试，生产应用仍固定旧 agent；新镜像激活、生产正向排空、后台重试和最终退役尚未完成。Controller 重启复用 release、readiness endpoint 归属也仍待修复。producer 仍为 shadow；首次完整配置接管、positive LKG 和旧 serving 输入删除尚未完成。
+2026-09-21 最新验收快照：P0-EP-Y1/Y2 已完成 origin 隔离及实际流量证明修复；Y3/Y4 已移除 app 级 Loki 排空授权，部署只读 Pod 观察协议并修复缺失的 `pods/proxy` 权限。`5a21bb22` 激活固定 agent digest 时，202 个 Deployment、139 个 Pod 的 UID 和 helper 镜像均保留；新应用发布才使用新 helper。验证操作 `op_1789973245_abed9b90ac3d` 完成 canary 和 canonical 对齐，72 次 sticky origin 请求、54 次健康采样全部 200。新 agent 在同一个生产 Pod 上观察到 `0→1→0`，180 秒长连接完整返回，UID/容器身份未变，prestop 计数为 0。后续并行 main 发布使 API/Controller 为包含本修复的 `436dbb5b`，两副本 Ready；三台 Front、authority 正常，migration 标记为 0，serving/LKG 指针保留。旧 release 仍因 canonical target 不足以证明其原 workload 排空而保留；持久化 revision target、后台重试、条件退役、重启复用和 endpoint 归属验收仍待完成。producer 仍为 shadow；首次完整配置接管、positive LKG 和旧 serving 输入删除尚未完成。
 
 生产 producer 仍为 `business-static-intent`/shadow，固定基础 intent `artifact_1789848966_aa79d274ac50` 和输入 policy `artifact_1789917932_e90aeeb2510d`；启用策略为 `artifact_1789917933_9f90cbb02a89`，显式选择 `consumer_readiness`。最新验收 shadow `artifact_1789924746_0593e3041d46`、fence 226 包含 160 route、245 DNS records、159 TLS references；两台 DNS 均为 462/462 probes、233/233 readiness records、248/248 eligible queries。八个消费者 observed，serving passing=0；六 artifact 精确重放通过，全局 serving/LKG 未切换。前端契约 `3979108b` 已实际部署，2/2 Ready、公网 200。
 
@@ -3654,7 +3654,19 @@ P0-EP-X 生产取证确认 canonical Service selector 仅有 app 标签，会同
 - [x] 覆盖协议缺字段、旧 nonce、错误 Pod/port、超大/额外响应、旧 agent、busy deadline、替换/终止 Pod、agent 重启、owner 变化及并发 policy/release 变化；全量 `make test`、Controller/agent race、干净 prepush 通过。
 - [x] `874d2f525c7ece6057284dd5939b750f8d2849d2` 经 [CI 35567987047](https://github.com/yym68686/fugue/actions/runs/35567987047) 部署 Controller，两副本 Ready、零重启。CI 同时构建新 agent digest `sha256:818be7253656b85eb1afcfe8b4cb24800ac6027669ace3eb3f88f07bbd46948b`，真实 TCP 连接验证 `0→1→0`，观察不改变 prestop 计数。
 - [x] 生产三台 Front、两地 authority、API 健康，八个配置消费者 observed、passing=0、producer shadow。验证应用的 15 个资源 UID、17 个 release 记录、traffic policy、serving/LKG 指针保留，12 次业务请求全部 200。
-- [ ] 通过正常声明式发布激活已验证 agent 镜像，保持已有 serving workload；完成生产按 Pod 正向排空和长连接观测。当前应用 sidecar 仍使用旧固定镜像，不能把 CI 镜像测试当作生产 drain 完成。
+- [x] 通过正常声明式发布激活已验证 agent 镜像，保持已有 serving workload；新应用发布后完成生产按 Pod 正向连接归零和长连接观测，见 Y4。此项只验证实时观测，不能授权仍指向 canonical 的 previous release 退役。
 - [ ] 接入后台重试、持久化 revision target 与条件退役/UID 删除，完成历史 canonical release 的资源归属迁移和最终回收；再验收 Controller 重启恢复与失败回滚。P0-EP-Y 的完整 drain 任务保持未勾选。
 
 证据：[pod-drain-observer-2026-09-21.json](verification/pod-drain-observer-2026-09-21.json)。本步骤完成观察协议和错误授权路径修复，不代表完整退役闭环或全局 artifact serving 接管。
+
+### P0-EP-Y4：激活观察镜像并验证真实连接，修复 Pod proxy 权限
+
+- [x] 将已验证 agent 固定到 digest `sha256:818be7253656b85eb1afcfe8b4cb24800ac6027669ace3eb3f88f07bbd46948b`。同 release key、完全 Ready 且只改变 helper image 的 reconcile 保留当前 Pod 模板；真实 restart/application change 和其他生命周期变更仍走原门禁。回归、Controller race、全量 make test、干净 prepush 通过。
+- [x] `5a21bb22a2e6c6b3ea3e41204cac288586047470` 经 [CI 35569449154](https://github.com/yym68686/fugue/actions/runs/35569449154) 成功上线；激活前后 202 个 Deployment、139 个 Pod 的身份和 agent image 未变。稍后其他应用的一个 helper image 变化有独立的已完成 deploy 记录解释，详见证据，不能将正常并行发布误报为隐式迁移。
+- [x] 验证应用通过正常 deploy 操作 `op_1789973245_abed9b90ac3d` 创建新 revision，并完成 50% canary、100% 提升及 canonical 对齐。72 次请求按真实 Pod 日志核对，12 个 session 跨三台 Edge 保持同 release；54 次健康采样全部 200。独立取证保存了 50% 与最终 100% stable 的正向证明，未截获短暂 candidate=100 阶段，故不额外声称该阶段有独立采样。
+- [x] 初次真实 proxy 请求返回 Forbidden，修复为版本化 `pods/proxy` GET 规则和独立配置 lane，Helm 默认规则同步。`9dc40ea0b1e04f4bd1529081f25af628e7d89a97` 的 [CI 35570373647](https://github.com/yym68686/fugue/actions/runs/35570373647) 中 prepush、`drain_observation_access` 成功，组件发布均 skipped；整体状态 cancelled 来自并行 `diagnostics_package_activation` 被取消，不能记为整条 CI 成功。修复未重建生产组件，真实 proxy 请求随后成功。
+- [x] 新 agent 在生产 canonical Pod 以新 nonce 连续取证 `active_connections=0→1→0`；180 秒流完整返回 180 个 tick，origin 日志标记吻合，Pod UID、container ID、restart count 保持一致，prestop requests 为 0。首轮流也完整返回，但末次取证使用的 Controller Pod 被并行发布替换；脚本修复为刷新取证传输 Pod 后重跑并完成证据链。
+- [x] 最终 API/Controller 为包含激活修复的 `436dbb5b`，2/2 Ready；三台 Front、两地 authority 健康，migration pending=0，serving/LKG 配置指针未变，八个消费者 observed/passing=0，producer 仍为 shadow。
+- [ ] 保存不可变 revision workload target，接入后台观察重试和条件退役/UID 删除；旧 canonical previous 尚未获准回收。当前正向生产证据来自正在服务的 canonical Pod，只证明观测能力，不是旧 revision 的退役授权。
+
+证据：[drain-observer-activation-2026-09-21.json](verification/drain-observer-activation-2026-09-21.json)。完整 rollback、Controller 重启复用、旧资源最终回收和全局 artifact serving 接管继续保持未完成。

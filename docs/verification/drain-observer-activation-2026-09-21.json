@@ -1,0 +1,1035 @@
+{
+  "verified_at": "2026-09-21T07:03:50.407354+00:00",
+  "activation_commit": "5a21bb22a2e6c6b3ea3e41204cac288586047470",
+  "activation_ci": "https://github.com/yym68686/fugue/actions/runs/35569449154",
+  "rbac_commit": "9dc40ea0b1e04f4bd1529081f25af628e7d89a97",
+  "rbac_ci": "https://github.com/yym68686/fugue/actions/runs/35570373647",
+  "rbac_ci_status": {
+    "prepush": "success",
+    "drain_observation_access": "success",
+    "component_deployments": "skipped",
+    "overall": "cancelled",
+    "cancelled_job": "diagnostics_package_activation"
+  },
+  "initial_rbac_failure": "Actual pods/proxy GET returned Forbidden; corrected through the versioned configuration lane, without rebuilding production components.",
+  "health": {
+    "/healthz": 200,
+    "/readyz": 200
+  },
+  "components": [
+    {
+      "component": "api",
+      "image_tag": "436dbb5bc732e5d5c87f6112c7499364a48a96d5",
+      "ready_replicas": 2,
+      "updated_replicas": 2,
+      "desired_replicas": 2
+    },
+    {
+      "component": "controller",
+      "image_tag": "436dbb5bc732e5d5c87f6112c7499364a48a96d5",
+      "ready_replicas": 2,
+      "updated_replicas": 2,
+      "desired_replicas": 2
+    }
+  ],
+  "authority_ready": true,
+  "serving_and_lkg_unchanged": true,
+  "fleet_at_activation": {
+    "before_at": "2026-09-21T06:38:31.852985+00:00",
+    "after_at": "2026-09-21T06:47:01.701293+00:00",
+    "deployments": 202,
+    "pods": 139,
+    "unchanged_identities_and_agent_images": true,
+    "changed": []
+  },
+  "fleet_after_application_rollouts": {
+    "checked_objects": 331,
+    "changes": [
+      {
+        "before": {
+          "kind": "Deployment",
+          "namespace": "fg-tenant-1774494657-53820de6a0cd",
+          "name": "app-1780807228-bc5cd8f5f278",
+          "uid": "e39190ae-fd49-456b-8955-341d5c0c861f",
+          "generation": 722,
+          "deleting": null,
+          "app_id": "app_1780807228_bc5cd8f5f278",
+          "release_id": null,
+          "replicas": 1,
+          "ready_replicas": 1,
+          "phase": null,
+          "agent_images": [
+            "ghcr.io/yym68686/fugue-drain-agent:bcfa4abe8804097dd5349cb49c997ef95031fa2b"
+          ]
+        },
+        "after": {
+          "kind": "Deployment",
+          "namespace": "fg-tenant-1774494657-53820de6a0cd",
+          "name": "app-1780807228-bc5cd8f5f278",
+          "uid": "e39190ae-fd49-456b-8955-341d5c0c861f",
+          "generation": 724,
+          "deleting": null,
+          "app_id": "app_1780807228_bc5cd8f5f278",
+          "release_id": null,
+          "replicas": 1,
+          "ready_replicas": 1,
+          "phase": null,
+          "agent_images": [
+            "ghcr.io/yym68686/fugue-drain-agent@sha256:818be7253656b85eb1afcfe8b4cb24800ac6027669ace3eb3f88f07bbd46948b"
+          ]
+        },
+        "concurrent_operations": [
+          {
+            "id": "op_1789972846_e53da2de158d",
+            "type": "import",
+            "status": "completed",
+            "created_at": "2026-09-21T06:40:46.754615Z",
+            "updated_at": "2026-09-21T06:46:38.512308Z",
+            "result_message": "import build completed; queued deploy operation op_1789973198_a58e1c929517"
+          },
+          {
+            "id": "op_1789973198_a58e1c929517",
+            "type": "deploy",
+            "status": "completed",
+            "created_at": "2026-09-21T06:46:38.409858Z",
+            "updated_at": "2026-09-21T06:47:38.718868Z",
+            "result_message": "managed app reconciled in namespace fg-tenant-1774494657-53820de6a0cd"
+          },
+          {
+            "id": "op_1789973270_878992a94b70",
+            "type": "deploy",
+            "status": "completed",
+            "created_at": "2026-09-21T06:47:50.363292Z",
+            "updated_at": "2026-09-21T06:48:24.83159Z",
+            "result_message": "managed app reconciled in namespace fg-tenant-1774494657-53820de6a0cd"
+          }
+        ]
+      }
+    ]
+  },
+  "operation": {
+    "id": "op_1789973245_abed9b90ac3d",
+    "status": "completed",
+    "error_message": null,
+    "result_message": "managed app reconciled in namespace fg-tenant-1774393589-e35b60a6fc11",
+    "updated_at": "2026-09-21T06:51:45.587006Z"
+  },
+  "traffic_policy": {
+    "id": "apptp_1783440303_3271421d3798",
+    "tenant_id": "tenant_1774393589_e35b60a6fc11",
+    "app_id": "app_1783188884_8facd2b054e6",
+    "mode": "single",
+    "stable_release_id": "apprel_1789973255_32b1fa2a238f",
+    "stable_weight": 100,
+    "candidate_weight": 0,
+    "sticky_cookie": "Fugue-Release-Stickiness",
+    "updated_by_type": "system",
+    "updated_by_id": "safe-rollout-controller",
+    "created_at": "2026-07-07T16:05:03.871294Z",
+    "updated_at": "2026-09-21T06:50:29.650291Z"
+  },
+  "retire_audit": [
+    {
+      "id": "audit_1789973505_6051a0571a62",
+      "action": "app.release.previous_retire.paused",
+      "created_at": "2026-09-21T06:51:45.579741Z",
+      "resource_id": null,
+      "metadata": {
+        "app_id": "app_1783188884_8facd2b054e6",
+        "app_release_id": "apprel_1789968548_31045cecb41e",
+        "operation_id": "op_1789973245_abed9b90ac3d",
+        "phase": "previous_retire",
+        "reason": "drain metrics unavailable"
+      }
+    },
+    {
+      "id": "audit_1789973429_d38eb1ee1bfd",
+      "action": "app.release.promote",
+      "created_at": "2026-09-21T06:50:29.656728Z",
+      "resource_id": null,
+      "metadata": {
+        "app_id": "app_1783188884_8facd2b054e6",
+        "app_release_id": "apprel_1789973255_32b1fa2a238f",
+        "mode": "safe_zero_downtime",
+        "operation_id": "op_1789973245_abed9b90ac3d"
+      }
+    },
+    {
+      "id": "audit_1789973429_936ee96d71d5",
+      "action": "app.release.gate.pass",
+      "created_at": "2026-09-21T06:50:29.600362Z",
+      "resource_id": null,
+      "metadata": {
+        "app_id": "app_1783188884_8facd2b054e6",
+        "app_release_id": "apprel_1789973255_32b1fa2a238f",
+        "candidate_release": "apprel_1789973255_32b1fa2a238f",
+        "candidate_weight": "50",
+        "operation_id": "op_1789973245_abed9b90ac3d",
+        "phase": "canary_gate"
+      }
+    },
+    {
+      "id": "audit_1789973270_f4650cca2b6f",
+      "action": "app.release.canary.shifted",
+      "created_at": "2026-09-21T06:47:50.158639Z",
+      "resource_id": null,
+      "metadata": {
+        "app_id": "app_1783188884_8facd2b054e6",
+        "app_release_id": "apprel_1789973255_32b1fa2a238f",
+        "candidate_weight": "50",
+        "operation_id": "op_1789973245_abed9b90ac3d"
+      }
+    },
+    {
+      "id": "audit_1789973270_1a70ea68baa1",
+      "action": "app.release.gate.pass",
+      "created_at": "2026-09-21T06:47:50.150223Z",
+      "resource_id": null,
+      "metadata": {
+        "app_id": "app_1783188884_8facd2b054e6",
+        "app_release_id": "apprel_1789973255_32b1fa2a238f",
+        "operation_id": "op_1789973245_abed9b90ac3d",
+        "phase": "gate_check"
+      }
+    }
+  ],
+  "health_sample_count": 54,
+  "all_health_samples_200": true,
+  "sticky": {
+    "verified_at": "2026-09-21T06:48:55.141482+00:00",
+    "operation_id": "op_1789973245_abed9b90ac3d",
+    "policy": {
+      "mode": "canary",
+      "stable_release_id": "apprel_1789968548_31045cecb41e",
+      "candidate_release_id": "apprel_1789973255_32b1fa2a238f",
+      "stable_weight": 50,
+      "candidate_weight": 50
+    },
+    "requests": 72,
+    "sessions": 12,
+    "all_http_200": true,
+    "sticky_across_nodes_and_repeats": true,
+    "origin_release_counts": {
+      "apprel_1789973255_32b1fa2a238f": 48,
+      "apprel_1789968548_31045cecb41e": 24
+    },
+    "observations": [
+      {
+        "request": "sticky-6e9c1ec0cfb12860-0-vps-84c8f0a9-0",
+        "node": "vps-84c8f0a9",
+        "session": 0,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789973255_32b1fa2a238f",
+        "pod_uid": "028a5183-d923-48c1-9944-bdf5fb398508"
+      },
+      {
+        "request": "sticky-6e9c1ec0cfb12860-0-vps-84c8f0a9-1",
+        "node": "vps-84c8f0a9",
+        "session": 0,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789973255_32b1fa2a238f",
+        "pod_uid": "028a5183-d923-48c1-9944-bdf5fb398508"
+      },
+      {
+        "request": "sticky-6e9c1ec0cfb12860-0-bwg-0",
+        "node": "bwg",
+        "session": 0,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789973255_32b1fa2a238f",
+        "pod_uid": "028a5183-d923-48c1-9944-bdf5fb398508"
+      },
+      {
+        "request": "sticky-6e9c1ec0cfb12860-0-bwg-1",
+        "node": "bwg",
+        "session": 0,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789973255_32b1fa2a238f",
+        "pod_uid": "028a5183-d923-48c1-9944-bdf5fb398508"
+      },
+      {
+        "request": "sticky-6e9c1ec0cfb12860-0-vps-591f4447-0",
+        "node": "vps-591f4447",
+        "session": 0,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789973255_32b1fa2a238f",
+        "pod_uid": "028a5183-d923-48c1-9944-bdf5fb398508"
+      },
+      {
+        "request": "sticky-6e9c1ec0cfb12860-0-vps-591f4447-1",
+        "node": "vps-591f4447",
+        "session": 0,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789973255_32b1fa2a238f",
+        "pod_uid": "028a5183-d923-48c1-9944-bdf5fb398508"
+      },
+      {
+        "request": "sticky-6e9c1ec0cfb12860-1-vps-84c8f0a9-0",
+        "node": "vps-84c8f0a9",
+        "session": 1,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789973255_32b1fa2a238f",
+        "pod_uid": "028a5183-d923-48c1-9944-bdf5fb398508"
+      },
+      {
+        "request": "sticky-6e9c1ec0cfb12860-1-vps-84c8f0a9-1",
+        "node": "vps-84c8f0a9",
+        "session": 1,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789973255_32b1fa2a238f",
+        "pod_uid": "028a5183-d923-48c1-9944-bdf5fb398508"
+      },
+      {
+        "request": "sticky-6e9c1ec0cfb12860-1-bwg-0",
+        "node": "bwg",
+        "session": 1,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789973255_32b1fa2a238f",
+        "pod_uid": "028a5183-d923-48c1-9944-bdf5fb398508"
+      },
+      {
+        "request": "sticky-6e9c1ec0cfb12860-1-bwg-1",
+        "node": "bwg",
+        "session": 1,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789973255_32b1fa2a238f",
+        "pod_uid": "028a5183-d923-48c1-9944-bdf5fb398508"
+      },
+      {
+        "request": "sticky-6e9c1ec0cfb12860-1-vps-591f4447-0",
+        "node": "vps-591f4447",
+        "session": 1,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789973255_32b1fa2a238f",
+        "pod_uid": "028a5183-d923-48c1-9944-bdf5fb398508"
+      },
+      {
+        "request": "sticky-6e9c1ec0cfb12860-1-vps-591f4447-1",
+        "node": "vps-591f4447",
+        "session": 1,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789973255_32b1fa2a238f",
+        "pod_uid": "028a5183-d923-48c1-9944-bdf5fb398508"
+      },
+      {
+        "request": "sticky-6e9c1ec0cfb12860-2-vps-84c8f0a9-0",
+        "node": "vps-84c8f0a9",
+        "session": 2,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789968548_31045cecb41e",
+        "pod_uid": "e075a037-586d-400a-b096-3ffd6630fa50"
+      },
+      {
+        "request": "sticky-6e9c1ec0cfb12860-2-vps-84c8f0a9-1",
+        "node": "vps-84c8f0a9",
+        "session": 2,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789968548_31045cecb41e",
+        "pod_uid": "e075a037-586d-400a-b096-3ffd6630fa50"
+      },
+      {
+        "request": "sticky-6e9c1ec0cfb12860-2-bwg-0",
+        "node": "bwg",
+        "session": 2,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789968548_31045cecb41e",
+        "pod_uid": "e075a037-586d-400a-b096-3ffd6630fa50"
+      },
+      {
+        "request": "sticky-6e9c1ec0cfb12860-2-bwg-1",
+        "node": "bwg",
+        "session": 2,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789968548_31045cecb41e",
+        "pod_uid": "e075a037-586d-400a-b096-3ffd6630fa50"
+      },
+      {
+        "request": "sticky-6e9c1ec0cfb12860-2-vps-591f4447-0",
+        "node": "vps-591f4447",
+        "session": 2,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789968548_31045cecb41e",
+        "pod_uid": "e075a037-586d-400a-b096-3ffd6630fa50"
+      },
+      {
+        "request": "sticky-6e9c1ec0cfb12860-2-vps-591f4447-1",
+        "node": "vps-591f4447",
+        "session": 2,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789968548_31045cecb41e",
+        "pod_uid": "e075a037-586d-400a-b096-3ffd6630fa50"
+      },
+      {
+        "request": "sticky-6e9c1ec0cfb12860-3-vps-84c8f0a9-0",
+        "node": "vps-84c8f0a9",
+        "session": 3,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789968548_31045cecb41e",
+        "pod_uid": "e075a037-586d-400a-b096-3ffd6630fa50"
+      },
+      {
+        "request": "sticky-6e9c1ec0cfb12860-3-vps-84c8f0a9-1",
+        "node": "vps-84c8f0a9",
+        "session": 3,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789968548_31045cecb41e",
+        "pod_uid": "e075a037-586d-400a-b096-3ffd6630fa50"
+      },
+      {
+        "request": "sticky-6e9c1ec0cfb12860-3-bwg-0",
+        "node": "bwg",
+        "session": 3,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789968548_31045cecb41e",
+        "pod_uid": "e075a037-586d-400a-b096-3ffd6630fa50"
+      },
+      {
+        "request": "sticky-6e9c1ec0cfb12860-3-bwg-1",
+        "node": "bwg",
+        "session": 3,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789968548_31045cecb41e",
+        "pod_uid": "e075a037-586d-400a-b096-3ffd6630fa50"
+      },
+      {
+        "request": "sticky-6e9c1ec0cfb12860-3-vps-591f4447-0",
+        "node": "vps-591f4447",
+        "session": 3,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789968548_31045cecb41e",
+        "pod_uid": "e075a037-586d-400a-b096-3ffd6630fa50"
+      },
+      {
+        "request": "sticky-6e9c1ec0cfb12860-3-vps-591f4447-1",
+        "node": "vps-591f4447",
+        "session": 3,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789968548_31045cecb41e",
+        "pod_uid": "e075a037-586d-400a-b096-3ffd6630fa50"
+      },
+      {
+        "request": "sticky-6e9c1ec0cfb12860-4-vps-84c8f0a9-0",
+        "node": "vps-84c8f0a9",
+        "session": 4,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789973255_32b1fa2a238f",
+        "pod_uid": "028a5183-d923-48c1-9944-bdf5fb398508"
+      },
+      {
+        "request": "sticky-6e9c1ec0cfb12860-4-vps-84c8f0a9-1",
+        "node": "vps-84c8f0a9",
+        "session": 4,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789973255_32b1fa2a238f",
+        "pod_uid": "028a5183-d923-48c1-9944-bdf5fb398508"
+      },
+      {
+        "request": "sticky-6e9c1ec0cfb12860-4-bwg-0",
+        "node": "bwg",
+        "session": 4,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789973255_32b1fa2a238f",
+        "pod_uid": "028a5183-d923-48c1-9944-bdf5fb398508"
+      },
+      {
+        "request": "sticky-6e9c1ec0cfb12860-4-bwg-1",
+        "node": "bwg",
+        "session": 4,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789973255_32b1fa2a238f",
+        "pod_uid": "028a5183-d923-48c1-9944-bdf5fb398508"
+      },
+      {
+        "request": "sticky-6e9c1ec0cfb12860-4-vps-591f4447-0",
+        "node": "vps-591f4447",
+        "session": 4,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789973255_32b1fa2a238f",
+        "pod_uid": "028a5183-d923-48c1-9944-bdf5fb398508"
+      },
+      {
+        "request": "sticky-6e9c1ec0cfb12860-4-vps-591f4447-1",
+        "node": "vps-591f4447",
+        "session": 4,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789973255_32b1fa2a238f",
+        "pod_uid": "028a5183-d923-48c1-9944-bdf5fb398508"
+      },
+      {
+        "request": "sticky-6e9c1ec0cfb12860-5-vps-84c8f0a9-0",
+        "node": "vps-84c8f0a9",
+        "session": 5,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789973255_32b1fa2a238f",
+        "pod_uid": "028a5183-d923-48c1-9944-bdf5fb398508"
+      },
+      {
+        "request": "sticky-6e9c1ec0cfb12860-5-vps-84c8f0a9-1",
+        "node": "vps-84c8f0a9",
+        "session": 5,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789973255_32b1fa2a238f",
+        "pod_uid": "028a5183-d923-48c1-9944-bdf5fb398508"
+      },
+      {
+        "request": "sticky-6e9c1ec0cfb12860-5-bwg-0",
+        "node": "bwg",
+        "session": 5,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789973255_32b1fa2a238f",
+        "pod_uid": "028a5183-d923-48c1-9944-bdf5fb398508"
+      },
+      {
+        "request": "sticky-6e9c1ec0cfb12860-5-bwg-1",
+        "node": "bwg",
+        "session": 5,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789973255_32b1fa2a238f",
+        "pod_uid": "028a5183-d923-48c1-9944-bdf5fb398508"
+      },
+      {
+        "request": "sticky-6e9c1ec0cfb12860-5-vps-591f4447-0",
+        "node": "vps-591f4447",
+        "session": 5,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789973255_32b1fa2a238f",
+        "pod_uid": "028a5183-d923-48c1-9944-bdf5fb398508"
+      },
+      {
+        "request": "sticky-6e9c1ec0cfb12860-5-vps-591f4447-1",
+        "node": "vps-591f4447",
+        "session": 5,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789973255_32b1fa2a238f",
+        "pod_uid": "028a5183-d923-48c1-9944-bdf5fb398508"
+      },
+      {
+        "request": "sticky-6e9c1ec0cfb12860-6-vps-84c8f0a9-0",
+        "node": "vps-84c8f0a9",
+        "session": 6,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789968548_31045cecb41e",
+        "pod_uid": "e075a037-586d-400a-b096-3ffd6630fa50"
+      },
+      {
+        "request": "sticky-6e9c1ec0cfb12860-6-vps-84c8f0a9-1",
+        "node": "vps-84c8f0a9",
+        "session": 6,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789968548_31045cecb41e",
+        "pod_uid": "e075a037-586d-400a-b096-3ffd6630fa50"
+      },
+      {
+        "request": "sticky-6e9c1ec0cfb12860-6-bwg-0",
+        "node": "bwg",
+        "session": 6,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789968548_31045cecb41e",
+        "pod_uid": "e075a037-586d-400a-b096-3ffd6630fa50"
+      },
+      {
+        "request": "sticky-6e9c1ec0cfb12860-6-bwg-1",
+        "node": "bwg",
+        "session": 6,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789968548_31045cecb41e",
+        "pod_uid": "e075a037-586d-400a-b096-3ffd6630fa50"
+      },
+      {
+        "request": "sticky-6e9c1ec0cfb12860-6-vps-591f4447-0",
+        "node": "vps-591f4447",
+        "session": 6,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789968548_31045cecb41e",
+        "pod_uid": "e075a037-586d-400a-b096-3ffd6630fa50"
+      },
+      {
+        "request": "sticky-6e9c1ec0cfb12860-6-vps-591f4447-1",
+        "node": "vps-591f4447",
+        "session": 6,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789968548_31045cecb41e",
+        "pod_uid": "e075a037-586d-400a-b096-3ffd6630fa50"
+      },
+      {
+        "request": "sticky-6e9c1ec0cfb12860-7-vps-84c8f0a9-0",
+        "node": "vps-84c8f0a9",
+        "session": 7,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789973255_32b1fa2a238f",
+        "pod_uid": "028a5183-d923-48c1-9944-bdf5fb398508"
+      },
+      {
+        "request": "sticky-6e9c1ec0cfb12860-7-vps-84c8f0a9-1",
+        "node": "vps-84c8f0a9",
+        "session": 7,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789973255_32b1fa2a238f",
+        "pod_uid": "028a5183-d923-48c1-9944-bdf5fb398508"
+      },
+      {
+        "request": "sticky-6e9c1ec0cfb12860-7-bwg-0",
+        "node": "bwg",
+        "session": 7,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789973255_32b1fa2a238f",
+        "pod_uid": "028a5183-d923-48c1-9944-bdf5fb398508"
+      },
+      {
+        "request": "sticky-6e9c1ec0cfb12860-7-bwg-1",
+        "node": "bwg",
+        "session": 7,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789973255_32b1fa2a238f",
+        "pod_uid": "028a5183-d923-48c1-9944-bdf5fb398508"
+      },
+      {
+        "request": "sticky-6e9c1ec0cfb12860-7-vps-591f4447-0",
+        "node": "vps-591f4447",
+        "session": 7,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789973255_32b1fa2a238f",
+        "pod_uid": "028a5183-d923-48c1-9944-bdf5fb398508"
+      },
+      {
+        "request": "sticky-6e9c1ec0cfb12860-7-vps-591f4447-1",
+        "node": "vps-591f4447",
+        "session": 7,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789973255_32b1fa2a238f",
+        "pod_uid": "028a5183-d923-48c1-9944-bdf5fb398508"
+      },
+      {
+        "request": "sticky-6e9c1ec0cfb12860-8-vps-84c8f0a9-0",
+        "node": "vps-84c8f0a9",
+        "session": 8,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789968548_31045cecb41e",
+        "pod_uid": "e075a037-586d-400a-b096-3ffd6630fa50"
+      },
+      {
+        "request": "sticky-6e9c1ec0cfb12860-8-vps-84c8f0a9-1",
+        "node": "vps-84c8f0a9",
+        "session": 8,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789968548_31045cecb41e",
+        "pod_uid": "e075a037-586d-400a-b096-3ffd6630fa50"
+      },
+      {
+        "request": "sticky-6e9c1ec0cfb12860-8-bwg-0",
+        "node": "bwg",
+        "session": 8,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789968548_31045cecb41e",
+        "pod_uid": "e075a037-586d-400a-b096-3ffd6630fa50"
+      },
+      {
+        "request": "sticky-6e9c1ec0cfb12860-8-bwg-1",
+        "node": "bwg",
+        "session": 8,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789968548_31045cecb41e",
+        "pod_uid": "e075a037-586d-400a-b096-3ffd6630fa50"
+      },
+      {
+        "request": "sticky-6e9c1ec0cfb12860-8-vps-591f4447-0",
+        "node": "vps-591f4447",
+        "session": 8,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789968548_31045cecb41e",
+        "pod_uid": "e075a037-586d-400a-b096-3ffd6630fa50"
+      },
+      {
+        "request": "sticky-6e9c1ec0cfb12860-8-vps-591f4447-1",
+        "node": "vps-591f4447",
+        "session": 8,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789968548_31045cecb41e",
+        "pod_uid": "e075a037-586d-400a-b096-3ffd6630fa50"
+      },
+      {
+        "request": "sticky-6e9c1ec0cfb12860-9-vps-84c8f0a9-0",
+        "node": "vps-84c8f0a9",
+        "session": 9,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789973255_32b1fa2a238f",
+        "pod_uid": "028a5183-d923-48c1-9944-bdf5fb398508"
+      },
+      {
+        "request": "sticky-6e9c1ec0cfb12860-9-vps-84c8f0a9-1",
+        "node": "vps-84c8f0a9",
+        "session": 9,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789973255_32b1fa2a238f",
+        "pod_uid": "028a5183-d923-48c1-9944-bdf5fb398508"
+      },
+      {
+        "request": "sticky-6e9c1ec0cfb12860-9-bwg-0",
+        "node": "bwg",
+        "session": 9,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789973255_32b1fa2a238f",
+        "pod_uid": "028a5183-d923-48c1-9944-bdf5fb398508"
+      },
+      {
+        "request": "sticky-6e9c1ec0cfb12860-9-bwg-1",
+        "node": "bwg",
+        "session": 9,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789973255_32b1fa2a238f",
+        "pod_uid": "028a5183-d923-48c1-9944-bdf5fb398508"
+      },
+      {
+        "request": "sticky-6e9c1ec0cfb12860-9-vps-591f4447-0",
+        "node": "vps-591f4447",
+        "session": 9,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789973255_32b1fa2a238f",
+        "pod_uid": "028a5183-d923-48c1-9944-bdf5fb398508"
+      },
+      {
+        "request": "sticky-6e9c1ec0cfb12860-9-vps-591f4447-1",
+        "node": "vps-591f4447",
+        "session": 9,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789973255_32b1fa2a238f",
+        "pod_uid": "028a5183-d923-48c1-9944-bdf5fb398508"
+      },
+      {
+        "request": "sticky-6e9c1ec0cfb12860-10-vps-84c8f0a9-0",
+        "node": "vps-84c8f0a9",
+        "session": 10,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789973255_32b1fa2a238f",
+        "pod_uid": "028a5183-d923-48c1-9944-bdf5fb398508"
+      },
+      {
+        "request": "sticky-6e9c1ec0cfb12860-10-vps-84c8f0a9-1",
+        "node": "vps-84c8f0a9",
+        "session": 10,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789973255_32b1fa2a238f",
+        "pod_uid": "028a5183-d923-48c1-9944-bdf5fb398508"
+      },
+      {
+        "request": "sticky-6e9c1ec0cfb12860-10-bwg-0",
+        "node": "bwg",
+        "session": 10,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789973255_32b1fa2a238f",
+        "pod_uid": "028a5183-d923-48c1-9944-bdf5fb398508"
+      },
+      {
+        "request": "sticky-6e9c1ec0cfb12860-10-bwg-1",
+        "node": "bwg",
+        "session": 10,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789973255_32b1fa2a238f",
+        "pod_uid": "028a5183-d923-48c1-9944-bdf5fb398508"
+      },
+      {
+        "request": "sticky-6e9c1ec0cfb12860-10-vps-591f4447-0",
+        "node": "vps-591f4447",
+        "session": 10,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789973255_32b1fa2a238f",
+        "pod_uid": "028a5183-d923-48c1-9944-bdf5fb398508"
+      },
+      {
+        "request": "sticky-6e9c1ec0cfb12860-10-vps-591f4447-1",
+        "node": "vps-591f4447",
+        "session": 10,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789973255_32b1fa2a238f",
+        "pod_uid": "028a5183-d923-48c1-9944-bdf5fb398508"
+      },
+      {
+        "request": "sticky-6e9c1ec0cfb12860-11-vps-84c8f0a9-0",
+        "node": "vps-84c8f0a9",
+        "session": 11,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789973255_32b1fa2a238f",
+        "pod_uid": "028a5183-d923-48c1-9944-bdf5fb398508"
+      },
+      {
+        "request": "sticky-6e9c1ec0cfb12860-11-vps-84c8f0a9-1",
+        "node": "vps-84c8f0a9",
+        "session": 11,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789973255_32b1fa2a238f",
+        "pod_uid": "028a5183-d923-48c1-9944-bdf5fb398508"
+      },
+      {
+        "request": "sticky-6e9c1ec0cfb12860-11-bwg-0",
+        "node": "bwg",
+        "session": 11,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789973255_32b1fa2a238f",
+        "pod_uid": "028a5183-d923-48c1-9944-bdf5fb398508"
+      },
+      {
+        "request": "sticky-6e9c1ec0cfb12860-11-bwg-1",
+        "node": "bwg",
+        "session": 11,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789973255_32b1fa2a238f",
+        "pod_uid": "028a5183-d923-48c1-9944-bdf5fb398508"
+      },
+      {
+        "request": "sticky-6e9c1ec0cfb12860-11-vps-591f4447-0",
+        "node": "vps-591f4447",
+        "session": 11,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789973255_32b1fa2a238f",
+        "pod_uid": "028a5183-d923-48c1-9944-bdf5fb398508"
+      },
+      {
+        "request": "sticky-6e9c1ec0cfb12860-11-vps-591f4447-1",
+        "node": "vps-591f4447",
+        "session": 11,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789973255_32b1fa2a238f",
+        "pod_uid": "028a5183-d923-48c1-9944-bdf5fb398508"
+      }
+    ]
+  },
+  "live_agent_observation": {
+    "verified_at": "2026-09-21T07:02:11.469958+00:00",
+    "operation_id": "op_1789973245_abed9b90ac3d",
+    "release_id": "apprel_1789973255_32b1fa2a238f",
+    "before": {
+      "pod": "app-1783188884-8facd2b054e6-6588976945-bv6wh",
+      "uid": "cca81a4e-bf10-41ae-b5d7-a2d54ca4aa8a",
+      "agent_image": "ghcr.io/yym68686/fugue-drain-agent@sha256:818be7253656b85eb1afcfe8b4cb24800ac6027669ace3eb3f88f07bbd46948b",
+      "container_id": "containerd://832af9535c030bea5231c21fc0f53d14a96cf7998671cae3fe60406c9ae10163",
+      "restarts": 0
+    },
+    "after": {
+      "pod": "app-1783188884-8facd2b054e6-6588976945-bv6wh",
+      "uid": "cca81a4e-bf10-41ae-b5d7-a2d54ca4aa8a",
+      "agent_image": "ghcr.io/yym68686/fugue-drain-agent@sha256:818be7253656b85eb1afcfe8b4cb24800ac6027669ace3eb3f88f07bbd46948b",
+      "container_id": "containerd://832af9535c030bea5231c21fc0f53d14a96cf7998671cae3fe60406c9ae10163",
+      "restarts": 0
+    },
+    "observations": [
+      {
+        "at": "2026-09-21T06:59:04.081355+00:00",
+        "snapshot": {
+          "api_version": "fugue.drain-observation/v1",
+          "nonce": "946f5e553429a9bed089d26bc3f56e42",
+          "pod": "app-1783188884-8facd2b054e6-6588976945-bv6wh",
+          "namespace": "fg-tenant-1774393589-e35b60a6fc11",
+          "app_ports": [
+            8000
+          ],
+          "active_connections": 0
+        }
+      },
+      {
+        "at": "2026-09-21T06:59:07.056728+00:00",
+        "snapshot": {
+          "api_version": "fugue.drain-observation/v1",
+          "nonce": "d3bd7a10e1a6664621f4b66ad93bd933",
+          "pod": "app-1783188884-8facd2b054e6-6588976945-bv6wh",
+          "namespace": "fg-tenant-1774393589-e35b60a6fc11",
+          "app_ports": [
+            8000
+          ],
+          "active_connections": 1
+        }
+      },
+      {
+        "at": "2026-09-21T07:02:06.967778+00:00",
+        "snapshot": {
+          "api_version": "fugue.drain-observation/v1",
+          "nonce": "d6f7c2f61b5bf13e6be30012fa20769c",
+          "pod": "app-1783188884-8facd2b054e6-6588976945-bv6wh",
+          "namespace": "fg-tenant-1774393589-e35b60a6fc11",
+          "app_ports": [
+            8000
+          ],
+          "active_connections": 0
+        }
+      }
+    ],
+    "stream_seconds": 180,
+    "stream_tick_count": 180,
+    "stream_origin_log_matched": true,
+    "curl_exit": 0,
+    "prestop_requests_unchanged_zero": true
+  },
+  "edge_proofs": {
+    "0": "=== RUN   TestSafeRolloutLiveAppTrafficProof\n    safe_rollout_app_traffic_proof_test.go:303: {\"app_id\":\"app_1783188884_8facd2b054e6\",\"expected_app_traffic_digest\":\"sha256:01e53ff0509ffe5d3b3cbe47188a012d9ec8b43dead85e844de658387feab88d\",\"ready_nodes\":3,\"release_id\":\"apprel_1789973255_32b1fa2a238f\",\"required_nodes\":3,\"serving_versions\":[\"edgegroupbundle_6f63b50075725d416a970818c02edc0828b07b3e8feb9124896171a06bf5f7b3.p33587.r516\",\"edgegroupbundle_e4c24362b7bbdc5fd11ac59239ab5ea66b678523a4fdc90f301274e86fd4b414.p47334.r181\",\"edgegroupbundle_f3bc56856feea7858766b0436066a807209f836423d57496f8d4bf6461f0046b.p47333.r181\"],\"target_candidate_weight\":0,\"waiting_nodes\":[]}\n--- PASS: TestSafeRolloutLiveAppTrafficProof (2.66s)\nPASS\nok  \tfugue/internal/controller\t3.492s\n",
+    "50": "=== RUN   TestSafeRolloutLiveAppTrafficProof\n    safe_rollout_app_traffic_proof_test.go:303: {\"app_id\":\"app_1783188884_8facd2b054e6\",\"expected_app_traffic_digest\":\"sha256:3e8f250414d7f0705377cf76b50d61b9ae8cb86209ea41e2e545d792ace10a59\",\"ready_nodes\":3,\"release_id\":\"apprel_1789973255_32b1fa2a238f\",\"required_nodes\":3,\"serving_versions\":[\"edgegroupbundle_7b3b238f1054816cd0d80ab82bdb64141a901606cf2dff2c55e99faf376a6987.p33584.r516\",\"edgegroupbundle_825a52bd74b516859627444495664f52366d565bcc2a0efe1edd31f95c320566.p47330.r181\"],\"target_candidate_weight\":50,\"waiting_nodes\":[]}\n--- PASS: TestSafeRolloutLiveAppTrafficProof (3.25s)\nPASS\nok  \tfugue/internal/controller\t3.931s\n"
+  },
+  "activation_prepush": {
+    "apiVersion": "prepush.fugue.dev/v1",
+    "baseCommit": "7054b097ca763836d847ecdf8a21aeece42c339a",
+    "changedFilesDigest": "sha256:26917b20b0e821fe1559cd146da52a9e1c848f25386d95c3e37941ac92c668db",
+    "checks": {
+      "affected-tests": {
+        "durationMs": 23280,
+        "status": "pass"
+      },
+      "affected-vet": {
+        "durationMs": 5004,
+        "status": "pass"
+      },
+      "compile-all": {
+        "durationMs": 17740,
+        "status": "pass"
+      },
+      "declarative-release-tests": {
+        "durationMs": 19569,
+        "status": "pass"
+      },
+      "diff-check": {
+        "durationMs": 213,
+        "status": "pass"
+      },
+      "gofmt": {
+        "durationMs": 20,
+        "status": "pass"
+      },
+      "helm-lint-render": {
+        "durationMs": 0,
+        "status": "skipped"
+      },
+      "openapi-generated": {
+        "durationMs": 3360,
+        "status": "pass"
+      },
+      "shell-syntax": {
+        "durationMs": 0,
+        "status": "pass"
+      }
+    },
+    "elapsedMs": 23649,
+    "kind": "PrepushReceipt",
+    "sourceCommit": "5a21bb22a2e6c6b3ea3e41204cac288586047470",
+    "status": "pass"
+  },
+  "rbac_prepush": {
+    "apiVersion": "prepush.fugue.dev/v1",
+    "baseCommit": "436dbb5bc732e5d5c87f6112c7499364a48a96d5",
+    "changedFilesDigest": "sha256:d81da2711da2297d083e58ae2e2caaa918f89207f29753035798aa3d25de9151",
+    "checks": {
+      "affected-tests": {
+        "durationMs": 0,
+        "status": "skipped"
+      },
+      "affected-vet": {
+        "durationMs": 15249,
+        "status": "pass"
+      },
+      "compile-all": {
+        "durationMs": 14871,
+        "status": "pass"
+      },
+      "declarative-release-tests": {
+        "durationMs": 36332,
+        "status": "pass"
+      },
+      "diff-check": {
+        "durationMs": 230,
+        "status": "pass"
+      },
+      "gofmt": {
+        "durationMs": 6,
+        "status": "pass"
+      },
+      "helm-lint-render": {
+        "durationMs": 1640,
+        "status": "pass"
+      },
+      "openapi-generated": {
+        "durationMs": 1560,
+        "status": "pass"
+      },
+      "shell-syntax": {
+        "durationMs": 0,
+        "status": "pass"
+      }
+    },
+    "elapsedMs": 36647,
+    "kind": "PrepushReceipt",
+    "sourceCommit": "9dc40ea0b1e04f4bd1529081f25af628e7d89a97",
+    "status": "pass"
+  },
+  "limitations": [
+    "The fresh positive socket observation is from the current canonical Pod after its normal rollout.",
+    "Previous releases still refer to canonical targets and remain retained; this does not authorize retirement.",
+    "Immutable revision identity, background retry, conditional retirement, restart recovery and rollback remain pending."
+  ]
+}
