@@ -3670,3 +3670,14 @@ P0-EP-X 生产取证确认 canonical Service selector 仅有 app 标签，会同
 - [ ] 保存不可变 revision workload target，接入后台观察重试和条件退役/UID 删除；旧 canonical previous 尚未获准回收。当前正向生产证据来自正在服务的 canonical Pod，只证明观测能力，不是旧 revision 的退役授权。
 
 证据：[drain-observer-activation-2026-09-21.json](verification/drain-observer-activation-2026-09-21.json)。完整 rollback、Controller 重启复用、旧资源最终回收和全局 artifact serving 接管继续保持未完成。
+
+### P0-EP-Y5：不可变 revision 身份的兼容数据库迁移
+
+- [x] 独立 schema lane 增加 nullable `revision_workload_json`，既有 release 保持未绑定。数据库 trigger 禁止已绑定身份被替换、清空或转移 app/tenant/release owner；旧代码只更新路由 target/status 的 SQL 继续有效。
+- [x] 真实本地 PostgreSQL 覆盖重复迁移、旧写入方兼容、身份不可变、非法 JSON 类型及两个并发首次绑定仅一个成功；race、全量 make test、干净 prepush 通过。
+- [x] `8ba2a7feca844ec616e94294ba69ff8a8faa5166` 经 [CI 35609099165](https://github.com/yym68686/fugue/actions/runs/35609099165) 完成 schema/API 声明式发布。只读 SQL 验证生产列为 nullable JSONB、trigger 启用、函数正文与仓库完全相同；schema Pod 日志确认迁移完成，API 2/2 Ready。
+- [x] 原 release/traffic policy、workload UID 和 serving/LKG 指针保留，两地 authority 健康，12 次业务采样全部 200。
+- [ ] Controller 保存来源 operation、Deployment/Service UID 等实际 revision 身份，canonical 对齐后保持不变；生产绑定数当前为 0，不能把 schema 成功当作功能已接入。
+- [ ] 基于已绑定身份完成历史资源迁移、后台 drain 重试、条件退役与 UID 删除，再完成重启恢复/rollback 和全局 artifact 接管。
+
+证据：[revision-workload-schema-2026-09-21.json](verification/revision-workload-schema-2026-09-21.json)。

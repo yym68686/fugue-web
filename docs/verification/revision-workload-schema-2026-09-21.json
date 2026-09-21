@@ -1,0 +1,121 @@
+{
+  "verified_at": "2026-09-21T14:09:02.736646+00:00",
+  "source_commit": "8ba2a7feca844ec616e94294ba69ff8a8faa5166",
+  "schema": {
+    "column": {
+      "type": "jsonb",
+      "nullable": true
+    },
+    "trigger": {
+      "enabled": "O",
+      "definition": "CREATE TRIGGER fugue_app_release_workload_immutable BEFORE INSERT OR UPDATE ON public.fugue_app_releases FOR EACH ROW EXECUTE FUNCTION fugue_preserve_app_release_workload()"
+    },
+    "release_count": 981,
+    "bound_count": 0,
+    "function_source_sha256": "9a7f179e6ae904d33506c9682e3ea42099cbddaebec75a429cf538f5a2ff90e4"
+  },
+  "components": [
+    {
+      "component": "api",
+      "image_tag": "8ba2a7feca844ec616e94294ba69ff8a8faa5166",
+      "ready_replicas": 2,
+      "updated_replicas": 2,
+      "desired_replicas": 2
+    },
+    {
+      "component": "controller",
+      "image_tag": "f060e8662e086c004f931ee74378686e5b42ccc4",
+      "ready_replicas": 2,
+      "updated_replicas": 2,
+      "desired_replicas": 2
+    }
+  ],
+  "schema_pods": [
+    {
+      "name": "fugue-schema-migrator-58869496f5-f2rbp",
+      "containers": [
+        {
+          "name": "schema-migrate",
+          "image": "ghcr.io/yym68686/fugue-schema-migrate@sha256:2d2be911a2f973c0fa536fca81778ba47802d00f991ce886086200ff2b0f48a0",
+          "image_id": "ghcr.io/yym68686/fugue-schema-migrate@sha256:2d2be911a2f973c0fa536fca81778ba47802d00f991ce886086200ff2b0f48a0",
+          "ready": true,
+          "restart_count": 0,
+          "state": "running"
+        }
+      ]
+    }
+  ],
+  "health": {
+    "/healthz": 200,
+    "/readyz": 200
+  },
+  "authority_ready": true,
+  "serving_and_lkg_unchanged": true,
+  "app_release_and_resource_identities_unchanged": true,
+  "business_samples": [
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200
+  ],
+  "prepush": {
+    "apiVersion": "prepush.fugue.dev/v1",
+    "baseCommit": "d8f64c982717ec8707651f458cca5a359dd56242",
+    "changedFilesDigest": "sha256:4b875b9da4871ba3ef65caebb0a9705873d299c8710542299f6fb92207b43b76",
+    "checks": {
+      "affected-tests": {
+        "durationMs": 28045,
+        "status": "pass"
+      },
+      "affected-vet": {
+        "durationMs": 1995,
+        "status": "pass"
+      },
+      "compile-all": {
+        "durationMs": 28041,
+        "status": "pass"
+      },
+      "declarative-release-tests": {
+        "durationMs": 29853,
+        "status": "pass"
+      },
+      "diff-check": {
+        "durationMs": 243,
+        "status": "pass"
+      },
+      "gofmt": {
+        "durationMs": 24,
+        "status": "pass"
+      },
+      "helm-lint-render": {
+        "durationMs": 0,
+        "status": "skipped"
+      },
+      "openapi-generated": {
+        "durationMs": 1691,
+        "status": "pass"
+      },
+      "shell-syntax": {
+        "durationMs": 0,
+        "status": "pass"
+      }
+    },
+    "elapsedMs": 30255,
+    "kind": "PrepushReceipt",
+    "sourceCommit": "8ba2a7feca844ec616e94294ba69ff8a8faa5166",
+    "status": "pass"
+  },
+  "postgres_integration_test": "ok  \tfugue/internal/schemamigrate\t2.470s\nok  \tfugue/cmd/fugue-schema-migrate\t1.895s\n",
+  "limitations": [
+    "Schema is ready; no production release has been bound yet. Controller capture, retry and safe retirement remain pending."
+  ],
+  "ci_run": "https://github.com/yym68686/fugue/actions/runs/35609099165"
+}
