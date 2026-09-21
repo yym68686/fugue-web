@@ -1,0 +1,131 @@
+{
+  "verified_at": "2026-09-21T01:24:56.150532+00:00",
+  "source_commit": "9b03be637fc8005b8dafe3460acff09cbdce1500",
+  "ci_run": "https://github.com/yym68686/fugue/actions/runs/35548949497",
+  "control_plane_components": {
+    "api": {
+      "image_tag": "9b03be637fc8005b8dafe3460acff09cbdce1500",
+      "image": "ghcr.io/yym68686/fugue-api@sha256:3f6fae532529856e6efda461e4c5bf2b079b35313049e71e8fce79a74fca45fb",
+      "ready_replicas": 2,
+      "updated_replicas": 2,
+      "status": "ready"
+    },
+    "controller": {
+      "image_tag": "9b03be637fc8005b8dafe3460acff09cbdce1500",
+      "image": "ghcr.io/yym68686/fugue-controller@sha256:6d9ebaf6b7d264f7ef97c411ec796f65dd2b778ad61e6854350e6a87f136f624",
+      "ready_replicas": 2,
+      "updated_replicas": 2,
+      "status": "ready"
+    }
+  },
+  "control_plane_status": "ready",
+  "edge_front_status": [
+    {
+      "pod": "fugue-fugue-edge-front-ll46v",
+      "ready": true,
+      "status": {
+        "activation_generation": 845,
+        "active_slot": "a",
+        "bundle_generation": "edgegroupbundle_f65b5df46e38876b4f58a50318ef92ad585d10fa61cdaf339e5124e53d0dd503.p47177.r181",
+        "route_authority": "edge-control",
+        "status": "ok",
+        "worker_image_digest": "sha256:f3fe5fca622255a9b7da3383bdc085d37febaddfa0ad4234f98826413386a88f",
+        "worker_source_commit": "9b03be637fc8005b8dafe3460acff09cbdce1500"
+      }
+    },
+    {
+      "pod": "fugue-fugue-edge-front-2fdt7",
+      "ready": true,
+      "status": {
+        "activation_generation": 845,
+        "active_slot": "a",
+        "bundle_generation": "edgegroupbundle_f65b5df46e38876b4f58a50318ef92ad585d10fa61cdaf339e5124e53d0dd503.p47177.r181",
+        "route_authority": "edge-control",
+        "status": "ok",
+        "worker_image_digest": "sha256:f3fe5fca622255a9b7da3383bdc085d37febaddfa0ad4234f98826413386a88f",
+        "worker_source_commit": "9b03be637fc8005b8dafe3460acff09cbdce1500"
+      }
+    }
+  ],
+  "health": {
+    "/healthz": 200,
+    "/readyz": 200
+  },
+  "authorities": {
+    "configured": true,
+    "answer_model": "edge-control-authority",
+    "all_ready": true,
+    "authorities": [
+      {
+        "edge_group_id": "edge-group-country-de",
+        "service": "edge-control-de",
+        "ready": true,
+        "source": "edge-control-authority",
+        "status": {
+          "edge_group_id": "edge-group-country-de",
+          "status": "ready",
+          "ready": true,
+          "serving_healthy": true,
+          "bootstrap_eligible": true,
+          "bootstrap_valid_until": "2026-09-22T01:19:37.583539904Z",
+          "inventory_sequence": 105082,
+          "inventory_generation": "inventory-be88359c529f5eef2881080c75fbc0d73eebc647ac4c048d1de55a413818ebb0",
+          "inventory_producer_generation": 105082,
+          "inventory_producer_nodes": 1,
+          "inventory_heartbeat_at": "2026-09-21T01:24:28.723203389Z",
+          "authority_sequence": 33429,
+          "publication_sequence": 33429,
+          "current_publication_sequence": 33429,
+          "publication_decision": "published",
+          "bundle_generation": "edgegroupbundle_016db5073e03ce759531a332a47450c85be1276d376f5e466efa23a6eb6e9a4f",
+          "published_bundle_digest": "sha256:b28d32474eae04632038fa74fe996655b3142cce695ee0b104d5e2f6abbd173e",
+          "recovery_epoch": 516,
+          "bundle_valid_until": "2026-09-21T01:49:37.583539904Z",
+          "lkg_state": "current"
+        }
+      },
+      {
+        "edge_group_id": "edge-group-country-us",
+        "service": "edge-control-us",
+        "ready": true,
+        "source": "edge-control-authority",
+        "status": {
+          "edge_group_id": "edge-group-country-us",
+          "status": "ready",
+          "ready": true,
+          "serving_healthy": true,
+          "bootstrap_eligible": true,
+          "bootstrap_valid_until": "2026-09-22T01:21:46.344680452Z",
+          "inventory_sequence": 163611,
+          "inventory_generation": "inventory-fc73f65604f67dcea7b61770d6f354c256c819c066b9b5605af334fd075b6463",
+          "inventory_producer_generation": 163611,
+          "inventory_producer_nodes": 2,
+          "inventory_heartbeat_at": "2026-09-21T01:24:54.390761091Z",
+          "authority_sequence": 47181,
+          "publication_sequence": 47181,
+          "current_publication_sequence": 47181,
+          "publication_decision": "published",
+          "bundle_generation": "edgegroupbundle_39fd004833a9c839d2280047c6178c37cd20b0b600c83ffa8187a2aa57ab1904",
+          "published_bundle_digest": "sha256:5fadc8b4794bbd32213ac8f1183989a01b67e31237abd2eea4c59061f9036431",
+          "recovery_epoch": 181,
+          "bundle_valid_until": "2026-09-21T01:51:46.344680452Z",
+          "lkg_state": "current"
+        }
+      }
+    ]
+  },
+  "route_probe": {
+    "host": "0-0-maple-api.fugue.pro",
+    "edge_ip": "15.204.94.71",
+    "http_status": "HTTP/1.1 204 No Content",
+    "nonce_valid": true,
+    "route_proof": "sha256:6fe26374dbddb0264090c878d77571d437c876106722ac722f2c93ce47e6db49",
+    "bundle_version": "edgegroupbundle_39fd004833a9c839d2280047c6178c37cd20b0b600c83ffa8187a2aa57ab1904.p47181.r181",
+    "edge_id": "vps-591f4447",
+    "edge_group": "edge-group-country-us",
+    "app_traffic_proof": null,
+    "legacy_single_upstream_app_traffic_proof_absent": true
+  },
+  "weighted_positive_proof_live": false,
+  "weighted_positive_proof_note": "Current production route cache has only legacy single-upstream routes; positive weighted proof is covered by targeted/race tests and the gate fails closed when the header is absent."
+}

@@ -3537,3 +3537,16 @@ P0-EO 生产验证（2026-09-21）：
 - [x] make test、race、生成契约、干净 prepush 通过，经 main/Actions 更新 API；生产验证新事实、编译重放、消费者和原 serving/LKG 后再勾选。
 
 应用 code rollout 的精确 release/权重确认、sticky 语义兼容、首次 gray/full 与自动 serving 启用仍由 P0-EP 后续步骤完成，不以本步 readiness 冒充 serving 成功。
+
+### P0-EP-T：应用流量证明协议与 Edge gate 原子步骤
+
+这是 P0-EP 的代码门禁原子步骤。它只证明应用 release/weight 已经被当前 Edge serving index 实际加载；配置仍必须经过独立的 TrafficReleaseSet、consumer apply/probe 和 verified LKG 门禁。没有 app traffic proof 时 Controller fail closed，不把任意健康 bundle 当作代码流量迁移成功。
+
+- [x] OpenAPI-first 增加 `X-Fugue-App-Traffic-Proof` 可选响应头和 `fugue.edge.app-traffic-proof/v1` canonical digest；摘要绑定 hostname/path、app/tenant、release、role、weight、upstream、runtime 和 deployment generation，正权重必须合计 100，返回值不泄露 upstream payload。
+- [x] Edge 只在非 candidate、未过期、健康、当前 Caddy exact apply 且无 apply error 的 immutable index 上生成 app traffic proof；旧 single-upstream route 保持兼容并不伪造摘要。
+- [x] Controller safe rollout gate 通过新鲜 HTTPS route probe 核对 Edge/Group identity、bundle version、目标 release 和期望权重摘要；缺 header、旧 worker、错误 release、错误权重、错误 bundle 或 probe 失败均阻止推进，旧 runtime 回收继续等待 gate 和 drain。
+- [x] 覆盖摘要 canonicalization、非法/重复 release、权重不完整、旧协议响应、candidate/过期/失败 apply、错误身份与错误 bundle；`make test`、目标 race、affected tests、vet、compile-all、OpenAPI 生成检查和干净 prepush 通过。
+- [x] 经 [CI 35548949497](https://github.com/yym68686/fugue/actions/runs/35548949497) 部署 commit `9b03be637fc8005b8dafe3460acff09cbdce1500`；生产 API/Controller 2/2 Ready，两个 Edge Front active slot 均报告相同 source commit，`/healthz`、`/readyz` 为 200，两地 authority ready。公网旧 single-upstream route 的 nonce-bound proof 返回 204 和 route digest，未错误返回 app traffic proof，证明 legacy 兼容和新门禁的 fail-closed 边界。
+- [ ] 生产首次真实 canary/weighted app release 产生正向 app traffic proof，并完成 stable/candidate、sticky、rollback、drain 与旧 runtime 保留的完整端到端验收；当前生产 route cache 尚无多 upstream active route，因此本项保持未勾选。
+
+证据：[app-traffic-proof-2026-09-21.json](verification/app-traffic-proof-2026-09-21.json)。
