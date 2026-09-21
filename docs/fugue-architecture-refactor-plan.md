@@ -32,7 +32,7 @@ Runtime Facts / ACK / LKG
 
 ## 当前状态判断
 
-2026-09-21 最新验收快照：P0-EP-X 的独立 revision 保护修复 `48a917ca` 已部署并验证；随后正常 Controller 发布 `0cd5e2d2` 包含该修复，API 为 `afd99814`，活动 Worker 为 `9b03be63`。真实 canary 到 100% stable 完成，150 次跨 Edge 健康请求全部 200，360 秒长连接完整返回，canonical 对齐和 Controller 更新后原 revision UID 保留。验证同时发现 canonical Service selector 会选中 candidate Pod，Controller 重启也会为同一操作重建 candidate；因此 Edge 摘要正确还不足以证明 origin release 隔离，生产 sticky、完整退役和回滚尚未验收。下一步见 P0-EP-Y。自动 gray/full/verify/rollback 代码已部署，但 producer 仍为 shadow；首次完整配置接管、positive LKG 和旧 serving 输入删除尚未完成。
+2026-09-21 最新验收快照：P0-EP-Y1 的 Service workload 隔离及迁移恢复已完成，Controller 为 `6c52c5ff`，API 为 `cbf6a26c`，活动 Worker 为 `9b03be63`。初始迁移曾因状态版本冲突引起 false failed/503，两个恢复提交已处理，全局 migration 标记清零，7 个受镜像 preflight 阻挡的应用恢复 deployed。canonical Service 仅选择对应 Pod，迁移保留 Pod UID；真实 50/50 canary 的 72 次请求全部 200，12 个 cookie session 在三台 Edge 的实际 origin 保持一致，180 秒长连接完整返回。100% 提升后的 upstream 确认仍超时，canonical 对齐/退役未完成；Controller 重启复用 release、按 revision drain、readiness endpoint 归属仍待修复。producer 仍为 shadow；首次完整配置接管、positive LKG 和旧 serving 输入删除尚未完成。
 
 生产 producer 仍为 `business-static-intent`/shadow，固定基础 intent `artifact_1789848966_aa79d274ac50` 和输入 policy `artifact_1789917932_e90aeeb2510d`；启用策略为 `artifact_1789917933_9f90cbb02a89`，显式选择 `consumer_readiness`。最新验收 shadow `artifact_1789924746_0593e3041d46`、fence 226 包含 160 route、245 DNS records、159 TLS references；两台 DNS 均为 462/462 probes、233/233 readiness records、248/248 eligible queries。八个消费者 observed，serving passing=0；六 artifact 精确重放通过，全局 serving/LKG 未切换。前端契约 `3979108b` 已实际部署，2/2 Ready、公网 200。
 
@@ -3605,8 +3605,8 @@ P0-EO 生产验证（2026-09-21）：
 
 P0-EP-X 生产取证确认 canonical Service selector 仅有 app 标签，会同时匹配 canonical 和两个 candidate Pod。Edge 即使选中 stable upstream，Kubernetes 仍可将请求转发到 candidate；这会破坏灰度权重、默认 sticky 和 rollback 的真实含义。必须修复后再推进首次全局 artifact serving。
 
-- [ ] 为 app workload 增加独立的执行身份标签，使 canonical Service、Compose alias 和 revision Service 只选择各自 workload；Deployment 的不可变 selector 迁移必须兼容既有对象。
-- [ ] 现有 Pod 到新 Service selector 的切换必须保持 endpoints 可用，先核实 owner/UID 和标签，再缩小 selector；不能只改 Service 后等待重建 Pod。
+- [x] 为 app workload 增加独立的执行身份标签，使 canonical Service、Compose alias 和 revision Service 只选择各自 workload；Deployment 的不可变 selector 保持原值。见 P0-EP-Y1 的生产与渲染回归证据；历史 candidate Service 已有 release ID 隔离，新建 revision 同时携带 workload 标签。
+- [x] 先核实 owner/UID，再补齐既有 Pod 与模板标签，最后缩小 Service selector。验证应用原 Pod UID 保留，canonical endpoints 仅包含 canonical Pod；初次上线的并发冲突及错误 failed 状态经两个恢复提交处理，见 Y1 事故记录。
 - [ ] 增加 selector 匹配回归：stable Service 不得包含 candidate 或 previous；不同 revision 不得互选。readiness 需验证实际 endpoints 属于目标 workload，不能只核对 Service 和 Deployment 表面身份。
 - [ ] Controller 重启接管同一 operation 时恢复既有 candidate/已提升 release 和进度，不得重新创建 candidate 或重置已经批准的流量。使用已有持久化账本并验证 owner、spec 和 operation identity。
 - [ ] drain 证据绑定 release/workload/Pod 身份与观察时间；不能用同 app 其他 revision 的排空日志授权删除。缺少证据继续保留，并具备后台重试与最终退役路径。
@@ -3621,6 +3621,10 @@ P0-EP-X 生产取证确认 canonical Service selector 仅有 app 标签，会同
 - [ ] 完成生产迁移与故障恢复验收。初次上线出现持续 409：Kubernetes 状态更新使 migration 的 resourceVersion 失效，部分对象保持 paused/resume；普通错误路径又将实际 Ready workload 报为 failed，验证应用出现过 503。不能将该初始发布标记为生产成功。
 - [x] 修复纯状态冲突的有界重读重试，仍拒绝 UID、owner、labels、annotations 或 spec 变化；迁移前置失败复用 fresh Deployment readiness 保留 serving，历史 ReplicaSet 已被删除时重新采集即可。Controller 全量测试、专门 race 和干净 prepush 通过，恢复提交 `d6190302` 已 push。
 - [x] [恢复 CI 35561420949](https://github.com/yym68686/fugue/actions/runs/35561420949) 成功，`d6190302` 两副本 Ready。验证应用恢复 200，迁移标记清除、paused=false，原 Pod UID 保留，canonical Service 的实际 endpoints 仅包含 canonical Pod；serving/LKG 指针未改变。
-- [ ] 全局迁移恢复完成。待迁移数量从 139 降至 7；剩余对象被既有镜像可用性检查挡在恢复入口前，不能把验证应用的成功等同于全局完成。
-- [x] 将已开始的 metadata migration 恢复入口前移到代码/镜像 preflight 前，保留 owner/UID/version 校验；Controller 全量测试、恢复 race 和干净 prepush 通过。提交 `6c52c5ff` 已 push，[CI 35562160993](https://github.com/yym68686/fugue/actions/runs/35562160993) 待生产验收。
-- [ ] 生产重新执行 canary/sticky 验收；完整 rollout 重启恢复、按 revision drain 和 readiness endpoints 归属验证仍由 P0-EP-Y 后续步骤完成。
+- [x] 全局迁移恢复完成。待迁移数量从 139 降至 7 后，发现剩余对象被镜像可用性检查挡住；`6c52c5ff` 上线后全局标记清零，7 个 Deployment 同 UID、Ready 副本保留且恢复 unpaused。验证应用保持 200，API/authority 正常。
+- [x] 将已开始的 metadata migration 恢复入口前移到代码/镜像 preflight 前，保留 owner/UID/version 校验；Controller 全量测试、恢复 race 和干净 prepush 通过。提交 `6c52c5ff` 经 [CI 35562160993](https://github.com/yym68686/fugue/actions/runs/35562160993) 部署，两副本 Ready；原镜像检查受阻的三个抽查应用恢复 deployed。
+- [x] 生产操作 `op_1789966513_84496585e1ac` 通过真实 50/50 origin 验证：12 个 cookie session、3 台 Edge、每台重复 2 次，共 72 请求全部 200，stable/candidate 各 36 次，同一 session 始终落同一 release。以请求标记匹配正式 Pod 日志，解析所有并发拼接记录，不借用 Edge 摘要代替 origin 证明。
+- [x] 操作已提升 100% 并完成；新 revision 的 180 秒长连接完整返回。全局 migration 标记仍为 0，Controller/API/authority 健康。
+- [ ] 完整 rollout/退役仍未通过：100% 提升后的 `edge_bundle_wait` 超时，Controller 保留旧 workload，未完成 canonical 对齐。重启恢复、按 revision drain 和 readiness endpoints 归属验证也仍待完成。
+
+证据：[service-workload-isolation-2026-09-21.json](verification/service-workload-isolation-2026-09-21.json)。本步骤包括一次真实生产回归与恢复，不能将初始 CI 成功解释为无故障上线。最终完成的是 Service origin 隔离及迁移恢复，不是 P0-EP 的完整发布闭环。

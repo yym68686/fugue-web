@@ -1,0 +1,1059 @@
+{
+  "isolation": {
+    "verified_at": "2026-09-21T04:40:43.298147+00:00",
+    "controller_commit": "d6190302d5b308af42e90332b6ab7d80658d504d",
+    "ci_run": "https://github.com/yym68686/fugue/actions/runs/35561420949",
+    "health": {
+      "/healthz": 200,
+      "/readyz": 200
+    },
+    "authority_ready": true,
+    "components": [
+      {
+        "component": "api",
+        "image_tag": "cbf6a26cf9ad863e08ef37f8b694fc1e61f1c9d8",
+        "ready_replicas": 2,
+        "updated_replicas": 2,
+        "desired_replicas": 2
+      },
+      {
+        "component": "controller",
+        "image_tag": "d6190302d5b308af42e90332b6ab7d80658d504d",
+        "ready_replicas": 2,
+        "updated_replicas": 2,
+        "desired_replicas": 2
+      }
+    ],
+    "serving_pointers_and_lkg_unchanged": true,
+    "canonical_deployment": {
+      "kind": "Deployment",
+      "name": "app-1783188884-8facd2b054e6",
+      "uid": "c2263e9f-c194-432b-985d-c9633d4251a1",
+      "generation": 25,
+      "labels": {
+        "app.kubernetes.io/managed-by": "fugue",
+        "app.kubernetes.io/name": "drain-canary-0705",
+        "fugue.pro/app-id": "app_1783188884_8facd2b054e6",
+        "fugue.pro/owner-app-id": "app_1783188884_8facd2b054e6",
+        "fugue.pro/project-id": "project_1778959457_ae0be86f4b05",
+        "fugue.pro/tenant-id": "tenant_1774393589_e35b60a6fc11"
+      },
+      "owners": [
+        {
+          "apiVersion": "fugue.pro/v1alpha1",
+          "blockOwnerDeletion": true,
+          "controller": false,
+          "kind": "ManagedApp",
+          "name": "app-1783188884-8facd2b054e6",
+          "uid": "8779497b-2619-471a-a231-03c9afcc4685"
+        }
+      ],
+      "deletion_timestamp": null,
+      "paused": false,
+      "migration": null,
+      "selector": {
+        "matchLabels": {
+          "app.kubernetes.io/managed-by": "fugue",
+          "app.kubernetes.io/name": "drain-canary-0705",
+          "fugue.pro/app-id": "app_1783188884_8facd2b054e6",
+          "fugue.pro/owner-app-id": "app_1783188884_8facd2b054e6",
+          "fugue.pro/project-id": "project_1778959457_ae0be86f4b05",
+          "fugue.pro/tenant-id": "tenant_1774393589_e35b60a6fc11"
+        }
+      },
+      "template_labels": {
+        "app.kubernetes.io/managed-by": "fugue",
+        "app.kubernetes.io/name": "drain-canary-0705",
+        "fugue.pro/app-id": "app_1783188884_8facd2b054e6",
+        "fugue.pro/app-workload": "app-1783188884-8facd2b054e6",
+        "fugue.pro/owner-app-id": "app_1783188884_8facd2b054e6",
+        "fugue.pro/project-id": "project_1778959457_ae0be86f4b05",
+        "fugue.pro/tenant-id": "tenant_1774393589_e35b60a6fc11"
+      },
+      "ready_replicas": 1,
+      "containers": []
+    },
+    "canonical_service": {
+      "kind": "Service",
+      "name": "app-1783188884-8facd2b054e6",
+      "uid": "4c44342d-80be-4ccb-8162-a91017219346",
+      "generation": null,
+      "labels": {
+        "app.kubernetes.io/managed-by": "fugue",
+        "app.kubernetes.io/name": "drain-canary-0705",
+        "fugue.pro/app-id": "app_1783188884_8facd2b054e6",
+        "fugue.pro/owner-app-id": "app_1783188884_8facd2b054e6",
+        "fugue.pro/project-id": "project_1778959457_ae0be86f4b05",
+        "fugue.pro/tenant-id": "tenant_1774393589_e35b60a6fc11"
+      },
+      "owners": [
+        {
+          "apiVersion": "fugue.pro/v1alpha1",
+          "blockOwnerDeletion": true,
+          "controller": false,
+          "kind": "ManagedApp",
+          "name": "app-1783188884-8facd2b054e6",
+          "uid": "8779497b-2619-471a-a231-03c9afcc4685"
+        }
+      ],
+      "deletion_timestamp": null,
+      "paused": false,
+      "migration": null,
+      "selector": {
+        "app.kubernetes.io/managed-by": "fugue",
+        "app.kubernetes.io/name": "drain-canary-0705",
+        "fugue.pro/app-id": "app_1783188884_8facd2b054e6",
+        "fugue.pro/app-workload": "app-1783188884-8facd2b054e6",
+        "fugue.pro/owner-app-id": "app_1783188884_8facd2b054e6",
+        "fugue.pro/project-id": "project_1778959457_ae0be86f4b05",
+        "fugue.pro/tenant-id": "tenant_1774393589_e35b60a6fc11"
+      },
+      "template_labels": null,
+      "ready_replicas": null,
+      "containers": []
+    },
+    "pod_uids_preserved": [
+      "39e9a871-9ce2-42d7-93d8-d6a9a85a6acf"
+    ],
+    "endpoints_only_canonical_pods": [
+      "39e9a871-9ce2-42d7-93d8-d6a9a85a6acf"
+    ],
+    "migration_completed_unpaused": true,
+    "prepush": {
+      "apiVersion": "prepush.fugue.dev/v1",
+      "baseCommit": "3fc8b0ed6359c4d79088ccd8db9da0e5d9b20f6d",
+      "changedFilesDigest": "sha256:a22e7bef218d3490f1ca74923a5749d9e868d71ef2c4c009898a9a3880da9de3",
+      "checks": {
+        "affected-tests": {
+          "durationMs": 8378,
+          "status": "pass"
+        },
+        "affected-vet": {
+          "durationMs": 1262,
+          "status": "pass"
+        },
+        "compile-all": {
+          "durationMs": 8376,
+          "status": "pass"
+        },
+        "declarative-release-tests": {
+          "durationMs": 8617,
+          "status": "pass"
+        },
+        "diff-check": {
+          "durationMs": 120,
+          "status": "pass"
+        },
+        "gofmt": {
+          "durationMs": 23,
+          "status": "pass"
+        },
+        "helm-lint-render": {
+          "durationMs": 0,
+          "status": "skipped"
+        },
+        "openapi-generated": {
+          "durationMs": 552,
+          "status": "pass"
+        },
+        "shell-syntax": {
+          "durationMs": 0,
+          "status": "pass"
+        }
+      },
+      "elapsedMs": 9808,
+      "kind": "PrepushReceipt",
+      "sourceCommit": "d6190302d5b308af42e90332b6ab7d80658d504d",
+      "status": "pass"
+    }
+  },
+  "recovery": {
+    "verified_at": "2026-09-21T04:54:56.023427+00:00",
+    "controller_commit": "6c52c5fffe7c0d6528614d6ae76fd67920e6dd91",
+    "ci_run": "https://github.com/yym68686/fugue/actions/runs/35562160993",
+    "migration_pending": 0,
+    "recovered_despite_image_preflight": [
+      {
+        "namespace": "fg-tenant-1774494657-53820de6a0cd",
+        "deployment": "app-1775798254-47c126f1671a",
+        "uid": "9db97779-f3cd-43b4-9c71-3e254fc865fa",
+        "ready_replicas": 1,
+        "paused": false
+      },
+      {
+        "namespace": "fg-tenant-1774494657-53820de6a0cd",
+        "deployment": "app-1777257250-1907954fc926",
+        "uid": "5c155653-fc63-4f2a-8367-05bbcc8fde1c",
+        "ready_replicas": 1,
+        "paused": false
+      },
+      {
+        "namespace": "fg-tenant-1774494657-53820de6a0cd",
+        "deployment": "app-1777458619-dca4b9eb7b8f",
+        "uid": "0b21ed8b-5e91-487d-b919-b25df4def1f4",
+        "ready_replicas": 1,
+        "paused": false
+      },
+      {
+        "namespace": "fg-tenant-1774720388-5c9ca0db3d42",
+        "deployment": "app-1780127710-d93379954287",
+        "uid": "6ba0d3e8-d839-4b8d-bac7-352daff22a71",
+        "ready_replicas": 1,
+        "paused": false
+      },
+      {
+        "namespace": "fg-tenant-1774748319-4829b04f7aca",
+        "deployment": "app-1776165308-fc14de524de7",
+        "uid": "8f3fa4f7-3177-4a55-8383-2c1c90fef610",
+        "ready_replicas": 1,
+        "paused": false
+      },
+      {
+        "namespace": "fg-tenant-1778120912-d856ecb57eb3",
+        "deployment": "app-1778128817-a711e4fd5c16",
+        "uid": "e0075025-d80f-4197-8d4c-e0fb5b6123dd",
+        "ready_replicas": 1,
+        "paused": false
+      },
+      {
+        "namespace": "fg-tenant-1779625459-745f5df7e403",
+        "deployment": "app-1779625801-33a4c152bcb7",
+        "uid": "bd2c7f7f-7d56-47d4-868f-664ca0b4d717",
+        "ready_replicas": 1,
+        "paused": false
+      }
+    ],
+    "components": [
+      {
+        "component": "api",
+        "image_tag": "4d6f6b1290e034568d5168de335acfa83a63b41c",
+        "ready_replicas": 2,
+        "updated_replicas": 2,
+        "desired_replicas": 2
+      },
+      {
+        "component": "controller",
+        "image_tag": "6c52c5fffe7c0d6528614d6ae76fd67920e6dd91",
+        "ready_replicas": 2,
+        "updated_replicas": 2,
+        "desired_replicas": 2
+      }
+    ],
+    "health": {
+      "/healthz": 200,
+      "/readyz": 200
+    },
+    "authority_ready": true,
+    "prepush": {
+      "apiVersion": "prepush.fugue.dev/v1",
+      "baseCommit": "a8acecf96f8cad64bd82157b9f661a69b5cbf9bf",
+      "changedFilesDigest": "sha256:a22e7bef218d3490f1ca74923a5749d9e868d71ef2c4c009898a9a3880da9de3",
+      "checks": {
+        "affected-tests": {
+          "durationMs": 13273,
+          "status": "pass"
+        },
+        "affected-vet": {
+          "durationMs": 2016,
+          "status": "pass"
+        },
+        "compile-all": {
+          "durationMs": 9458,
+          "status": "pass"
+        },
+        "declarative-release-tests": {
+          "durationMs": 10165,
+          "status": "pass"
+        },
+        "diff-check": {
+          "durationMs": 90,
+          "status": "pass"
+        },
+        "gofmt": {
+          "durationMs": 22,
+          "status": "pass"
+        },
+        "helm-lint-render": {
+          "durationMs": 0,
+          "status": "skipped"
+        },
+        "openapi-generated": {
+          "durationMs": 1145,
+          "status": "pass"
+        },
+        "shell-syntax": {
+          "durationMs": 0,
+          "status": "pass"
+        }
+      },
+      "elapsedMs": 13401,
+      "kind": "PrepushReceipt",
+      "sourceCommit": "6c52c5fffe7c0d6528614d6ae76fd67920e6dd91",
+      "status": "pass"
+    }
+  },
+  "sticky": {
+    "verified_at": "2026-09-21T05:03:24.707187+00:00",
+    "operation_id": "op_1789966513_84496585e1ac",
+    "policy": {
+      "mode": "canary",
+      "stable_release_id": "apprel_1789962494_15d0571bf92c",
+      "candidate_release_id": "apprel_1789966515_75386122ffc5",
+      "stable_weight": 50,
+      "candidate_weight": 50
+    },
+    "requests": 72,
+    "sessions": 12,
+    "all_http_200": true,
+    "sticky_across_nodes_and_repeats": true,
+    "origin_release_counts": {
+      "apprel_1789966515_75386122ffc5": 36,
+      "apprel_1789962494_15d0571bf92c": 36
+    },
+    "observations": [
+      {
+        "request": "sticky-a150166543cc9940-0-vps-84c8f0a9-0",
+        "node": "vps-84c8f0a9",
+        "session": 0,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789966515_75386122ffc5",
+        "pod": "app-1783188884-8facd2b054e6-candidate-b20fb8b63bf8-7545955k5vs6"
+      },
+      {
+        "request": "sticky-a150166543cc9940-0-vps-84c8f0a9-1",
+        "node": "vps-84c8f0a9",
+        "session": 0,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789966515_75386122ffc5",
+        "pod": "app-1783188884-8facd2b054e6-candidate-b20fb8b63bf8-7545955k5vs6"
+      },
+      {
+        "request": "sticky-a150166543cc9940-0-bwg-0",
+        "node": "bwg",
+        "session": 0,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789966515_75386122ffc5",
+        "pod": "app-1783188884-8facd2b054e6-candidate-b20fb8b63bf8-7545955k5vs6"
+      },
+      {
+        "request": "sticky-a150166543cc9940-0-bwg-1",
+        "node": "bwg",
+        "session": 0,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789966515_75386122ffc5",
+        "pod": "app-1783188884-8facd2b054e6-candidate-b20fb8b63bf8-7545955k5vs6"
+      },
+      {
+        "request": "sticky-a150166543cc9940-0-vps-591f4447-0",
+        "node": "vps-591f4447",
+        "session": 0,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789966515_75386122ffc5",
+        "pod": "app-1783188884-8facd2b054e6-candidate-b20fb8b63bf8-7545955k5vs6"
+      },
+      {
+        "request": "sticky-a150166543cc9940-0-vps-591f4447-1",
+        "node": "vps-591f4447",
+        "session": 0,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789966515_75386122ffc5",
+        "pod": "app-1783188884-8facd2b054e6-candidate-b20fb8b63bf8-7545955k5vs6"
+      },
+      {
+        "request": "sticky-a150166543cc9940-1-vps-84c8f0a9-0",
+        "node": "vps-84c8f0a9",
+        "session": 1,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789962494_15d0571bf92c",
+        "pod": "app-1783188884-8facd2b054e6-6d9b49fddb-52br7"
+      },
+      {
+        "request": "sticky-a150166543cc9940-1-vps-84c8f0a9-1",
+        "node": "vps-84c8f0a9",
+        "session": 1,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789962494_15d0571bf92c",
+        "pod": "app-1783188884-8facd2b054e6-6d9b49fddb-52br7"
+      },
+      {
+        "request": "sticky-a150166543cc9940-1-bwg-0",
+        "node": "bwg",
+        "session": 1,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789962494_15d0571bf92c",
+        "pod": "app-1783188884-8facd2b054e6-6d9b49fddb-52br7"
+      },
+      {
+        "request": "sticky-a150166543cc9940-1-bwg-1",
+        "node": "bwg",
+        "session": 1,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789962494_15d0571bf92c",
+        "pod": "app-1783188884-8facd2b054e6-6d9b49fddb-52br7"
+      },
+      {
+        "request": "sticky-a150166543cc9940-1-vps-591f4447-0",
+        "node": "vps-591f4447",
+        "session": 1,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789962494_15d0571bf92c",
+        "pod": "app-1783188884-8facd2b054e6-6d9b49fddb-52br7"
+      },
+      {
+        "request": "sticky-a150166543cc9940-1-vps-591f4447-1",
+        "node": "vps-591f4447",
+        "session": 1,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789962494_15d0571bf92c",
+        "pod": "app-1783188884-8facd2b054e6-6d9b49fddb-52br7"
+      },
+      {
+        "request": "sticky-a150166543cc9940-2-vps-84c8f0a9-0",
+        "node": "vps-84c8f0a9",
+        "session": 2,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789962494_15d0571bf92c",
+        "pod": "app-1783188884-8facd2b054e6-6d9b49fddb-52br7"
+      },
+      {
+        "request": "sticky-a150166543cc9940-2-vps-84c8f0a9-1",
+        "node": "vps-84c8f0a9",
+        "session": 2,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789962494_15d0571bf92c",
+        "pod": "app-1783188884-8facd2b054e6-6d9b49fddb-52br7"
+      },
+      {
+        "request": "sticky-a150166543cc9940-2-bwg-0",
+        "node": "bwg",
+        "session": 2,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789962494_15d0571bf92c",
+        "pod": "app-1783188884-8facd2b054e6-6d9b49fddb-52br7"
+      },
+      {
+        "request": "sticky-a150166543cc9940-2-bwg-1",
+        "node": "bwg",
+        "session": 2,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789962494_15d0571bf92c",
+        "pod": "app-1783188884-8facd2b054e6-6d9b49fddb-52br7"
+      },
+      {
+        "request": "sticky-a150166543cc9940-2-vps-591f4447-0",
+        "node": "vps-591f4447",
+        "session": 2,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789962494_15d0571bf92c",
+        "pod": "app-1783188884-8facd2b054e6-6d9b49fddb-52br7"
+      },
+      {
+        "request": "sticky-a150166543cc9940-2-vps-591f4447-1",
+        "node": "vps-591f4447",
+        "session": 2,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789962494_15d0571bf92c",
+        "pod": "app-1783188884-8facd2b054e6-6d9b49fddb-52br7"
+      },
+      {
+        "request": "sticky-a150166543cc9940-3-vps-84c8f0a9-0",
+        "node": "vps-84c8f0a9",
+        "session": 3,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789966515_75386122ffc5",
+        "pod": "app-1783188884-8facd2b054e6-candidate-b20fb8b63bf8-7545955k5vs6"
+      },
+      {
+        "request": "sticky-a150166543cc9940-3-vps-84c8f0a9-1",
+        "node": "vps-84c8f0a9",
+        "session": 3,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789966515_75386122ffc5",
+        "pod": "app-1783188884-8facd2b054e6-candidate-b20fb8b63bf8-7545955k5vs6"
+      },
+      {
+        "request": "sticky-a150166543cc9940-3-bwg-0",
+        "node": "bwg",
+        "session": 3,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789966515_75386122ffc5",
+        "pod": "app-1783188884-8facd2b054e6-candidate-b20fb8b63bf8-7545955k5vs6"
+      },
+      {
+        "request": "sticky-a150166543cc9940-3-bwg-1",
+        "node": "bwg",
+        "session": 3,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789966515_75386122ffc5",
+        "pod": "app-1783188884-8facd2b054e6-candidate-b20fb8b63bf8-7545955k5vs6"
+      },
+      {
+        "request": "sticky-a150166543cc9940-3-vps-591f4447-0",
+        "node": "vps-591f4447",
+        "session": 3,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789966515_75386122ffc5",
+        "pod": "app-1783188884-8facd2b054e6-candidate-b20fb8b63bf8-7545955k5vs6"
+      },
+      {
+        "request": "sticky-a150166543cc9940-3-vps-591f4447-1",
+        "node": "vps-591f4447",
+        "session": 3,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789966515_75386122ffc5",
+        "pod": "app-1783188884-8facd2b054e6-candidate-b20fb8b63bf8-7545955k5vs6"
+      },
+      {
+        "request": "sticky-a150166543cc9940-4-vps-84c8f0a9-0",
+        "node": "vps-84c8f0a9",
+        "session": 4,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789966515_75386122ffc5",
+        "pod": "app-1783188884-8facd2b054e6-candidate-b20fb8b63bf8-7545955k5vs6"
+      },
+      {
+        "request": "sticky-a150166543cc9940-4-vps-84c8f0a9-1",
+        "node": "vps-84c8f0a9",
+        "session": 4,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789966515_75386122ffc5",
+        "pod": "app-1783188884-8facd2b054e6-candidate-b20fb8b63bf8-7545955k5vs6"
+      },
+      {
+        "request": "sticky-a150166543cc9940-4-bwg-0",
+        "node": "bwg",
+        "session": 4,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789966515_75386122ffc5",
+        "pod": "app-1783188884-8facd2b054e6-candidate-b20fb8b63bf8-7545955k5vs6"
+      },
+      {
+        "request": "sticky-a150166543cc9940-4-bwg-1",
+        "node": "bwg",
+        "session": 4,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789966515_75386122ffc5",
+        "pod": "app-1783188884-8facd2b054e6-candidate-b20fb8b63bf8-7545955k5vs6"
+      },
+      {
+        "request": "sticky-a150166543cc9940-4-vps-591f4447-0",
+        "node": "vps-591f4447",
+        "session": 4,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789966515_75386122ffc5",
+        "pod": "app-1783188884-8facd2b054e6-candidate-b20fb8b63bf8-7545955k5vs6"
+      },
+      {
+        "request": "sticky-a150166543cc9940-4-vps-591f4447-1",
+        "node": "vps-591f4447",
+        "session": 4,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789966515_75386122ffc5",
+        "pod": "app-1783188884-8facd2b054e6-candidate-b20fb8b63bf8-7545955k5vs6"
+      },
+      {
+        "request": "sticky-a150166543cc9940-5-vps-84c8f0a9-0",
+        "node": "vps-84c8f0a9",
+        "session": 5,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789962494_15d0571bf92c",
+        "pod": "app-1783188884-8facd2b054e6-6d9b49fddb-52br7"
+      },
+      {
+        "request": "sticky-a150166543cc9940-5-vps-84c8f0a9-1",
+        "node": "vps-84c8f0a9",
+        "session": 5,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789962494_15d0571bf92c",
+        "pod": "app-1783188884-8facd2b054e6-6d9b49fddb-52br7"
+      },
+      {
+        "request": "sticky-a150166543cc9940-5-bwg-0",
+        "node": "bwg",
+        "session": 5,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789962494_15d0571bf92c",
+        "pod": "app-1783188884-8facd2b054e6-6d9b49fddb-52br7"
+      },
+      {
+        "request": "sticky-a150166543cc9940-5-bwg-1",
+        "node": "bwg",
+        "session": 5,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789962494_15d0571bf92c",
+        "pod": "app-1783188884-8facd2b054e6-6d9b49fddb-52br7"
+      },
+      {
+        "request": "sticky-a150166543cc9940-5-vps-591f4447-0",
+        "node": "vps-591f4447",
+        "session": 5,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789962494_15d0571bf92c",
+        "pod": "app-1783188884-8facd2b054e6-6d9b49fddb-52br7"
+      },
+      {
+        "request": "sticky-a150166543cc9940-5-vps-591f4447-1",
+        "node": "vps-591f4447",
+        "session": 5,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789962494_15d0571bf92c",
+        "pod": "app-1783188884-8facd2b054e6-6d9b49fddb-52br7"
+      },
+      {
+        "request": "sticky-a150166543cc9940-6-vps-84c8f0a9-0",
+        "node": "vps-84c8f0a9",
+        "session": 6,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789966515_75386122ffc5",
+        "pod": "app-1783188884-8facd2b054e6-candidate-b20fb8b63bf8-7545955k5vs6"
+      },
+      {
+        "request": "sticky-a150166543cc9940-6-vps-84c8f0a9-1",
+        "node": "vps-84c8f0a9",
+        "session": 6,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789966515_75386122ffc5",
+        "pod": "app-1783188884-8facd2b054e6-candidate-b20fb8b63bf8-7545955k5vs6"
+      },
+      {
+        "request": "sticky-a150166543cc9940-6-bwg-0",
+        "node": "bwg",
+        "session": 6,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789966515_75386122ffc5",
+        "pod": "app-1783188884-8facd2b054e6-candidate-b20fb8b63bf8-7545955k5vs6"
+      },
+      {
+        "request": "sticky-a150166543cc9940-6-bwg-1",
+        "node": "bwg",
+        "session": 6,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789966515_75386122ffc5",
+        "pod": "app-1783188884-8facd2b054e6-candidate-b20fb8b63bf8-7545955k5vs6"
+      },
+      {
+        "request": "sticky-a150166543cc9940-6-vps-591f4447-0",
+        "node": "vps-591f4447",
+        "session": 6,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789966515_75386122ffc5",
+        "pod": "app-1783188884-8facd2b054e6-candidate-b20fb8b63bf8-7545955k5vs6"
+      },
+      {
+        "request": "sticky-a150166543cc9940-6-vps-591f4447-1",
+        "node": "vps-591f4447",
+        "session": 6,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789966515_75386122ffc5",
+        "pod": "app-1783188884-8facd2b054e6-candidate-b20fb8b63bf8-7545955k5vs6"
+      },
+      {
+        "request": "sticky-a150166543cc9940-7-vps-84c8f0a9-0",
+        "node": "vps-84c8f0a9",
+        "session": 7,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789962494_15d0571bf92c",
+        "pod": "app-1783188884-8facd2b054e6-6d9b49fddb-52br7"
+      },
+      {
+        "request": "sticky-a150166543cc9940-7-vps-84c8f0a9-1",
+        "node": "vps-84c8f0a9",
+        "session": 7,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789962494_15d0571bf92c",
+        "pod": "app-1783188884-8facd2b054e6-6d9b49fddb-52br7"
+      },
+      {
+        "request": "sticky-a150166543cc9940-7-bwg-0",
+        "node": "bwg",
+        "session": 7,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789962494_15d0571bf92c",
+        "pod": "app-1783188884-8facd2b054e6-6d9b49fddb-52br7"
+      },
+      {
+        "request": "sticky-a150166543cc9940-7-bwg-1",
+        "node": "bwg",
+        "session": 7,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789962494_15d0571bf92c",
+        "pod": "app-1783188884-8facd2b054e6-6d9b49fddb-52br7"
+      },
+      {
+        "request": "sticky-a150166543cc9940-7-vps-591f4447-0",
+        "node": "vps-591f4447",
+        "session": 7,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789962494_15d0571bf92c",
+        "pod": "app-1783188884-8facd2b054e6-6d9b49fddb-52br7"
+      },
+      {
+        "request": "sticky-a150166543cc9940-7-vps-591f4447-1",
+        "node": "vps-591f4447",
+        "session": 7,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789962494_15d0571bf92c",
+        "pod": "app-1783188884-8facd2b054e6-6d9b49fddb-52br7"
+      },
+      {
+        "request": "sticky-a150166543cc9940-8-vps-84c8f0a9-0",
+        "node": "vps-84c8f0a9",
+        "session": 8,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789962494_15d0571bf92c",
+        "pod": "app-1783188884-8facd2b054e6-6d9b49fddb-52br7"
+      },
+      {
+        "request": "sticky-a150166543cc9940-8-vps-84c8f0a9-1",
+        "node": "vps-84c8f0a9",
+        "session": 8,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789962494_15d0571bf92c",
+        "pod": "app-1783188884-8facd2b054e6-6d9b49fddb-52br7"
+      },
+      {
+        "request": "sticky-a150166543cc9940-8-bwg-0",
+        "node": "bwg",
+        "session": 8,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789962494_15d0571bf92c",
+        "pod": "app-1783188884-8facd2b054e6-6d9b49fddb-52br7"
+      },
+      {
+        "request": "sticky-a150166543cc9940-8-bwg-1",
+        "node": "bwg",
+        "session": 8,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789962494_15d0571bf92c",
+        "pod": "app-1783188884-8facd2b054e6-6d9b49fddb-52br7"
+      },
+      {
+        "request": "sticky-a150166543cc9940-8-vps-591f4447-0",
+        "node": "vps-591f4447",
+        "session": 8,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789962494_15d0571bf92c",
+        "pod": "app-1783188884-8facd2b054e6-6d9b49fddb-52br7"
+      },
+      {
+        "request": "sticky-a150166543cc9940-8-vps-591f4447-1",
+        "node": "vps-591f4447",
+        "session": 8,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789962494_15d0571bf92c",
+        "pod": "app-1783188884-8facd2b054e6-6d9b49fddb-52br7"
+      },
+      {
+        "request": "sticky-a150166543cc9940-9-vps-84c8f0a9-0",
+        "node": "vps-84c8f0a9",
+        "session": 9,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789966515_75386122ffc5",
+        "pod": "app-1783188884-8facd2b054e6-candidate-b20fb8b63bf8-7545955k5vs6"
+      },
+      {
+        "request": "sticky-a150166543cc9940-9-vps-84c8f0a9-1",
+        "node": "vps-84c8f0a9",
+        "session": 9,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789966515_75386122ffc5",
+        "pod": "app-1783188884-8facd2b054e6-candidate-b20fb8b63bf8-7545955k5vs6"
+      },
+      {
+        "request": "sticky-a150166543cc9940-9-bwg-0",
+        "node": "bwg",
+        "session": 9,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789966515_75386122ffc5",
+        "pod": "app-1783188884-8facd2b054e6-candidate-b20fb8b63bf8-7545955k5vs6"
+      },
+      {
+        "request": "sticky-a150166543cc9940-9-bwg-1",
+        "node": "bwg",
+        "session": 9,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789966515_75386122ffc5",
+        "pod": "app-1783188884-8facd2b054e6-candidate-b20fb8b63bf8-7545955k5vs6"
+      },
+      {
+        "request": "sticky-a150166543cc9940-9-vps-591f4447-0",
+        "node": "vps-591f4447",
+        "session": 9,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789966515_75386122ffc5",
+        "pod": "app-1783188884-8facd2b054e6-candidate-b20fb8b63bf8-7545955k5vs6"
+      },
+      {
+        "request": "sticky-a150166543cc9940-9-vps-591f4447-1",
+        "node": "vps-591f4447",
+        "session": 9,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789966515_75386122ffc5",
+        "pod": "app-1783188884-8facd2b054e6-candidate-b20fb8b63bf8-7545955k5vs6"
+      },
+      {
+        "request": "sticky-a150166543cc9940-10-vps-84c8f0a9-0",
+        "node": "vps-84c8f0a9",
+        "session": 10,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789966515_75386122ffc5",
+        "pod": "app-1783188884-8facd2b054e6-candidate-b20fb8b63bf8-7545955k5vs6"
+      },
+      {
+        "request": "sticky-a150166543cc9940-10-vps-84c8f0a9-1",
+        "node": "vps-84c8f0a9",
+        "session": 10,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789966515_75386122ffc5",
+        "pod": "app-1783188884-8facd2b054e6-candidate-b20fb8b63bf8-7545955k5vs6"
+      },
+      {
+        "request": "sticky-a150166543cc9940-10-bwg-0",
+        "node": "bwg",
+        "session": 10,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789966515_75386122ffc5",
+        "pod": "app-1783188884-8facd2b054e6-candidate-b20fb8b63bf8-7545955k5vs6"
+      },
+      {
+        "request": "sticky-a150166543cc9940-10-bwg-1",
+        "node": "bwg",
+        "session": 10,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789966515_75386122ffc5",
+        "pod": "app-1783188884-8facd2b054e6-candidate-b20fb8b63bf8-7545955k5vs6"
+      },
+      {
+        "request": "sticky-a150166543cc9940-10-vps-591f4447-0",
+        "node": "vps-591f4447",
+        "session": 10,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789966515_75386122ffc5",
+        "pod": "app-1783188884-8facd2b054e6-candidate-b20fb8b63bf8-7545955k5vs6"
+      },
+      {
+        "request": "sticky-a150166543cc9940-10-vps-591f4447-1",
+        "node": "vps-591f4447",
+        "session": 10,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789966515_75386122ffc5",
+        "pod": "app-1783188884-8facd2b054e6-candidate-b20fb8b63bf8-7545955k5vs6"
+      },
+      {
+        "request": "sticky-a150166543cc9940-11-vps-84c8f0a9-0",
+        "node": "vps-84c8f0a9",
+        "session": 11,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789962494_15d0571bf92c",
+        "pod": "app-1783188884-8facd2b054e6-6d9b49fddb-52br7"
+      },
+      {
+        "request": "sticky-a150166543cc9940-11-vps-84c8f0a9-1",
+        "node": "vps-84c8f0a9",
+        "session": 11,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789962494_15d0571bf92c",
+        "pod": "app-1783188884-8facd2b054e6-6d9b49fddb-52br7"
+      },
+      {
+        "request": "sticky-a150166543cc9940-11-bwg-0",
+        "node": "bwg",
+        "session": 11,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789962494_15d0571bf92c",
+        "pod": "app-1783188884-8facd2b054e6-6d9b49fddb-52br7"
+      },
+      {
+        "request": "sticky-a150166543cc9940-11-bwg-1",
+        "node": "bwg",
+        "session": 11,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789962494_15d0571bf92c",
+        "pod": "app-1783188884-8facd2b054e6-6d9b49fddb-52br7"
+      },
+      {
+        "request": "sticky-a150166543cc9940-11-vps-591f4447-0",
+        "node": "vps-591f4447",
+        "session": 11,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789962494_15d0571bf92c",
+        "pod": "app-1783188884-8facd2b054e6-6d9b49fddb-52br7"
+      },
+      {
+        "request": "sticky-a150166543cc9940-11-vps-591f4447-1",
+        "node": "vps-591f4447",
+        "session": 11,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789962494_15d0571bf92c",
+        "pod": "app-1783188884-8facd2b054e6-6d9b49fddb-52br7"
+      }
+    ],
+    "parser": "all request matches including concurrent log records on one line"
+  },
+  "operation": {
+    "id": "op_1789966513_84496585e1ac",
+    "status": "completed",
+    "error_message": null,
+    "result_message": "managed app reconciled in namespace fg-tenant-1774393589-e35b60a6fc11",
+    "updated_at": "2026-09-21T05:03:27.272313Z"
+  },
+  "audit": [
+    {
+      "id": "audit_1789967007_8ecdfb6aac14",
+      "action": "app.release.previous_retire.paused",
+      "created_at": "2026-09-21T05:03:27.244233Z",
+      "resource_id": null,
+      "metadata": {
+        "app_id": "app_1783188884_8facd2b054e6",
+        "app_release_id": "apprel_1789966515_75386122ffc5",
+        "operation_id": "op_1789966513_84496585e1ac",
+        "phase": "edge_bundle_wait",
+        "reason": "context deadline exceeded"
+      }
+    },
+    {
+      "id": "audit_1789966917_aab8760040fe",
+      "action": "app.release.promote",
+      "created_at": "2026-09-21T05:01:57.235511Z",
+      "resource_id": null,
+      "metadata": {
+        "app_id": "app_1783188884_8facd2b054e6",
+        "app_release_id": "apprel_1789966515_75386122ffc5",
+        "mode": "safe_zero_downtime",
+        "operation_id": "op_1789966513_84496585e1ac"
+      }
+    },
+    {
+      "id": "audit_1789966917_cefbe148f445",
+      "action": "app.release.gate.pass",
+      "created_at": "2026-09-21T05:01:57.189583Z",
+      "resource_id": null,
+      "metadata": {
+        "app_id": "app_1783188884_8facd2b054e6",
+        "app_release_id": "apprel_1789966515_75386122ffc5",
+        "candidate_release": "apprel_1789966515_75386122ffc5",
+        "candidate_weight": "50",
+        "operation_id": "op_1789966513_84496585e1ac",
+        "phase": "canary_gate"
+      }
+    },
+    {
+      "id": "audit_1789966742_84e267d92a99",
+      "action": "app.release.canary.shifted",
+      "created_at": "2026-09-21T04:59:02.56082Z",
+      "resource_id": null,
+      "metadata": {
+        "app_id": "app_1783188884_8facd2b054e6",
+        "app_release_id": "apprel_1789966515_75386122ffc5",
+        "candidate_weight": "50",
+        "operation_id": "op_1789966513_84496585e1ac"
+      }
+    },
+    {
+      "id": "audit_1789966742_2f340a0889a4",
+      "action": "app.release.gate.pass",
+      "created_at": "2026-09-21T04:59:02.359757Z",
+      "resource_id": null,
+      "metadata": {
+        "app_id": "app_1783188884_8facd2b054e6",
+        "app_release_id": "apprel_1789966515_75386122ffc5",
+        "operation_id": "op_1789966513_84496585e1ac",
+        "phase": "gate_check"
+      }
+    }
+  ],
+  "stream": {
+    "seconds": 180,
+    "ticks": 180,
+    "curl_exit": 0,
+    "origin_release": "apprel_1789966515_75386122ffc5",
+    "scope": "after promotion; canonical alignment did not complete"
+  },
+  "limitations": [
+    "100% upstream confirmation timed out; canonical alignment and retirement remained paused",
+    "Restart resume and per-revision drain remain pending",
+    "Full configuration serving and verified LKG remain pending"
+  ],
+  "incident": {
+    "initial_commit": "7dc14e5270f975fc526adfed62ed189e8179993f",
+    "symptom": "resourceVersion conflicts left metadata migration paused and caused false failed status; observed HTTP 503",
+    "peak_observed_pending": 139,
+    "recovery_commits": [
+      "d6190302d5b308af42e90332b6ab7d80658d504d",
+      "6c52c5fffe7c0d6528614d6ae76fd67920e6dd91"
+    ],
+    "final_pending": 0
+  }
+}
