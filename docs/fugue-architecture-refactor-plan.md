@@ -3612,3 +3612,15 @@ P0-EP-X 生产取证确认 canonical Service selector 仅有 app 标签，会同
 - [ ] drain 证据绑定 release/workload/Pod 身份与观察时间；不能用同 app 其他 revision 的排空日志授权删除。缺少证据继续保留，并具备后台重试与最终退役路径。
 - [ ] 修复后通过真实 50/50 请求按 Pod 日志核对 origin：同 cookie 在各 Edge 的重复请求保持同 release，权重分配正确；再验证长连接、失败回滚、重启恢复与最终资源回收。
 - [ ] 每个原子修复通过本地测试、main/Actions 和生产证据后分别勾选；完成前保持全局配置 producer shadow 和原 positive LKG。
+
+### P0-EP-Y1：Service workload 隔离与既有 Pod 迁移
+
+- [x] 增加 `fugue.pro/app-workload`，canonical/Compose alias/revision Service 只选择对应 workload；原 Deployment selector 不变，派生标签不改变 executable release key。
+- [x] 迁移校验 Deployment/ReplicaSet/Pod 的 UID 归属和 resourceVersion；暂停 Deployment 后同步 ReplicaSet 模板、现有 Pod 和 Deployment 模板，再恢复原暂停状态。中断恢复记录保存在同一 Deployment annotation。
+- [x] 渲染匹配、错误 owner/UID、恢复与幂等回归、runtime/controller race、全量 make test 和干净 prepush 通过。初始提交 `7dc14e52` 经 [CI 35560584868](https://github.com/yym68686/fugue/actions/runs/35560584868) 上线。
+- [ ] 完成生产迁移与故障恢复验收。初次上线出现持续 409：Kubernetes 状态更新使 migration 的 resourceVersion 失效，部分对象保持 paused/resume；普通错误路径又将实际 Ready workload 报为 failed，验证应用出现过 503。不能将该初始发布标记为生产成功。
+- [x] 修复纯状态冲突的有界重读重试，仍拒绝 UID、owner、labels、annotations 或 spec 变化；迁移前置失败复用 fresh Deployment readiness 保留 serving，历史 ReplicaSet 已被删除时重新采集即可。Controller 全量测试、专门 race 和干净 prepush 通过，恢复提交 `d6190302` 已 push。
+- [x] [恢复 CI 35561420949](https://github.com/yym68686/fugue/actions/runs/35561420949) 成功，`d6190302` 两副本 Ready。验证应用恢复 200，迁移标记清除、paused=false，原 Pod UID 保留，canonical Service 的实际 endpoints 仅包含 canonical Pod；serving/LKG 指针未改变。
+- [ ] 全局迁移恢复完成。待迁移数量从 139 降至 7；剩余对象被既有镜像可用性检查挡在恢复入口前，不能把验证应用的成功等同于全局完成。
+- [x] 将已开始的 metadata migration 恢复入口前移到代码/镜像 preflight 前，保留 owner/UID/version 校验；Controller 全量测试、恢复 race 和干净 prepush 通过。提交 `6c52c5ff` 已 push，[CI 35562160993](https://github.com/yym68686/fugue/actions/runs/35562160993) 待生产验收。
+- [ ] 生产重新执行 canary/sticky 验收；完整 rollout 重启恢复、按 revision drain 和 readiness endpoints 归属验证仍由 P0-EP-Y 后续步骤完成。
