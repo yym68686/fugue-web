@@ -6665,6 +6665,8 @@ export interface components {
       rollback_target_release_id?: string;
       release_message?: string;
       spec_snapshot?: components["schemas"]["AppSpec"];
+      /** @description Immutable original revision identity captured by the controller; current serving targets may later point to the canonical workload. */
+      revision_workload?: components["schemas"]["AppReleaseWorkload"];
       /** Format: date-time */
       ready_at?: string;
       /** Format: date-time */
@@ -6677,6 +6679,21 @@ export interface components {
       created_at: string;
       /** Format: date-time */
       updated_at: string;
+    };
+    AppReleaseWorkload: {
+      operation_id: string;
+      namespace: string;
+      deployment_name: string;
+      deployment_uid: string;
+      /** Format: int64 */
+      deployment_generation: number;
+      service_name: string;
+      service_uid: string;
+      release_key: string;
+      runtime_id: string;
+      image_ref: string;
+      /** Format: date-time */
+      bound_at: string;
     };
     AppTrafficPolicy: {
       id: string;
