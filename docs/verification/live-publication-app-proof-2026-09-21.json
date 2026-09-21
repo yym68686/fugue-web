@@ -1,0 +1,275 @@
+{
+  "verified_at": "2026-09-21T05:37:48.679075+00:00",
+  "controller_commit": "f899071d46b69992546cf408cd0e2f4534c5c462",
+  "ci_run": "https://github.com/yym68686/fugue/actions/runs/35564328406",
+  "components": [
+    {
+      "component": "api",
+      "image_tag": "4d6f6b1290e034568d5168de335acfa83a63b41c",
+      "ready_replicas": 2,
+      "updated_replicas": 2,
+      "desired_replicas": 2
+    },
+    {
+      "component": "controller",
+      "image_tag": "f899071d46b69992546cf408cd0e2f4534c5c462",
+      "ready_replicas": 2,
+      "updated_replicas": 2,
+      "desired_replicas": 2
+    }
+  ],
+  "health": {
+    "/healthz": 200,
+    "/readyz": 200
+  },
+  "authority_ready": true,
+  "controller_pods": [
+    {
+      "pod": "fugue-fugue-controller-574758f6d5-9nfsk",
+      "source_commit": "f899071d46b69992546cf408cd0e2f4534c5c462",
+      "containers": [
+        {
+          "name": "controller",
+          "imageID": "ghcr.io/yym68686/fugue-controller@sha256:1dc0fddeda186cec1ba1a6df9a229165a0cfea99fe4afe4e8fd5cbde0e99f843",
+          "ready": true,
+          "restartCount": 0
+        }
+      ]
+    },
+    {
+      "pod": "fugue-fugue-controller-574758f6d5-g4bzg",
+      "source_commit": "f899071d46b69992546cf408cd0e2f4534c5c462",
+      "containers": [
+        {
+          "name": "controller",
+          "imageID": "ghcr.io/yym68686/fugue-controller@sha256:1dc0fddeda186cec1ba1a6df9a229165a0cfea99fe4afe4e8fd5cbde0e99f843",
+          "ready": true,
+          "restartCount": 0
+        }
+      ]
+    }
+  ],
+  "code_artifact": {
+    "apiVersion": "release.fugue.dev/v2",
+    "component": "controller",
+    "configDigest": "sha256:a050cb65839321e95fdf08da2edd6453d9513e9bb29b78bfa21b9002b9ab2eb0",
+    "configSha": "f899071d46b69992546cf408cd0e2f4534c5c462",
+    "immutableRef": "ghcr.io/yym68686/fugue-controller@sha256:1dc0fddeda186cec1ba1a6df9a229165a0cfea99fe4afe4e8fd5cbde0e99f843",
+    "intentDigest": "sha256:77174e2029e2b047d1655177233475cfc316dea19f8a0fb4ac52ca79b2562061",
+    "kind": "ImmutableComponentArtifactReceipt",
+    "ociRevision": "f899071d46b69992546cf408cd0e2f4534c5c462",
+    "planDigest": "sha256:4df190a8b9c8b58dde83f3d698506ac2ad6b53743390a761df4b7a2108ba7b80",
+    "platform": "linux/amd64",
+    "platformManifestDigest": "sha256:66fb04692209e350edb80c47e4486128e7f2a3b2b1a404a86f0cbd95b471b75b",
+    "receiptDigest": "sha256:7c8ffbd9c03341bec3d56d1bdd0f1e0152104125e6b4c687106f3e33c90c86c3",
+    "repository": "ghcr.io/yym68686/fugue-controller",
+    "sourceSha": "f899071d46b69992546cf408cd0e2f4534c5c462",
+    "sourceTag": "f899071d46b69992546cf408cd0e2f4534c5c462",
+    "topDigest": "sha256:1dc0fddeda186cec1ba1a6df9a229165a0cfea99fe4afe4e8fd5cbde0e99f843",
+    "verification": "registry_manifest_config_and_layer_get"
+  },
+  "serving_pointers_and_lkg_unchanged": true,
+  "producer_mode": "shadow",
+  "prepush": {
+    "apiVersion": "prepush.fugue.dev/v1",
+    "baseCommit": "b4e19dfd5c8bbf34916777f8bff82d5cffb39fd3",
+    "changedFilesDigest": "sha256:9c2a4a5233f3de000b2875827a0ff02a1587918ad98276160c14a78686c8841f",
+    "checks": {
+      "affected-tests": {
+        "durationMs": 27788,
+        "status": "pass"
+      },
+      "affected-vet": {
+        "durationMs": 4492,
+        "status": "pass"
+      },
+      "compile-all": {
+        "durationMs": 24037,
+        "status": "pass"
+      },
+      "declarative-release-tests": {
+        "durationMs": 25533,
+        "status": "pass"
+      },
+      "diff-check": {
+        "durationMs": 263,
+        "status": "pass"
+      },
+      "gofmt": {
+        "durationMs": 34,
+        "status": "pass"
+      },
+      "helm-lint-render": {
+        "durationMs": 0,
+        "status": "skipped"
+      },
+      "openapi-generated": {
+        "durationMs": 2654,
+        "status": "pass"
+      },
+      "shell-syntax": {
+        "durationMs": 0,
+        "status": "pass"
+      }
+    },
+    "elapsedMs": 28790,
+    "kind": "PrepushReceipt",
+    "sourceCommit": "f899071d46b69992546cf408cd0e2f4534c5c462",
+    "status": "pass"
+  },
+  "operation": {
+    "id": "op_1789968533_c4b26a63ba42",
+    "status": "completed",
+    "error_message": null,
+    "result_message": "managed app reconciled in namespace fg-tenant-1774393589-e35b60a6fc11",
+    "updated_at": "2026-09-21T05:33:30.682335Z"
+  },
+  "stable_release": {
+    "id": "apprel_1789968548_31045cecb41e",
+    "role": "stable",
+    "status": "serving",
+    "status_reason": null,
+    "created_at": "2026-09-21T05:29:08.582515Z",
+    "updated_at": "2026-09-21T05:32:48.54055Z",
+    "promoted_at": "2026-09-21T05:32:01.224923Z",
+    "retired_at": null,
+    "deployment_name": "app-1783188884-8facd2b054e6",
+    "service_name": "app-1783188884-8facd2b054e6",
+    "upstream_url": "http://app-1783188884-8facd2b054e6.fg-tenant-1774393589-e35b60a6fc11.svc.cluster.local:8000"
+  },
+  "audit": [
+    {
+      "id": "audit_1789968810_e1b1dad3e6a4",
+      "action": "app.release.previous_retire.paused",
+      "created_at": "2026-09-21T05:33:30.675979Z",
+      "resource_id": null,
+      "metadata": {
+        "active_connections": "0",
+        "app_id": "app_1783188884_8facd2b054e6",
+        "app_release_id": "apprel_1789966515_75386122ffc5",
+        "operation_id": "op_1789968533_c4b26a63ba42",
+        "phase": "previous_retire",
+        "reason": "active connections have not drained to zero"
+      }
+    },
+    {
+      "id": "audit_1789968721_942d5f1b6e13",
+      "action": "app.release.promote",
+      "created_at": "2026-09-21T05:32:01.320461Z",
+      "resource_id": null,
+      "metadata": {
+        "app_id": "app_1783188884_8facd2b054e6",
+        "app_release_id": "apprel_1789968548_31045cecb41e",
+        "mode": "safe_zero_downtime",
+        "operation_id": "op_1789968533_c4b26a63ba42"
+      }
+    },
+    {
+      "id": "audit_1789968721_3e267ca3ac13",
+      "action": "app.release.gate.pass",
+      "created_at": "2026-09-21T05:32:01.099662Z",
+      "resource_id": null,
+      "metadata": {
+        "app_id": "app_1783188884_8facd2b054e6",
+        "app_release_id": "apprel_1789968548_31045cecb41e",
+        "candidate_release": "apprel_1789968548_31045cecb41e",
+        "candidate_weight": "50",
+        "operation_id": "op_1789968533_c4b26a63ba42",
+        "phase": "canary_gate"
+      }
+    },
+    {
+      "id": "audit_1789968561_c6d33d09a34a",
+      "action": "app.release.canary.shifted",
+      "created_at": "2026-09-21T05:29:21.093298Z",
+      "resource_id": null,
+      "metadata": {
+        "app_id": "app_1783188884_8facd2b054e6",
+        "app_release_id": "apprel_1789968548_31045cecb41e",
+        "candidate_weight": "50",
+        "operation_id": "op_1789968533_c4b26a63ba42"
+      }
+    },
+    {
+      "id": "audit_1789968561_0082d5c636c8",
+      "action": "app.release.gate.pass",
+      "created_at": "2026-09-21T05:29:21.075626Z",
+      "resource_id": null,
+      "metadata": {
+        "app_id": "app_1783188884_8facd2b054e6",
+        "app_release_id": "apprel_1789968548_31045cecb41e",
+        "operation_id": "op_1789968533_c4b26a63ba42",
+        "phase": "gate_check"
+      }
+    }
+  ],
+  "stream": {
+    "operation_id": "op_1789968533_c4b26a63ba42",
+    "candidate_release": "apprel_1789968548_31045cecb41e",
+    "node": "vps-84c8f0a9",
+    "seconds": 360,
+    "curl_exit": 0,
+    "ticks": 360,
+    "complete": true
+  },
+  "sticky": {
+    "verified_at": "2026-09-21T05:30:40.849536+00:00",
+    "operation_id": "op_1789968533_c4b26a63ba42",
+    "policy": {
+      "mode": "canary",
+      "stable_release_id": "apprel_1789966515_75386122ffc5",
+      "candidate_release_id": "apprel_1789968548_31045cecb41e",
+      "stable_weight": 50,
+      "candidate_weight": 50
+    },
+    "requests": 72,
+    "sessions": 12,
+    "all_http_200": true,
+    "sticky_across_nodes_and_repeats": true,
+    "origin_release_counts": {
+      "apprel_1789966515_75386122ffc5": 42,
+      "apprel_1789968548_31045cecb41e": 30
+    }
+  },
+  "retained_candidate_resources": [
+    {
+      "kind": "Deployment",
+      "name": "app-1783188884-8facd2b054e6-candidate-d28460bce944",
+      "uid": "07e304e2-fdd9-4fa9-83fc-cc48f6a119bb"
+    },
+    {
+      "kind": "Pod",
+      "name": "app-1783188884-8facd2b054e6-candidate-d28460bce944-75799c8kcwcq",
+      "uid": "8df2dbfa-dc8f-495d-bf71-0e1fff7b53c8"
+    },
+    {
+      "kind": "Service",
+      "name": "app-1783188884-8facd2b054e6-candidate-d28460bce944",
+      "uid": "4da211bd-689e-41f9-939e-673b3166ec6e"
+    }
+  ],
+  "http_observation_count": 51,
+  "all_http_200": true,
+  "publication_phases": [
+    {
+      "candidate_weight": 50,
+      "digest": "sha256:0a2fd068b2d518a19ca22fc49388475b13ea23a3161e96e44c43eb6f88006abd"
+    },
+    {
+      "candidate_weight": 0,
+      "upstream": "independent revision",
+      "digest": "sha256:95cdb396e49854457a9b07244be523d9a3242913361cc0a786876b9d6a4335ba"
+    },
+    {
+      "candidate_weight": 0,
+      "upstream": "canonical",
+      "digest": "sha256:b1755b8b44a1fd740e0159419e467af1af9e9b5d9ff90c3e38c3bc14102957f3"
+    }
+  ],
+  "canonical_observer_log": "=== RUN   TestSafeRolloutLiveAppTrafficProof\n    safe_rollout_app_traffic_proof_test.go:303: {\"app_id\":\"app_1783188884_8facd2b054e6\",\"expected_app_traffic_digest\":\"sha256:b1755b8b44a1fd740e0159419e467af1af9e9b5d9ff90c3e38c3bc14102957f3\",\"ready_nodes\":3,\"release_id\":\"apprel_1789968548_31045cecb41e\",\"required_nodes\":3,\"serving_versions\":[\"edgegroupbundle_8be04c6f18f7ddccfdb5ba9e4a72f60d4c7b8774ea4b7de54cf5b8797129361e.p33563.r516\",\"edgegroupbundle_8da10559c75146fd5fdb4c62b027311fa33fb41b52b1ef908e5308c51783e8f6.p47312.r181\"],\"target_candidate_weight\":0,\"waiting_nodes\":[]}\n--- PASS: TestSafeRolloutLiveAppTrafficProof (2.16s)\nPASS\nok  \tfugue/internal/controller\t3.237s\n",
+  "limitations": [
+    "Previous release remains draining because revision-specific drain evidence and retirement retry are not yet complete",
+    "Controller restart resume is still pending",
+    "Global TrafficReleaseSet remains shadow; full serving, verified policy/artifact LKG, rollback and legacy deletion remain pending"
+  ]
+}

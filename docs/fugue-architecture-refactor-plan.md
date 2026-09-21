@@ -32,7 +32,7 @@ Runtime Facts / ACK / LKG
 
 ## 当前状态判断
 
-2026-09-21 最新验收快照：P0-EP-Y1 的 Service workload 隔离及迁移恢复已完成，Controller 为 `6c52c5ff`，API 为 `cbf6a26c`，活动 Worker 为 `9b03be63`。初始迁移曾因状态版本冲突引起 false failed/503，两个恢复提交已处理，全局 migration 标记清零，7 个受镜像 preflight 阻挡的应用恢复 deployed。canonical Service 仅选择对应 Pod，迁移保留 Pod UID；真实 50/50 canary 的 72 次请求全部 200，12 个 cookie session 在三台 Edge 的实际 origin 保持一致，180 秒长连接完整返回。100% 提升后的 upstream 确认仍超时，canonical 对齐/退役未完成；Controller 重启复用 release、按 revision drain、readiness endpoint 归属仍待修复。producer 仍为 shadow；首次完整配置接管、positive LKG 和旧 serving 输入删除尚未完成。
+2026-09-21 最新验收快照：P0-EP-Y1 的 Service workload 隔离及迁移恢复已完成，Y2 修复实时应用证明领先 heartbeat 发布版本时的错误等待。Controller 为 `f899071d`，API 为 `4d6f6b12`，活动 Worker 为 `9b03be63`。新生产操作完成 50% canary、100% 独立 revision 和 canonical 对齐，三个阶段均通过 required=3/ready=3；72 次 sticky origin 请求全部 200，候选 360 秒长连接跨切流完整返回。全局 migration 标记保持 0，serving/LKG 配置指针未变。旧 release 因 drain 证据不足仍保留 draining；Controller 重启复用 release、按 revision drain、readiness endpoint 归属仍待修复。producer 仍为 shadow；首次完整配置接管、positive LKG 和旧 serving 输入删除尚未完成。
 
 生产 producer 仍为 `business-static-intent`/shadow，固定基础 intent `artifact_1789848966_aa79d274ac50` 和输入 policy `artifact_1789917932_e90aeeb2510d`；启用策略为 `artifact_1789917933_9f90cbb02a89`，显式选择 `consumer_readiness`。最新验收 shadow `artifact_1789924746_0593e3041d46`、fence 226 包含 160 route、245 DNS records、159 TLS references；两台 DNS 均为 462/462 probes、233/233 readiness records、248/248 eligible queries。八个消费者 observed，serving passing=0；六 artifact 精确重放通过，全局 serving/LKG 未切换。前端契约 `3979108b` 已实际部署，2/2 Ready、公网 200。
 
@@ -3628,3 +3628,18 @@ P0-EP-X 生产取证确认 canonical Service selector 仅有 app 标签，会同
 - [ ] 完整 rollout/退役仍未通过：100% 提升后的 `edge_bundle_wait` 超时，Controller 保留旧 workload，未完成 canonical 对齐。重启恢复、按 revision drain 和 readiness endpoints 归属验证也仍待完成。
 
 证据：[service-workload-isolation-2026-09-21.json](verification/service-workload-isolation-2026-09-21.json)。本步骤包括一次真实生产回归与恢复，不能将初始 CI 成功解释为无故障上线。最终完成的是 Service origin 隔离及迁移恢复，不是 P0-EP 的完整发布闭环。
+
+### P0-EP-Y2：实时应用证明与异步 heartbeat 的版本顺序
+
+生产采样确认应用 release/weight/upstream 摘要已匹配时，group bundle 可因其他路由变化或续期前进，heartbeat 仍携带旧版本。原门禁要求二者字符串完全相等，会拒绝已实际应用的目标；旧操作 100% 阶段保存的期望摘要与三台 HTTPS 证明相同。
+
+- [x] 继续要求 exact app traffic digest、nonce/TLS、当前 healthy 非 candidate Caddy index、未过期证明及完整 required membership；不以健康 heartbeat 代替实际 apply 证明。
+- [x] 允许实时证明领先健康 inventory 的规范 `edgegroupbundle_<digest>.p<sequence>.r<epoch>` 版本；必须同恢复 epoch 且序号严格递增。旧证明、同序号不同内容、跨 epoch、非规范/legacy 无序版本仍拒绝。
+- [x] 探测后重新核对目标、inventory、节点地址、健康和 Caddy 错误；inventory 超过证明或倒退必须重新探测，失联成员仍保留 required。
+- [x] 版本顺序与错误目标、地址变化、恢复 epoch、并发变化等回归通过；Controller 全量测试、rollout race、`make test`、干净 prepush 通过。
+- [x] `f899071d46b69992546cf408cd0e2f4534c5c462` 经 [CI 35564328406](https://github.com/yym68686/fugue/actions/runs/35564328406) 部署，两个 Controller Pod Ready、零重启；API/authority 正常，原 serving 和 policy/artifact LKG 指针未变。
+- [x] 操作 `op_1789968533_c4b26a63ba42` 完成 50% canary、100% 独立 revision 与 canonical 对齐；实际 Controller observer 三阶段均 required=3/ready=3，未出现上轮的 `edge_bundle_wait` 超时。51 次跨 Edge 健康采样全部 200。
+- [x] 12 个 cookie session、三台 Edge 的 72 次实际 origin 请求全部 200且黏性一致；固定 candidate session 的 360 秒长连接完整返回，canonical 对齐后 candidate Deployment/Service/Pod 保留原 UID。
+- [ ] 最终 retire、重启恢复、失败回滚与全局配置 serving 尚未完成。previous release 因排空证据不足仍为 draining，不能把门禁修复当作完整回收闭环。
+
+证据：[live-publication-app-proof-2026-09-21.json](verification/live-publication-app-proof-2026-09-21.json)。
