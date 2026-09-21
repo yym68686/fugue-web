@@ -11350,7 +11350,7 @@ export interface components {
       intent_generation: string;
       policy_generation: string;
       facts?: {
-        /** @description Independent managed-release readiness from one cluster observation window. These facts may authorize compilation but never replace actual consumer serving proof. */
+        /** @description Independent managed-release readiness from one cluster observation window. EndpointSlice membership is checked through Pod and ReplicaSet controller UIDs to the exact Deployment, including addresses, workload labels, executable release key and Pod readiness. These facts may authorize compilation but never replace actual consumer serving proof. */
         release_readiness?: {
           /** @enum {string} */
           schema: "fugue.release-runtime-readiness/v1";
@@ -11371,6 +11371,15 @@ export interface components {
               desired_replicas: number;
               ready_replicas: number;
               ready_endpoints: number;
+              /** @description Unique ready Pod identities, sorted by UID. Dual-stack addresses and duplicate slices do not count a Pod more than once. Older retained snapshots may omit this field. */
+              endpoint_pods?: {
+                  pod_name: string;
+                  pod_uid: string;
+                  replica_set_name: string;
+                  replica_set_uid: string;
+                  release_key: string;
+                  addresses: string[];
+                }[];
               ready: boolean;
               reason?: string;
             }[];
@@ -11457,7 +11466,7 @@ export interface components {
       aaaa?: string[];
       target_ttl: number;
     };
-    /** @description Fixed release readiness evidence. Managed stable and candidate releases are observed independently from exact Kubernetes deployment, image, owner, service selector and current service-owned EndpointSlices. Active means ready to receive traffic, not already serving. The capture keeps cluster and resource identities in runtime_snapshot.facts.release_readiness. App-level serving status, desired weights and business-row timestamps cannot establish readiness. Transport or cluster-identity failure preserves unknown evidence; authoritative absent or unready resources produce a fresh unavailable observation. Actual serving still requires the separate trusted consumer apply and probe gates. */
+    /** @description Fixed release readiness evidence. Managed stable and candidate releases are observed independently from exact Kubernetes deployment, image, owner, service selector and current service-owned EndpointSlices. Endpoint target UIDs, addresses, Pod readiness and Pod-to-ReplicaSet-to-Deployment ownership must match the workload and executable release key; distinct ready Pods, not address count, establish replica coverage. Active means ready to receive traffic, not already serving. The capture keeps cluster and resource identities in runtime_snapshot.facts.release_readiness. App-level serving status, desired weights and business-row timestamps cannot establish readiness. Transport or cluster-identity failure preserves unknown evidence; authoritative absent or unready resources produce a fresh unavailable observation. Actual serving still requires the separate trusted consumer apply and probe gates. */
     PlatformReleaseObservation: {
       id: string;
       app_id: string;
