@@ -3677,7 +3677,20 @@ P0-EP-X 生产取证确认 canonical Service selector 仅有 app 标签，会同
 - [x] 真实本地 PostgreSQL 覆盖重复迁移、旧写入方兼容、身份不可变、非法 JSON 类型及两个并发首次绑定仅一个成功；race、全量 make test、干净 prepush 通过。
 - [x] `8ba2a7feca844ec616e94294ba69ff8a8faa5166` 经 [CI 35609099165](https://github.com/yym68686/fugue/actions/runs/35609099165) 完成 schema/API 声明式发布。只读 SQL 验证生产列为 nullable JSONB、trigger 启用、函数正文与仓库完全相同；schema Pod 日志确认迁移完成，API 2/2 Ready。
 - [x] 原 release/traffic policy、workload UID 和 serving/LKG 指针保留，两地 authority 健康，12 次业务采样全部 200。
-- [ ] Controller 保存来源 operation、Deployment/Service UID 等实际 revision 身份，canonical 对齐后保持不变；生产绑定数当前为 0，不能把 schema 成功当作功能已接入。
+- [x] Controller 保存来源 operation、Deployment/Service UID 等实际 revision 身份，canonical 对齐后保持不变；已完成 Y6 的真实新 release 绑定验证。历史未绑定 release 不会自动获得回收授权。
 - [ ] 基于已绑定身份完成历史资源迁移、后台 drain 重试、条件退役与 UID 删除，再完成重启恢复/rollback 和全局 artifact 接管。
 
 证据：[revision-workload-schema-2026-09-21.json](verification/revision-workload-schema-2026-09-21.json)。
+
+### P0-EP-Y6：新 revision 实际身份绑定与 canonical 对齐保留
+
+- [x] OpenAPI-first 增加只读 `AppRelease.revision_workload`：来源 operation、namespace、Deployment/Service 名称和 UID、Deployment generation、release key、runtime/image 与绑定时间。前端生成契约同步，`61ede2de` 的 [CI 35628574047](https://github.com/yym68686/fugue-web/actions/runs/35628574047) 成功。
+- [x] 候选 apply 后读取并复核 Kubernetes 资源，校验 app/tenant/release owner、完整已声明模板字段、Service selector/ports、非 terminating 和稳定 UID/generation；Kubernetes 补入的默认字段不构成虚假差异。Store 按 operation→release 顺序加锁，比较预期 release 版本，首次绑定仅允许 running deploy 的 creating candidate；相同绑定可重试，不同绑定拒绝。
+- [x] 一般 Create/Update 不能新增或替换绑定；旧调用方不传新字段时继续保留原值。元数据读取携带绑定且不加载 executable spec，canonical 对齐只更新当前 target。JSON store、真实 PostgreSQL 并发/旧写入兼容、Controller owner/UID/selector/image/代次变化回归、race、全量 make test 和干净 prepush 通过。
+- [x] `8332c5ea7522d316a26332a5bb12afe1ca68a776` 经 [CI 35628572891](https://github.com/yym68686/fugue/actions/runs/35628572891) 发布 API/Controller。首轮验证 `op_1790010289_6b8cf4c85f73` 被门禁错误拒绝：Kubernetes 序列化省略了显式为 0 的 probe initial delay，严格比较误判不同；候选未接流量，原 stable 100% 服务，三台 Edge 为 200。此首轮不计为验收成功。
+- [x] 仅将 probe `initialDelaySeconds=0` 与缺省视为等价，非零缺失继续拒绝；增加正反回归。`389fd31ebb4012a5ae14428f3c4bdb11179f215a` 经 [恢复 CI 35630895296](https://github.com/yym68686/fugue/actions/runs/35630895296) 只更新 Controller，专门 race、Controller 全量和干净 prepush 通过。
+- [x] 新生产操作 `op_1790011354_129ba25020c4` 完成 50% canary、100% 提升和 canonical 对齐。候选到 stable 的连续记录保持完全相同绑定；原 Deployment UID `d70a7bb0-649a-46c3-991a-04c42f46175b`、Service UID `0854ef98-319b-4fc8-a309-540da019cb92` 与 Kubernetes 实物一致，revision 仍 Ready。只读 SQL 与 API 返回的绑定 JSON 完全一致。
+- [x] 72 次真实 origin 黏性请求全部 200，同 session 跨三台 Edge 保持同 release；96 次健康采样全部 200。API/Controller 2/2 Ready，三台 Front、两地 authority 正常，serving/LKG 指针保留，八个消费者 observed、passing=0，producer 仍为 shadow。
+- [ ] 基于已绑定身份接入后台 drain 重试、条件退役及 UID 删除，迁移历史未绑定资源；恢复同一 operation 时复用既有 release，并完成失败 rollback。当前绑定只覆盖新候选，不代替旧 runtime 最终回收或全局 artifact serving 接管。
+
+证据：[revision-workload-binding-2026-09-22.json](verification/revision-workload-binding-2026-09-22.json)。

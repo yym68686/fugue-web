@@ -1,0 +1,2575 @@
+{
+  "verified_at": "2026-09-21T17:31:41.992212+00:00",
+  "implementation_commit": "8332c5ea7522d316a26332a5bb12afe1ca68a776",
+  "implementation_ci": "https://github.com/yym68686/fugue/actions/runs/35628572891",
+  "recovery_commit": "389fd31ebb4012a5ae14428f3c4bdb11179f215a",
+  "recovery_ci": "https://github.com/yym68686/fugue/actions/runs/35630895296",
+  "initial_failed_operation": "op_1790010289_6b8cf4c85f73",
+  "initial_failure": "Kubernetes omitted an explicit zero readiness probe delay; strict comparison blocked candidate before traffic promotion. Old stable served throughout.",
+  "health": {
+    "/healthz": 200,
+    "/readyz": 200
+  },
+  "components": [
+    {
+      "component": "api",
+      "image_tag": "aa2b8f38f246293e25bcaa2c6bf12825c482b4e5",
+      "ready_replicas": 2,
+      "updated_replicas": 2,
+      "desired_replicas": 2
+    },
+    {
+      "component": "controller",
+      "image_tag": "389fd31ebb4012a5ae14428f3c4bdb11179f215a",
+      "ready_replicas": 2,
+      "updated_replicas": 2,
+      "desired_replicas": 2
+    }
+  ],
+  "authority_ready": true,
+  "serving_lkg_unchanged": true,
+  "producer_mode": "shadow",
+  "live_binding": {
+    "verified_at": "2026-09-21T17:30:08.226575+00:00",
+    "operation_id": "op_1790011354_129ba25020c4",
+    "binding": {
+      "operation_id": "op_1790011354_129ba25020c4",
+      "namespace": "fg-tenant-1774393589-e35b60a6fc11",
+      "deployment_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+      "deployment_uid": "d70a7bb0-649a-46c3-991a-04c42f46175b",
+      "deployment_generation": 1,
+      "service_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+      "service_uid": "0854ef98-319b-4fc8-a309-540da019cb92",
+      "release_key": "f70eca98176f80a3afd1fa8c80c8ccb5733957a855ab0f8531ba7488f2174bbd",
+      "runtime_id": "runtime_managed_shared",
+      "image_ref": "registry.fugue.internal:5000/fugue-apps/index-docker-io-library-python:image-6d43704baacd",
+      "bound_at": "2026-09-21T17:25:23.875935Z"
+    },
+    "observations": [
+      {
+        "at": "2026-09-21T17:25:25.680054+00:00",
+        "operation_status": "running",
+        "policy": {
+          "id": "apptp_1783440303_3271421d3798",
+          "tenant_id": "tenant_1774393589_e35b60a6fc11",
+          "app_id": "app_1783188884_8facd2b054e6",
+          "mode": "single",
+          "stable_release_id": "apprel_1789973255_32b1fa2a238f",
+          "stable_weight": 100,
+          "candidate_weight": 0,
+          "sticky_cookie": "Fugue-Release-Stickiness",
+          "updated_by_type": "system",
+          "updated_by_id": "safe-rollout-controller",
+          "created_at": "2026-07-07T16:05:03.871294Z",
+          "updated_at": "2026-09-21T17:22:46.244147Z"
+        },
+        "release": {
+          "id": "apprel_1790011366_85b8777dcd9d",
+          "role": "candidate",
+          "status": "creating",
+          "deployment_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+          "service_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+          "upstream_url": "http://app-1783188884-8facd2b054e6-candidate-675bf9cb08c5.fg-tenant-1774393589-e35b60a6fc11.svc.cluster.local:8000",
+          "revision_workload": {
+            "operation_id": "op_1790011354_129ba25020c4",
+            "namespace": "fg-tenant-1774393589-e35b60a6fc11",
+            "deployment_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+            "deployment_uid": "d70a7bb0-649a-46c3-991a-04c42f46175b",
+            "deployment_generation": 1,
+            "service_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+            "service_uid": "0854ef98-319b-4fc8-a309-540da019cb92",
+            "release_key": "f70eca98176f80a3afd1fa8c80c8ccb5733957a855ab0f8531ba7488f2174bbd",
+            "runtime_id": "runtime_managed_shared",
+            "image_ref": "registry.fugue.internal:5000/fugue-apps/index-docker-io-library-python:image-6d43704baacd",
+            "bound_at": "2026-09-21T17:25:23.875935Z"
+          }
+        }
+      },
+      {
+        "at": "2026-09-21T17:25:32.139185+00:00",
+        "operation_status": "running",
+        "policy": {
+          "id": "apptp_1783440303_3271421d3798",
+          "tenant_id": "tenant_1774393589_e35b60a6fc11",
+          "app_id": "app_1783188884_8facd2b054e6",
+          "mode": "single",
+          "stable_release_id": "apprel_1789973255_32b1fa2a238f",
+          "stable_weight": 100,
+          "candidate_weight": 0,
+          "sticky_cookie": "Fugue-Release-Stickiness",
+          "updated_by_type": "system",
+          "updated_by_id": "safe-rollout-controller",
+          "created_at": "2026-07-07T16:05:03.871294Z",
+          "updated_at": "2026-09-21T17:22:46.244147Z"
+        },
+        "release": {
+          "id": "apprel_1790011366_85b8777dcd9d",
+          "role": "candidate",
+          "status": "creating",
+          "deployment_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+          "service_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+          "upstream_url": "http://app-1783188884-8facd2b054e6-candidate-675bf9cb08c5.fg-tenant-1774393589-e35b60a6fc11.svc.cluster.local:8000",
+          "revision_workload": {
+            "operation_id": "op_1790011354_129ba25020c4",
+            "namespace": "fg-tenant-1774393589-e35b60a6fc11",
+            "deployment_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+            "deployment_uid": "d70a7bb0-649a-46c3-991a-04c42f46175b",
+            "deployment_generation": 1,
+            "service_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+            "service_uid": "0854ef98-319b-4fc8-a309-540da019cb92",
+            "release_key": "f70eca98176f80a3afd1fa8c80c8ccb5733957a855ab0f8531ba7488f2174bbd",
+            "runtime_id": "runtime_managed_shared",
+            "image_ref": "registry.fugue.internal:5000/fugue-apps/index-docker-io-library-python:image-6d43704baacd",
+            "bound_at": "2026-09-21T17:25:23.875935Z"
+          }
+        }
+      },
+      {
+        "at": "2026-09-21T17:25:38.794087+00:00",
+        "operation_status": "running",
+        "policy": {
+          "id": "apptp_1783440303_3271421d3798",
+          "tenant_id": "tenant_1774393589_e35b60a6fc11",
+          "app_id": "app_1783188884_8facd2b054e6",
+          "mode": "canary",
+          "stable_release_id": "apprel_1789973255_32b1fa2a238f",
+          "candidate_release_id": "apprel_1790011366_85b8777dcd9d",
+          "stable_weight": 50,
+          "candidate_weight": 50,
+          "sticky_cookie": "Fugue-Release-Stickiness",
+          "updated_by_type": "system",
+          "updated_by_id": "safe-rollout-controller",
+          "created_at": "2026-07-07T16:05:03.871294Z",
+          "updated_at": "2026-09-21T17:25:36.118293Z"
+        },
+        "release": {
+          "id": "apprel_1790011366_85b8777dcd9d",
+          "role": "candidate",
+          "status": "ready",
+          "deployment_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+          "service_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+          "upstream_url": "http://app-1783188884-8facd2b054e6-candidate-675bf9cb08c5.fg-tenant-1774393589-e35b60a6fc11.svc.cluster.local:8000",
+          "revision_workload": {
+            "operation_id": "op_1790011354_129ba25020c4",
+            "namespace": "fg-tenant-1774393589-e35b60a6fc11",
+            "deployment_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+            "deployment_uid": "d70a7bb0-649a-46c3-991a-04c42f46175b",
+            "deployment_generation": 1,
+            "service_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+            "service_uid": "0854ef98-319b-4fc8-a309-540da019cb92",
+            "release_key": "f70eca98176f80a3afd1fa8c80c8ccb5733957a855ab0f8531ba7488f2174bbd",
+            "runtime_id": "runtime_managed_shared",
+            "image_ref": "registry.fugue.internal:5000/fugue-apps/index-docker-io-library-python:image-6d43704baacd",
+            "bound_at": "2026-09-21T17:25:23.875935Z"
+          }
+        }
+      },
+      {
+        "at": "2026-09-21T17:25:45.220220+00:00",
+        "operation_status": "running",
+        "policy": {
+          "id": "apptp_1783440303_3271421d3798",
+          "tenant_id": "tenant_1774393589_e35b60a6fc11",
+          "app_id": "app_1783188884_8facd2b054e6",
+          "mode": "canary",
+          "stable_release_id": "apprel_1789973255_32b1fa2a238f",
+          "candidate_release_id": "apprel_1790011366_85b8777dcd9d",
+          "stable_weight": 50,
+          "candidate_weight": 50,
+          "sticky_cookie": "Fugue-Release-Stickiness",
+          "updated_by_type": "system",
+          "updated_by_id": "safe-rollout-controller",
+          "created_at": "2026-07-07T16:05:03.871294Z",
+          "updated_at": "2026-09-21T17:25:36.118293Z"
+        },
+        "release": {
+          "id": "apprel_1790011366_85b8777dcd9d",
+          "role": "candidate",
+          "status": "ready",
+          "deployment_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+          "service_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+          "upstream_url": "http://app-1783188884-8facd2b054e6-candidate-675bf9cb08c5.fg-tenant-1774393589-e35b60a6fc11.svc.cluster.local:8000",
+          "revision_workload": {
+            "operation_id": "op_1790011354_129ba25020c4",
+            "namespace": "fg-tenant-1774393589-e35b60a6fc11",
+            "deployment_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+            "deployment_uid": "d70a7bb0-649a-46c3-991a-04c42f46175b",
+            "deployment_generation": 1,
+            "service_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+            "service_uid": "0854ef98-319b-4fc8-a309-540da019cb92",
+            "release_key": "f70eca98176f80a3afd1fa8c80c8ccb5733957a855ab0f8531ba7488f2174bbd",
+            "runtime_id": "runtime_managed_shared",
+            "image_ref": "registry.fugue.internal:5000/fugue-apps/index-docker-io-library-python:image-6d43704baacd",
+            "bound_at": "2026-09-21T17:25:23.875935Z"
+          }
+        }
+      },
+      {
+        "at": "2026-09-21T17:25:51.831266+00:00",
+        "operation_status": "running",
+        "policy": {
+          "id": "apptp_1783440303_3271421d3798",
+          "tenant_id": "tenant_1774393589_e35b60a6fc11",
+          "app_id": "app_1783188884_8facd2b054e6",
+          "mode": "canary",
+          "stable_release_id": "apprel_1789973255_32b1fa2a238f",
+          "candidate_release_id": "apprel_1790011366_85b8777dcd9d",
+          "stable_weight": 50,
+          "candidate_weight": 50,
+          "sticky_cookie": "Fugue-Release-Stickiness",
+          "updated_by_type": "system",
+          "updated_by_id": "safe-rollout-controller",
+          "created_at": "2026-07-07T16:05:03.871294Z",
+          "updated_at": "2026-09-21T17:25:36.118293Z"
+        },
+        "release": {
+          "id": "apprel_1790011366_85b8777dcd9d",
+          "role": "candidate",
+          "status": "ready",
+          "deployment_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+          "service_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+          "upstream_url": "http://app-1783188884-8facd2b054e6-candidate-675bf9cb08c5.fg-tenant-1774393589-e35b60a6fc11.svc.cluster.local:8000",
+          "revision_workload": {
+            "operation_id": "op_1790011354_129ba25020c4",
+            "namespace": "fg-tenant-1774393589-e35b60a6fc11",
+            "deployment_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+            "deployment_uid": "d70a7bb0-649a-46c3-991a-04c42f46175b",
+            "deployment_generation": 1,
+            "service_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+            "service_uid": "0854ef98-319b-4fc8-a309-540da019cb92",
+            "release_key": "f70eca98176f80a3afd1fa8c80c8ccb5733957a855ab0f8531ba7488f2174bbd",
+            "runtime_id": "runtime_managed_shared",
+            "image_ref": "registry.fugue.internal:5000/fugue-apps/index-docker-io-library-python:image-6d43704baacd",
+            "bound_at": "2026-09-21T17:25:23.875935Z"
+          }
+        }
+      },
+      {
+        "at": "2026-09-21T17:25:58.336793+00:00",
+        "operation_status": "running",
+        "policy": {
+          "id": "apptp_1783440303_3271421d3798",
+          "tenant_id": "tenant_1774393589_e35b60a6fc11",
+          "app_id": "app_1783188884_8facd2b054e6",
+          "mode": "canary",
+          "stable_release_id": "apprel_1789973255_32b1fa2a238f",
+          "candidate_release_id": "apprel_1790011366_85b8777dcd9d",
+          "stable_weight": 50,
+          "candidate_weight": 50,
+          "sticky_cookie": "Fugue-Release-Stickiness",
+          "updated_by_type": "system",
+          "updated_by_id": "safe-rollout-controller",
+          "created_at": "2026-07-07T16:05:03.871294Z",
+          "updated_at": "2026-09-21T17:25:36.118293Z"
+        },
+        "release": {
+          "id": "apprel_1790011366_85b8777dcd9d",
+          "role": "candidate",
+          "status": "ready",
+          "deployment_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+          "service_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+          "upstream_url": "http://app-1783188884-8facd2b054e6-candidate-675bf9cb08c5.fg-tenant-1774393589-e35b60a6fc11.svc.cluster.local:8000",
+          "revision_workload": {
+            "operation_id": "op_1790011354_129ba25020c4",
+            "namespace": "fg-tenant-1774393589-e35b60a6fc11",
+            "deployment_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+            "deployment_uid": "d70a7bb0-649a-46c3-991a-04c42f46175b",
+            "deployment_generation": 1,
+            "service_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+            "service_uid": "0854ef98-319b-4fc8-a309-540da019cb92",
+            "release_key": "f70eca98176f80a3afd1fa8c80c8ccb5733957a855ab0f8531ba7488f2174bbd",
+            "runtime_id": "runtime_managed_shared",
+            "image_ref": "registry.fugue.internal:5000/fugue-apps/index-docker-io-library-python:image-6d43704baacd",
+            "bound_at": "2026-09-21T17:25:23.875935Z"
+          }
+        }
+      },
+      {
+        "at": "2026-09-21T17:26:04.796586+00:00",
+        "operation_status": "running",
+        "policy": {
+          "id": "apptp_1783440303_3271421d3798",
+          "tenant_id": "tenant_1774393589_e35b60a6fc11",
+          "app_id": "app_1783188884_8facd2b054e6",
+          "mode": "canary",
+          "stable_release_id": "apprel_1789973255_32b1fa2a238f",
+          "candidate_release_id": "apprel_1790011366_85b8777dcd9d",
+          "stable_weight": 50,
+          "candidate_weight": 50,
+          "sticky_cookie": "Fugue-Release-Stickiness",
+          "updated_by_type": "system",
+          "updated_by_id": "safe-rollout-controller",
+          "created_at": "2026-07-07T16:05:03.871294Z",
+          "updated_at": "2026-09-21T17:25:36.118293Z"
+        },
+        "release": {
+          "id": "apprel_1790011366_85b8777dcd9d",
+          "role": "candidate",
+          "status": "ready",
+          "deployment_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+          "service_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+          "upstream_url": "http://app-1783188884-8facd2b054e6-candidate-675bf9cb08c5.fg-tenant-1774393589-e35b60a6fc11.svc.cluster.local:8000",
+          "revision_workload": {
+            "operation_id": "op_1790011354_129ba25020c4",
+            "namespace": "fg-tenant-1774393589-e35b60a6fc11",
+            "deployment_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+            "deployment_uid": "d70a7bb0-649a-46c3-991a-04c42f46175b",
+            "deployment_generation": 1,
+            "service_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+            "service_uid": "0854ef98-319b-4fc8-a309-540da019cb92",
+            "release_key": "f70eca98176f80a3afd1fa8c80c8ccb5733957a855ab0f8531ba7488f2174bbd",
+            "runtime_id": "runtime_managed_shared",
+            "image_ref": "registry.fugue.internal:5000/fugue-apps/index-docker-io-library-python:image-6d43704baacd",
+            "bound_at": "2026-09-21T17:25:23.875935Z"
+          }
+        }
+      },
+      {
+        "at": "2026-09-21T17:26:11.290590+00:00",
+        "operation_status": "running",
+        "policy": {
+          "id": "apptp_1783440303_3271421d3798",
+          "tenant_id": "tenant_1774393589_e35b60a6fc11",
+          "app_id": "app_1783188884_8facd2b054e6",
+          "mode": "canary",
+          "stable_release_id": "apprel_1789973255_32b1fa2a238f",
+          "candidate_release_id": "apprel_1790011366_85b8777dcd9d",
+          "stable_weight": 50,
+          "candidate_weight": 50,
+          "sticky_cookie": "Fugue-Release-Stickiness",
+          "updated_by_type": "system",
+          "updated_by_id": "safe-rollout-controller",
+          "created_at": "2026-07-07T16:05:03.871294Z",
+          "updated_at": "2026-09-21T17:25:36.118293Z"
+        },
+        "release": {
+          "id": "apprel_1790011366_85b8777dcd9d",
+          "role": "candidate",
+          "status": "ready",
+          "deployment_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+          "service_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+          "upstream_url": "http://app-1783188884-8facd2b054e6-candidate-675bf9cb08c5.fg-tenant-1774393589-e35b60a6fc11.svc.cluster.local:8000",
+          "revision_workload": {
+            "operation_id": "op_1790011354_129ba25020c4",
+            "namespace": "fg-tenant-1774393589-e35b60a6fc11",
+            "deployment_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+            "deployment_uid": "d70a7bb0-649a-46c3-991a-04c42f46175b",
+            "deployment_generation": 1,
+            "service_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+            "service_uid": "0854ef98-319b-4fc8-a309-540da019cb92",
+            "release_key": "f70eca98176f80a3afd1fa8c80c8ccb5733957a855ab0f8531ba7488f2174bbd",
+            "runtime_id": "runtime_managed_shared",
+            "image_ref": "registry.fugue.internal:5000/fugue-apps/index-docker-io-library-python:image-6d43704baacd",
+            "bound_at": "2026-09-21T17:25:23.875935Z"
+          }
+        }
+      },
+      {
+        "at": "2026-09-21T17:26:17.744261+00:00",
+        "operation_status": "running",
+        "policy": {
+          "id": "apptp_1783440303_3271421d3798",
+          "tenant_id": "tenant_1774393589_e35b60a6fc11",
+          "app_id": "app_1783188884_8facd2b054e6",
+          "mode": "canary",
+          "stable_release_id": "apprel_1789973255_32b1fa2a238f",
+          "candidate_release_id": "apprel_1790011366_85b8777dcd9d",
+          "stable_weight": 50,
+          "candidate_weight": 50,
+          "sticky_cookie": "Fugue-Release-Stickiness",
+          "updated_by_type": "system",
+          "updated_by_id": "safe-rollout-controller",
+          "created_at": "2026-07-07T16:05:03.871294Z",
+          "updated_at": "2026-09-21T17:25:36.118293Z"
+        },
+        "release": {
+          "id": "apprel_1790011366_85b8777dcd9d",
+          "role": "candidate",
+          "status": "ready",
+          "deployment_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+          "service_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+          "upstream_url": "http://app-1783188884-8facd2b054e6-candidate-675bf9cb08c5.fg-tenant-1774393589-e35b60a6fc11.svc.cluster.local:8000",
+          "revision_workload": {
+            "operation_id": "op_1790011354_129ba25020c4",
+            "namespace": "fg-tenant-1774393589-e35b60a6fc11",
+            "deployment_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+            "deployment_uid": "d70a7bb0-649a-46c3-991a-04c42f46175b",
+            "deployment_generation": 1,
+            "service_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+            "service_uid": "0854ef98-319b-4fc8-a309-540da019cb92",
+            "release_key": "f70eca98176f80a3afd1fa8c80c8ccb5733957a855ab0f8531ba7488f2174bbd",
+            "runtime_id": "runtime_managed_shared",
+            "image_ref": "registry.fugue.internal:5000/fugue-apps/index-docker-io-library-python:image-6d43704baacd",
+            "bound_at": "2026-09-21T17:25:23.875935Z"
+          }
+        }
+      },
+      {
+        "at": "2026-09-21T17:26:24.117823+00:00",
+        "operation_status": "running",
+        "policy": {
+          "id": "apptp_1783440303_3271421d3798",
+          "tenant_id": "tenant_1774393589_e35b60a6fc11",
+          "app_id": "app_1783188884_8facd2b054e6",
+          "mode": "canary",
+          "stable_release_id": "apprel_1789973255_32b1fa2a238f",
+          "candidate_release_id": "apprel_1790011366_85b8777dcd9d",
+          "stable_weight": 50,
+          "candidate_weight": 50,
+          "sticky_cookie": "Fugue-Release-Stickiness",
+          "updated_by_type": "system",
+          "updated_by_id": "safe-rollout-controller",
+          "created_at": "2026-07-07T16:05:03.871294Z",
+          "updated_at": "2026-09-21T17:25:36.118293Z"
+        },
+        "release": {
+          "id": "apprel_1790011366_85b8777dcd9d",
+          "role": "candidate",
+          "status": "ready",
+          "deployment_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+          "service_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+          "upstream_url": "http://app-1783188884-8facd2b054e6-candidate-675bf9cb08c5.fg-tenant-1774393589-e35b60a6fc11.svc.cluster.local:8000",
+          "revision_workload": {
+            "operation_id": "op_1790011354_129ba25020c4",
+            "namespace": "fg-tenant-1774393589-e35b60a6fc11",
+            "deployment_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+            "deployment_uid": "d70a7bb0-649a-46c3-991a-04c42f46175b",
+            "deployment_generation": 1,
+            "service_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+            "service_uid": "0854ef98-319b-4fc8-a309-540da019cb92",
+            "release_key": "f70eca98176f80a3afd1fa8c80c8ccb5733957a855ab0f8531ba7488f2174bbd",
+            "runtime_id": "runtime_managed_shared",
+            "image_ref": "registry.fugue.internal:5000/fugue-apps/index-docker-io-library-python:image-6d43704baacd",
+            "bound_at": "2026-09-21T17:25:23.875935Z"
+          }
+        }
+      },
+      {
+        "at": "2026-09-21T17:26:30.833174+00:00",
+        "operation_status": "running",
+        "policy": {
+          "id": "apptp_1783440303_3271421d3798",
+          "tenant_id": "tenant_1774393589_e35b60a6fc11",
+          "app_id": "app_1783188884_8facd2b054e6",
+          "mode": "canary",
+          "stable_release_id": "apprel_1789973255_32b1fa2a238f",
+          "candidate_release_id": "apprel_1790011366_85b8777dcd9d",
+          "stable_weight": 50,
+          "candidate_weight": 50,
+          "sticky_cookie": "Fugue-Release-Stickiness",
+          "updated_by_type": "system",
+          "updated_by_id": "safe-rollout-controller",
+          "created_at": "2026-07-07T16:05:03.871294Z",
+          "updated_at": "2026-09-21T17:25:36.118293Z"
+        },
+        "release": {
+          "id": "apprel_1790011366_85b8777dcd9d",
+          "role": "candidate",
+          "status": "ready",
+          "deployment_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+          "service_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+          "upstream_url": "http://app-1783188884-8facd2b054e6-candidate-675bf9cb08c5.fg-tenant-1774393589-e35b60a6fc11.svc.cluster.local:8000",
+          "revision_workload": {
+            "operation_id": "op_1790011354_129ba25020c4",
+            "namespace": "fg-tenant-1774393589-e35b60a6fc11",
+            "deployment_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+            "deployment_uid": "d70a7bb0-649a-46c3-991a-04c42f46175b",
+            "deployment_generation": 1,
+            "service_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+            "service_uid": "0854ef98-319b-4fc8-a309-540da019cb92",
+            "release_key": "f70eca98176f80a3afd1fa8c80c8ccb5733957a855ab0f8531ba7488f2174bbd",
+            "runtime_id": "runtime_managed_shared",
+            "image_ref": "registry.fugue.internal:5000/fugue-apps/index-docker-io-library-python:image-6d43704baacd",
+            "bound_at": "2026-09-21T17:25:23.875935Z"
+          }
+        }
+      },
+      {
+        "at": "2026-09-21T17:26:37.283985+00:00",
+        "operation_status": "running",
+        "policy": {
+          "id": "apptp_1783440303_3271421d3798",
+          "tenant_id": "tenant_1774393589_e35b60a6fc11",
+          "app_id": "app_1783188884_8facd2b054e6",
+          "mode": "canary",
+          "stable_release_id": "apprel_1789973255_32b1fa2a238f",
+          "candidate_release_id": "apprel_1790011366_85b8777dcd9d",
+          "stable_weight": 50,
+          "candidate_weight": 50,
+          "sticky_cookie": "Fugue-Release-Stickiness",
+          "updated_by_type": "system",
+          "updated_by_id": "safe-rollout-controller",
+          "created_at": "2026-07-07T16:05:03.871294Z",
+          "updated_at": "2026-09-21T17:25:36.118293Z"
+        },
+        "release": {
+          "id": "apprel_1790011366_85b8777dcd9d",
+          "role": "candidate",
+          "status": "ready",
+          "deployment_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+          "service_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+          "upstream_url": "http://app-1783188884-8facd2b054e6-candidate-675bf9cb08c5.fg-tenant-1774393589-e35b60a6fc11.svc.cluster.local:8000",
+          "revision_workload": {
+            "operation_id": "op_1790011354_129ba25020c4",
+            "namespace": "fg-tenant-1774393589-e35b60a6fc11",
+            "deployment_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+            "deployment_uid": "d70a7bb0-649a-46c3-991a-04c42f46175b",
+            "deployment_generation": 1,
+            "service_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+            "service_uid": "0854ef98-319b-4fc8-a309-540da019cb92",
+            "release_key": "f70eca98176f80a3afd1fa8c80c8ccb5733957a855ab0f8531ba7488f2174bbd",
+            "runtime_id": "runtime_managed_shared",
+            "image_ref": "registry.fugue.internal:5000/fugue-apps/index-docker-io-library-python:image-6d43704baacd",
+            "bound_at": "2026-09-21T17:25:23.875935Z"
+          }
+        }
+      },
+      {
+        "at": "2026-09-21T17:26:43.768597+00:00",
+        "operation_status": "running",
+        "policy": {
+          "id": "apptp_1783440303_3271421d3798",
+          "tenant_id": "tenant_1774393589_e35b60a6fc11",
+          "app_id": "app_1783188884_8facd2b054e6",
+          "mode": "canary",
+          "stable_release_id": "apprel_1789973255_32b1fa2a238f",
+          "candidate_release_id": "apprel_1790011366_85b8777dcd9d",
+          "stable_weight": 50,
+          "candidate_weight": 50,
+          "sticky_cookie": "Fugue-Release-Stickiness",
+          "updated_by_type": "system",
+          "updated_by_id": "safe-rollout-controller",
+          "created_at": "2026-07-07T16:05:03.871294Z",
+          "updated_at": "2026-09-21T17:25:36.118293Z"
+        },
+        "release": {
+          "id": "apprel_1790011366_85b8777dcd9d",
+          "role": "candidate",
+          "status": "ready",
+          "deployment_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+          "service_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+          "upstream_url": "http://app-1783188884-8facd2b054e6-candidate-675bf9cb08c5.fg-tenant-1774393589-e35b60a6fc11.svc.cluster.local:8000",
+          "revision_workload": {
+            "operation_id": "op_1790011354_129ba25020c4",
+            "namespace": "fg-tenant-1774393589-e35b60a6fc11",
+            "deployment_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+            "deployment_uid": "d70a7bb0-649a-46c3-991a-04c42f46175b",
+            "deployment_generation": 1,
+            "service_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+            "service_uid": "0854ef98-319b-4fc8-a309-540da019cb92",
+            "release_key": "f70eca98176f80a3afd1fa8c80c8ccb5733957a855ab0f8531ba7488f2174bbd",
+            "runtime_id": "runtime_managed_shared",
+            "image_ref": "registry.fugue.internal:5000/fugue-apps/index-docker-io-library-python:image-6d43704baacd",
+            "bound_at": "2026-09-21T17:25:23.875935Z"
+          }
+        }
+      },
+      {
+        "at": "2026-09-21T17:26:50.246009+00:00",
+        "operation_status": "running",
+        "policy": {
+          "id": "apptp_1783440303_3271421d3798",
+          "tenant_id": "tenant_1774393589_e35b60a6fc11",
+          "app_id": "app_1783188884_8facd2b054e6",
+          "mode": "canary",
+          "stable_release_id": "apprel_1789973255_32b1fa2a238f",
+          "candidate_release_id": "apprel_1790011366_85b8777dcd9d",
+          "stable_weight": 50,
+          "candidate_weight": 50,
+          "sticky_cookie": "Fugue-Release-Stickiness",
+          "updated_by_type": "system",
+          "updated_by_id": "safe-rollout-controller",
+          "created_at": "2026-07-07T16:05:03.871294Z",
+          "updated_at": "2026-09-21T17:25:36.118293Z"
+        },
+        "release": {
+          "id": "apprel_1790011366_85b8777dcd9d",
+          "role": "candidate",
+          "status": "ready",
+          "deployment_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+          "service_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+          "upstream_url": "http://app-1783188884-8facd2b054e6-candidate-675bf9cb08c5.fg-tenant-1774393589-e35b60a6fc11.svc.cluster.local:8000",
+          "revision_workload": {
+            "operation_id": "op_1790011354_129ba25020c4",
+            "namespace": "fg-tenant-1774393589-e35b60a6fc11",
+            "deployment_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+            "deployment_uid": "d70a7bb0-649a-46c3-991a-04c42f46175b",
+            "deployment_generation": 1,
+            "service_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+            "service_uid": "0854ef98-319b-4fc8-a309-540da019cb92",
+            "release_key": "f70eca98176f80a3afd1fa8c80c8ccb5733957a855ab0f8531ba7488f2174bbd",
+            "runtime_id": "runtime_managed_shared",
+            "image_ref": "registry.fugue.internal:5000/fugue-apps/index-docker-io-library-python:image-6d43704baacd",
+            "bound_at": "2026-09-21T17:25:23.875935Z"
+          }
+        }
+      },
+      {
+        "at": "2026-09-21T17:26:56.867345+00:00",
+        "operation_status": "running",
+        "policy": {
+          "id": "apptp_1783440303_3271421d3798",
+          "tenant_id": "tenant_1774393589_e35b60a6fc11",
+          "app_id": "app_1783188884_8facd2b054e6",
+          "mode": "canary",
+          "stable_release_id": "apprel_1789973255_32b1fa2a238f",
+          "candidate_release_id": "apprel_1790011366_85b8777dcd9d",
+          "stable_weight": 50,
+          "candidate_weight": 50,
+          "sticky_cookie": "Fugue-Release-Stickiness",
+          "updated_by_type": "system",
+          "updated_by_id": "safe-rollout-controller",
+          "created_at": "2026-07-07T16:05:03.871294Z",
+          "updated_at": "2026-09-21T17:25:36.118293Z"
+        },
+        "release": {
+          "id": "apprel_1790011366_85b8777dcd9d",
+          "role": "candidate",
+          "status": "ready",
+          "deployment_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+          "service_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+          "upstream_url": "http://app-1783188884-8facd2b054e6-candidate-675bf9cb08c5.fg-tenant-1774393589-e35b60a6fc11.svc.cluster.local:8000",
+          "revision_workload": {
+            "operation_id": "op_1790011354_129ba25020c4",
+            "namespace": "fg-tenant-1774393589-e35b60a6fc11",
+            "deployment_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+            "deployment_uid": "d70a7bb0-649a-46c3-991a-04c42f46175b",
+            "deployment_generation": 1,
+            "service_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+            "service_uid": "0854ef98-319b-4fc8-a309-540da019cb92",
+            "release_key": "f70eca98176f80a3afd1fa8c80c8ccb5733957a855ab0f8531ba7488f2174bbd",
+            "runtime_id": "runtime_managed_shared",
+            "image_ref": "registry.fugue.internal:5000/fugue-apps/index-docker-io-library-python:image-6d43704baacd",
+            "bound_at": "2026-09-21T17:25:23.875935Z"
+          }
+        }
+      },
+      {
+        "at": "2026-09-21T17:27:03.354873+00:00",
+        "operation_status": "running",
+        "policy": {
+          "id": "apptp_1783440303_3271421d3798",
+          "tenant_id": "tenant_1774393589_e35b60a6fc11",
+          "app_id": "app_1783188884_8facd2b054e6",
+          "mode": "canary",
+          "stable_release_id": "apprel_1789973255_32b1fa2a238f",
+          "candidate_release_id": "apprel_1790011366_85b8777dcd9d",
+          "stable_weight": 50,
+          "candidate_weight": 50,
+          "sticky_cookie": "Fugue-Release-Stickiness",
+          "updated_by_type": "system",
+          "updated_by_id": "safe-rollout-controller",
+          "created_at": "2026-07-07T16:05:03.871294Z",
+          "updated_at": "2026-09-21T17:25:36.118293Z"
+        },
+        "release": {
+          "id": "apprel_1790011366_85b8777dcd9d",
+          "role": "candidate",
+          "status": "ready",
+          "deployment_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+          "service_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+          "upstream_url": "http://app-1783188884-8facd2b054e6-candidate-675bf9cb08c5.fg-tenant-1774393589-e35b60a6fc11.svc.cluster.local:8000",
+          "revision_workload": {
+            "operation_id": "op_1790011354_129ba25020c4",
+            "namespace": "fg-tenant-1774393589-e35b60a6fc11",
+            "deployment_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+            "deployment_uid": "d70a7bb0-649a-46c3-991a-04c42f46175b",
+            "deployment_generation": 1,
+            "service_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+            "service_uid": "0854ef98-319b-4fc8-a309-540da019cb92",
+            "release_key": "f70eca98176f80a3afd1fa8c80c8ccb5733957a855ab0f8531ba7488f2174bbd",
+            "runtime_id": "runtime_managed_shared",
+            "image_ref": "registry.fugue.internal:5000/fugue-apps/index-docker-io-library-python:image-6d43704baacd",
+            "bound_at": "2026-09-21T17:25:23.875935Z"
+          }
+        }
+      },
+      {
+        "at": "2026-09-21T17:27:09.793159+00:00",
+        "operation_status": "running",
+        "policy": {
+          "id": "apptp_1783440303_3271421d3798",
+          "tenant_id": "tenant_1774393589_e35b60a6fc11",
+          "app_id": "app_1783188884_8facd2b054e6",
+          "mode": "canary",
+          "stable_release_id": "apprel_1789973255_32b1fa2a238f",
+          "candidate_release_id": "apprel_1790011366_85b8777dcd9d",
+          "stable_weight": 50,
+          "candidate_weight": 50,
+          "sticky_cookie": "Fugue-Release-Stickiness",
+          "updated_by_type": "system",
+          "updated_by_id": "safe-rollout-controller",
+          "created_at": "2026-07-07T16:05:03.871294Z",
+          "updated_at": "2026-09-21T17:25:36.118293Z"
+        },
+        "release": {
+          "id": "apprel_1790011366_85b8777dcd9d",
+          "role": "candidate",
+          "status": "ready",
+          "deployment_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+          "service_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+          "upstream_url": "http://app-1783188884-8facd2b054e6-candidate-675bf9cb08c5.fg-tenant-1774393589-e35b60a6fc11.svc.cluster.local:8000",
+          "revision_workload": {
+            "operation_id": "op_1790011354_129ba25020c4",
+            "namespace": "fg-tenant-1774393589-e35b60a6fc11",
+            "deployment_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+            "deployment_uid": "d70a7bb0-649a-46c3-991a-04c42f46175b",
+            "deployment_generation": 1,
+            "service_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+            "service_uid": "0854ef98-319b-4fc8-a309-540da019cb92",
+            "release_key": "f70eca98176f80a3afd1fa8c80c8ccb5733957a855ab0f8531ba7488f2174bbd",
+            "runtime_id": "runtime_managed_shared",
+            "image_ref": "registry.fugue.internal:5000/fugue-apps/index-docker-io-library-python:image-6d43704baacd",
+            "bound_at": "2026-09-21T17:25:23.875935Z"
+          }
+        }
+      },
+      {
+        "at": "2026-09-21T17:27:16.315036+00:00",
+        "operation_status": "running",
+        "policy": {
+          "id": "apptp_1783440303_3271421d3798",
+          "tenant_id": "tenant_1774393589_e35b60a6fc11",
+          "app_id": "app_1783188884_8facd2b054e6",
+          "mode": "canary",
+          "stable_release_id": "apprel_1789973255_32b1fa2a238f",
+          "candidate_release_id": "apprel_1790011366_85b8777dcd9d",
+          "stable_weight": 50,
+          "candidate_weight": 50,
+          "sticky_cookie": "Fugue-Release-Stickiness",
+          "updated_by_type": "system",
+          "updated_by_id": "safe-rollout-controller",
+          "created_at": "2026-07-07T16:05:03.871294Z",
+          "updated_at": "2026-09-21T17:25:36.118293Z"
+        },
+        "release": {
+          "id": "apprel_1790011366_85b8777dcd9d",
+          "role": "candidate",
+          "status": "ready",
+          "deployment_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+          "service_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+          "upstream_url": "http://app-1783188884-8facd2b054e6-candidate-675bf9cb08c5.fg-tenant-1774393589-e35b60a6fc11.svc.cluster.local:8000",
+          "revision_workload": {
+            "operation_id": "op_1790011354_129ba25020c4",
+            "namespace": "fg-tenant-1774393589-e35b60a6fc11",
+            "deployment_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+            "deployment_uid": "d70a7bb0-649a-46c3-991a-04c42f46175b",
+            "deployment_generation": 1,
+            "service_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+            "service_uid": "0854ef98-319b-4fc8-a309-540da019cb92",
+            "release_key": "f70eca98176f80a3afd1fa8c80c8ccb5733957a855ab0f8531ba7488f2174bbd",
+            "runtime_id": "runtime_managed_shared",
+            "image_ref": "registry.fugue.internal:5000/fugue-apps/index-docker-io-library-python:image-6d43704baacd",
+            "bound_at": "2026-09-21T17:25:23.875935Z"
+          }
+        }
+      },
+      {
+        "at": "2026-09-21T17:27:22.836515+00:00",
+        "operation_status": "running",
+        "policy": {
+          "id": "apptp_1783440303_3271421d3798",
+          "tenant_id": "tenant_1774393589_e35b60a6fc11",
+          "app_id": "app_1783188884_8facd2b054e6",
+          "mode": "canary",
+          "stable_release_id": "apprel_1789973255_32b1fa2a238f",
+          "candidate_release_id": "apprel_1790011366_85b8777dcd9d",
+          "stable_weight": 50,
+          "candidate_weight": 50,
+          "sticky_cookie": "Fugue-Release-Stickiness",
+          "updated_by_type": "system",
+          "updated_by_id": "safe-rollout-controller",
+          "created_at": "2026-07-07T16:05:03.871294Z",
+          "updated_at": "2026-09-21T17:25:36.118293Z"
+        },
+        "release": {
+          "id": "apprel_1790011366_85b8777dcd9d",
+          "role": "candidate",
+          "status": "ready",
+          "deployment_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+          "service_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+          "upstream_url": "http://app-1783188884-8facd2b054e6-candidate-675bf9cb08c5.fg-tenant-1774393589-e35b60a6fc11.svc.cluster.local:8000",
+          "revision_workload": {
+            "operation_id": "op_1790011354_129ba25020c4",
+            "namespace": "fg-tenant-1774393589-e35b60a6fc11",
+            "deployment_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+            "deployment_uid": "d70a7bb0-649a-46c3-991a-04c42f46175b",
+            "deployment_generation": 1,
+            "service_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+            "service_uid": "0854ef98-319b-4fc8-a309-540da019cb92",
+            "release_key": "f70eca98176f80a3afd1fa8c80c8ccb5733957a855ab0f8531ba7488f2174bbd",
+            "runtime_id": "runtime_managed_shared",
+            "image_ref": "registry.fugue.internal:5000/fugue-apps/index-docker-io-library-python:image-6d43704baacd",
+            "bound_at": "2026-09-21T17:25:23.875935Z"
+          }
+        }
+      },
+      {
+        "at": "2026-09-21T17:27:29.374022+00:00",
+        "operation_status": "running",
+        "policy": {
+          "id": "apptp_1783440303_3271421d3798",
+          "tenant_id": "tenant_1774393589_e35b60a6fc11",
+          "app_id": "app_1783188884_8facd2b054e6",
+          "mode": "canary",
+          "stable_release_id": "apprel_1789973255_32b1fa2a238f",
+          "candidate_release_id": "apprel_1790011366_85b8777dcd9d",
+          "stable_weight": 50,
+          "candidate_weight": 50,
+          "sticky_cookie": "Fugue-Release-Stickiness",
+          "updated_by_type": "system",
+          "updated_by_id": "safe-rollout-controller",
+          "created_at": "2026-07-07T16:05:03.871294Z",
+          "updated_at": "2026-09-21T17:25:36.118293Z"
+        },
+        "release": {
+          "id": "apprel_1790011366_85b8777dcd9d",
+          "role": "candidate",
+          "status": "ready",
+          "deployment_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+          "service_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+          "upstream_url": "http://app-1783188884-8facd2b054e6-candidate-675bf9cb08c5.fg-tenant-1774393589-e35b60a6fc11.svc.cluster.local:8000",
+          "revision_workload": {
+            "operation_id": "op_1790011354_129ba25020c4",
+            "namespace": "fg-tenant-1774393589-e35b60a6fc11",
+            "deployment_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+            "deployment_uid": "d70a7bb0-649a-46c3-991a-04c42f46175b",
+            "deployment_generation": 1,
+            "service_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+            "service_uid": "0854ef98-319b-4fc8-a309-540da019cb92",
+            "release_key": "f70eca98176f80a3afd1fa8c80c8ccb5733957a855ab0f8531ba7488f2174bbd",
+            "runtime_id": "runtime_managed_shared",
+            "image_ref": "registry.fugue.internal:5000/fugue-apps/index-docker-io-library-python:image-6d43704baacd",
+            "bound_at": "2026-09-21T17:25:23.875935Z"
+          }
+        }
+      },
+      {
+        "at": "2026-09-21T17:27:35.862603+00:00",
+        "operation_status": "running",
+        "policy": {
+          "id": "apptp_1783440303_3271421d3798",
+          "tenant_id": "tenant_1774393589_e35b60a6fc11",
+          "app_id": "app_1783188884_8facd2b054e6",
+          "mode": "canary",
+          "stable_release_id": "apprel_1789973255_32b1fa2a238f",
+          "candidate_release_id": "apprel_1790011366_85b8777dcd9d",
+          "stable_weight": 50,
+          "candidate_weight": 50,
+          "sticky_cookie": "Fugue-Release-Stickiness",
+          "updated_by_type": "system",
+          "updated_by_id": "safe-rollout-controller",
+          "created_at": "2026-07-07T16:05:03.871294Z",
+          "updated_at": "2026-09-21T17:25:36.118293Z"
+        },
+        "release": {
+          "id": "apprel_1790011366_85b8777dcd9d",
+          "role": "candidate",
+          "status": "ready",
+          "deployment_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+          "service_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+          "upstream_url": "http://app-1783188884-8facd2b054e6-candidate-675bf9cb08c5.fg-tenant-1774393589-e35b60a6fc11.svc.cluster.local:8000",
+          "revision_workload": {
+            "operation_id": "op_1790011354_129ba25020c4",
+            "namespace": "fg-tenant-1774393589-e35b60a6fc11",
+            "deployment_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+            "deployment_uid": "d70a7bb0-649a-46c3-991a-04c42f46175b",
+            "deployment_generation": 1,
+            "service_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+            "service_uid": "0854ef98-319b-4fc8-a309-540da019cb92",
+            "release_key": "f70eca98176f80a3afd1fa8c80c8ccb5733957a855ab0f8531ba7488f2174bbd",
+            "runtime_id": "runtime_managed_shared",
+            "image_ref": "registry.fugue.internal:5000/fugue-apps/index-docker-io-library-python:image-6d43704baacd",
+            "bound_at": "2026-09-21T17:25:23.875935Z"
+          }
+        }
+      },
+      {
+        "at": "2026-09-21T17:27:42.276803+00:00",
+        "operation_status": "running",
+        "policy": {
+          "id": "apptp_1783440303_3271421d3798",
+          "tenant_id": "tenant_1774393589_e35b60a6fc11",
+          "app_id": "app_1783188884_8facd2b054e6",
+          "mode": "canary",
+          "stable_release_id": "apprel_1789973255_32b1fa2a238f",
+          "candidate_release_id": "apprel_1790011366_85b8777dcd9d",
+          "stable_weight": 50,
+          "candidate_weight": 50,
+          "sticky_cookie": "Fugue-Release-Stickiness",
+          "updated_by_type": "system",
+          "updated_by_id": "safe-rollout-controller",
+          "created_at": "2026-07-07T16:05:03.871294Z",
+          "updated_at": "2026-09-21T17:25:36.118293Z"
+        },
+        "release": {
+          "id": "apprel_1790011366_85b8777dcd9d",
+          "role": "candidate",
+          "status": "ready",
+          "deployment_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+          "service_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+          "upstream_url": "http://app-1783188884-8facd2b054e6-candidate-675bf9cb08c5.fg-tenant-1774393589-e35b60a6fc11.svc.cluster.local:8000",
+          "revision_workload": {
+            "operation_id": "op_1790011354_129ba25020c4",
+            "namespace": "fg-tenant-1774393589-e35b60a6fc11",
+            "deployment_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+            "deployment_uid": "d70a7bb0-649a-46c3-991a-04c42f46175b",
+            "deployment_generation": 1,
+            "service_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+            "service_uid": "0854ef98-319b-4fc8-a309-540da019cb92",
+            "release_key": "f70eca98176f80a3afd1fa8c80c8ccb5733957a855ab0f8531ba7488f2174bbd",
+            "runtime_id": "runtime_managed_shared",
+            "image_ref": "registry.fugue.internal:5000/fugue-apps/index-docker-io-library-python:image-6d43704baacd",
+            "bound_at": "2026-09-21T17:25:23.875935Z"
+          }
+        }
+      },
+      {
+        "at": "2026-09-21T17:27:48.803958+00:00",
+        "operation_status": "running",
+        "policy": {
+          "id": "apptp_1783440303_3271421d3798",
+          "tenant_id": "tenant_1774393589_e35b60a6fc11",
+          "app_id": "app_1783188884_8facd2b054e6",
+          "mode": "canary",
+          "stable_release_id": "apprel_1789973255_32b1fa2a238f",
+          "candidate_release_id": "apprel_1790011366_85b8777dcd9d",
+          "stable_weight": 50,
+          "candidate_weight": 50,
+          "sticky_cookie": "Fugue-Release-Stickiness",
+          "updated_by_type": "system",
+          "updated_by_id": "safe-rollout-controller",
+          "created_at": "2026-07-07T16:05:03.871294Z",
+          "updated_at": "2026-09-21T17:25:36.118293Z"
+        },
+        "release": {
+          "id": "apprel_1790011366_85b8777dcd9d",
+          "role": "candidate",
+          "status": "ready",
+          "deployment_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+          "service_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+          "upstream_url": "http://app-1783188884-8facd2b054e6-candidate-675bf9cb08c5.fg-tenant-1774393589-e35b60a6fc11.svc.cluster.local:8000",
+          "revision_workload": {
+            "operation_id": "op_1790011354_129ba25020c4",
+            "namespace": "fg-tenant-1774393589-e35b60a6fc11",
+            "deployment_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+            "deployment_uid": "d70a7bb0-649a-46c3-991a-04c42f46175b",
+            "deployment_generation": 1,
+            "service_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+            "service_uid": "0854ef98-319b-4fc8-a309-540da019cb92",
+            "release_key": "f70eca98176f80a3afd1fa8c80c8ccb5733957a855ab0f8531ba7488f2174bbd",
+            "runtime_id": "runtime_managed_shared",
+            "image_ref": "registry.fugue.internal:5000/fugue-apps/index-docker-io-library-python:image-6d43704baacd",
+            "bound_at": "2026-09-21T17:25:23.875935Z"
+          }
+        }
+      },
+      {
+        "at": "2026-09-21T17:27:55.368195+00:00",
+        "operation_status": "running",
+        "policy": {
+          "id": "apptp_1783440303_3271421d3798",
+          "tenant_id": "tenant_1774393589_e35b60a6fc11",
+          "app_id": "app_1783188884_8facd2b054e6",
+          "mode": "canary",
+          "stable_release_id": "apprel_1789973255_32b1fa2a238f",
+          "candidate_release_id": "apprel_1790011366_85b8777dcd9d",
+          "stable_weight": 50,
+          "candidate_weight": 50,
+          "sticky_cookie": "Fugue-Release-Stickiness",
+          "updated_by_type": "system",
+          "updated_by_id": "safe-rollout-controller",
+          "created_at": "2026-07-07T16:05:03.871294Z",
+          "updated_at": "2026-09-21T17:25:36.118293Z"
+        },
+        "release": {
+          "id": "apprel_1790011366_85b8777dcd9d",
+          "role": "candidate",
+          "status": "ready",
+          "deployment_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+          "service_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+          "upstream_url": "http://app-1783188884-8facd2b054e6-candidate-675bf9cb08c5.fg-tenant-1774393589-e35b60a6fc11.svc.cluster.local:8000",
+          "revision_workload": {
+            "operation_id": "op_1790011354_129ba25020c4",
+            "namespace": "fg-tenant-1774393589-e35b60a6fc11",
+            "deployment_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+            "deployment_uid": "d70a7bb0-649a-46c3-991a-04c42f46175b",
+            "deployment_generation": 1,
+            "service_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+            "service_uid": "0854ef98-319b-4fc8-a309-540da019cb92",
+            "release_key": "f70eca98176f80a3afd1fa8c80c8ccb5733957a855ab0f8531ba7488f2174bbd",
+            "runtime_id": "runtime_managed_shared",
+            "image_ref": "registry.fugue.internal:5000/fugue-apps/index-docker-io-library-python:image-6d43704baacd",
+            "bound_at": "2026-09-21T17:25:23.875935Z"
+          }
+        }
+      },
+      {
+        "at": "2026-09-21T17:28:01.890609+00:00",
+        "operation_status": "running",
+        "policy": {
+          "id": "apptp_1783440303_3271421d3798",
+          "tenant_id": "tenant_1774393589_e35b60a6fc11",
+          "app_id": "app_1783188884_8facd2b054e6",
+          "mode": "canary",
+          "stable_release_id": "apprel_1789973255_32b1fa2a238f",
+          "candidate_release_id": "apprel_1790011366_85b8777dcd9d",
+          "stable_weight": 50,
+          "candidate_weight": 50,
+          "sticky_cookie": "Fugue-Release-Stickiness",
+          "updated_by_type": "system",
+          "updated_by_id": "safe-rollout-controller",
+          "created_at": "2026-07-07T16:05:03.871294Z",
+          "updated_at": "2026-09-21T17:25:36.118293Z"
+        },
+        "release": {
+          "id": "apprel_1790011366_85b8777dcd9d",
+          "role": "candidate",
+          "status": "ready",
+          "deployment_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+          "service_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+          "upstream_url": "http://app-1783188884-8facd2b054e6-candidate-675bf9cb08c5.fg-tenant-1774393589-e35b60a6fc11.svc.cluster.local:8000",
+          "revision_workload": {
+            "operation_id": "op_1790011354_129ba25020c4",
+            "namespace": "fg-tenant-1774393589-e35b60a6fc11",
+            "deployment_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+            "deployment_uid": "d70a7bb0-649a-46c3-991a-04c42f46175b",
+            "deployment_generation": 1,
+            "service_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+            "service_uid": "0854ef98-319b-4fc8-a309-540da019cb92",
+            "release_key": "f70eca98176f80a3afd1fa8c80c8ccb5733957a855ab0f8531ba7488f2174bbd",
+            "runtime_id": "runtime_managed_shared",
+            "image_ref": "registry.fugue.internal:5000/fugue-apps/index-docker-io-library-python:image-6d43704baacd",
+            "bound_at": "2026-09-21T17:25:23.875935Z"
+          }
+        }
+      },
+      {
+        "at": "2026-09-21T17:28:08.364797+00:00",
+        "operation_status": "running",
+        "policy": {
+          "id": "apptp_1783440303_3271421d3798",
+          "tenant_id": "tenant_1774393589_e35b60a6fc11",
+          "app_id": "app_1783188884_8facd2b054e6",
+          "mode": "canary",
+          "stable_release_id": "apprel_1789973255_32b1fa2a238f",
+          "candidate_release_id": "apprel_1790011366_85b8777dcd9d",
+          "stable_weight": 50,
+          "candidate_weight": 50,
+          "sticky_cookie": "Fugue-Release-Stickiness",
+          "updated_by_type": "system",
+          "updated_by_id": "safe-rollout-controller",
+          "created_at": "2026-07-07T16:05:03.871294Z",
+          "updated_at": "2026-09-21T17:25:36.118293Z"
+        },
+        "release": {
+          "id": "apprel_1790011366_85b8777dcd9d",
+          "role": "candidate",
+          "status": "ready",
+          "deployment_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+          "service_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+          "upstream_url": "http://app-1783188884-8facd2b054e6-candidate-675bf9cb08c5.fg-tenant-1774393589-e35b60a6fc11.svc.cluster.local:8000",
+          "revision_workload": {
+            "operation_id": "op_1790011354_129ba25020c4",
+            "namespace": "fg-tenant-1774393589-e35b60a6fc11",
+            "deployment_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+            "deployment_uid": "d70a7bb0-649a-46c3-991a-04c42f46175b",
+            "deployment_generation": 1,
+            "service_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+            "service_uid": "0854ef98-319b-4fc8-a309-540da019cb92",
+            "release_key": "f70eca98176f80a3afd1fa8c80c8ccb5733957a855ab0f8531ba7488f2174bbd",
+            "runtime_id": "runtime_managed_shared",
+            "image_ref": "registry.fugue.internal:5000/fugue-apps/index-docker-io-library-python:image-6d43704baacd",
+            "bound_at": "2026-09-21T17:25:23.875935Z"
+          }
+        }
+      },
+      {
+        "at": "2026-09-21T17:28:14.958931+00:00",
+        "operation_status": "running",
+        "policy": {
+          "id": "apptp_1783440303_3271421d3798",
+          "tenant_id": "tenant_1774393589_e35b60a6fc11",
+          "app_id": "app_1783188884_8facd2b054e6",
+          "mode": "canary",
+          "stable_release_id": "apprel_1789973255_32b1fa2a238f",
+          "candidate_release_id": "apprel_1790011366_85b8777dcd9d",
+          "stable_weight": 50,
+          "candidate_weight": 50,
+          "sticky_cookie": "Fugue-Release-Stickiness",
+          "updated_by_type": "system",
+          "updated_by_id": "safe-rollout-controller",
+          "created_at": "2026-07-07T16:05:03.871294Z",
+          "updated_at": "2026-09-21T17:25:36.118293Z"
+        },
+        "release": {
+          "id": "apprel_1790011366_85b8777dcd9d",
+          "role": "candidate",
+          "status": "ready",
+          "deployment_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+          "service_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+          "upstream_url": "http://app-1783188884-8facd2b054e6-candidate-675bf9cb08c5.fg-tenant-1774393589-e35b60a6fc11.svc.cluster.local:8000",
+          "revision_workload": {
+            "operation_id": "op_1790011354_129ba25020c4",
+            "namespace": "fg-tenant-1774393589-e35b60a6fc11",
+            "deployment_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+            "deployment_uid": "d70a7bb0-649a-46c3-991a-04c42f46175b",
+            "deployment_generation": 1,
+            "service_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+            "service_uid": "0854ef98-319b-4fc8-a309-540da019cb92",
+            "release_key": "f70eca98176f80a3afd1fa8c80c8ccb5733957a855ab0f8531ba7488f2174bbd",
+            "runtime_id": "runtime_managed_shared",
+            "image_ref": "registry.fugue.internal:5000/fugue-apps/index-docker-io-library-python:image-6d43704baacd",
+            "bound_at": "2026-09-21T17:25:23.875935Z"
+          }
+        }
+      },
+      {
+        "at": "2026-09-21T17:28:21.470544+00:00",
+        "operation_status": "running",
+        "policy": {
+          "id": "apptp_1783440303_3271421d3798",
+          "tenant_id": "tenant_1774393589_e35b60a6fc11",
+          "app_id": "app_1783188884_8facd2b054e6",
+          "mode": "single",
+          "stable_release_id": "apprel_1790011366_85b8777dcd9d",
+          "stable_weight": 100,
+          "candidate_weight": 0,
+          "sticky_cookie": "Fugue-Release-Stickiness",
+          "updated_by_type": "system",
+          "updated_by_id": "safe-rollout-controller",
+          "created_at": "2026-07-07T16:05:03.871294Z",
+          "updated_at": "2026-09-21T17:28:16.661674Z"
+        },
+        "release": {
+          "id": "apprel_1790011366_85b8777dcd9d",
+          "role": "stable",
+          "status": "serving",
+          "deployment_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+          "service_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+          "upstream_url": "http://app-1783188884-8facd2b054e6-candidate-675bf9cb08c5.fg-tenant-1774393589-e35b60a6fc11.svc.cluster.local:8000",
+          "revision_workload": {
+            "operation_id": "op_1790011354_129ba25020c4",
+            "namespace": "fg-tenant-1774393589-e35b60a6fc11",
+            "deployment_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+            "deployment_uid": "d70a7bb0-649a-46c3-991a-04c42f46175b",
+            "deployment_generation": 1,
+            "service_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+            "service_uid": "0854ef98-319b-4fc8-a309-540da019cb92",
+            "release_key": "f70eca98176f80a3afd1fa8c80c8ccb5733957a855ab0f8531ba7488f2174bbd",
+            "runtime_id": "runtime_managed_shared",
+            "image_ref": "registry.fugue.internal:5000/fugue-apps/index-docker-io-library-python:image-6d43704baacd",
+            "bound_at": "2026-09-21T17:25:23.875935Z"
+          }
+        }
+      },
+      {
+        "at": "2026-09-21T17:28:28.071961+00:00",
+        "operation_status": "running",
+        "policy": {
+          "id": "apptp_1783440303_3271421d3798",
+          "tenant_id": "tenant_1774393589_e35b60a6fc11",
+          "app_id": "app_1783188884_8facd2b054e6",
+          "mode": "single",
+          "stable_release_id": "apprel_1790011366_85b8777dcd9d",
+          "stable_weight": 100,
+          "candidate_weight": 0,
+          "sticky_cookie": "Fugue-Release-Stickiness",
+          "updated_by_type": "system",
+          "updated_by_id": "safe-rollout-controller",
+          "created_at": "2026-07-07T16:05:03.871294Z",
+          "updated_at": "2026-09-21T17:28:16.661674Z"
+        },
+        "release": {
+          "id": "apprel_1790011366_85b8777dcd9d",
+          "role": "stable",
+          "status": "serving",
+          "deployment_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+          "service_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+          "upstream_url": "http://app-1783188884-8facd2b054e6-candidate-675bf9cb08c5.fg-tenant-1774393589-e35b60a6fc11.svc.cluster.local:8000",
+          "revision_workload": {
+            "operation_id": "op_1790011354_129ba25020c4",
+            "namespace": "fg-tenant-1774393589-e35b60a6fc11",
+            "deployment_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+            "deployment_uid": "d70a7bb0-649a-46c3-991a-04c42f46175b",
+            "deployment_generation": 1,
+            "service_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+            "service_uid": "0854ef98-319b-4fc8-a309-540da019cb92",
+            "release_key": "f70eca98176f80a3afd1fa8c80c8ccb5733957a855ab0f8531ba7488f2174bbd",
+            "runtime_id": "runtime_managed_shared",
+            "image_ref": "registry.fugue.internal:5000/fugue-apps/index-docker-io-library-python:image-6d43704baacd",
+            "bound_at": "2026-09-21T17:25:23.875935Z"
+          }
+        }
+      },
+      {
+        "at": "2026-09-21T17:28:34.454040+00:00",
+        "operation_status": "running",
+        "policy": {
+          "id": "apptp_1783440303_3271421d3798",
+          "tenant_id": "tenant_1774393589_e35b60a6fc11",
+          "app_id": "app_1783188884_8facd2b054e6",
+          "mode": "single",
+          "stable_release_id": "apprel_1790011366_85b8777dcd9d",
+          "stable_weight": 100,
+          "candidate_weight": 0,
+          "sticky_cookie": "Fugue-Release-Stickiness",
+          "updated_by_type": "system",
+          "updated_by_id": "safe-rollout-controller",
+          "created_at": "2026-07-07T16:05:03.871294Z",
+          "updated_at": "2026-09-21T17:28:16.661674Z"
+        },
+        "release": {
+          "id": "apprel_1790011366_85b8777dcd9d",
+          "role": "stable",
+          "status": "serving",
+          "deployment_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+          "service_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+          "upstream_url": "http://app-1783188884-8facd2b054e6-candidate-675bf9cb08c5.fg-tenant-1774393589-e35b60a6fc11.svc.cluster.local:8000",
+          "revision_workload": {
+            "operation_id": "op_1790011354_129ba25020c4",
+            "namespace": "fg-tenant-1774393589-e35b60a6fc11",
+            "deployment_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+            "deployment_uid": "d70a7bb0-649a-46c3-991a-04c42f46175b",
+            "deployment_generation": 1,
+            "service_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+            "service_uid": "0854ef98-319b-4fc8-a309-540da019cb92",
+            "release_key": "f70eca98176f80a3afd1fa8c80c8ccb5733957a855ab0f8531ba7488f2174bbd",
+            "runtime_id": "runtime_managed_shared",
+            "image_ref": "registry.fugue.internal:5000/fugue-apps/index-docker-io-library-python:image-6d43704baacd",
+            "bound_at": "2026-09-21T17:25:23.875935Z"
+          }
+        }
+      },
+      {
+        "at": "2026-09-21T17:28:40.866444+00:00",
+        "operation_status": "running",
+        "policy": {
+          "id": "apptp_1783440303_3271421d3798",
+          "tenant_id": "tenant_1774393589_e35b60a6fc11",
+          "app_id": "app_1783188884_8facd2b054e6",
+          "mode": "single",
+          "stable_release_id": "apprel_1790011366_85b8777dcd9d",
+          "stable_weight": 100,
+          "candidate_weight": 0,
+          "sticky_cookie": "Fugue-Release-Stickiness",
+          "updated_by_type": "system",
+          "updated_by_id": "safe-rollout-controller",
+          "created_at": "2026-07-07T16:05:03.871294Z",
+          "updated_at": "2026-09-21T17:28:16.661674Z"
+        },
+        "release": {
+          "id": "apprel_1790011366_85b8777dcd9d",
+          "role": "stable",
+          "status": "serving",
+          "deployment_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+          "service_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+          "upstream_url": "http://app-1783188884-8facd2b054e6-candidate-675bf9cb08c5.fg-tenant-1774393589-e35b60a6fc11.svc.cluster.local:8000",
+          "revision_workload": {
+            "operation_id": "op_1790011354_129ba25020c4",
+            "namespace": "fg-tenant-1774393589-e35b60a6fc11",
+            "deployment_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+            "deployment_uid": "d70a7bb0-649a-46c3-991a-04c42f46175b",
+            "deployment_generation": 1,
+            "service_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+            "service_uid": "0854ef98-319b-4fc8-a309-540da019cb92",
+            "release_key": "f70eca98176f80a3afd1fa8c80c8ccb5733957a855ab0f8531ba7488f2174bbd",
+            "runtime_id": "runtime_managed_shared",
+            "image_ref": "registry.fugue.internal:5000/fugue-apps/index-docker-io-library-python:image-6d43704baacd",
+            "bound_at": "2026-09-21T17:25:23.875935Z"
+          }
+        }
+      },
+      {
+        "at": "2026-09-21T17:28:47.559914+00:00",
+        "operation_status": "running",
+        "policy": {
+          "id": "apptp_1783440303_3271421d3798",
+          "tenant_id": "tenant_1774393589_e35b60a6fc11",
+          "app_id": "app_1783188884_8facd2b054e6",
+          "mode": "single",
+          "stable_release_id": "apprel_1790011366_85b8777dcd9d",
+          "stable_weight": 100,
+          "candidate_weight": 0,
+          "sticky_cookie": "Fugue-Release-Stickiness",
+          "updated_by_type": "system",
+          "updated_by_id": "safe-rollout-controller",
+          "created_at": "2026-07-07T16:05:03.871294Z",
+          "updated_at": "2026-09-21T17:28:16.661674Z"
+        },
+        "release": {
+          "id": "apprel_1790011366_85b8777dcd9d",
+          "role": "stable",
+          "status": "serving",
+          "deployment_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+          "service_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+          "upstream_url": "http://app-1783188884-8facd2b054e6-candidate-675bf9cb08c5.fg-tenant-1774393589-e35b60a6fc11.svc.cluster.local:8000",
+          "revision_workload": {
+            "operation_id": "op_1790011354_129ba25020c4",
+            "namespace": "fg-tenant-1774393589-e35b60a6fc11",
+            "deployment_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+            "deployment_uid": "d70a7bb0-649a-46c3-991a-04c42f46175b",
+            "deployment_generation": 1,
+            "service_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+            "service_uid": "0854ef98-319b-4fc8-a309-540da019cb92",
+            "release_key": "f70eca98176f80a3afd1fa8c80c8ccb5733957a855ab0f8531ba7488f2174bbd",
+            "runtime_id": "runtime_managed_shared",
+            "image_ref": "registry.fugue.internal:5000/fugue-apps/index-docker-io-library-python:image-6d43704baacd",
+            "bound_at": "2026-09-21T17:25:23.875935Z"
+          }
+        }
+      },
+      {
+        "at": "2026-09-21T17:28:54.109517+00:00",
+        "operation_status": "running",
+        "policy": {
+          "id": "apptp_1783440303_3271421d3798",
+          "tenant_id": "tenant_1774393589_e35b60a6fc11",
+          "app_id": "app_1783188884_8facd2b054e6",
+          "mode": "single",
+          "stable_release_id": "apprel_1790011366_85b8777dcd9d",
+          "stable_weight": 100,
+          "candidate_weight": 0,
+          "sticky_cookie": "Fugue-Release-Stickiness",
+          "updated_by_type": "system",
+          "updated_by_id": "safe-rollout-controller",
+          "created_at": "2026-07-07T16:05:03.871294Z",
+          "updated_at": "2026-09-21T17:28:16.661674Z"
+        },
+        "release": {
+          "id": "apprel_1790011366_85b8777dcd9d",
+          "role": "stable",
+          "status": "serving",
+          "deployment_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+          "service_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+          "upstream_url": "http://app-1783188884-8facd2b054e6-candidate-675bf9cb08c5.fg-tenant-1774393589-e35b60a6fc11.svc.cluster.local:8000",
+          "revision_workload": {
+            "operation_id": "op_1790011354_129ba25020c4",
+            "namespace": "fg-tenant-1774393589-e35b60a6fc11",
+            "deployment_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+            "deployment_uid": "d70a7bb0-649a-46c3-991a-04c42f46175b",
+            "deployment_generation": 1,
+            "service_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+            "service_uid": "0854ef98-319b-4fc8-a309-540da019cb92",
+            "release_key": "f70eca98176f80a3afd1fa8c80c8ccb5733957a855ab0f8531ba7488f2174bbd",
+            "runtime_id": "runtime_managed_shared",
+            "image_ref": "registry.fugue.internal:5000/fugue-apps/index-docker-io-library-python:image-6d43704baacd",
+            "bound_at": "2026-09-21T17:25:23.875935Z"
+          }
+        }
+      },
+      {
+        "at": "2026-09-21T17:29:00.794135+00:00",
+        "operation_status": "running",
+        "policy": {
+          "id": "apptp_1783440303_3271421d3798",
+          "tenant_id": "tenant_1774393589_e35b60a6fc11",
+          "app_id": "app_1783188884_8facd2b054e6",
+          "mode": "single",
+          "stable_release_id": "apprel_1790011366_85b8777dcd9d",
+          "stable_weight": 100,
+          "candidate_weight": 0,
+          "sticky_cookie": "Fugue-Release-Stickiness",
+          "updated_by_type": "system",
+          "updated_by_id": "safe-rollout-controller",
+          "created_at": "2026-07-07T16:05:03.871294Z",
+          "updated_at": "2026-09-21T17:28:16.661674Z"
+        },
+        "release": {
+          "id": "apprel_1790011366_85b8777dcd9d",
+          "role": "stable",
+          "status": "serving",
+          "deployment_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+          "service_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+          "upstream_url": "http://app-1783188884-8facd2b054e6-candidate-675bf9cb08c5.fg-tenant-1774393589-e35b60a6fc11.svc.cluster.local:8000",
+          "revision_workload": {
+            "operation_id": "op_1790011354_129ba25020c4",
+            "namespace": "fg-tenant-1774393589-e35b60a6fc11",
+            "deployment_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+            "deployment_uid": "d70a7bb0-649a-46c3-991a-04c42f46175b",
+            "deployment_generation": 1,
+            "service_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+            "service_uid": "0854ef98-319b-4fc8-a309-540da019cb92",
+            "release_key": "f70eca98176f80a3afd1fa8c80c8ccb5733957a855ab0f8531ba7488f2174bbd",
+            "runtime_id": "runtime_managed_shared",
+            "image_ref": "registry.fugue.internal:5000/fugue-apps/index-docker-io-library-python:image-6d43704baacd",
+            "bound_at": "2026-09-21T17:25:23.875935Z"
+          }
+        }
+      },
+      {
+        "at": "2026-09-21T17:29:07.443605+00:00",
+        "operation_status": "running",
+        "policy": {
+          "id": "apptp_1783440303_3271421d3798",
+          "tenant_id": "tenant_1774393589_e35b60a6fc11",
+          "app_id": "app_1783188884_8facd2b054e6",
+          "mode": "single",
+          "stable_release_id": "apprel_1790011366_85b8777dcd9d",
+          "stable_weight": 100,
+          "candidate_weight": 0,
+          "sticky_cookie": "Fugue-Release-Stickiness",
+          "updated_by_type": "system",
+          "updated_by_id": "safe-rollout-controller",
+          "created_at": "2026-07-07T16:05:03.871294Z",
+          "updated_at": "2026-09-21T17:28:16.661674Z"
+        },
+        "release": {
+          "id": "apprel_1790011366_85b8777dcd9d",
+          "role": "stable",
+          "status": "serving",
+          "deployment_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+          "service_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+          "upstream_url": "http://app-1783188884-8facd2b054e6-candidate-675bf9cb08c5.fg-tenant-1774393589-e35b60a6fc11.svc.cluster.local:8000",
+          "revision_workload": {
+            "operation_id": "op_1790011354_129ba25020c4",
+            "namespace": "fg-tenant-1774393589-e35b60a6fc11",
+            "deployment_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+            "deployment_uid": "d70a7bb0-649a-46c3-991a-04c42f46175b",
+            "deployment_generation": 1,
+            "service_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+            "service_uid": "0854ef98-319b-4fc8-a309-540da019cb92",
+            "release_key": "f70eca98176f80a3afd1fa8c80c8ccb5733957a855ab0f8531ba7488f2174bbd",
+            "runtime_id": "runtime_managed_shared",
+            "image_ref": "registry.fugue.internal:5000/fugue-apps/index-docker-io-library-python:image-6d43704baacd",
+            "bound_at": "2026-09-21T17:25:23.875935Z"
+          }
+        }
+      },
+      {
+        "at": "2026-09-21T17:29:13.965858+00:00",
+        "operation_status": "running",
+        "policy": {
+          "id": "apptp_1783440303_3271421d3798",
+          "tenant_id": "tenant_1774393589_e35b60a6fc11",
+          "app_id": "app_1783188884_8facd2b054e6",
+          "mode": "single",
+          "stable_release_id": "apprel_1790011366_85b8777dcd9d",
+          "stable_weight": 100,
+          "candidate_weight": 0,
+          "sticky_cookie": "Fugue-Release-Stickiness",
+          "updated_by_type": "system",
+          "updated_by_id": "safe-rollout-controller",
+          "created_at": "2026-07-07T16:05:03.871294Z",
+          "updated_at": "2026-09-21T17:28:16.661674Z"
+        },
+        "release": {
+          "id": "apprel_1790011366_85b8777dcd9d",
+          "role": "stable",
+          "status": "serving",
+          "deployment_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+          "service_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+          "upstream_url": "http://app-1783188884-8facd2b054e6-candidate-675bf9cb08c5.fg-tenant-1774393589-e35b60a6fc11.svc.cluster.local:8000",
+          "revision_workload": {
+            "operation_id": "op_1790011354_129ba25020c4",
+            "namespace": "fg-tenant-1774393589-e35b60a6fc11",
+            "deployment_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+            "deployment_uid": "d70a7bb0-649a-46c3-991a-04c42f46175b",
+            "deployment_generation": 1,
+            "service_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+            "service_uid": "0854ef98-319b-4fc8-a309-540da019cb92",
+            "release_key": "f70eca98176f80a3afd1fa8c80c8ccb5733957a855ab0f8531ba7488f2174bbd",
+            "runtime_id": "runtime_managed_shared",
+            "image_ref": "registry.fugue.internal:5000/fugue-apps/index-docker-io-library-python:image-6d43704baacd",
+            "bound_at": "2026-09-21T17:25:23.875935Z"
+          }
+        }
+      },
+      {
+        "at": "2026-09-21T17:29:20.531929+00:00",
+        "operation_status": "running",
+        "policy": {
+          "id": "apptp_1783440303_3271421d3798",
+          "tenant_id": "tenant_1774393589_e35b60a6fc11",
+          "app_id": "app_1783188884_8facd2b054e6",
+          "mode": "single",
+          "stable_release_id": "apprel_1790011366_85b8777dcd9d",
+          "stable_weight": 100,
+          "candidate_weight": 0,
+          "sticky_cookie": "Fugue-Release-Stickiness",
+          "updated_by_type": "system",
+          "updated_by_id": "safe-rollout-controller",
+          "created_at": "2026-07-07T16:05:03.871294Z",
+          "updated_at": "2026-09-21T17:28:16.661674Z"
+        },
+        "release": {
+          "id": "apprel_1790011366_85b8777dcd9d",
+          "role": "stable",
+          "status": "serving",
+          "deployment_name": "app-1783188884-8facd2b054e6",
+          "service_name": "app-1783188884-8facd2b054e6",
+          "upstream_url": "http://app-1783188884-8facd2b054e6.fg-tenant-1774393589-e35b60a6fc11.svc.cluster.local:8000",
+          "revision_workload": {
+            "operation_id": "op_1790011354_129ba25020c4",
+            "namespace": "fg-tenant-1774393589-e35b60a6fc11",
+            "deployment_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+            "deployment_uid": "d70a7bb0-649a-46c3-991a-04c42f46175b",
+            "deployment_generation": 1,
+            "service_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+            "service_uid": "0854ef98-319b-4fc8-a309-540da019cb92",
+            "release_key": "f70eca98176f80a3afd1fa8c80c8ccb5733957a855ab0f8531ba7488f2174bbd",
+            "runtime_id": "runtime_managed_shared",
+            "image_ref": "registry.fugue.internal:5000/fugue-apps/index-docker-io-library-python:image-6d43704baacd",
+            "bound_at": "2026-09-21T17:25:23.875935Z"
+          }
+        }
+      },
+      {
+        "at": "2026-09-21T17:29:27.106098+00:00",
+        "operation_status": "running",
+        "policy": {
+          "id": "apptp_1783440303_3271421d3798",
+          "tenant_id": "tenant_1774393589_e35b60a6fc11",
+          "app_id": "app_1783188884_8facd2b054e6",
+          "mode": "single",
+          "stable_release_id": "apprel_1790011366_85b8777dcd9d",
+          "stable_weight": 100,
+          "candidate_weight": 0,
+          "sticky_cookie": "Fugue-Release-Stickiness",
+          "updated_by_type": "system",
+          "updated_by_id": "safe-rollout-controller",
+          "created_at": "2026-07-07T16:05:03.871294Z",
+          "updated_at": "2026-09-21T17:28:16.661674Z"
+        },
+        "release": {
+          "id": "apprel_1790011366_85b8777dcd9d",
+          "role": "stable",
+          "status": "serving",
+          "deployment_name": "app-1783188884-8facd2b054e6",
+          "service_name": "app-1783188884-8facd2b054e6",
+          "upstream_url": "http://app-1783188884-8facd2b054e6.fg-tenant-1774393589-e35b60a6fc11.svc.cluster.local:8000",
+          "revision_workload": {
+            "operation_id": "op_1790011354_129ba25020c4",
+            "namespace": "fg-tenant-1774393589-e35b60a6fc11",
+            "deployment_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+            "deployment_uid": "d70a7bb0-649a-46c3-991a-04c42f46175b",
+            "deployment_generation": 1,
+            "service_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+            "service_uid": "0854ef98-319b-4fc8-a309-540da019cb92",
+            "release_key": "f70eca98176f80a3afd1fa8c80c8ccb5733957a855ab0f8531ba7488f2174bbd",
+            "runtime_id": "runtime_managed_shared",
+            "image_ref": "registry.fugue.internal:5000/fugue-apps/index-docker-io-library-python:image-6d43704baacd",
+            "bound_at": "2026-09-21T17:25:23.875935Z"
+          }
+        }
+      },
+      {
+        "at": "2026-09-21T17:29:33.618348+00:00",
+        "operation_status": "running",
+        "policy": {
+          "id": "apptp_1783440303_3271421d3798",
+          "tenant_id": "tenant_1774393589_e35b60a6fc11",
+          "app_id": "app_1783188884_8facd2b054e6",
+          "mode": "single",
+          "stable_release_id": "apprel_1790011366_85b8777dcd9d",
+          "stable_weight": 100,
+          "candidate_weight": 0,
+          "sticky_cookie": "Fugue-Release-Stickiness",
+          "updated_by_type": "system",
+          "updated_by_id": "safe-rollout-controller",
+          "created_at": "2026-07-07T16:05:03.871294Z",
+          "updated_at": "2026-09-21T17:28:16.661674Z"
+        },
+        "release": {
+          "id": "apprel_1790011366_85b8777dcd9d",
+          "role": "stable",
+          "status": "serving",
+          "deployment_name": "app-1783188884-8facd2b054e6",
+          "service_name": "app-1783188884-8facd2b054e6",
+          "upstream_url": "http://app-1783188884-8facd2b054e6.fg-tenant-1774393589-e35b60a6fc11.svc.cluster.local:8000",
+          "revision_workload": {
+            "operation_id": "op_1790011354_129ba25020c4",
+            "namespace": "fg-tenant-1774393589-e35b60a6fc11",
+            "deployment_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+            "deployment_uid": "d70a7bb0-649a-46c3-991a-04c42f46175b",
+            "deployment_generation": 1,
+            "service_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+            "service_uid": "0854ef98-319b-4fc8-a309-540da019cb92",
+            "release_key": "f70eca98176f80a3afd1fa8c80c8ccb5733957a855ab0f8531ba7488f2174bbd",
+            "runtime_id": "runtime_managed_shared",
+            "image_ref": "registry.fugue.internal:5000/fugue-apps/index-docker-io-library-python:image-6d43704baacd",
+            "bound_at": "2026-09-21T17:25:23.875935Z"
+          }
+        }
+      },
+      {
+        "at": "2026-09-21T17:29:39.982113+00:00",
+        "operation_status": "running",
+        "policy": {
+          "id": "apptp_1783440303_3271421d3798",
+          "tenant_id": "tenant_1774393589_e35b60a6fc11",
+          "app_id": "app_1783188884_8facd2b054e6",
+          "mode": "single",
+          "stable_release_id": "apprel_1790011366_85b8777dcd9d",
+          "stable_weight": 100,
+          "candidate_weight": 0,
+          "sticky_cookie": "Fugue-Release-Stickiness",
+          "updated_by_type": "system",
+          "updated_by_id": "safe-rollout-controller",
+          "created_at": "2026-07-07T16:05:03.871294Z",
+          "updated_at": "2026-09-21T17:28:16.661674Z"
+        },
+        "release": {
+          "id": "apprel_1790011366_85b8777dcd9d",
+          "role": "stable",
+          "status": "serving",
+          "deployment_name": "app-1783188884-8facd2b054e6",
+          "service_name": "app-1783188884-8facd2b054e6",
+          "upstream_url": "http://app-1783188884-8facd2b054e6.fg-tenant-1774393589-e35b60a6fc11.svc.cluster.local:8000",
+          "revision_workload": {
+            "operation_id": "op_1790011354_129ba25020c4",
+            "namespace": "fg-tenant-1774393589-e35b60a6fc11",
+            "deployment_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+            "deployment_uid": "d70a7bb0-649a-46c3-991a-04c42f46175b",
+            "deployment_generation": 1,
+            "service_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+            "service_uid": "0854ef98-319b-4fc8-a309-540da019cb92",
+            "release_key": "f70eca98176f80a3afd1fa8c80c8ccb5733957a855ab0f8531ba7488f2174bbd",
+            "runtime_id": "runtime_managed_shared",
+            "image_ref": "registry.fugue.internal:5000/fugue-apps/index-docker-io-library-python:image-6d43704baacd",
+            "bound_at": "2026-09-21T17:25:23.875935Z"
+          }
+        }
+      },
+      {
+        "at": "2026-09-21T17:29:46.533963+00:00",
+        "operation_status": "running",
+        "policy": {
+          "id": "apptp_1783440303_3271421d3798",
+          "tenant_id": "tenant_1774393589_e35b60a6fc11",
+          "app_id": "app_1783188884_8facd2b054e6",
+          "mode": "single",
+          "stable_release_id": "apprel_1790011366_85b8777dcd9d",
+          "stable_weight": 100,
+          "candidate_weight": 0,
+          "sticky_cookie": "Fugue-Release-Stickiness",
+          "updated_by_type": "system",
+          "updated_by_id": "safe-rollout-controller",
+          "created_at": "2026-07-07T16:05:03.871294Z",
+          "updated_at": "2026-09-21T17:28:16.661674Z"
+        },
+        "release": {
+          "id": "apprel_1790011366_85b8777dcd9d",
+          "role": "stable",
+          "status": "serving",
+          "deployment_name": "app-1783188884-8facd2b054e6",
+          "service_name": "app-1783188884-8facd2b054e6",
+          "upstream_url": "http://app-1783188884-8facd2b054e6.fg-tenant-1774393589-e35b60a6fc11.svc.cluster.local:8000",
+          "revision_workload": {
+            "operation_id": "op_1790011354_129ba25020c4",
+            "namespace": "fg-tenant-1774393589-e35b60a6fc11",
+            "deployment_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+            "deployment_uid": "d70a7bb0-649a-46c3-991a-04c42f46175b",
+            "deployment_generation": 1,
+            "service_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+            "service_uid": "0854ef98-319b-4fc8-a309-540da019cb92",
+            "release_key": "f70eca98176f80a3afd1fa8c80c8ccb5733957a855ab0f8531ba7488f2174bbd",
+            "runtime_id": "runtime_managed_shared",
+            "image_ref": "registry.fugue.internal:5000/fugue-apps/index-docker-io-library-python:image-6d43704baacd",
+            "bound_at": "2026-09-21T17:25:23.875935Z"
+          }
+        }
+      },
+      {
+        "at": "2026-09-21T17:29:53.027164+00:00",
+        "operation_status": "running",
+        "policy": {
+          "id": "apptp_1783440303_3271421d3798",
+          "tenant_id": "tenant_1774393589_e35b60a6fc11",
+          "app_id": "app_1783188884_8facd2b054e6",
+          "mode": "single",
+          "stable_release_id": "apprel_1790011366_85b8777dcd9d",
+          "stable_weight": 100,
+          "candidate_weight": 0,
+          "sticky_cookie": "Fugue-Release-Stickiness",
+          "updated_by_type": "system",
+          "updated_by_id": "safe-rollout-controller",
+          "created_at": "2026-07-07T16:05:03.871294Z",
+          "updated_at": "2026-09-21T17:28:16.661674Z"
+        },
+        "release": {
+          "id": "apprel_1790011366_85b8777dcd9d",
+          "role": "stable",
+          "status": "serving",
+          "deployment_name": "app-1783188884-8facd2b054e6",
+          "service_name": "app-1783188884-8facd2b054e6",
+          "upstream_url": "http://app-1783188884-8facd2b054e6.fg-tenant-1774393589-e35b60a6fc11.svc.cluster.local:8000",
+          "revision_workload": {
+            "operation_id": "op_1790011354_129ba25020c4",
+            "namespace": "fg-tenant-1774393589-e35b60a6fc11",
+            "deployment_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+            "deployment_uid": "d70a7bb0-649a-46c3-991a-04c42f46175b",
+            "deployment_generation": 1,
+            "service_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+            "service_uid": "0854ef98-319b-4fc8-a309-540da019cb92",
+            "release_key": "f70eca98176f80a3afd1fa8c80c8ccb5733957a855ab0f8531ba7488f2174bbd",
+            "runtime_id": "runtime_managed_shared",
+            "image_ref": "registry.fugue.internal:5000/fugue-apps/index-docker-io-library-python:image-6d43704baacd",
+            "bound_at": "2026-09-21T17:25:23.875935Z"
+          }
+        }
+      },
+      {
+        "at": "2026-09-21T17:29:59.569900+00:00",
+        "operation_status": "running",
+        "policy": {
+          "id": "apptp_1783440303_3271421d3798",
+          "tenant_id": "tenant_1774393589_e35b60a6fc11",
+          "app_id": "app_1783188884_8facd2b054e6",
+          "mode": "single",
+          "stable_release_id": "apprel_1790011366_85b8777dcd9d",
+          "stable_weight": 100,
+          "candidate_weight": 0,
+          "sticky_cookie": "Fugue-Release-Stickiness",
+          "updated_by_type": "system",
+          "updated_by_id": "safe-rollout-controller",
+          "created_at": "2026-07-07T16:05:03.871294Z",
+          "updated_at": "2026-09-21T17:28:16.661674Z"
+        },
+        "release": {
+          "id": "apprel_1790011366_85b8777dcd9d",
+          "role": "stable",
+          "status": "serving",
+          "deployment_name": "app-1783188884-8facd2b054e6",
+          "service_name": "app-1783188884-8facd2b054e6",
+          "upstream_url": "http://app-1783188884-8facd2b054e6.fg-tenant-1774393589-e35b60a6fc11.svc.cluster.local:8000",
+          "revision_workload": {
+            "operation_id": "op_1790011354_129ba25020c4",
+            "namespace": "fg-tenant-1774393589-e35b60a6fc11",
+            "deployment_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+            "deployment_uid": "d70a7bb0-649a-46c3-991a-04c42f46175b",
+            "deployment_generation": 1,
+            "service_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+            "service_uid": "0854ef98-319b-4fc8-a309-540da019cb92",
+            "release_key": "f70eca98176f80a3afd1fa8c80c8ccb5733957a855ab0f8531ba7488f2174bbd",
+            "runtime_id": "runtime_managed_shared",
+            "image_ref": "registry.fugue.internal:5000/fugue-apps/index-docker-io-library-python:image-6d43704baacd",
+            "bound_at": "2026-09-21T17:25:23.875935Z"
+          }
+        }
+      },
+      {
+        "at": "2026-09-21T17:30:06.193387+00:00",
+        "operation_status": "completed",
+        "policy": {
+          "id": "apptp_1783440303_3271421d3798",
+          "tenant_id": "tenant_1774393589_e35b60a6fc11",
+          "app_id": "app_1783188884_8facd2b054e6",
+          "mode": "single",
+          "stable_release_id": "apprel_1790011366_85b8777dcd9d",
+          "stable_weight": 100,
+          "candidate_weight": 0,
+          "sticky_cookie": "Fugue-Release-Stickiness",
+          "updated_by_type": "system",
+          "updated_by_id": "safe-rollout-controller",
+          "created_at": "2026-07-07T16:05:03.871294Z",
+          "updated_at": "2026-09-21T17:28:16.661674Z"
+        },
+        "release": {
+          "id": "apprel_1790011366_85b8777dcd9d",
+          "role": "stable",
+          "status": "serving",
+          "deployment_name": "app-1783188884-8facd2b054e6",
+          "service_name": "app-1783188884-8facd2b054e6",
+          "upstream_url": "http://app-1783188884-8facd2b054e6.fg-tenant-1774393589-e35b60a6fc11.svc.cluster.local:8000",
+          "revision_workload": {
+            "operation_id": "op_1790011354_129ba25020c4",
+            "namespace": "fg-tenant-1774393589-e35b60a6fc11",
+            "deployment_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+            "deployment_uid": "d70a7bb0-649a-46c3-991a-04c42f46175b",
+            "deployment_generation": 1,
+            "service_name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+            "service_uid": "0854ef98-319b-4fc8-a309-540da019cb92",
+            "release_key": "f70eca98176f80a3afd1fa8c80c8ccb5733957a855ab0f8531ba7488f2174bbd",
+            "runtime_id": "runtime_managed_shared",
+            "image_ref": "registry.fugue.internal:5000/fugue-apps/index-docker-io-library-python:image-6d43704baacd",
+            "bound_at": "2026-09-21T17:25:23.875935Z"
+          }
+        }
+      }
+    ],
+    "resources": [
+      {
+        "kind": "Deployment",
+        "name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+        "uid": "d70a7bb0-649a-46c3-991a-04c42f46175b"
+      },
+      {
+        "kind": "Service",
+        "name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+        "uid": "0854ef98-319b-4fc8-a309-540da019cb92"
+      }
+    ]
+  },
+  "database_matches_api": true,
+  "sticky": {
+    "verified_at": "2026-09-21T17:26:47.219578+00:00",
+    "operation_id": "op_1790011354_129ba25020c4",
+    "policy": {
+      "mode": "canary",
+      "stable_release_id": "apprel_1789973255_32b1fa2a238f",
+      "candidate_release_id": "apprel_1790011366_85b8777dcd9d",
+      "stable_weight": 50,
+      "candidate_weight": 50
+    },
+    "requests": 72,
+    "sessions": 12,
+    "all_http_200": true,
+    "sticky_across_nodes_and_repeats": true,
+    "origin_release_counts": {
+      "apprel_1789973255_32b1fa2a238f": 48,
+      "apprel_1790011366_85b8777dcd9d": 24
+    },
+    "observations": [
+      {
+        "request": "sticky-0aca8e7c5013d21a-0-vps-84c8f0a9-0",
+        "node": "vps-84c8f0a9",
+        "session": 0,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789973255_32b1fa2a238f",
+        "pod_uid": "cca81a4e-bf10-41ae-b5d7-a2d54ca4aa8a"
+      },
+      {
+        "request": "sticky-0aca8e7c5013d21a-0-vps-84c8f0a9-1",
+        "node": "vps-84c8f0a9",
+        "session": 0,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789973255_32b1fa2a238f",
+        "pod_uid": "cca81a4e-bf10-41ae-b5d7-a2d54ca4aa8a"
+      },
+      {
+        "request": "sticky-0aca8e7c5013d21a-0-bwg-0",
+        "node": "bwg",
+        "session": 0,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789973255_32b1fa2a238f",
+        "pod_uid": "cca81a4e-bf10-41ae-b5d7-a2d54ca4aa8a"
+      },
+      {
+        "request": "sticky-0aca8e7c5013d21a-0-bwg-1",
+        "node": "bwg",
+        "session": 0,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789973255_32b1fa2a238f",
+        "pod_uid": "cca81a4e-bf10-41ae-b5d7-a2d54ca4aa8a"
+      },
+      {
+        "request": "sticky-0aca8e7c5013d21a-0-vps-591f4447-0",
+        "node": "vps-591f4447",
+        "session": 0,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789973255_32b1fa2a238f",
+        "pod_uid": "cca81a4e-bf10-41ae-b5d7-a2d54ca4aa8a"
+      },
+      {
+        "request": "sticky-0aca8e7c5013d21a-0-vps-591f4447-1",
+        "node": "vps-591f4447",
+        "session": 0,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789973255_32b1fa2a238f",
+        "pod_uid": "cca81a4e-bf10-41ae-b5d7-a2d54ca4aa8a"
+      },
+      {
+        "request": "sticky-0aca8e7c5013d21a-1-vps-84c8f0a9-0",
+        "node": "vps-84c8f0a9",
+        "session": 1,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1790011366_85b8777dcd9d",
+        "pod_uid": "78b78ae0-d23b-41e0-aed6-1e62e362665a"
+      },
+      {
+        "request": "sticky-0aca8e7c5013d21a-1-vps-84c8f0a9-1",
+        "node": "vps-84c8f0a9",
+        "session": 1,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1790011366_85b8777dcd9d",
+        "pod_uid": "78b78ae0-d23b-41e0-aed6-1e62e362665a"
+      },
+      {
+        "request": "sticky-0aca8e7c5013d21a-1-bwg-0",
+        "node": "bwg",
+        "session": 1,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1790011366_85b8777dcd9d",
+        "pod_uid": "78b78ae0-d23b-41e0-aed6-1e62e362665a"
+      },
+      {
+        "request": "sticky-0aca8e7c5013d21a-1-bwg-1",
+        "node": "bwg",
+        "session": 1,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1790011366_85b8777dcd9d",
+        "pod_uid": "78b78ae0-d23b-41e0-aed6-1e62e362665a"
+      },
+      {
+        "request": "sticky-0aca8e7c5013d21a-1-vps-591f4447-0",
+        "node": "vps-591f4447",
+        "session": 1,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1790011366_85b8777dcd9d",
+        "pod_uid": "78b78ae0-d23b-41e0-aed6-1e62e362665a"
+      },
+      {
+        "request": "sticky-0aca8e7c5013d21a-1-vps-591f4447-1",
+        "node": "vps-591f4447",
+        "session": 1,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1790011366_85b8777dcd9d",
+        "pod_uid": "78b78ae0-d23b-41e0-aed6-1e62e362665a"
+      },
+      {
+        "request": "sticky-0aca8e7c5013d21a-2-vps-84c8f0a9-0",
+        "node": "vps-84c8f0a9",
+        "session": 2,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1790011366_85b8777dcd9d",
+        "pod_uid": "78b78ae0-d23b-41e0-aed6-1e62e362665a"
+      },
+      {
+        "request": "sticky-0aca8e7c5013d21a-2-vps-84c8f0a9-1",
+        "node": "vps-84c8f0a9",
+        "session": 2,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1790011366_85b8777dcd9d",
+        "pod_uid": "78b78ae0-d23b-41e0-aed6-1e62e362665a"
+      },
+      {
+        "request": "sticky-0aca8e7c5013d21a-2-bwg-0",
+        "node": "bwg",
+        "session": 2,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1790011366_85b8777dcd9d",
+        "pod_uid": "78b78ae0-d23b-41e0-aed6-1e62e362665a"
+      },
+      {
+        "request": "sticky-0aca8e7c5013d21a-2-bwg-1",
+        "node": "bwg",
+        "session": 2,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1790011366_85b8777dcd9d",
+        "pod_uid": "78b78ae0-d23b-41e0-aed6-1e62e362665a"
+      },
+      {
+        "request": "sticky-0aca8e7c5013d21a-2-vps-591f4447-0",
+        "node": "vps-591f4447",
+        "session": 2,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1790011366_85b8777dcd9d",
+        "pod_uid": "78b78ae0-d23b-41e0-aed6-1e62e362665a"
+      },
+      {
+        "request": "sticky-0aca8e7c5013d21a-2-vps-591f4447-1",
+        "node": "vps-591f4447",
+        "session": 2,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1790011366_85b8777dcd9d",
+        "pod_uid": "78b78ae0-d23b-41e0-aed6-1e62e362665a"
+      },
+      {
+        "request": "sticky-0aca8e7c5013d21a-3-vps-84c8f0a9-0",
+        "node": "vps-84c8f0a9",
+        "session": 3,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789973255_32b1fa2a238f",
+        "pod_uid": "cca81a4e-bf10-41ae-b5d7-a2d54ca4aa8a"
+      },
+      {
+        "request": "sticky-0aca8e7c5013d21a-3-vps-84c8f0a9-1",
+        "node": "vps-84c8f0a9",
+        "session": 3,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789973255_32b1fa2a238f",
+        "pod_uid": "cca81a4e-bf10-41ae-b5d7-a2d54ca4aa8a"
+      },
+      {
+        "request": "sticky-0aca8e7c5013d21a-3-bwg-0",
+        "node": "bwg",
+        "session": 3,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789973255_32b1fa2a238f",
+        "pod_uid": "cca81a4e-bf10-41ae-b5d7-a2d54ca4aa8a"
+      },
+      {
+        "request": "sticky-0aca8e7c5013d21a-3-bwg-1",
+        "node": "bwg",
+        "session": 3,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789973255_32b1fa2a238f",
+        "pod_uid": "cca81a4e-bf10-41ae-b5d7-a2d54ca4aa8a"
+      },
+      {
+        "request": "sticky-0aca8e7c5013d21a-3-vps-591f4447-0",
+        "node": "vps-591f4447",
+        "session": 3,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789973255_32b1fa2a238f",
+        "pod_uid": "cca81a4e-bf10-41ae-b5d7-a2d54ca4aa8a"
+      },
+      {
+        "request": "sticky-0aca8e7c5013d21a-3-vps-591f4447-1",
+        "node": "vps-591f4447",
+        "session": 3,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789973255_32b1fa2a238f",
+        "pod_uid": "cca81a4e-bf10-41ae-b5d7-a2d54ca4aa8a"
+      },
+      {
+        "request": "sticky-0aca8e7c5013d21a-4-vps-84c8f0a9-0",
+        "node": "vps-84c8f0a9",
+        "session": 4,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789973255_32b1fa2a238f",
+        "pod_uid": "cca81a4e-bf10-41ae-b5d7-a2d54ca4aa8a"
+      },
+      {
+        "request": "sticky-0aca8e7c5013d21a-4-vps-84c8f0a9-1",
+        "node": "vps-84c8f0a9",
+        "session": 4,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789973255_32b1fa2a238f",
+        "pod_uid": "cca81a4e-bf10-41ae-b5d7-a2d54ca4aa8a"
+      },
+      {
+        "request": "sticky-0aca8e7c5013d21a-4-bwg-0",
+        "node": "bwg",
+        "session": 4,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789973255_32b1fa2a238f",
+        "pod_uid": "cca81a4e-bf10-41ae-b5d7-a2d54ca4aa8a"
+      },
+      {
+        "request": "sticky-0aca8e7c5013d21a-4-bwg-1",
+        "node": "bwg",
+        "session": 4,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789973255_32b1fa2a238f",
+        "pod_uid": "cca81a4e-bf10-41ae-b5d7-a2d54ca4aa8a"
+      },
+      {
+        "request": "sticky-0aca8e7c5013d21a-4-vps-591f4447-0",
+        "node": "vps-591f4447",
+        "session": 4,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789973255_32b1fa2a238f",
+        "pod_uid": "cca81a4e-bf10-41ae-b5d7-a2d54ca4aa8a"
+      },
+      {
+        "request": "sticky-0aca8e7c5013d21a-4-vps-591f4447-1",
+        "node": "vps-591f4447",
+        "session": 4,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789973255_32b1fa2a238f",
+        "pod_uid": "cca81a4e-bf10-41ae-b5d7-a2d54ca4aa8a"
+      },
+      {
+        "request": "sticky-0aca8e7c5013d21a-5-vps-84c8f0a9-0",
+        "node": "vps-84c8f0a9",
+        "session": 5,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789973255_32b1fa2a238f",
+        "pod_uid": "cca81a4e-bf10-41ae-b5d7-a2d54ca4aa8a"
+      },
+      {
+        "request": "sticky-0aca8e7c5013d21a-5-vps-84c8f0a9-1",
+        "node": "vps-84c8f0a9",
+        "session": 5,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789973255_32b1fa2a238f",
+        "pod_uid": "cca81a4e-bf10-41ae-b5d7-a2d54ca4aa8a"
+      },
+      {
+        "request": "sticky-0aca8e7c5013d21a-5-bwg-0",
+        "node": "bwg",
+        "session": 5,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789973255_32b1fa2a238f",
+        "pod_uid": "cca81a4e-bf10-41ae-b5d7-a2d54ca4aa8a"
+      },
+      {
+        "request": "sticky-0aca8e7c5013d21a-5-bwg-1",
+        "node": "bwg",
+        "session": 5,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789973255_32b1fa2a238f",
+        "pod_uid": "cca81a4e-bf10-41ae-b5d7-a2d54ca4aa8a"
+      },
+      {
+        "request": "sticky-0aca8e7c5013d21a-5-vps-591f4447-0",
+        "node": "vps-591f4447",
+        "session": 5,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789973255_32b1fa2a238f",
+        "pod_uid": "cca81a4e-bf10-41ae-b5d7-a2d54ca4aa8a"
+      },
+      {
+        "request": "sticky-0aca8e7c5013d21a-5-vps-591f4447-1",
+        "node": "vps-591f4447",
+        "session": 5,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789973255_32b1fa2a238f",
+        "pod_uid": "cca81a4e-bf10-41ae-b5d7-a2d54ca4aa8a"
+      },
+      {
+        "request": "sticky-0aca8e7c5013d21a-6-vps-84c8f0a9-0",
+        "node": "vps-84c8f0a9",
+        "session": 6,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789973255_32b1fa2a238f",
+        "pod_uid": "cca81a4e-bf10-41ae-b5d7-a2d54ca4aa8a"
+      },
+      {
+        "request": "sticky-0aca8e7c5013d21a-6-vps-84c8f0a9-1",
+        "node": "vps-84c8f0a9",
+        "session": 6,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789973255_32b1fa2a238f",
+        "pod_uid": "cca81a4e-bf10-41ae-b5d7-a2d54ca4aa8a"
+      },
+      {
+        "request": "sticky-0aca8e7c5013d21a-6-bwg-0",
+        "node": "bwg",
+        "session": 6,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789973255_32b1fa2a238f",
+        "pod_uid": "cca81a4e-bf10-41ae-b5d7-a2d54ca4aa8a"
+      },
+      {
+        "request": "sticky-0aca8e7c5013d21a-6-bwg-1",
+        "node": "bwg",
+        "session": 6,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789973255_32b1fa2a238f",
+        "pod_uid": "cca81a4e-bf10-41ae-b5d7-a2d54ca4aa8a"
+      },
+      {
+        "request": "sticky-0aca8e7c5013d21a-6-vps-591f4447-0",
+        "node": "vps-591f4447",
+        "session": 6,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789973255_32b1fa2a238f",
+        "pod_uid": "cca81a4e-bf10-41ae-b5d7-a2d54ca4aa8a"
+      },
+      {
+        "request": "sticky-0aca8e7c5013d21a-6-vps-591f4447-1",
+        "node": "vps-591f4447",
+        "session": 6,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789973255_32b1fa2a238f",
+        "pod_uid": "cca81a4e-bf10-41ae-b5d7-a2d54ca4aa8a"
+      },
+      {
+        "request": "sticky-0aca8e7c5013d21a-7-vps-84c8f0a9-0",
+        "node": "vps-84c8f0a9",
+        "session": 7,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789973255_32b1fa2a238f",
+        "pod_uid": "cca81a4e-bf10-41ae-b5d7-a2d54ca4aa8a"
+      },
+      {
+        "request": "sticky-0aca8e7c5013d21a-7-vps-84c8f0a9-1",
+        "node": "vps-84c8f0a9",
+        "session": 7,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789973255_32b1fa2a238f",
+        "pod_uid": "cca81a4e-bf10-41ae-b5d7-a2d54ca4aa8a"
+      },
+      {
+        "request": "sticky-0aca8e7c5013d21a-7-bwg-0",
+        "node": "bwg",
+        "session": 7,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789973255_32b1fa2a238f",
+        "pod_uid": "cca81a4e-bf10-41ae-b5d7-a2d54ca4aa8a"
+      },
+      {
+        "request": "sticky-0aca8e7c5013d21a-7-bwg-1",
+        "node": "bwg",
+        "session": 7,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789973255_32b1fa2a238f",
+        "pod_uid": "cca81a4e-bf10-41ae-b5d7-a2d54ca4aa8a"
+      },
+      {
+        "request": "sticky-0aca8e7c5013d21a-7-vps-591f4447-0",
+        "node": "vps-591f4447",
+        "session": 7,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789973255_32b1fa2a238f",
+        "pod_uid": "cca81a4e-bf10-41ae-b5d7-a2d54ca4aa8a"
+      },
+      {
+        "request": "sticky-0aca8e7c5013d21a-7-vps-591f4447-1",
+        "node": "vps-591f4447",
+        "session": 7,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789973255_32b1fa2a238f",
+        "pod_uid": "cca81a4e-bf10-41ae-b5d7-a2d54ca4aa8a"
+      },
+      {
+        "request": "sticky-0aca8e7c5013d21a-8-vps-84c8f0a9-0",
+        "node": "vps-84c8f0a9",
+        "session": 8,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789973255_32b1fa2a238f",
+        "pod_uid": "cca81a4e-bf10-41ae-b5d7-a2d54ca4aa8a"
+      },
+      {
+        "request": "sticky-0aca8e7c5013d21a-8-vps-84c8f0a9-1",
+        "node": "vps-84c8f0a9",
+        "session": 8,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789973255_32b1fa2a238f",
+        "pod_uid": "cca81a4e-bf10-41ae-b5d7-a2d54ca4aa8a"
+      },
+      {
+        "request": "sticky-0aca8e7c5013d21a-8-bwg-0",
+        "node": "bwg",
+        "session": 8,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789973255_32b1fa2a238f",
+        "pod_uid": "cca81a4e-bf10-41ae-b5d7-a2d54ca4aa8a"
+      },
+      {
+        "request": "sticky-0aca8e7c5013d21a-8-bwg-1",
+        "node": "bwg",
+        "session": 8,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789973255_32b1fa2a238f",
+        "pod_uid": "cca81a4e-bf10-41ae-b5d7-a2d54ca4aa8a"
+      },
+      {
+        "request": "sticky-0aca8e7c5013d21a-8-vps-591f4447-0",
+        "node": "vps-591f4447",
+        "session": 8,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789973255_32b1fa2a238f",
+        "pod_uid": "cca81a4e-bf10-41ae-b5d7-a2d54ca4aa8a"
+      },
+      {
+        "request": "sticky-0aca8e7c5013d21a-8-vps-591f4447-1",
+        "node": "vps-591f4447",
+        "session": 8,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789973255_32b1fa2a238f",
+        "pod_uid": "cca81a4e-bf10-41ae-b5d7-a2d54ca4aa8a"
+      },
+      {
+        "request": "sticky-0aca8e7c5013d21a-9-vps-84c8f0a9-0",
+        "node": "vps-84c8f0a9",
+        "session": 9,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789973255_32b1fa2a238f",
+        "pod_uid": "cca81a4e-bf10-41ae-b5d7-a2d54ca4aa8a"
+      },
+      {
+        "request": "sticky-0aca8e7c5013d21a-9-vps-84c8f0a9-1",
+        "node": "vps-84c8f0a9",
+        "session": 9,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789973255_32b1fa2a238f",
+        "pod_uid": "cca81a4e-bf10-41ae-b5d7-a2d54ca4aa8a"
+      },
+      {
+        "request": "sticky-0aca8e7c5013d21a-9-bwg-0",
+        "node": "bwg",
+        "session": 9,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789973255_32b1fa2a238f",
+        "pod_uid": "cca81a4e-bf10-41ae-b5d7-a2d54ca4aa8a"
+      },
+      {
+        "request": "sticky-0aca8e7c5013d21a-9-bwg-1",
+        "node": "bwg",
+        "session": 9,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789973255_32b1fa2a238f",
+        "pod_uid": "cca81a4e-bf10-41ae-b5d7-a2d54ca4aa8a"
+      },
+      {
+        "request": "sticky-0aca8e7c5013d21a-9-vps-591f4447-0",
+        "node": "vps-591f4447",
+        "session": 9,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789973255_32b1fa2a238f",
+        "pod_uid": "cca81a4e-bf10-41ae-b5d7-a2d54ca4aa8a"
+      },
+      {
+        "request": "sticky-0aca8e7c5013d21a-9-vps-591f4447-1",
+        "node": "vps-591f4447",
+        "session": 9,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1789973255_32b1fa2a238f",
+        "pod_uid": "cca81a4e-bf10-41ae-b5d7-a2d54ca4aa8a"
+      },
+      {
+        "request": "sticky-0aca8e7c5013d21a-10-vps-84c8f0a9-0",
+        "node": "vps-84c8f0a9",
+        "session": 10,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1790011366_85b8777dcd9d",
+        "pod_uid": "78b78ae0-d23b-41e0-aed6-1e62e362665a"
+      },
+      {
+        "request": "sticky-0aca8e7c5013d21a-10-vps-84c8f0a9-1",
+        "node": "vps-84c8f0a9",
+        "session": 10,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1790011366_85b8777dcd9d",
+        "pod_uid": "78b78ae0-d23b-41e0-aed6-1e62e362665a"
+      },
+      {
+        "request": "sticky-0aca8e7c5013d21a-10-bwg-0",
+        "node": "bwg",
+        "session": 10,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1790011366_85b8777dcd9d",
+        "pod_uid": "78b78ae0-d23b-41e0-aed6-1e62e362665a"
+      },
+      {
+        "request": "sticky-0aca8e7c5013d21a-10-bwg-1",
+        "node": "bwg",
+        "session": 10,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1790011366_85b8777dcd9d",
+        "pod_uid": "78b78ae0-d23b-41e0-aed6-1e62e362665a"
+      },
+      {
+        "request": "sticky-0aca8e7c5013d21a-10-vps-591f4447-0",
+        "node": "vps-591f4447",
+        "session": 10,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1790011366_85b8777dcd9d",
+        "pod_uid": "78b78ae0-d23b-41e0-aed6-1e62e362665a"
+      },
+      {
+        "request": "sticky-0aca8e7c5013d21a-10-vps-591f4447-1",
+        "node": "vps-591f4447",
+        "session": 10,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1790011366_85b8777dcd9d",
+        "pod_uid": "78b78ae0-d23b-41e0-aed6-1e62e362665a"
+      },
+      {
+        "request": "sticky-0aca8e7c5013d21a-11-vps-84c8f0a9-0",
+        "node": "vps-84c8f0a9",
+        "session": 11,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1790011366_85b8777dcd9d",
+        "pod_uid": "78b78ae0-d23b-41e0-aed6-1e62e362665a"
+      },
+      {
+        "request": "sticky-0aca8e7c5013d21a-11-vps-84c8f0a9-1",
+        "node": "vps-84c8f0a9",
+        "session": 11,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1790011366_85b8777dcd9d",
+        "pod_uid": "78b78ae0-d23b-41e0-aed6-1e62e362665a"
+      },
+      {
+        "request": "sticky-0aca8e7c5013d21a-11-bwg-0",
+        "node": "bwg",
+        "session": 11,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1790011366_85b8777dcd9d",
+        "pod_uid": "78b78ae0-d23b-41e0-aed6-1e62e362665a"
+      },
+      {
+        "request": "sticky-0aca8e7c5013d21a-11-bwg-1",
+        "node": "bwg",
+        "session": 11,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1790011366_85b8777dcd9d",
+        "pod_uid": "78b78ae0-d23b-41e0-aed6-1e62e362665a"
+      },
+      {
+        "request": "sticky-0aca8e7c5013d21a-11-vps-591f4447-0",
+        "node": "vps-591f4447",
+        "session": 11,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1790011366_85b8777dcd9d",
+        "pod_uid": "78b78ae0-d23b-41e0-aed6-1e62e362665a"
+      },
+      {
+        "request": "sticky-0aca8e7c5013d21a-11-vps-591f4447-1",
+        "node": "vps-591f4447",
+        "session": 11,
+        "http_status": "200",
+        "curl_exit": 0,
+        "release_id": "apprel_1790011366_85b8777dcd9d",
+        "pod_uid": "78b78ae0-d23b-41e0-aed6-1e62e362665a"
+      }
+    ]
+  },
+  "health_samples": 96,
+  "all_health_samples_200": true,
+  "prepush": {
+    "apiVersion": "prepush.fugue.dev/v1",
+    "baseCommit": "eeea8cb2ad9c5828e7eb7ec5a4482eccffc08497",
+    "changedFilesDigest": "sha256:0239ecc642a67d1fd9654913c8b1604d380135f9200507fde1356e643fb7e2e2",
+    "checks": {
+      "affected-tests": {
+        "durationMs": 33718,
+        "status": "pass"
+      },
+      "affected-vet": {
+        "durationMs": 12527,
+        "status": "pass"
+      },
+      "compile-all": {
+        "durationMs": 19774,
+        "status": "pass"
+      },
+      "declarative-release-tests": {
+        "durationMs": 29805,
+        "status": "pass"
+      },
+      "diff-check": {
+        "durationMs": 258,
+        "status": "pass"
+      },
+      "gofmt": {
+        "durationMs": 65,
+        "status": "pass"
+      },
+      "helm-lint-render": {
+        "durationMs": 0,
+        "status": "skipped"
+      },
+      "openapi-generated": {
+        "durationMs": 10920,
+        "status": "pass"
+      },
+      "shell-syntax": {
+        "durationMs": 0,
+        "status": "pass"
+      }
+    },
+    "elapsedMs": 33961,
+    "kind": "PrepushReceipt",
+    "sourceCommit": "8332c5ea7522d316a26332a5bb12afe1ca68a776",
+    "status": "pass"
+  },
+  "recovery_prepush": {
+    "apiVersion": "prepush.fugue.dev/v1",
+    "baseCommit": "8332c5ea7522d316a26332a5bb12afe1ca68a776",
+    "changedFilesDigest": "sha256:a49fe12862b900c6f6c30690d7b50030d526ab4d9d23d32a58e3bf309341437d",
+    "checks": {
+      "affected-tests": {
+        "durationMs": 36629,
+        "status": "pass"
+      },
+      "affected-vet": {
+        "durationMs": 6971,
+        "status": "pass"
+      },
+      "compile-all": {
+        "durationMs": 28779,
+        "status": "pass"
+      },
+      "declarative-release-tests": {
+        "durationMs": 30134,
+        "status": "pass"
+      },
+      "diff-check": {
+        "durationMs": 265,
+        "status": "pass"
+      },
+      "gofmt": {
+        "durationMs": 25,
+        "status": "pass"
+      },
+      "helm-lint-render": {
+        "durationMs": 0,
+        "status": "skipped"
+      },
+      "openapi-generated": {
+        "durationMs": 2914,
+        "status": "pass"
+      },
+      "shell-syntax": {
+        "durationMs": 0,
+        "status": "pass"
+      }
+    },
+    "elapsedMs": 36882,
+    "kind": "PrepushReceipt",
+    "sourceCommit": "389fd31ebb4012a5ae14428f3c4bdb11179f215a",
+    "status": "pass"
+  },
+  "store_integration": "=== RUN   TestAppReleaseWorkloadBinding\n--- PASS: TestAppReleaseWorkloadBinding (0.05s)\n=== RUN   TestAppReleaseWorkloadBindingPostgres\n--- PASS: TestAppReleaseWorkloadBindingPostgres (0.35s)\nPASS\nok  \tfugue/internal/store\t2.531s\n",
+  "limitations": [
+    "Historical unbound releases remain retained. This step only binds newly created revisions.",
+    "Background drain retry, conditional retirement, UID deletion and operation restart recovery remain pending."
+  ]
+}
