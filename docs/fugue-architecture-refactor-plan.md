@@ -32,7 +32,7 @@ Runtime Facts / ACK / LKG
 
 ## 当前状态判断
 
-2026-09-22 最新验收快照：P0-EP-Y1/Y2 已完成 origin 隔离及实际流量证明修复；Y3/Y4 完成只读 Pod 排空观测和真实 `0→1→0`/180 秒连接验证。Y5/Y6 已部署不可变 revision workload 数据库防护及 Controller 绑定：来源 operation、Deployment/Service UID、generation、release key、runtime/image 与绑定时间会在 canonical 对齐后保留。首轮验证因 Kubernetes 省略零 probe delay 被错误拒绝，旧 stable 未中断；`389fd31e` 修复后，操作 `op_1790011354_129ba25020c4` 完成 canary/提升/canonical 对齐，绑定与实际 Kubernetes UID、数据库 JSON 完全一致。72 次 sticky origin 请求和96 次健康采样全部 200；验收时 API `8332c5ea`、Controller `389fd31e` 均 2/2 Ready，三台 Front、两地 authority 正常，serving/LKG 指针保留。新绑定已完成；历史未绑定资源迁移、后台 drain 重试、条件退役/UID 删除、同 operation 重启复用和 endpoint 归属验收仍待完成。producer 仍为 shadow，八个消费者 observed、passing=0；首次完整配置接管、positive LKG 和旧 serving 输入删除尚未完成。
+2026-09-22 最新验收快照：P0-EP-Y1/Y2 已完成 origin 隔离及实际流量证明修复，Y3/Y4 完成只读 Pod 排空观测，Y5/Y6 完成不可变 revision workload 数据库防护及实际身份绑定。Y7 已完成 Controller 重启接管同一 operation：`a574b678` 实现恢复机制；正常发布 `fa292dfe` 替换 Controller 后，原操作 `op_1790016761_a910f794f5f7` 保留同一个 candidate、Deployment/Service/Pod 身份与 50/50 权重，经过新鲜观察窗口后完成 100% 提升和 canonical 对齐。144 次 sticky origin 请求、246 次健康采样全部 200，API/Controller 2/2 Ready，三台 Front、两地 authority 正常，serving/LKG 指针保留。另一轮重启验收的 600 秒流完整返回，但触发原有 p99 门禁，自动回到旧 stable 100%；该轮不计作成功发布。一次 Pod 列表传输失败造成 112 秒身份采样空窗，独立业务采样继续正常，随后六次接口复查均成功。临时观察窗口已恢复为 120 秒，33 个资源 UID 未变。历史未绑定资源迁移、后台 drain 重试、条件退役/UID 删除、endpoint 归属及其余 rollback 场景仍待完成。producer 仍为 shadow，八个消费者 observed、passing=0；首次完整配置接管、positive LKG 和旧 serving 输入删除尚未完成。
 
 生产 producer 仍为 `business-static-intent`/shadow，固定基础 intent `artifact_1789848966_aa79d274ac50` 和输入 policy `artifact_1789917932_e90aeeb2510d`；启用策略为 `artifact_1789917933_9f90cbb02a89`，显式选择 `consumer_readiness`。最新验收 shadow `artifact_1789924746_0593e3041d46`、fence 226 包含 160 route、245 DNS records、159 TLS references；两台 DNS 均为 462/462 probes、233/233 readiness records、248/248 eligible queries。八个消费者 observed，serving passing=0；六 artifact 精确重放通过，全局 serving/LKG 未切换。前端契约 `3979108b` 已实际部署，2/2 Ready、公网 200。
 
@@ -3608,7 +3608,7 @@ P0-EP-X 生产取证确认 canonical Service selector 仅有 app 标签，会同
 - [x] 为 app workload 增加独立的执行身份标签，使 canonical Service、Compose alias 和 revision Service 只选择各自 workload；Deployment 的不可变 selector 保持原值。见 P0-EP-Y1 的生产与渲染回归证据；历史 candidate Service 已有 release ID 隔离，新建 revision 同时携带 workload 标签。
 - [x] 先核实 owner/UID，再补齐既有 Pod 与模板标签，最后缩小 Service selector。验证应用原 Pod UID 保留，canonical endpoints 仅包含 canonical Pod；初次上线的并发冲突及错误 failed 状态经两个恢复提交处理，见 Y1 事故记录。
 - [ ] 增加 selector 匹配回归：stable Service 不得包含 candidate 或 previous；不同 revision 不得互选。readiness 需验证实际 endpoints 属于目标 workload，不能只核对 Service 和 Deployment 表面身份。
-- [ ] Controller 重启接管同一 operation 时恢复既有 candidate/已提升 release 和进度，不得重新创建 candidate 或重置已经批准的流量。使用已有持久化账本并验证 owner、spec 和 operation identity。
+- [x] Controller 重启接管同一 operation 时恢复既有 candidate/已提升 release 和进度，不得重新创建 candidate 或重置已经批准的流量。使用已有持久化账本并验证 owner、spec 和 operation identity。Y7 生产验证 50% canary 接管并最终完成；已提升/canonical 与 promotion 中间状态另有本地回归覆盖。
 - [ ] drain 证据绑定 release/workload/Pod 身份与观察时间；不能用同 app 其他 revision 的排空日志授权删除。缺少证据继续保留，并具备后台重试与最终退役路径。
 - [ ] 修复后通过真实 50/50 请求按 Pod 日志核对 origin：同 cookie 在各 Edge 的重复请求保持同 release，权重分配正确；再验证长连接、失败回滚、重启恢复与最终资源回收。
 - [ ] 每个原子修复通过本地测试、main/Actions 和生产证据后分别勾选；完成前保持全局配置 producer shadow 和原 positive LKG。
@@ -3694,3 +3694,16 @@ P0-EP-X 生产取证确认 canonical Service selector 仅有 app 标签，会同
 - [ ] 基于已绑定身份接入后台 drain 重试、条件退役及 UID 删除，迁移历史未绑定资源；恢复同一 operation 时复用既有 release，并完成失败 rollback。当前绑定只覆盖新候选，不代替旧 runtime 最终回收或全局 artifact serving 接管。
 
 证据：[revision-workload-binding-2026-09-22.json](verification/revision-workload-binding-2026-09-22.json)。
+
+### P0-EP-Y7：Controller 重启复用同一 operation 与发布进度
+
+- [x] candidate ID 从 tenant/app/operation 确定性派生，长度符合 Kubernetes label 限制；创建时保存 rollback target。恢复优先于 canonical baseline 初始化，读取既有 release、不可变 workload binding 或历史 creation receipt，校验 owner、执行 spec、来源、runtime/image、operation、生命周期和当前 policy；重复 candidate、身份歧义或冲突拒绝恢复。
+- [x] 重启不重新 apply 已绑定 revision，也不改写其当前 serving target；只读复核原 Deployment/Service UID 和已声明模板。canary 从已发布权重继续并重新取得新鲜证明；已提升、canonical 和 promotion 中间状态不退回初始 canary。Controller shutdown 的 context cancellation 保留当前流量，不触发自动 abort 或错误完成 operation。
+- [x] 覆盖创建 receipt 缺失、50% 恢复、提升中断、promoted/canonical、重复/错误 owner/spec/operation、取消、requeue/reclaim 和资源只读验证；全量 `make test`、Controller race、干净 prepush 通过。实现 `a574b678ee62d45c8e2435e6ac65946163651da7` 经 [CI 35635848445](https://github.com/yym68686/fugue/actions/runs/35635848445) 上线。
+- [x] 正常 main/Actions 发布 `fa292dfea3c2d39beef464caf4d9b96109e05677` 的 [CI 35641201761](https://github.com/yym68686/fugue/actions/runs/35641201761) 替换两个 Controller Pod；新进程在 `2026-09-21T18:58:00.88942315Z` 认领原操作 `op_1790016761_a910f794f5f7`，保留 release `apprel_op_10e539b159adcdd4ae4e055b28bb27dd0a7a72d84adcc893` 和 50/50 权重，之后完成 100% 提升及 canonical 对齐。88 份身份样本一致，实际 revision Deployment/Service UID 与绑定相符，candidate Pod UID 在接管前后相同。
+- [x] 重启前后各 72 次请求按实际 Pod 日志核对 origin，12 个 session 跨三台 Edge 保持黏性，共 144 次全部 200；246 次独立健康采样全部 200。一次 Pod inventory 请求传输失败造成 112 秒身份采样空窗，脚本从已保存样本继续，未重提 deploy；之后六次相同接口请求均为 200、耗时 1.27–1.44 秒。该空窗保留在证据中，不声称逐时刻连续取证。
+- [x] 分开记录失败恢复：操作 `op_1790015292_1d46d6487779` 在 [CI 35638571187](https://github.com/yym68686/fugue/actions/runs/35638571187) 的 Controller 替换后由新进程接管，600 秒流完整返回；流时长被计入 p99，超过原有 30 秒门槛，操作正确 failed 并自动恢复旧 stable 100%。没有放宽门禁，本轮成功验收未再混入长流量。较早一次观察窗口未覆盖 Controller 替换，不计作重启成功证据。
+- [x] 最终 API `6ab204e2`、Controller `fa292dfe` 均 2/2 Ready，三台 Front 和两地 authority 健康；serving/LKG 指针保持，八个消费者 observed、passing=0、producer 仍为 shadow。通过正式 continuity API 的操作 `op_1790018040_7d07452473f9` 将临时观察窗口恢复为原 120 秒，未创建新 candidate，33 个 Deployment/Service/Pod UID 和流量目标未变。
+- [ ] 完成 endpoint Pod 归属校验、历史未绑定资源迁移、后台 drain 重试、条件退役/UID 删除及其余 rollback 场景，再推进全局 artifact serving。生产重启正向验收覆盖 canary；其他恢复阶段的回归测试不冒充全部生产故障演练。
+
+证据：[controller-operation-resume-2026-09-22.json](verification/controller-operation-resume-2026-09-22.json)。这是应用 code rollout 恢复能力，不代表首次全局 TrafficReleaseSet serving 或 positive configuration LKG 已完成。
