@@ -1,0 +1,420 @@
+{
+  "verified_at": "2026-09-21T20:01:55.150576+00:00",
+  "api_commit": "8cf7a49e4bac3fb16c8f44810088b35251bb8c78",
+  "ci": "https://github.com/yym68686/fugue/actions/runs/35646941098",
+  "frontend_contract_commit": "f0ac4a9c118845ebb31a8aaff5650b62f45479aa",
+  "frontend_ci": "https://github.com/yym68686/fugue-web/actions/runs/35646964191",
+  "components": [
+    {
+      "component": "api",
+      "image_tag": "8cf7a49e4bac3fb16c8f44810088b35251bb8c78",
+      "ready_replicas": 2,
+      "updated_replicas": 2,
+      "desired_replicas": 2
+    },
+    {
+      "component": "controller",
+      "image_tag": "fa292dfea3c2d39beef464caf4d9b96109e05677",
+      "ready_replicas": 2,
+      "updated_replicas": 2,
+      "desired_replicas": 2
+    }
+  ],
+  "health": {
+    "/healthz": 200,
+    "/readyz": 200
+  },
+  "authority_ready": true,
+  "fronts": [
+    {
+      "pod": "fugue-fugue-edge-front-ll46v",
+      "ready": true
+    },
+    {
+      "pod": "fugue-fugue-edge-front-2fdt7",
+      "ready": true
+    },
+    {
+      "pod": "fugue-fugue-edge-country-de-front-rs4mw",
+      "ready": true
+    }
+  ],
+  "shadow_artifact": "artifact_1790020827_745d1c49d8d1",
+  "shadow_fence": 539,
+  "lineage": {
+    "compiler_version": "platform-config-compiler/v30",
+    "input_snapshot_digest": "sha256:0fac4a4523cb7d31aa834c5b5fbfc26dab08b617ceee299035c0916709bd7eec",
+    "intent_digest": "sha256:ba7297a33e70c0a7fd681c670aea33d603eca8084a692cf8f506fc425b292c3b",
+    "intent_generation": "intent_6be5334680405130dcba5d2b795e2205120a4c97005cd9188fb0442eacdfea55",
+    "policy_digest": "sha256:18ec20b95d1ac85ea610e152197f468abf43a638dea42d468135e53727020530",
+    "policy_generation": "policy_064c2aa470db6e9dc56c5ae1a3e35f52323bc35633ee8aedf097a496a8cb4738",
+    "producer_dns_policy_digest": "sha256:15af50c758d1aae79172d63bc94ab4447d137bb7eb756bd807a3089996c5a436",
+    "producer_dns_policy_id": "artifact_1789917932_e90aeeb2510d",
+    "producer_policy_release_id": "artifactrel_1789925851_cd3899cc21ff",
+    "producer_source_digest": "sha256:c1906866cab6999dec4cfa188d433ccc99a7d3be9610b1b206c8bb4ffd6e03b5",
+    "producer_static_intent_digest": "sha256:600a016b39260fd64d8d8ef9dcb5027cd88c3c1872396fda982ae760489d2d92",
+    "producer_static_intent_id": "artifact_1789848966_aa79d274ac50"
+  },
+  "release_readiness": {
+    "cluster_id": "1a08cd00-258e-44e6-a179-5d9d6fa8a1e9",
+    "observed_at": "2026-09-21T20:00:22.774838284Z",
+    "releases": [
+      {
+        "deployment_generation": 26,
+        "deployment_name": "app-1774720664-ef855e625cae",
+        "deployment_uid": "51035fc1-3f0c-45b7-a213-f628b9a9ea3f",
+        "desired_replicas": 1,
+        "endpoint_pods": [
+          {
+            "addresses": [
+              "10.42.5.132"
+            ],
+            "pod_name": "app-1774720664-ef855e625cae-6b4f7697cd-qvxqx",
+            "pod_uid": "a9ae627a-a971-40cc-b6e1-da7f2f2219ee",
+            "release_key": "5496fe3417c0555d4f443be9adc20075b7871f6fc71c8d13e0d545185c8d0551",
+            "replica_set_name": "app-1774720664-ef855e625cae-6b4f7697cd",
+            "replica_set_uid": "c876a29b-1ed1-4197-8e60-09f3d4dee355"
+          }
+        ],
+        "namespace": "fg-tenant-1774720388-5c9ca0db3d42",
+        "observed_generation": 26,
+        "ready": true,
+        "ready_endpoints": 1,
+        "ready_replicas": 1,
+        "release_id": "apprel_1783456350_05baff791771",
+        "service_name": "app-1774720664-ef855e625cae",
+        "service_uid": "352fe85c-7de9-478c-86a5-902dd4b2b91e"
+      },
+      {
+        "deployment_generation": 40,
+        "deployment_name": "app-1776051713-ffbc704de723",
+        "deployment_uid": "35a5c330-fe87-4f7b-8aed-0609ab6235fd",
+        "desired_replicas": 1,
+        "endpoint_pods": [
+          {
+            "addresses": [
+              "10.42.5.106"
+            ],
+            "pod_name": "app-1776051713-ffbc704de723-89cc4b44b-fkwjm",
+            "pod_uid": "335f790b-0328-4f8a-8307-adf4fe08894a",
+            "release_key": "f56461662eb0de6c65154fca3ee5f027bef6d1df30412eb066f37c4ee41dd6bf",
+            "replica_set_name": "app-1776051713-ffbc704de723-89cc4b44b",
+            "replica_set_uid": "3ce794b4-9213-46e7-a72b-c78674844d1a"
+          }
+        ],
+        "namespace": "fg-tenant-1775984397-49f2586338f3",
+        "observed_generation": 40,
+        "ready": true,
+        "ready_endpoints": 1,
+        "ready_replicas": 1,
+        "release_id": "apprel_1789074614_b4ae73a996db",
+        "service_name": "app-1776051713-ffbc704de723",
+        "service_uid": "d40c7b57-085c-4563-a2d9-6c0da5cb18a5"
+      },
+      {
+        "deployment_generation": 70,
+        "deployment_name": "app-1781411982-650fede8ea9a",
+        "deployment_uid": "16a6346f-9261-4e60-a721-fea6fc357aee",
+        "desired_replicas": 1,
+        "endpoint_pods": [
+          {
+            "addresses": [
+              "10.42.7.30"
+            ],
+            "pod_name": "app-1781411982-650fede8ea9a-7894fccc96-m4zmn",
+            "pod_uid": "47eb182d-11dc-4ae8-aa32-bebd7604bfa2",
+            "release_key": "3ff884c8338a51da6b585a4e12148f54baed16f8d840e978e861a6287f219dd9",
+            "replica_set_name": "app-1781411982-650fede8ea9a-7894fccc96",
+            "replica_set_uid": "7f7f2ad9-b71b-44d2-b49e-6b93621a22e6"
+          }
+        ],
+        "namespace": "fg-tenant-1774393589-e35b60a6fc11",
+        "observed_generation": 70,
+        "ready": true,
+        "ready_endpoints": 1,
+        "ready_replicas": 1,
+        "release_id": "apprel_1789645305_9cd39ef80beb",
+        "service_name": "app-1781411982-650fede8ea9a",
+        "service_uid": "48a51df1-645a-4b18-ac2f-5d418c675677"
+      },
+      {
+        "deployment_generation": 1469,
+        "deployment_name": "app-1778958829-7a965e0863ed",
+        "deployment_uid": "73228e23-9e84-478d-a251-c77042b197b0",
+        "desired_replicas": 1,
+        "endpoint_pods": [
+          {
+            "addresses": [
+              "10.42.5.167"
+            ],
+            "pod_name": "app-1778958829-7a965e0863ed-cc4478d6c-w7wnz",
+            "pod_uid": "68982044-46ff-4c6d-8195-a7989ffac172",
+            "release_key": "abe9d8ade0577efe93cc5a99782f41f88e046b895f67a4e289b666dd703e2a33",
+            "replica_set_name": "app-1778958829-7a965e0863ed-cc4478d6c",
+            "replica_set_uid": "d4be1537-842d-4cb7-9f73-b8b4a20711f1"
+          }
+        ],
+        "namespace": "fg-tenant-1774393589-e35b60a6fc11",
+        "observed_generation": 1469,
+        "ready": true,
+        "ready_endpoints": 1,
+        "ready_replicas": 1,
+        "release_id": "apprel_1789994897_b27ac72f597f",
+        "service_name": "app-1778958829-7a965e0863ed",
+        "service_uid": "fc6c6208-75b8-4de0-8b34-0d9efc782598"
+      },
+      {
+        "deployment_generation": 606,
+        "deployment_name": "app-1780014428-4ccd706744ad",
+        "deployment_uid": "d568f7a3-9c3e-4b48-b8d1-6dd578dc9c49",
+        "desired_replicas": 1,
+        "endpoint_pods": [
+          {
+            "addresses": [
+              "10.42.5.176"
+            ],
+            "pod_name": "app-1780014428-4ccd706744ad-84f587dfc7-b4lsq",
+            "pod_uid": "1c94c7e5-d04e-45d9-9033-16f6b232bcbc",
+            "release_key": "bfd8ae5e60fbfe5105f2a48a415b45f9a2003f94e2bd89b71820882aed48036e",
+            "replica_set_name": "app-1780014428-4ccd706744ad-84f587dfc7",
+            "replica_set_uid": "968c8c8e-f955-4d1a-9d19-ebac43c5d229"
+          }
+        ],
+        "namespace": "fg-tenant-1774393589-e35b60a6fc11",
+        "observed_generation": 606,
+        "ready": true,
+        "ready_endpoints": 1,
+        "ready_replicas": 1,
+        "release_id": "apprel_1789997520_20ec2d25056e",
+        "service_name": "app-1780014428-4ccd706744ad",
+        "service_uid": "58ff07cb-982d-4e20-ac2f-d35eb944c7c8"
+      },
+      {
+        "deployment_generation": 468,
+        "deployment_name": "app-1779698709-805632e1ced9",
+        "deployment_uid": "335bdf3c-60a0-4d3b-8c5b-d14576628bfd",
+        "desired_replicas": 1,
+        "endpoint_pods": [
+          {
+            "addresses": [
+              "10.42.6.197"
+            ],
+            "pod_name": "app-1779698709-805632e1ced9-5c4646d75c-lrjs4",
+            "pod_uid": "82b6ce22-9311-4dee-a00a-7cf5a75b1329",
+            "release_key": "57ca373c244dbf0a1701b89bc04a3d82ca6d66d03c53ea84647dfc917b87797c",
+            "replica_set_name": "app-1779698709-805632e1ced9-5c4646d75c",
+            "replica_set_uid": "55436b7d-acc5-48f0-8fb5-3f5c2e60fd8f"
+          }
+        ],
+        "namespace": "fg-tenant-1778209522-5a84bb76dfd0",
+        "observed_generation": 468,
+        "ready": true,
+        "ready_endpoints": 1,
+        "ready_replicas": 1,
+        "release_id": "apprel_1790009103_1868aef332c7",
+        "service_name": "app-1779698709-805632e1ced9",
+        "service_uid": "f6ae7498-cb72-4184-a95f-dd42ae8750ac"
+      },
+      {
+        "deployment_generation": 730,
+        "deployment_name": "app-1780807228-bc5cd8f5f278",
+        "deployment_uid": "e39190ae-fd49-456b-8955-341d5c0c861f",
+        "desired_replicas": 1,
+        "endpoint_pods": [
+          {
+            "addresses": [
+              "10.42.7.171"
+            ],
+            "pod_name": "app-1780807228-bc5cd8f5f278-7ff4bc469d-2tbwm",
+            "pod_uid": "112898cb-698b-497a-a727-3055de87c7ad",
+            "release_key": "595fe8d61f1e8a155a96e65768df7576f4ea0407be29973efa20e58ecd7f0d2e",
+            "replica_set_name": "app-1780807228-bc5cd8f5f278-7ff4bc469d",
+            "replica_set_uid": "b2073f20-5666-481c-b56d-fff31f33a146"
+          }
+        ],
+        "namespace": "fg-tenant-1774494657-53820de6a0cd",
+        "observed_generation": 730,
+        "ready": true,
+        "ready_endpoints": 1,
+        "ready_replicas": 1,
+        "release_id": "apprel_1790009147_db7610908b5e",
+        "service_name": "app-1780807228-bc5cd8f5f278",
+        "service_uid": "c172282a-9579-4897-b7fd-366a6d069d3d"
+      },
+      {
+        "deployment_generation": 305,
+        "deployment_name": "app-1779710657-c61313b4eabb",
+        "deployment_uid": "c20b1b1d-b82f-45b5-80fb-dbe5ee46a7b0",
+        "desired_replicas": 1,
+        "endpoint_pods": [
+          {
+            "addresses": [
+              "10.42.6.200"
+            ],
+            "pod_name": "app-1779710657-c61313b4eabb-cff69d58c-lmq6v",
+            "pod_uid": "204d182f-4843-48d8-877e-98489fde29d9",
+            "release_key": "db826bae553fedf98e046abe1133bb03f2aa72d76b1139be206057f63623654a",
+            "replica_set_name": "app-1779710657-c61313b4eabb-cff69d58c",
+            "replica_set_uid": "fa717783-de19-4466-add6-3d8e8970024b"
+          }
+        ],
+        "namespace": "fg-tenant-1778209522-5a84bb76dfd0",
+        "observed_generation": 305,
+        "ready": true,
+        "ready_endpoints": 1,
+        "ready_replicas": 1,
+        "release_id": "apprel_1790011115_0150ecaaef84",
+        "service_name": "app-1779710657-c61313b4eabb",
+        "service_uid": "9e02231c-5cb3-4350-8678-8a7048b92bb5"
+      },
+      {
+        "deployment_generation": 33,
+        "deployment_name": "app-1783188884-8facd2b054e6",
+        "deployment_uid": "c2263e9f-c194-432b-985d-c9633d4251a1",
+        "desired_replicas": 1,
+        "endpoint_pods": [
+          {
+            "addresses": [
+              "10.42.5.229"
+            ],
+            "pod_name": "app-1783188884-8facd2b054e6-79db8cbfdd-qsdcg",
+            "pod_uid": "6529067e-b785-4081-a583-ef3aee995473",
+            "release_key": "82cbaa9c39039687d9416a3d7a2470410d342a25822db8b9ceefaf389903aa10",
+            "replica_set_name": "app-1783188884-8facd2b054e6-79db8cbfdd",
+            "replica_set_uid": "bae1287c-0aba-4624-af0b-f1081b71db1d"
+          }
+        ],
+        "namespace": "fg-tenant-1774393589-e35b60a6fc11",
+        "observed_generation": 33,
+        "ready": true,
+        "ready_endpoints": 1,
+        "ready_replicas": 1,
+        "release_id": "apprel_op_10e539b159adcdd4ae4e055b28bb27dd0a7a72d84adcc893",
+        "service_name": "app-1783188884-8facd2b054e6",
+        "service_uid": "4c44342d-80be-4ccb-8162-a91017219346"
+      }
+    ],
+    "schema": "fugue.release-runtime-readiness/v1"
+  },
+  "six_artifact_replay_identical": true,
+  "controlled_origin_pods_preserved": true,
+  "controlled_revision_binding_preserved": true,
+  "health_samples": [
+    {
+      "node": "vps-84c8f0a9",
+      "http_status": "200",
+      "exit": 0
+    },
+    {
+      "node": "bwg",
+      "http_status": "200",
+      "exit": 0
+    },
+    {
+      "node": "vps-591f4447",
+      "http_status": "200",
+      "exit": 0
+    },
+    {
+      "node": "vps-84c8f0a9",
+      "http_status": "200",
+      "exit": 0
+    },
+    {
+      "node": "bwg",
+      "http_status": "200",
+      "exit": 0
+    },
+    {
+      "node": "vps-591f4447",
+      "http_status": "200",
+      "exit": 0
+    },
+    {
+      "node": "vps-84c8f0a9",
+      "http_status": "200",
+      "exit": 0
+    },
+    {
+      "node": "bwg",
+      "http_status": "200",
+      "exit": 0
+    },
+    {
+      "node": "vps-591f4447",
+      "http_status": "200",
+      "exit": 0
+    },
+    {
+      "node": "vps-84c8f0a9",
+      "http_status": "200",
+      "exit": 0
+    },
+    {
+      "node": "bwg",
+      "http_status": "200",
+      "exit": 0
+    },
+    {
+      "node": "vps-591f4447",
+      "http_status": "200",
+      "exit": 0
+    }
+  ],
+  "serving_and_lkg_unchanged": true,
+  "producer_mode": "shadow",
+  "observed_consumers": 8,
+  "passing_consumers": 0,
+  "prepush": {
+    "apiVersion": "prepush.fugue.dev/v1",
+    "baseCommit": "99c05cfce93083912e72d94ffd37035d054707d8",
+    "changedFilesDigest": "sha256:07b2944e6d96efcc0975df2e424e1180a4ca862d72ee4e6d41d00a16d5838b52",
+    "checks": {
+      "affected-tests": {
+        "durationMs": 1706,
+        "status": "pass"
+      },
+      "affected-vet": {
+        "durationMs": 3685,
+        "status": "pass"
+      },
+      "compile-all": {
+        "durationMs": 11263,
+        "status": "pass"
+      },
+      "declarative-release-tests": {
+        "durationMs": 12855,
+        "status": "pass"
+      },
+      "diff-check": {
+        "durationMs": 114,
+        "status": "pass"
+      },
+      "gofmt": {
+        "durationMs": 46,
+        "status": "pass"
+      },
+      "helm-lint-render": {
+        "durationMs": 0,
+        "status": "skipped"
+      },
+      "openapi-generated": {
+        "durationMs": 1361,
+        "status": "pass"
+      },
+      "shell-syntax": {
+        "durationMs": 0,
+        "status": "pass"
+      }
+    },
+    "elapsedMs": 16758,
+    "kind": "PrepushReceipt",
+    "sourceCommit": "8cf7a49e4bac3fb16c8f44810088b35251bb8c78",
+    "status": "pass"
+  },
+  "captured_resource_preflight": "=== RUN   TestReleaseEndpointReadinessCapturedKubernetesObjects\n    platform_release_endpoints_test.go:203: {\"cluster_id\":\"1a08cd00-258e-44e6-a179-5d9d6fa8a1e9\",\"observed_at\":\"2026-09-21T19:32:48.473505Z\",\"releases\":[{\"deployment_generation\":33,\"deployment_name\":\"app-1783188884-8facd2b054e6\",\"deployment_uid\":\"c2263e9f-c194-432b-985d-c9633d4251a1\",\"desired_replicas\":1,\"endpoint_pods\":[{\"addresses\":[\"10.42.5.229\"],\"pod_name\":\"app-1783188884-8facd2b054e6-79db8cbfdd-qsdcg\",\"pod_uid\":\"6529067e-b785-4081-a583-ef3aee995473\",\"release_key\":\"82cbaa9c39039687d9416a3d7a2470410d342a25822db8b9ceefaf389903aa10\",\"replica_set_name\":\"app-1783188884-8facd2b054e6-79db8cbfdd\",\"replica_set_uid\":\"bae1287c-0aba-4624-af0b-f1081b71db1d\"}],\"namespace\":\"fg-tenant-1774393589-e35b60a6fc11\",\"observed_generation\":33,\"ready\":true,\"ready_endpoints\":1,\"ready_replicas\":1,\"release_id\":\"apprel_op_10e539b159adcdd4ae4e055b28bb27dd0a7a72d84adcc893\",\"service_name\":\"app-1783188884-8facd2b054e6\",\"service_uid\":\"4c44342d-80be-4ccb-8162-a91017219346\"}],\"schema\":\"fugue.release-runtime-readiness/v1\"}\n    platform_release_endpoints_test.go:203: {\"cluster_id\":\"1a08cd00-258e-44e6-a179-5d9d6fa8a1e9\",\"observed_at\":\"2026-09-21T19:32:48.480202Z\",\"releases\":[{\"deployment_generation\":1,\"deployment_name\":\"app-1783188884-8facd2b054e6-candidate-92a2743727b5\",\"deployment_uid\":\"32893ea0-ec92-471f-a5d0-01e2e2637fa7\",\"desired_replicas\":1,\"endpoint_pods\":[{\"addresses\":[\"10.42.5.227\"],\"pod_name\":\"app-1783188884-8facd2b054e6-candidate-92a2743727b5-6db6d9dfl2kf\",\"pod_uid\":\"76f36511-8a51-4a6f-a207-7f2b390875e6\",\"release_key\":\"6a2fe59fccbcdfd3df05cda8e2f6391dbc387f0390d30d919506d265a0a692bf\",\"replica_set_name\":\"app-1783188884-8facd2b054e6-candidate-92a2743727b5-6db6d9dcd4\",\"replica_set_uid\":\"a5adea0e-29e1-4736-9cdd-075d76849452\"}],\"namespace\":\"fg-tenant-1774393589-e35b60a6fc11\",\"observed_generation\":1,\"ready\":true,\"ready_endpoints\":1,\"ready_replicas\":1,\"release_id\":\"apprel_op_10e539b159adcdd4ae4e055b28bb27dd0a7a72d84adcc893\",\"service_name\":\"app-1783188884-8facd2b054e6-candidate-92a2743727b5\",\"service_uid\":\"2737266e-a698-42cc-8458-bee134957e51\"}],\"schema\":\"fugue.release-runtime-readiness/v1\"}\n--- PASS: TestReleaseEndpointReadinessCapturedKubernetesObjects (0.02s)\nPASS\nok  \tfugue/internal/api\t1.272s\n",
+  "limitations": [
+    "This step strengthens compiler release readiness; general app observed-status and Controller endpoint gates retain their separate implementations.",
+    "Historical revision migration, background drain retry, conditional retirement and global TrafficReleaseSet serving remain pending."
+  ]
+}

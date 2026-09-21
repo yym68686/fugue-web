@@ -32,7 +32,7 @@ Runtime Facts / ACK / LKG
 
 ## 当前状态判断
 
-2026-09-22 最新验收快照：P0-EP-Y1/Y2 已完成 origin 隔离及实际流量证明修复，Y3/Y4 完成只读 Pod 排空观测，Y5/Y6 完成不可变 revision workload 数据库防护及实际身份绑定。Y7 已完成 Controller 重启接管同一 operation：`a574b678` 实现恢复机制；正常发布 `fa292dfe` 替换 Controller 后，原操作 `op_1790016761_a910f794f5f7` 保留同一个 candidate、Deployment/Service/Pod 身份与 50/50 权重，经过新鲜观察窗口后完成 100% 提升和 canonical 对齐。144 次 sticky origin 请求、246 次健康采样全部 200，API/Controller 2/2 Ready，三台 Front、两地 authority 正常，serving/LKG 指针保留。另一轮重启验收的 600 秒流完整返回，但触发原有 p99 门禁，自动回到旧 stable 100%；该轮不计作成功发布。一次 Pod 列表传输失败造成 112 秒身份采样空窗，独立业务采样继续正常，随后六次接口复查均成功。临时观察窗口已恢复为 120 秒，33 个资源 UID 未变。历史未绑定资源迁移、后台 drain 重试、条件退役/UID 删除、endpoint 归属及其余 rollback 场景仍待完成。producer 仍为 shadow，八个消费者 observed、passing=0；首次完整配置接管、positive LKG 和旧 serving 输入删除尚未完成。
+2026-09-22 最新验收快照：P0-EP-Y1/Y2 已完成 origin 隔离及实际流量证明修复，Y3/Y4 完成只读 Pod 排空观测，Y5/Y6 完成不可变 revision workload 数据库防护及实际身份绑定。Y7 已完成 Controller 重启接管同一 operation：`a574b678` 实现恢复机制；正常发布 `fa292dfe` 替换 Controller 后，原操作 `op_1790016761_a910f794f5f7` 保留同一个 candidate、Deployment/Service/Pod 身份与 50/50 权重，经过新鲜观察窗口后完成 100% 提升和 canonical 对齐。144 次 sticky origin 请求、246 次健康采样全部 200，API/Controller 2/2 Ready，三台 Front、两地 authority 正常，serving/LKG 指针保留。Y8 已部署 `8cf7a49e`，把 release readiness 从 Service 地址数量提升为 EndpointSlice→Pod→ReplicaSet→Deployment UID 链、release key、镜像、Pod Ready 和地址归属验证；生产 9 个 managed release 全部产生 `endpoint_pods`，12 次公网健康采样全部 200，六类 artifact 重放一致且 serving/LKG 未变。另一轮重启验收的 600 秒流完整返回，但触发原有 p99 门禁，自动回到旧 stable 100%；该轮不计作成功发布。一次 Pod 列表传输失败造成 112 秒身份采样空窗，独立业务采样继续正常，随后六次接口复查均成功。临时观察窗口已恢复为 120 秒，33 个资源 UID 未变。历史未绑定资源迁移、后台 drain 重试、条件退役/UID 删除及其余 rollback 场景仍待完成。producer 仍为 shadow，八个消费者 observed、passing=0；首次完整配置接管、positive LKG 和旧 serving 输入删除尚未完成。
 
 生产 producer 仍为 `business-static-intent`/shadow，固定基础 intent `artifact_1789848966_aa79d274ac50` 和输入 policy `artifact_1789917932_e90aeeb2510d`；启用策略为 `artifact_1789917933_9f90cbb02a89`，显式选择 `consumer_readiness`。最新验收 shadow `artifact_1789924746_0593e3041d46`、fence 226 包含 160 route、245 DNS records、159 TLS references；两台 DNS 均为 462/462 probes、233/233 readiness records、248/248 eligible queries。八个消费者 observed，serving passing=0；六 artifact 精确重放通过，全局 serving/LKG 未切换。前端契约 `3979108b` 已实际部署，2/2 Ready、公网 200。
 
@@ -3707,3 +3707,15 @@ P0-EP-X 生产取证确认 canonical Service selector 仅有 app 标签，会同
 - [ ] 完成 endpoint Pod 归属校验、历史未绑定资源迁移、后台 drain 重试、条件退役/UID 删除及其余 rollback 场景，再推进全局 artifact serving。生产重启正向验收覆盖 canary；其他恢复阶段的回归测试不冒充全部生产故障演练。
 
 证据：[controller-operation-resume-2026-09-22.json](verification/controller-operation-resume-2026-09-22.json)。这是应用 code rollout 恢复能力，不代表首次全局 TrafficReleaseSet serving 或 positive configuration LKG 已完成。
+
+### P0-EP-Y8：EndpointSlice 到 Pod/ReplicaSet/Deployment 的 readiness 归属证明
+
+- [x] release readiness 不再用 Service-owned EndpointSlice 的地址数量直接代表副本就绪；每个 ready endpoint 必须有真实 Pod `targetRef`、UID、namespace、Running/Ready 状态，并且地址属于该 Pod。双栈地址和重复 slice 按 Pod UID 去重，地址被多个 Pod 复用、终止 Pod、未知 ready、错误 target 或删除中的对象均 fail closed。
+- [x] 沿 Pod → ReplicaSet → Deployment 的 controller owner UID 链核对目标 workload、`fugue.pro/app-workload`、`fugue.pro/release-key`、Service selector、镜像和 immutable revision binding；同 app 其他 revision 即使伪造标签也不能成为当前 release 的 readiness 证据。Deployment generation 允许向前推进但不能回退，UID、Service UID、runtime/image 和 release key 保持不变。
+- [x] OpenAPI 增加 `endpoint_pods` 运行事实，限制为 Pod 名称/UID、ReplicaSet 名称/UID、release key 和已验证地址；不保存环境变量、managedFields 或其他 workload payload。覆盖 owner 链错误、UID 替换、地址漂移、双栈去重、终止/不 Ready Pod、API 读取失败和绑定代次变化；API 定向测试、race、全量 `make test` 和干净 prepush 通过。
+- [x] 后端 `8cf7a49e4bac3fb16c8f44810088b35251bb8c78` 经 [CI 35646941098](https://github.com/yym68686/fugue/actions/runs/35646941098) 发布，API 2/2 Ready；前端 OpenAPI 同步 `f0ac4a9c118845ebb31a8aaff5650b62f45479aa` 经 [CI 35646964191](https://github.com/yym68686/fugue-web/actions/runs/35646964191) 通过。
+- [x] 生产 projection 观察到 9 个 managed release 均 `ready=true` 且有 endpoint Pod 身份链；shadow artifact `artifact_1790020827_745d1c49d8d1` 的冻结 compiler input 同样保存 `endpoint_pods`。使用精确 intent/policy/runtime snapshot 重放 route、DNS、TLS、ReleaseSet 六类 artifact，内容和 lineage 全部一致；这次只生成 shadow 验证结果，没有切换全局 serving。
+- [x] 生产三台 Edge、API/Controller、两地 authority 健康；验证应用保持原 release binding 和 Pod 身份，12 次跨三台 Edge 的公网健康请求全部 200。非 shadow serving release、policy LKG、artifact 指针和 producer 配置均与发布前一致，8 个 consumer observed、passing=0、producer 仍为 shadow。
+- [ ] 继续完成历史未绑定资源迁移、后台 drain 重试、条件退役/UID 删除、完整 rollback，并在这些基础上推进首次全局 TrafficReleaseSet serving。endpoint readiness 证明不等于旧 revision 已经可以回收。
+
+证据：[release-endpoint-pod-ownership-2026-09-22.json](verification/release-endpoint-pod-ownership-2026-09-22.json)。
