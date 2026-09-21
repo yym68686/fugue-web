@@ -32,7 +32,7 @@ Runtime Facts / ACK / LKG
 
 ## 当前状态判断
 
-2026-09-21 最新验收快照：P0-EQ 独立 release readiness 和 P0-EP-T 应用流量证明已部署；P0-EP-U 修复节点丢失与过期证明导致的错误放行。Controller 运行 `b28ad1fb`，API 与活动 Worker 运行 `9b03be63`。三台 Front、两地 authority、API/Controller 副本健康；真实 HTTPS 门禁确认同一 stable release 的 100% 流量，required=3 / ready=3。P0-EI–EN 已固定静态 intent 与主要编译 policy，compiler 为 v29；自动 gray/full/verify/rollback 代码已部署，但生产 producer 仍为 shadow。完整 canary、sticky 兼容、首次 gray/full、positive LKG 和旧 serving 输入删除尚未完成。
+2026-09-21 最新验收快照：P0-EQ 独立 release readiness 和 P0-EP-T 应用流量证明已部署；P0-EP-U 修复节点丢失与过期证明导致的错误放行。Controller 运行 `b28ad1fb`，API 运行 `2ddc6b91`，活动 Worker 为 `9b03be63`。三台 Front、两地 authority、API/Controller 副本健康；真实 HTTPS 门禁确认同一 stable release 的 100% 流量，required=3 / ready=3。P0-EP-V 使 compiler v30 接受 Edge 已实现的默认 release cookie，80/20 编译与六 artifact 重放通过。自动 gray/full/verify/rollback 代码已部署，但生产 producer 仍为 shadow。完整 canary、首次 gray/full、positive LKG 和旧 serving 输入删除尚未完成；自定义 sticky 名称仍需 executor 支持。
 
 生产 producer 仍为 `business-static-intent`/shadow，固定基础 intent `artifact_1789848966_aa79d274ac50` 和输入 policy `artifact_1789917932_e90aeeb2510d`；启用策略为 `artifact_1789917933_9f90cbb02a89`，显式选择 `consumer_readiness`。最新验收 shadow `artifact_1789924746_0593e3041d46`、fence 226 包含 160 route、245 DNS records、159 TLS references；两台 DNS 均为 462/462 probes、233/233 readiness records、248/248 eligible queries。八个消费者 observed，serving passing=0；六 artifact 精确重放通过，全局 serving/LKG 未切换。前端契约 `3979108b` 已实际部署，2/2 Ready、公网 200。
 
@@ -3563,3 +3563,16 @@ P0-EO 生产验证（2026-09-21）：
 - [x] 使用 metadata-only 输入调用实际 Controller observer，三台公网 Edge 均通过 TLS/nonce/bundle/release 摘要验证，required=3 / ready=3。API/Controller、三台 Front、两地 authority 正常；八个配置消费者 observed，passing=0，生产仍为 shadow，未创建 full release。
 
 证据：[app-traffic-proof-membership-2026-09-21.json](verification/app-traffic-proof-membership-2026-09-21.json)。本步完成门禁错误放行修复与真实单 release 验证，P0-EP 完整 canary、sticky、gray/full 和恢复任务继续保持未完成。
+
+### P0-EP-V：默认 release cookie 与 artifact 编译兼容
+
+原 compiler 对所有非空 sticky 声明拒绝 canary，连 Controller 默认写入、Edge 已实现的 `Fugue-Release-Stickiness` cookie 也被拒绝。该行为会在首次 artifact serving 接管后阻塞既有 canary 发布。
+
+- [x] compiler v30 接受默认 cookie 或省略声明，保留 policy digest 和原有 Edge identity 优先级；自定义 cookie 名和 sticky_header 覆盖继续拒绝，不能接受未执行的语义。没有增加新的 route 字段或改变旧 route proof canonicalization。
+- [x] 业务 snapshot → 独立 stable/candidate readiness → compiler 的完整回归使用默认 cookie，两个精确 ready 的 workload 可以编译为 80/20。
+- [x] compiler → artifact projection → Edge weighted selector 的 1000 个 session 回归与 legacy 选择一致；cookie/header/API key/Authorization 与匿名请求均覆盖。20%、50%、100% candidate 和 stable 100% 的 materialized route 执行了 200 次真实 HTTP origin 请求，并通过 nonce-bound app traffic proof 解析。
+- [x] 全量 make test、compiler/Edge/readiness race、前端 contract check 和干净 prepush 通过；[CI 35553727740](https://github.com/yym68686/fugue/actions/runs/35553727740) 仅发布 API `2ddc6b916d7fc713cb851c6c5f21f6cdcac1f1a8`，2/2 Ready。
+- [x] 生产 compile API 接受默认 cookie 的合成 80/20 输入，六份 artifact 的 inline/stored 重放一致；自定义 cookie/header 均返回 400。这些合成事实仅验证编译，不 prepare consumers、不发布流量、不充当生产 readiness。
+- [x] producer 自动继续产生 v30 shadow；八个消费者 observed，passing=0。代码更新前后 serving 指针、policy LKG 和 producer policy 身份保持一致；对比剔除了接口附带且正常推进的异步 shadow messages。三台 Front、两地 authority 和健康检查正常，前端契约 `ce43c5a5` 的 [CI 35553745058](https://github.com/yym68686/fugue-web/actions/runs/35553745058) 成功。
+
+证据：[default-release-stickiness-2026-09-21.json](verification/default-release-stickiness-2026-09-21.json)。默认 sticky 兼容已完成；真实双 release 代码发布、gray/full 接管与回滚恢复仍由 P0-EP 验收，不能把本步合成编译当作 serving 验证。
