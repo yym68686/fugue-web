@@ -40,7 +40,7 @@ export interface paths {
   "/v1/edge/route-intents": {
     /**
      * Edge Route Intents
-     * @description Returns Core's inventory-independent desired-route projection. Only the edge-control component identity with global edge_route_intent capability is accepted; tenant and platform-admin API keys are not accepted. A verified global route artifact takes precedence over the legacy source. An unusable artifact or LKG returns 503 so Edge Control retains its last serving bundle rather than recompiling from mutable business tables. Artifact-backed serving and candidate validation share one route projection. Cache references resolve case-insensitively to the declared policy ID; disabled cache policies are not materialized as active bindings. With edge_group_id, the newest applicable gray/full TrafficReleaseSet selects serving routes; gray applies only to its signed cohort. A newer full supersedes an older gray lane. Without an applicable release the verified route LKG remains the migration fallback. A selected release must have immutable expected topology for that group and verified parent/child integrity and lineage. Invalid or unprepared selected releases return 503 without falling back to business data. Shadow releases never select serving configuration. A legacy request without a group is rejected while a gray or full TrafficReleaseSet is active. Group projections retain traffic_release provenance; their signatures include cache policies.
+     * @description Returns Core's inventory-independent desired-route projection. Only the edge-control component identity with global edge_route_intent capability is accepted; tenant and platform-admin API keys are not accepted. A verified global route artifact takes precedence over the legacy source. An unusable artifact or LKG returns 503 so Edge Control retains its last serving bundle rather than recompiling from mutable business tables.
      */
     get: operations["edgeRouteIntents"];
   };
@@ -75,7 +75,7 @@ export interface paths {
   "/v1/admin/edge/authorities": {
     /**
      * Inspect real Edge Control authority projections
-     * @description Read-only diagnostic view of the Edge Control group authority. This endpoint never synthesizes Edge nodes or ACKs from DNS state. It reads the complete authority projection, including explicit serving health and bootstrap eligibility. A response that omits either fact is reported as unavailable with an error, never as a false health observation.
+     * @description Read-only diagnostic view of the Edge Control group authority. This endpoint never synthesizes Edge nodes or ACKs from DNS state.
      */
     get: operations["adminListEdgeAuthorities"];
   };
@@ -302,8 +302,7 @@ export interface paths {
      * Explain Request
      * @description Platform-admin lookup of recorded request facts by edge request ID, application
      * request ID, or trace ID. Reads per-request telemetry, including incomplete
-     * platform request facts with explicit platform route ownership and legacy
-     * incomplete platform facts stored as events; aggregate edge performance sample
+     * platform request facts stored as events; aggregate edge performance sample
      * IDs are not request IDs. Only a unique matching request is attributed.
      * Evidence identifies the source and lookup status. Missing records, disabled
      * telemetry, unavailable query backends, and ambiguous identifiers remain
@@ -348,35 +347,28 @@ export interface paths {
   "/v1/admin/platform-config/compile": {
     /**
      * Compile Platform Intent And Policy
-     * @description Deterministically compiles typed platform intent and policy into immutable intent, policy, route, DNS, TLS, and release-set artifacts. The normalized runtime input is retained by digest. Identical immutable artifacts retain their original creator even when replayed by another platform administrator. The operation does not promote serving traffic.
+     * @description Deterministically compiles typed platform intent and policy into immutable intent, policy, route, DNS, TLS, and release-set artifacts. The operation does not promote serving traffic.
      */
     post: operations["compilePlatformConfig"];
   };
   "/v1/admin/platform-config/compile-from-artifacts": {
     /**
      * Compile Platform Artifacts
-     * @description Verifies both stored artifacts before replaying them into a deterministic ReleaseSet. Signed content, artifact kind, validation state, generation, scope and typed schema must agree. Rejected inputs produce no output artifacts. Inline serving configuration and business tables are not read. The normalized runtime input is retained by digest, and producer provenance plus original creators are preserved when an identical artifact is reused.
+     * @description Verifies both stored artifacts before replaying them into a deterministic ReleaseSet. Signed content, artifact kind, validation state, generation, scope and typed schema must agree. Rejected inputs produce no output artifacts. Inline serving configuration and business tables are not read.
      */
     post: operations["compilePlatformConfigFromArtifacts"];
-  };
-  "/v1/admin/platform-config/dns/compare": {
-    /**
-     * Compare a Signed DNS Consumer View with its Current Published DNS Bundle
-     * @description Read-only platform administrator diagnostic for one exact physical DNS node and zone. Validates the candidate artifact signature, schema, policy lineage and consumer ownership, then compares its materialized records with the current trusted full DNS bundle or verified LKG used by the legacy bundle endpoint. Both sides use one server observation time and absolute value expirations; expired values are not renewed. Compares RRset values, effective TTL, policy, candidates, scoped candidates and ownership metadata; ignores record_generation and record ordering, but preserves nested selection order and TXT bytes. A missing, ambiguous or untrusted source is unavailable, never equivalent. Does not regenerate legacy records from business tables, write artifacts or releases, attest actual serving, or authorize promotion. Equivalence covers only the requested node/zone.
-     */
-    get: operations["comparePlatformDNSMigration"];
   };
   "/v1/admin/platform-config/routes/compare": {
     /**
      * Compare Business Route Projection with a Signed Artifact
-     * @description Read-only migration diagnostic for platform administrators. Captures the current legacy business projection and compares its route semantics, TLS allowlist and cache policies with one exact validated global route artifact. Omitted exclusion_lifecycle and clear are equivalent only when the route has no excluded edge IDs or group IDs; exclusion lists, other lifecycle states, expiry and reason remain significant. Cache policies are compared by identity; every policy field, nested rule order and relative order among implicit HTML fallback policies remains significant. Other top-level policy ordering is immaterial. Empty or duplicate cache policy identities make comparison unavailable. This is not a serving verification, an atomic business database snapshot, or authorization to promote. No artifacts, releases, LKG or business records are written.
+     * @description Read-only migration diagnostic for platform administrators. Captures the current legacy business projection and compares its route semantics, TLS allowlist and cache policies with one exact validated global route artifact. This is not a serving verification, an atomic business database snapshot, or authorization to promote. No artifacts, releases, LKG or business records are written.
      */
     get: operations["comparePlatformRouteMigration"];
   };
   "/v1/admin/platform-config/routes/project": {
     /**
      * Project Business Routes into PlatformIntent
-     * @description Read-only migration draft from one consistent business snapshot. PostgreSQL uses a read-only repeatable-read transaction; file storage reads under one lock. Returns the business snapshot revision/time and explicit migration issues. Runtime observations retain their own evidence timestamps and are not part of the database transaction. Desired release references and weights are projected into policy; release addresses and readiness retain their original observation timestamps in runtime_snapshot.releases. Explicit platform entries within configured authoritative base domains become FUGUE_ROUTE intents; same-name static A/AAAA/CNAME overrides are recorded as exclusions, while other static records are preserved. Verified business domain bindings owned by the application base domain also become owned FUGUE_ROUTE intents using the configured DNS TTL, replacing only exact static address inputs with an exclusion audit. Missing or conflicting route ownership rejects projection; conflicting hosted address records remain explicit issues and prevent compilation. Non-address records, reserved names and custom-domain target namespaces are not overwritten. Root application routes within the configured application base domain also project into owned FUGUE_ROUTE records, preserving explicit hosted address sources and protected names; default TTL comes from configured DNS policy. Placement collection uses at most eight concurrent workers, 4096 probes and a 30-second request budget. Exhausted or invalid evidence is reported as a migration issue and never authorizes promotion. Application and platform DNS placement capture probes each configured public candidate address with TLS hostname verification and the Edge route-proof protocol, checks every hostname path against the fixed compiled route, and binds the original inventory heartbeat and signed bundle expiry. Failed, stale or mismatched evidence stays an explicit issue; collection never extends a lease or authorizes promotion. migration_ready remains false until all serving inputs, policy execution, DNS/TLS readiness and output equivalence are verified. Writes no serving state.
+     * @description Read-only migration draft from one consistent business snapshot. PostgreSQL uses a read-only repeatable-read transaction; file storage reads under one lock. Returns the business snapshot revision/time and explicit migration issues. Runtime observations retain their own evidence timestamps and are not part of the database transaction. Desired release references and weights are projected into policy; release addresses and readiness retain their original observation timestamps in runtime_snapshot.releases. Explicit platform entries within configured authoritative base domains become FUGUE_ROUTE intents; same-name static A/AAAA/CNAME overrides are recorded as exclusions, while other static records are preserved. Root application routes within the configured application base domain also project into owned FUGUE_ROUTE records, preserving explicit hosted address sources and protected names; default TTL comes from configured DNS policy. Placement collection uses at most eight concurrent workers, 4096 probes and a 30-second request budget. Exhausted or invalid evidence is reported as a migration issue and never authorizes promotion. Application and platform DNS placement capture probes each configured public candidate address with TLS hostname verification and the Edge route-proof protocol, checks every hostname path against the fixed compiled route, and binds the original inventory heartbeat and signed bundle expiry. Failed, stale or mismatched evidence stays an explicit issue; collection never extends a lease or authorizes promotion. migration_ready remains false until all serving inputs, policy execution, DNS/TLS readiness and output equivalence are verified. Writes no serving state.
      */
     get: operations["projectPlatformIntent"];
   };
@@ -387,16 +379,9 @@ export interface paths {
   "/v1/admin/platform-config/import-env": {
     /**
      * Import Legacy Serving Environment
-     * @description Validates legacy serving environment values and effective application domain settings (base domains, reserved hostnames and DNS TTL), includes both in source_digest, and persists one immutable validated PlatformIntent draft tagged with env-migration. The operation never promotes serving traffic.
+     * @description Validates legacy serving environment values and persists one immutable validated PlatformIntent draft tagged with env-migration. The operation never promotes serving traffic.
      */
     post: operations["importPlatformEnvironment"];
-  };
-  "/v1/admin/artifacts/{artifact_id}/compiler-input": {
-    /**
-     * Read Frozen Compiler Runtime Input
-     * @description Platform administrators with artifact.read can retrieve the exact normalized runtime snapshot bound by a trusted artifact's input_snapshot_digest. Recomputes the digest and checks intent/policy generation binding. Older artifacts without a retained snapshot return 404; missing or corrupt input never falls back to live business data.
-     */
-    get: operations["getPlatformArtifactCompilerInput"];
   };
   "/v1/admin/artifacts/{artifact_id}/lineage": {
     /**
@@ -436,17 +421,11 @@ export interface paths {
     get: operations["listPlatformExpectedConsumerSets"];
   };
   "/v1/admin/platform-config/release-set/prepare-consumers": {
-    /**
-     * Prepare ReleaseSet Consumer Expectations
-     * @description Builds immutable expectations for an active ReleaseSet release from authoritative node policy topology. Same release and topology is idempotent; a new release authority or changed topology creates increasing revisions without overwriting historical sets. Edge and DNS membership is independent of heartbeat freshness; missing or stale heartbeats cannot remove an existing required consumer. DNS zone rows belong to one physical process. Incomplete preparation never satisfies full promotion.
-     */
+    /** Prepare ReleaseSet Consumer Expectations */
     post: operations["preparePlatformReleaseSetConsumers"];
   };
   "/v1/admin/platform-state/convergence": {
-    /**
-     * List Platform Consumer Convergence
-     * @description Projects immutable expected sets onto current authoritative node policy topology. Heartbeat freshness is assessed after membership, so a silent or stale Edge or DNS process remains required. ReleaseSet assessments require verified consumer identity and exact expected-set, ReleaseSet, active release fence and child artifact generation sequence; missing binding context is unknown and old or unverified receipts cannot pass. DNS zone aliases belong to one physical process. Full promotion selects the newest active release publication for the target ReleaseSet, requires the latest expected set for every referenced traffic artifact, and applies the same assessment. Historical expected sets remain available without granting current promotion authority. CLI state queries use these server assessments.
-     */
+    /** List Platform Consumer Convergence */
     get: operations["listPlatformConsumerConvergence"];
   };
   "/v1/admin/platform-config/hostname-lineage": {
@@ -497,7 +476,7 @@ export interface paths {
   "/v1/platform-state/consumers/artifacts/{artifact_id}": {
     /**
      * Pull an artifact assigned to a trusted consumer
-     * @description Returns a validated signed child artifact or its exact signed ReleaseSet parent only when the verified component identity is currently present in that child assignment. Parent reads require the same expected_consumer_set_id and retain the child assignment and release envelope; arbitrary parents and nonselected canary members are denied. The endpoint is read-only and never records runtime facts.
+     * @description Returns a validated, signed child artifact only when the verified component identity is currently present in the active ReleaseSet expected topology. The endpoint is read-only and never records runtime facts.
      */
     get: operations["getPlatformConsumerArtifact"];
   };
@@ -637,10 +616,7 @@ export interface paths {
     get: operations["getConsoleProject"];
   };
   "/v1/projects/{id}": {
-    /**
-     * Delete Project
-     * @description Delete a project after its resources are removed. Import idempotency results for removed apps are discarded so the same creation request can create a fresh project.
-     */
+    /** Delete Project */
     delete: operations["deleteProject"];
     /** Patch Project */
     patch: operations["patchProject"];
@@ -942,10 +918,7 @@ export interface paths {
     post: operations["createApp"];
   };
   "/v1/apps/import-github": {
-    /**
-     * Import Git Hub App
-     * @description Import a GitHub topology. Entrypoints without explicit domains use the allocated public service hostname for both runtime environment references and the persisted project route table. For a new managed database without an explicit storage class, an explicit physical runtime uses a platform-approved PostgreSQL class with observed capacity when the configured default is exhausted.
-     */
+    /** Import Git Hub App */
     post: operations["importGitHubApp"];
   };
   "/v1/templates/inspect-github": {
@@ -1003,10 +976,7 @@ export interface paths {
   "/v1/apps/{id}/releases": {
     /** List App Releases */
     get: operations["listAppReleases"];
-    /**
-     * Create App Release
-     * @description Stable releases matching the current app identity, runtime, image and canonical service URL acquire canonical deployment/service names when both are omitted. Any provided spec snapshot must agree on image and runtime. This supplies workload identity only; runtime readiness must still be independently observed.
-     */
+    /** Create App Release */
     post: operations["createAppRelease"];
   };
   "/v1/apps/{id}/release-attempts": {
@@ -1080,17 +1050,11 @@ export interface paths {
     post: operations["verifyAppDomain"];
   };
   "/v1/apps/{id}/domains/diagnosis": {
-    /**
-     * Get App Domain Diagnosis
-     * @description Checks actual shared certificate validity and ownership independently from historical TLS status. Presence alone cannot pass shared_tls_certificate or tls_ready. The separate route_active check also requires positive fresh current-generation application runtime evidence; desired replicas zero fails, missing or stale runtime evidence is unknown. A valid certificate cannot make a stopped application active. Diagnosis does not change serving configuration or synthesize runtime observations.
-     */
+    /** Get App Domain Diagnosis */
     get: operations["getAppDomainDiagnosis"];
   };
   "/v1/apps/{id}/domains/repair": {
-    /**
-     * Repair App Domain
-     * @description Reconciles domain configuration and DNS verification. TLS ready is restored only from a currently usable, hostname- and owner-bound shared certificate; an expired certificate requires renewal and never receives a new ready timestamp.
-     */
+    /** Repair App Domain */
     post: operations["repairAppDomain"];
   };
   "/v1/apps/{id}/route/availability": {
@@ -1177,19 +1141,12 @@ export interface paths {
     /** Get App Diagnostic Report */
     get: operations["getAppDiagnosticReport"];
   };
-  "/v1/admin/diagnostics/probes": {
-    /**
-     * List Registered Diagnostic Probes
-     * @description Lists the verified diagnostic catalog and input contracts. Platform administrator access is required. Probe packages and catalog configuration are published independently of application code.
-     */
-    get: operations["listPlatformDiagnosticProbes"];
-  };
   "/v1/admin/diagnostics/sessions": {
     /** List Platform Diagnostic Sessions */
     get: operations["listPlatformDiagnosticSessions"];
     /**
      * Start Platform Diagnostic Session
-     * @description Starts a bounded diagnostic session using a built-in kind or a verified catalog probe_ref. Registered probes may select an exact Pod or node within the catalog target policy; legacy kinds retain their original component and process restrictions. Platform administrator access is required.
+     * @description Starts a bounded, temporary diagnostic probe for a Fugue platform component or an allowlisted node process. Platform administrator access is required.
      */
     post: operations["startPlatformDiagnosticSession"];
   };
@@ -1386,17 +1343,6 @@ export interface paths {
   "/v1/apps/{id}/database/localize": {
     /** Localize App Database */
     post: operations["localizeAppDatabase"];
-  };
-  "/v1/apps/{id}/database/recover": {
-    /**
-     * Recover App Database Storage Pressure
-     * @description Platform administrator only. Queues an observed-state recovery, including
-     * bounded LocalPV pool growth when required. Source volumes are retained
-     * until a replacement primary passes replication and write-read probes.
-     * Dry run describes the stages; live storage preconditions are evaluated by
-     * the controller before each mutation. Conflicting operations return 409.
-     */
-    post: operations["recoverAppDatabase"];
   };
   "/v1/apps/{id}/continuity": {
     /** Patch App Continuity */
@@ -2314,13 +2260,6 @@ export interface components {
       unreferenced_object_count: number;
       /** Format: int64 */
       unreferenced_bytes: number;
-      /** @description Physical objects under a shared backup repository declared by durable snapshot metadata. Included in physical totals, excluded from direct-artifact orphan checks; internal repository reachability is not validated by this inventory. */
-      repository_managed_object_count?: number;
-      /**
-       * Format: int64
-       * @description Physical bytes managed by the snapshot repository engine, without per-tenant attribution for a shared namespace.
-       */
-      repository_managed_bytes?: number;
       /** @description Unreferenced objects whose last-modified time remains within failed-upload cleanup grace. */
       provisional_object_count: number;
       /** Format: int64 */
@@ -2343,25 +2282,6 @@ export interface components {
       unresolved_backend_count: number;
       /** Format: date-time */
       observed_at: string;
-      /**
-       * Format: date-time
-       * @description Start of the paginated observation interval; LIST is not a transactional snapshot.
-       */
-      scan_started_at?: string;
-      /** Format: date-time */
-      scan_finished_at?: string;
-      /** @description A newer inventory scan is in progress. Existing measurements retain their original observation time. */
-      refreshing?: boolean;
-      stale?: boolean;
-      /** Format: date-time */
-      last_attempt_at?: string;
-      /** Format: date-time */
-      last_success_at?: string;
-      scanned_pages?: number;
-      scanned_objects?: number;
-      scan_generation?: string;
-      /** @description Low-cardinality classification of the last scan error, without credentials or object names. */
-      scan_error?: string;
       message?: string;
     };
     BackupUsage: {
@@ -3443,33 +3363,7 @@ export interface components {
       /** Format: int32 */
       ttl?: number;
     };
-    TrafficReleaseBinding: {
-      /** @enum {string} */
-      schema: "fugue.traffic-release-binding/v1";
-      release_set_id: string;
-      release_set_digest: string;
-      release_set_generation: string;
-      route_artifact_id: string;
-      route_artifact_digest: string;
-      route_artifact_generation: string;
-      /** Format: int64 */
-      route_artifact_sequence: number;
-      release_id: string;
-      /** @enum {string} */
-      release_channel: "shadow" | "gray" | "full";
-      /** Format: int64 */
-      fencing_token: number;
-      scope_key: string;
-      intent_digest: string;
-      policy_digest: string;
-      input_snapshot_digest: string;
-      compiler_version: string;
-      projection_digest: string;
-      canary_rule_ref?: string;
-      edge_group_ids?: string[];
-    };
     EdgeRouteBundle: {
-      traffic_release?: components["schemas"]["TrafficReleaseBinding"];
       schema_version?: string;
       version: string;
       generation?: string;
@@ -3489,7 +3383,6 @@ export interface components {
       cache_policies?: components["schemas"]["CachePolicy"][];
     };
     EdgeRouteIntentSnapshot: {
-      traffic_release?: components["schemas"]["TrafficReleaseBinding"];
       /** @enum {string} */
       schema_version: "edge-route-intent/v1";
       generation: string;
@@ -3667,10 +3560,7 @@ export interface components {
       service_port?: number;
       runtime_id?: string;
       deployment_generation?: string;
-      /**
-       * @description Traffic eligibility. Compiled release targets bound to a traffic policy are projected as active after compilation has validated their fixed runtime facts. Unresolved desired upstreams may omit this field.
-       * @enum {string}
-       */
+      /** @enum {string} */
       status?: "active" | "disabled" | "unavailable" | "runtime-missing";
       status_reason?: string;
     };
@@ -5011,7 +4901,6 @@ export interface components {
       /** @enum {string} */
       mode?: "dedicated_pvc" | "movable_rwo";
       storage_path?: string;
-      /** @description Requested PVC allocation. When updating an existing app through PATCH, deploy, or source upload, an explicit reduction is rejected with HTTP 400; omission preserves the current requested size. Kubernetes PVCs cannot be shrunk in place. */
       storage_size?: string;
       /** @description Explicit Kubernetes StorageClass. When creating an app or first enabling an app-owned RWO volume through deploy, omission uses the platform's configured app storage class. Updates preserve an existing volume's class (including a legacy omitted class). An explicit claim_name keeps its existing binding and does not receive a default class. */
       storage_class_name?: string;
@@ -5187,8 +5076,6 @@ export interface components {
     };
     /** @description Point-in-time runtime evidence kept separate from the desired spec and durable stored status. Omitted presence/readiness fields mean the observation could not determine that fact. */
     AppObservedStatus: {
-      /** @description Fresh Deployment ready/available replicas across the serving and target revisions. This is availability evidence, not proof that the desired release has converged. During a same-runtime rollout Edge may retain a previously serving route only with positive endpoint, namespace, service and image evidence; desired deployment readiness remains independent. */
-      serving_replicas?: number;
       /** @enum {string} */
       phase: "deployed" | "deploying" | "disabled" | "deleting" | "failed" | "unavailable" | "unknown";
       runtime_id?: string;
@@ -5859,7 +5746,6 @@ export interface components {
       desired_origin_source?: components["schemas"]["AppSource"];
       /** @description Explicit deployment link recovered from durable import evidence; absent when no link has been recorded. Consumers of older APIs may use the legacy queued-deploy message but must never infer a link from timestamps. */
       queued_deploy_operation_id?: string;
-      /** @description Latest progress or outcome message. When the controller finalizes an operation as failed, this contains the terminal failure reason rather than the previous progress message; error_message remains the authoritative failure detail. */
       result_message?: string;
       manifest_path?: string;
       assigned_runtime_id?: string;
@@ -6975,7 +6861,6 @@ export interface components {
       /** Format: int32 */
       image_mirror_limit?: number;
       startup_command?: string;
-      /** @description Updates the existing app volume. Explicit storage_size reductions are rejected with HTTP 400 before a deploy is queued. Omitted storage_size preserves the current requested allocation; removing all mounts disables the volume without shrinking the existing PVC. */
       persistent_storage?: components["schemas"]["AppPersistentStorageSpec"];
       volume_replication?: components["schemas"]["AppVolumeReplicationSpec"];
       /** @description Control-plane recommendation policy. Updating this field is synchronous and does not create or apply a workload deployment. */
@@ -7678,18 +7563,6 @@ export interface components {
       last_error?: string;
       deep_health?: components["schemas"]["NodeDeepHealthResult"];
     };
-    /**
-     * @description refresh-join-config may carry pod_capacity_mode=resources to remove the
-     * kubelet default 110-Pod quota by deriving max-pods from the host's
-     * available UID/GID namespace range (normally 65535) instead of a fixed
-     * application count. This requires node updater v41 or newer; v40's int32
-     * maximum is not compatible with kubelet user namespace allocation.
-     * pods-per-core is disabled. Physical PodCIDR address capacity remains finite. The mode is saved
-     * independently of the updater binary. This option requires platform-admin,
-     * a fresh task, and allow_restart=true outside dry-run. Memory requests and
-     * other scheduler resource constraints remain enforced. It never renumbers
-     * an existing PodCIDR. pod_capacity_mode=default restores kubelet defaults.
-     */
     CreateNodeUpdateTaskRequest: {
       node_updater_id?: string;
       cluster_node_name?: string;
@@ -8951,67 +8824,27 @@ export interface components {
     };
     PlatformDiagnosticTargetRequest: {
       /** @enum {string} */
-      type: "platform_component" | "node_process" | "node";
-      /** @description Fugue component label for legacy probes. Registered probes may instead specify an exact Pod within the catalog namespace policy. */
+      type: "platform_component" | "node_process";
+      /** @description Fugue component label. Required for platform_component targets. */
       component?: string;
       /** @description Optional Fugue system namespace; defaults to the control-plane namespace. */
       namespace?: string;
-      /** @description Exact Pod name. Legacy kinds additionally require the trusted component selector; registered probes use the catalog namespace policy. */
+      /** @description Optional exact Pod name within the trusted component selector. */
       pod?: string;
       /** @description Required when the selected platform Pod contains multiple containers. */
       container?: string;
-      /** @description Required for node_process and node targets. Node-only targets require a registered probe. */
+      /** @description Required for node_process targets. */
       node?: string;
       /** @description Required allowlisted Fugue or k3s process name for node_process targets. */
       process_name?: string;
     };
-    DiagnosticProbeParameter: {
-      description?: string;
-      required?: boolean;
-      default?: string;
-      enum?: string[];
-      pattern?: string;
-      max_length?: number;
-    };
-    DiagnosticProbeDescriptor: {
-      id: string;
-      /** @description Digest of the verified probe manifest; can be appended to the id in probe_ref to pin an exact definition. */
-      digest: string;
-      description?: string;
-      /** @description Digest-addressed independently published probe image. */
-      image: string;
-      /** @description Execution capability profile authorized by the catalog policy. */
-      profile: string;
-      target_types: ("platform_component" | "node_process" | "node")[];
-      max_duration_seconds: number;
-      parameters: {
-        [key: string]: components["schemas"]["DiagnosticProbeParameter"];
-      };
-    };
-    DiagnosticProbeCatalogResponse: {
-      catalog_digest: string;
-      /** @enum {string} */
-      catalog_status: "current" | "last_known_good";
-      /** @description Git revision that published the signed catalog, when available. */
-      source_revision?: string;
-      /** @description Independent runner image used for compatible built-in probes. */
-      runner_image: string;
-      probes: components["schemas"]["DiagnosticProbeDescriptor"][];
-    };
     PlatformDiagnosticSessionStartRequest: {
       target: components["schemas"]["PlatformDiagnosticTargetRequest"];
       /**
-       * @description Built-in probe kind. Use probe (or omit kind) when probe_ref is supplied.
        * @default cpu-profile
        * @enum {string}
        */
-      kind?: "cpu-profile" | "memory-profile" | "process-snapshot" | "probe";
-      /** @description Registered probe id, optionally followed by @sha256 manifest digest. Caller-supplied images or executables are not accepted. */
-      probe_ref?: string;
-      /** @description Validated using the selected probe parameter contract. Unsupported keys are rejected. */
-      parameters?: {
-        [key: string]: string;
-      };
+      kind?: "cpu-profile" | "memory-profile" | "process-snapshot";
       /**
        * Format: int32
        * @default 60
@@ -9030,7 +8863,7 @@ export interface components {
     };
     PlatformDiagnosticTarget: {
       /** @enum {string} */
-      type: "platform_component" | "node_process" | "node";
+      type: "platform_component" | "node_process";
       app_id?: string;
       component?: string;
       namespace?: string;
@@ -9044,12 +8877,7 @@ export interface components {
     PlatformDiagnosticSession: {
       id: string;
       /** @enum {string} */
-      kind: "cpu-profile" | "memory-profile" | "process-snapshot" | "probe";
-      /** @description Immutable image used by this diagnostic Job, independently of the observed target image. */
-      runner_image?: string;
-      probe_ref?: string;
-      probe_digest?: string;
-      catalog_digest?: string;
+      kind: "cpu-profile" | "memory-profile" | "process-snapshot";
       /** @enum {string} */
       status: "queued" | "running" | "succeeded" | "failed";
       target: components["schemas"]["PlatformDiagnosticTarget"];
@@ -10748,7 +10576,6 @@ export interface components {
       identity_verified: boolean;
       desired_generation?: string;
       actual_generation?: string;
-      candidate_generation?: string;
       lkg_generation?: string;
       apply_status?: string;
       probe_status?: string;
@@ -10828,7 +10655,6 @@ export interface components {
       /** Format: date-time */
       updated_at: string;
     };
-    /** @description Desired route configuration. enabled=false independently forbids traffic; it does not rewrite an explicitly configured route_policy. Compilation retains a fixed non-active origin status and reason for diagnostics without re-enabling a disabled route. Explicit non-active intent status takes precedence over runtime recovery. */
     PlatformConfigRouteIntent: {
       hostname: string;
       app_id?: string;
@@ -10916,11 +10742,9 @@ export interface components {
       /** @enum {string} */
       fallback_policy: "fail_closed" | "stale_if_error" | "empty_noerror";
     };
-    /** @description Symbolic FUGUE_ROUTE address source with an empty values array. Without bindings, routes must match the record app/tenant owner, including empty platform ownership. Optional bindings explicitly declare every hostname/path/app dependency when applications in one tenant share a target. Bindings must exactly match PlatformIntent routes; the record retains its nonempty app/tenant owner, whose app must occur at each referenced hostname. Every path must be proved on each candidate edge. Addresses and readiness are runtime facts. */
+    /** @description Symbolic FUGUE_ROUTE address source with an empty values array. Each referenced hostname must have routes with the same app/tenant owner as the DNS record; platform routes use empty app/tenant IDs. Every path at every referenced hostname must be proved on a candidate edge. References may differ from the DNS owner name for managed custom-domain targets. Selected addresses and readiness are runtime facts, never intent. */
     PlatformDNSRouteIntent: {
       hostnames: string[];
-      /** @description Complete path dependencies; tenant ownership is inherited from the DNS record. Omission retains single-app semantics. */
-      bindings?: components["schemas"]["PlatformDNSRouteBinding"][];
       /** @enum {string} */
       ipv4_policy: "auto" | "ipv4_only" | "ipv6_only" | "dual_stack_required";
       /** @enum {string} */
@@ -10929,11 +10753,6 @@ export interface components {
       ttl_policy: "record" | "target" | "min" | "bounded";
       /** @enum {string} */
       fallback_policy: "fail_closed" | "stale_if_error" | "empty_noerror";
-    };
-    PlatformDNSRouteBinding: {
-      hostname: string;
-      path_prefix: string;
-      app_id: string;
     };
     /** @description Desired flatten configuration, resolved only from matching fixed runtime observations. Apex mode requires zone to equal the record hostname. Empty-noerror remains unsupported until consumers can preserve empty authoritative names. */
     PlatformDNSFlattenIntent: {
@@ -10950,203 +10769,24 @@ export interface components {
       /** @enum {string} */
       fallback_policy: "fail_closed" | "stale_if_error" | "empty_noerror";
     };
-    /** @description Desired TLS policy and optional domain binding. domain_ref requires app_id and tenant_id and an exact matching route owner. It references frozen domain lifecycle facts; verification status and certificate readiness are never desired intent. */
     PlatformConfigTLSIntent: {
       hostname: string;
       policy: string;
-      domain_ref?: string;
-      app_id?: string;
-      tenant_id?: string;
-    };
-    /** @description Frozen persisted domain lifecycle state, with original verification and TLS event timestamps. Historical ready status is not a fresh certificate probe or serving ACK. Missing or old tls_last_checked_at is retained, never renewed by snapshot capture. DNS eligibility still requires independent route/TLS placement proofs. References and owners must exactly match TLS intent and routes; duplicate or unreferenced facts and future timestamps are rejected. verified status requires verified_at; ready status requires verified ownership and tls_ready_at. */
-    PlatformTLSDomainObservation: {
-      ref: string;
-      hostname: string;
-      app_id: string;
-      tenant_id: string;
-      /** @enum {string} */
-      status: "pending" | "verified";
-      /** @enum {string} */
-      tls_status?: "" | "pending" | "ready" | "error";
-      /** Format: date-time */
-      verified_at?: string | null;
-      /** Format: date-time */
-      tls_last_checked_at?: string | null;
-      /** Format: date-time */
-      tls_ready_at?: string | null;
-    };
-    /** @description Explicit business domain namespace in a base PlatformIntent. The producer expands this into concrete route, DNS and TLS intent; empty base domains disable that namespace. No process configuration is consulted when present. */
-    PlatformApplicationDomains: {
-      app_base_domain: string;
-      custom_domain_base_domain: string;
-      reserved_hostnames: string[];
-      default_dns_ttl: number;
     };
     PlatformConfigIntent: {
       schema_version?: string;
       generation: string;
       scope?: string;
-      application_domains?: components["schemas"]["PlatformApplicationDomains"];
-      dns_consumers?: components["schemas"]["PlatformDNSConsumerIntent"][];
       routes?: components["schemas"]["PlatformConfigRouteIntent"][];
       dns?: components["schemas"]["PlatformConfigDNSIntent"][];
       acme_challenges?: components["schemas"]["PlatformACMEChallengeIntent"][];
       tls?: components["schemas"]["PlatformConfigTLSIntent"][];
       cache_policies?: components["schemas"]["CachePolicy"][];
     };
-    /** @description Producer query strategy, independent of runtime ranking, locality and candidate eligibility. The producer observes inventory and ranking directly, expands concrete DNSAnswerRules, and never reads legacy DNS bundles when this policy is present. Readiness remains independently proven. */
-    PlatformDNSQueryPolicy: {
-      /** @enum {string} */
-      ranking_mode: "active" | "shadow" | "disabled";
-      /** @enum {string} */
-      preference_mode: "runtime_locality";
-      ecs_enabled: boolean;
-      exploration_percent: number;
-      switch_cooldown_seconds: number;
-      minimum_ttl_seconds: number;
-      maximum_ttl_seconds: number;
-    };
-    PlatformDNSAuthorityPolicy: {
-      node_id: string;
-      zone: string;
-      nameservers: string[];
-      ttl_seconds: number;
-      refresh_seconds: number;
-      retry_seconds: number;
-      expire_seconds: number;
-    };
-    PlatformDNSConsumerIntent: {
-      node_id: string;
-      edge_group_id: string;
-      zones: string[];
-      /** @description Canonical single DNS label for the process reachability record. */
-      probe_label: string;
-      probe_ttl: number;
-    };
-    PlatformDNSConsumerObservation: {
-      node_id: string;
-      edge_group_id: string;
-      /** Format: date-time */
-      observed_at: string;
-      a?: string[];
-      aaaa?: string[];
-    };
-    PlatformDNSClientPolicy: {
-      node_id: string;
-      /** @description Ordered first-match mappings. An empty array explicitly disables client geography overrides. */
-      rules: components["schemas"]["PlatformDNSClientRule"][];
-    };
-    PlatformDNSClientRule: {
-      cidr: string;
-      country?: string;
-      region?: string;
-      asn?: string;
-      edge_group_id?: string;
-    };
-    PlatformDNSAnswerRule: {
-      node_id: string;
-      hostname: string;
-      /** @enum {string} */
-      type: "A" | "AAAA";
-      /** @enum {string} */
-      selection_mode: "geo" | "latency_aware" | "global" | "weighted" | "pinned" | "disabled";
-      /** @enum {string} */
-      scoped_selection_mode?: "geo" | "latency_aware" | "global" | "weighted" | "pinned" | "disabled";
-      preferred_edge_groups?: string[];
-      fallback_edge_groups?: string[];
-      ttl_seconds: number;
-      ecs_enabled: boolean;
-      exploration_percent: number;
-      switch_cooldown_seconds: number;
-    };
-    PlatformDNSSelectionObservation: {
-      node_id: string;
-      hostname: string;
-      /** @enum {string} */
-      type: "A" | "AAAA";
-      source_generation: string;
-      source_digest: string;
-      /** Format: date-time */
-      observed_at: string;
-      selected_edge_group_id?: string;
-      shadow_selected_edge_group_id?: string;
-      ranking_version?: string;
-      ranking_scope?: string;
-      reason?: string;
-      shadow_reason?: string;
-      weight?: number;
-      candidates: components["schemas"]["PlatformDNSSelectionCandidate"][];
-      scoped_candidates?: components["schemas"]["PlatformDNSSelectionScope"][];
-    };
-    PlatformDNSSelectionCandidate: {
-      ip: string;
-      edge_id: string;
-      edge_group_id: string;
-      country?: string;
-      region?: string;
-      priority?: number;
-      weight?: number;
-      score?: number;
-      traffic_class?: string;
-      reason?: string;
-      score_breakdown?: {
-        [key: string]: number;
-      };
-    };
-    PlatformDNSSelectionScope: {
-      scope_key: string;
-      country?: string;
-      region?: string;
-      asn?: string;
-      selected_edge_group_id?: string;
-      /** Format: date-time */
-      cooldown_until?: string;
-      reason?: string;
-      candidates: components["schemas"]["PlatformDNSSelectionCandidate"][];
-    };
-    PlatformDNSReadinessPolicy: components["schemas"]["PlatformReadinessProbePolicy"];
-    PlatformReadinessProbePolicy: {
-      probe_interval_seconds: number;
-      probe_timeout_seconds: number;
-      fact_freshness_seconds: number;
-      max_concurrency: number;
-      max_probes: number;
-    };
-    PlatformDNSEdgeEndpoint: {
-      edge_id: string;
-      edge_group_id: string;
-      /** Format: date-time */
-      observed_at: string;
-      a?: string[];
-      aaaa?: string[];
-    };
-    PlatformTrafficRolloutCohort: {
-      id: string;
-      edge_group_ids: string[];
-    };
     PlatformConfigPolicySnapshot: {
-      traffic_rollout_cohorts?: components["schemas"]["PlatformTrafficRolloutCohort"][];
-      dns_authorities?: components["schemas"]["PlatformDNSAuthorityPolicy"][];
-      dns_client_policies?: components["schemas"]["PlatformDNSClientPolicy"][];
-      /**
-       * @description Omission preserves captured readiness leases. consumer_readiness plans addresses from frozen declared endpoint topology without requiring new routes to serve before compilation; DNS query/authority/client/cohort and DNS/TLS readiness policies are required. Addresses are only candidates, and standalone DNS publication is forbidden. Every answer requires fresh route/TLS proof for the exact serving ReleaseSet; static and ACME/flatten content expiration is unchanged.
-       * @enum {string}
-       */
-      dns_placement_mode?: "captured_readiness" | "consumer_readiness";
-      dns_query_policy?: components["schemas"]["PlatformDNSQueryPolicy"];
-      dns_answer_rules?: components["schemas"]["PlatformDNSAnswerRule"][];
-      dns_readiness?: components["schemas"]["PlatformDNSReadinessPolicy"];
-      tls_readiness?: components["schemas"]["PlatformReadinessProbePolicy"];
       schema_version?: string;
       generation: string;
       scope?: string;
-      /** @description Versioned DNS treatment of inactive routes, keyed uniquely by record kind. Omission defaults to omit. serve_error_page permits disabled/unavailable local routes only with exact loaded-state and TLS proof; it never restores upstreams or permits route_a_only or excluded nodes. */
-      dns_route_state_constraints?: ({
-          /** @enum {string} */
-          record_kind: "platform" | "platform-route" | "platform-domain" | "custom-domain-target" | "hosted";
-          /** @enum {string} */
-          inactive_behavior: "omit" | "serve_error_page";
-        })[];
       require_tls_ready?: boolean;
       require_route_ready?: boolean;
       /** Format: int32 */
@@ -11160,27 +10800,18 @@ export interface components {
       /** @description Desired release references and weights. Compilation requires matching fresh release observations. Unsupported sticky routing is rejected, never silently ignored. */
       traffic_constraints?: components["schemas"]["PlatformTrafficPolicyConstraint"][];
     };
-    /** @description By default applies only to paths matching the specified app owner, or all paths at the hostname when app_id is empty. Explicit tenant_hostname scope preserves legacy hostname policy behavior across apps within one tenant and requires tenant_id. Every referenced constraint must match at least one route. A tenant mismatch is always rejected, including other paths at the same hostname. Exclusion owner digest, generation and fence retain versioned authorization metadata. Compilation derives exclusion_lifecycle using fixed runtime_snapshot.captured_at when a fully identified exclusion has an expiry; that timestamp is required for this case. Missing authorization metadata yields legacy_hold. Exclusion expiry never silently removes an exclusion, including expired_hold and legacy_hold. */
     PlatformRoutePolicyConstraint: {
       id: string;
       hostname: string;
       app_id?: string;
       tenant_id?: string;
-      /**
-       * @description Omission preserves app matching. tenant_hostname explicitly applies the rule to every path owned by tenant_id at this hostname; app_id retains the originating policy owner.
-       * @enum {string}
-       */
-      match_scope?: "app" | "tenant_hostname";
-      /** @description Restricts DNS answer eligibility to this group. It does not narrow Host serving scope; any explicit route intent pin must agree. Compiled output carries this as dns_placement_edge_group_id and DNS resolution requires matching fixed placement evidence. */
+      /** @description Compilation refuses nonempty placement constraints until DNS placement resolution is available. */
       edge_group_id?: string;
       excluded_edge_ids?: string[];
       excluded_edge_group_ids?: string[];
       exclusion_reason?: string;
       /** Format: date-time */
       exclusion_expires_at?: string | null;
-      exclusion_owner_digest?: string;
-      exclusion_generation?: number;
-      exclusion_fence?: string;
       min_healthy_edge_nodes?: number;
       /** @enum {string} */
       route_policy: "route_a_only" | "edge_canary" | "edge_enabled";
@@ -11223,8 +10854,6 @@ export interface components {
       compiler_version: string;
     };
     PlatformConfigReleaseSet: {
-      /** @description Immutable projection of the signed PolicySnapshot cohorts; every child policy must match. */
-      traffic_rollout_cohorts?: components["schemas"]["PlatformTrafficRolloutCohort"][];
       schema_version: string;
       generation: string;
       scope: string;
@@ -11238,31 +10867,6 @@ export interface components {
       to: string;
       /** @enum {string} */
       relation: "requires";
-    };
-    PlatformDNSMigrationComparison: {
-      artifact_id: string;
-      artifact_digest: string;
-      artifact_generation: string;
-      node_id: string;
-      edge_group_id: string;
-      zone: string;
-      source_generation: string;
-      source_digest: string;
-      source_scope_key: string;
-      /** Format: date-time */
-      captured_at: string;
-      source_record_count: number;
-      artifact_record_count: number;
-      matching_record_count: number;
-      expired_candidate_value_count: number;
-      equivalent: boolean;
-      differences: ({
-          hostname: string;
-          type: string;
-          /** @enum {string} */
-          kind: "missing_from_artifact" | "extra_in_artifact" | "changed";
-          fields: string[];
-        })[];
     };
     PlatformRouteMigrationComparison: {
       artifact_id: string;
@@ -11314,15 +10918,10 @@ export interface components {
       omitted_runtime_fields: string[];
     };
     PlatformRuntimeSnapshot: {
-      dns_selections?: components["schemas"]["PlatformDNSSelectionObservation"][];
-      dns_edge_endpoints?: components["schemas"]["PlatformDNSEdgeEndpoint"][];
-      /** @description Fixed endpoint ownership observations; health and application readiness are not implied. */
-      dns_consumers?: components["schemas"]["PlatformDNSConsumerObservation"][];
-      tls_domains?: components["schemas"]["PlatformTLSDomainObservation"][];
       dns_placements?: components["schemas"]["PlatformDNSPlacementObservation"][];
       /**
        * Format: date-time
-       * @description Fixed reference for runtime observations and policy expiry evaluation. Required for origin, release or domain lifecycle facts and fully identified expiring exclusions. Snapshot capture never renews original verification or TLS check timestamps. Compiler wall clock is never used.
+       * @description Fixed freshness reference for origin and release observations, required when either is present. Compiler wall clock is never used.
        */
       captured_at?: string;
       origins?: components["schemas"]["PlatformOriginObservation"][];
@@ -11331,40 +10930,6 @@ export interface components {
       intent_generation: string;
       policy_generation: string;
       facts?: {
-        /** @description Independent managed-release readiness from one cluster observation window. These facts may authorize compilation but never replace actual consumer serving proof. */
-        release_readiness?: {
-          /** @enum {string} */
-          schema: "fugue.release-runtime-readiness/v1";
-          cluster_id: string;
-          /** Format: date-time */
-          observed_at: string;
-          releases: {
-              release_id: string;
-              namespace: string;
-              deployment_name: string;
-              deployment_uid: string;
-              /** Format: int64 */
-              deployment_generation: number;
-              /** Format: int64 */
-              observed_generation: number;
-              service_name: string;
-              service_uid: string;
-              desired_replicas: number;
-              ready_replicas: number;
-              ready_endpoints: number;
-              ready: boolean;
-              reason?: string;
-            }[];
-        };
-        /** @description Reserved producer provenance. Replays retain the binding and the original artifact creator; these fields grant no serving authority. */
-        configuration_producer?: {
-          policy_release_id: string;
-          source_digest: string;
-          static_intent_artifact_id?: string;
-          static_intent_digest?: string;
-          dns_policy_artifact_id?: string;
-          dns_policy_digest?: string;
-        };
         [key: string]: unknown;
       };
     };
@@ -11398,7 +10963,7 @@ export interface components {
       /** Format: date-time */
       expires_at: string;
     };
-    /** @description Fixed application DNS evidence. input_digest is the canonical digest of {dns, routes, policy}, with compiled routes restricted to the DNS hostname, sorted by normalized path, including resolved origin and release upstreams and exclusions. Candidate health and readiness must come from the corresponding serving observations. Compilation binds data and checks freshness; a caller submitting runtime facts is responsible for their authenticity. A stale observation is usable only with stale_if_error. In captured_readiness mode (the default), missing evidence and insufficient eligible edges reject compilation. consumer_readiness mode rejects these legacy placement observations and compiles address candidates from the fixed endpoint topology instead. Disabled routes follow explicit route-state policy. Actual DNS answers always require fresh route and TLS proof for the exact serving publication. */
+    /** @description Fixed application DNS evidence. input_digest is the canonical digest of {dns, routes, policy}, with compiled routes restricted to the DNS hostname, sorted by normalized path, including resolved origin and release upstreams and exclusions. Candidate health and readiness must come from the corresponding serving observations. Compilation binds data and checks freshness; a caller submitting runtime facts is responsible for their authenticity. A stale observation is usable only with stale_if_error. Missing evidence and insufficient eligible edges reject compilation; disabled routes produce no application DNS answers. Ready route and TLS evidence are mandatory for every published address regardless of optional policy flags. */
     PlatformDNSPlacementObservation: {
       input_digest: string;
       /** Format: date-time */
@@ -11418,8 +10983,6 @@ export interface components {
       valid_until: string;
       healthy: boolean;
       route_ready: boolean;
-      /** @description Every inactive dependency was independently probed through verified TLS for its exact loaded disabled/unavailable state and digest, with no upstream. Required by serve_error_page policy; does not attest origin health. */
-      inactive_routes_verified?: boolean;
       tls_ready: boolean;
       a?: string[];
       aaaa?: string[];
@@ -11438,7 +11001,7 @@ export interface components {
       aaaa?: string[];
       target_ttl: number;
     };
-    /** @description Fixed release readiness evidence. Managed stable and candidate releases are observed independently from exact Kubernetes deployment, image, owner, service selector and current service-owned EndpointSlices. Active means ready to receive traffic, not already serving. The capture keeps cluster and resource identities in runtime_snapshot.facts.release_readiness. App-level serving status, desired weights and business-row timestamps cannot establish readiness. Transport or cluster-identity failure preserves unknown evidence; authoritative absent or unready resources produce a fresh unavailable observation. Actual serving still requires the separate trusted consumer apply and probe gates. */
+    /** @description Fixed release evidence. Migration drafts require matching owner, release, runtime, image and healthy serving evidence before reporting active. observed_at is the original runtime evidence time, never a business-row update time; absent evidence has zero observed_at and blocks compilation. */
     PlatformReleaseObservation: {
       id: string;
       app_id: string;
@@ -11472,55 +11035,6 @@ export interface components {
       lineage: components["schemas"]["PlatformConfigLineage"];
       lkg?: components["schemas"]["PlatformLKGSnapshot"];
       dependencies?: components["schemas"]["PlatformArtifactLineageDependency"][];
-    };
-    /** @description Signed operational policy stored as policy_snapshot in the platform-config-producer scope. Activate or pause through the existing artifact shadow release API; a draft has no effect. */
-    PlatformProducerPolicy: {
-      /** @enum {string} */
-      schema_version: "fugue.platform.producer/v1";
-      generation: string;
-      /** @enum {string} */
-      mode: "paused" | "shadow" | "serving";
-      /** @description Required in serving mode. Automatic traffic releases require an existing full verified TrafficReleaseSet LKG, complete pinned inputs and consumer_readiness placement. Fresh actual gray convergence gates full, and fresh full convergence gates LKG. Timeout rolls back to the unchanged verified LKG and records failure of that candidate; the same desired source is not retried until it changes. These actions reuse existing release lanes, consumer facts and LKG records. */
-      serving?: {
-        canary_rule_ref: string;
-        gray_min_seconds: number;
-        full_min_seconds: number;
-        rollout_timeout_seconds: number;
-      };
-      /** @enum {string} */
-      input_source: "business-migration" | "business-static-intent";
-      /** @description Required only for business-static-intent; an exact immutable platform_intent ID in global scope. */
-      static_intent_artifact_id?: string;
-      /** @description Exact content_hash of the pinned static intent. Required only for business-static-intent. */
-      static_intent_digest?: string;
-      /** @description Optional exact validated global PolicySnapshot holding DNS declarations and optional route defaults. Supported fields are schema_version, generation, scope, dns_authorities, dns_client_policies, dns_readiness, tls_readiness, traffic_rollout_cohorts, dns_query_policy, dns_placement_mode; the optional route defaults group must include all four of minimum_healthy_edges (1..10000), max_stale_seconds (1..604800), route_constraints and dns_route_state_constraints. Explicit empty arrays are allowed; null, partial groups and unknown fields are rejected. Base route_constraints are defaults by hostname; an explicit business route policy takes precedence. Requires business-static-intent and DNS consumers in the pinned intent. */
-      dns_policy_artifact_id?: string;
-      dns_policy_digest?: string;
-      /**
-       * @description Requires dns_query_policy in the exact signed projection policy. Missing declarations reject capture and transactional publication; no legacy bundle fallback.
-       * @default false
-       */
-      require_dns_query_policy?: boolean;
-      /**
-       * @description Requires the paired pinned policy reference to supply the complete route defaults group. Missing defaults reject capture and transactional publication without hardcoded fallback. Defaults expand into the compiled PolicySnapshot; no new policy source or release lane is introduced.
-       * @default false
-       */
-      require_route_defaults?: boolean;
-      /**
-       * @description Requires business-static-intent and explicit application_domains in that exact signed base intent. Missing or invalid declarations reject capture and publication without ambient fallback.
-       * @default false
-       */
-      require_application_domains?: boolean;
-      /** @description Explicitly includes active business hosted zones for each listed DNS consumer, using the named base zone authority as its template. All consumers must have a template or the array must be empty. */
-      hosted_zone_templates?: {
-          node_id: string;
-          template_zone: string;
-        }[];
-      /** @enum {string} */
-      target_scope: "global";
-      interval_seconds: number;
-      /** @description Must be at least interval_seconds; bounds reuse of the previous runtime snapshot when desired intent and policy are unchanged. */
-      refresh_seconds: number;
     };
     PlatformArtifactCreateRequest: {
       artifact_kind: string;
@@ -11628,7 +11142,6 @@ export interface components {
       /** Format: int64 */
       fencing_token: number;
       reason: string;
-      /** @description Explicitly seed the first verified LKG. TrafficReleaseSet requires current trusted applied/probed evidence from a gray publication; shadow evidence is insufficient. Other kinds retain initial shadow seeding. Later replacement requires full publication. */
       allow_initial_lkg?: boolean;
       evidence: components["schemas"]["PlatformArtifactVerificationEvidence"];
     };
@@ -11658,7 +11171,6 @@ export interface components {
       evidence_hash?: string;
       desired_generation?: string;
       actual_generation?: string;
-      candidate_generation?: string;
       lkg_generation?: string;
       apply_status?: string;
       probe_status?: string;
@@ -11696,7 +11208,6 @@ export interface components {
       /** @description Optional assertion; the server derives and verifies the value from the expected consumer set. */
       desired_generation?: string;
       actual_generation?: string;
-      candidate_generation?: string;
       lkg_generation?: string;
       apply_status?: string;
       probe_status?: string;
@@ -12023,16 +11534,6 @@ export interface components {
     };
   };
   responses: {
-    /** @description Another object storage management operation holds the lock. No mutation was performed by this request; retry after the indicated delay. Other state conflicts may also return 409 with retryable false. */
-    ObjectStorageBusy: {
-      headers: {
-        /** @description Suggested wait in seconds when the management lock is busy. */
-        "Retry-After"?: number;
-      };
-      content: {
-        "application/json": components["schemas"]["ErrorResponse"];
-      };
-    };
     /** @description Error response */
     ErrorResponse: {
       content: {
@@ -12263,14 +11764,9 @@ export interface operations {
   };
   /**
    * Edge Route Intents
-   * @description Returns Core's inventory-independent desired-route projection. Only the edge-control component identity with global edge_route_intent capability is accepted; tenant and platform-admin API keys are not accepted. A verified global route artifact takes precedence over the legacy source. An unusable artifact or LKG returns 503 so Edge Control retains its last serving bundle rather than recompiling from mutable business tables. Artifact-backed serving and candidate validation share one route projection. Cache references resolve case-insensitively to the declared policy ID; disabled cache policies are not materialized as active bindings. With edge_group_id, the newest applicable gray/full TrafficReleaseSet selects serving routes; gray applies only to its signed cohort. A newer full supersedes an older gray lane. Without an applicable release the verified route LKG remains the migration fallback. A selected release must have immutable expected topology for that group and verified parent/child integrity and lineage. Invalid or unprepared selected releases return 503 without falling back to business data. Shadow releases never select serving configuration. A legacy request without a group is rejected while a gray or full TrafficReleaseSet is active. Group projections retain traffic_release provenance; their signatures include cache policies.
+   * @description Returns Core's inventory-independent desired-route projection. Only the edge-control component identity with global edge_route_intent capability is accepted; tenant and platform-admin API keys are not accepted. A verified global route artifact takes precedence over the legacy source. An unusable artifact or LKG returns 503 so Edge Control retains its last serving bundle rather than recompiling from mutable business tables.
    */
   edgeRouteIntents: {
-    parameters: {
-      query?: {
-        edge_group_id?: string;
-      };
-    };
     responses: {
       /** @description Successful response */
       200: {
@@ -12444,7 +11940,7 @@ export interface operations {
   };
   /**
    * Inspect real Edge Control authority projections
-   * @description Read-only diagnostic view of the Edge Control group authority. This endpoint never synthesizes Edge nodes or ACKs from DNS state. It reads the complete authority projection, including explicit serving health and bootstrap eligibility. A response that omits either fact is reported as unavailable with an error, never as a false health observation.
+   * @description Read-only diagnostic view of the Edge Control group authority. This endpoint never synthesizes Edge nodes or ACKs from DNS state.
    */
   adminListEdgeAuthorities: {
     parameters: {
@@ -13437,8 +12933,7 @@ export interface operations {
    * Explain Request
    * @description Platform-admin lookup of recorded request facts by edge request ID, application
    * request ID, or trace ID. Reads per-request telemetry, including incomplete
-   * platform request facts with explicit platform route ownership and legacy
-   * incomplete platform facts stored as events; aggregate edge performance sample
+   * platform request facts stored as events; aggregate edge performance sample
    * IDs are not request IDs. Only a unique matching request is attributed.
    * Evidence identifies the source and lookup status. Missing records, disabled
    * telemetry, unavailable query backends, and ambiguous identifiers remain
@@ -13641,7 +13136,7 @@ export interface operations {
   };
   /**
    * Compile Platform Intent And Policy
-   * @description Deterministically compiles typed platform intent and policy into immutable intent, policy, route, DNS, TLS, and release-set artifacts. The normalized runtime input is retained by digest. Identical immutable artifacts retain their original creator even when replayed by another platform administrator. The operation does not promote serving traffic.
+   * @description Deterministically compiles typed platform intent and policy into immutable intent, policy, route, DNS, TLS, and release-set artifacts. The operation does not promote serving traffic.
    */
   compilePlatformConfig: {
     requestBody: {
@@ -13661,7 +13156,7 @@ export interface operations {
   };
   /**
    * Compile Platform Artifacts
-   * @description Verifies both stored artifacts before replaying them into a deterministic ReleaseSet. Signed content, artifact kind, validation state, generation, scope and typed schema must agree. Rejected inputs produce no output artifacts. Inline serving configuration and business tables are not read. The normalized runtime input is retained by digest, and producer provenance plus original creators are preserved when an identical artifact is reused.
+   * @description Verifies both stored artifacts before replaying them into a deterministic ReleaseSet. Signed content, artifact kind, validation state, generation, scope and typed schema must agree. Rejected inputs produce no output artifacts. Inline serving configuration and business tables are not read.
    */
   compilePlatformConfigFromArtifacts: {
     requestBody: {
@@ -13708,54 +13203,8 @@ export interface operations {
     };
   };
   /**
-   * Compare a Signed DNS Consumer View with its Current Published DNS Bundle
-   * @description Read-only platform administrator diagnostic for one exact physical DNS node and zone. Validates the candidate artifact signature, schema, policy lineage and consumer ownership, then compares its materialized records with the current trusted full DNS bundle or verified LKG used by the legacy bundle endpoint. Both sides use one server observation time and absolute value expirations; expired values are not renewed. Compares RRset values, effective TTL, policy, candidates, scoped candidates and ownership metadata; ignores record_generation and record ordering, but preserves nested selection order and TXT bytes. A missing, ambiguous or untrusted source is unavailable, never equivalent. Does not regenerate legacy records from business tables, write artifacts or releases, attest actual serving, or authorize promotion. Equivalence covers only the requested node/zone.
-   */
-  comparePlatformDNSMigration: {
-    parameters: {
-      query: {
-        artifact_id: string;
-        /** @description Physical DNS process identity, not a zone alias. */
-        node_id: string;
-        zone: string;
-      };
-    };
-    responses: {
-      /** @description Comparison for the requested node and zone at captured_at. */
-      200: {
-        content: {
-          "application/json": components["schemas"]["PlatformDNSMigrationComparison"];
-        };
-      };
-      /** @description Required comparison identity is missing or invalid. */
-      400: {
-        content: {
-          "application/json": components["schemas"]["ErrorResponse"];
-        };
-      };
-      /** @description Artifact not found. */
-      404: {
-        content: {
-          "application/json": components["schemas"]["ErrorResponse"];
-        };
-      };
-      /** @description Candidate is untrusted, incompatible, or lacks the exact consumer view. */
-      409: {
-        content: {
-          "application/json": components["schemas"]["ErrorResponse"];
-        };
-      };
-      /** @description Current DNS inventory or trusted published reference is unavailable or ambiguous. */
-      503: {
-        content: {
-          "application/json": components["schemas"]["ErrorResponse"];
-        };
-      };
-    };
-  };
-  /**
    * Compare Business Route Projection with a Signed Artifact
-   * @description Read-only migration diagnostic for platform administrators. Captures the current legacy business projection and compares its route semantics, TLS allowlist and cache policies with one exact validated global route artifact. Omitted exclusion_lifecycle and clear are equivalent only when the route has no excluded edge IDs or group IDs; exclusion lists, other lifecycle states, expiry and reason remain significant. Cache policies are compared by identity; every policy field, nested rule order and relative order among implicit HTML fallback policies remains significant. Other top-level policy ordering is immaterial. Empty or duplicate cache policy identities make comparison unavailable. This is not a serving verification, an atomic business database snapshot, or authorization to promote. No artifacts, releases, LKG or business records are written.
+   * @description Read-only migration diagnostic for platform administrators. Captures the current legacy business projection and compares its route semantics, TLS allowlist and cache policies with one exact validated global route artifact. This is not a serving verification, an atomic business database snapshot, or authorization to promote. No artifacts, releases, LKG or business records are written.
    */
   comparePlatformRouteMigration: {
     parameters: {
@@ -13799,17 +13248,9 @@ export interface operations {
   };
   /**
    * Project Business Routes into PlatformIntent
-   * @description Read-only migration draft from one consistent business snapshot. PostgreSQL uses a read-only repeatable-read transaction; file storage reads under one lock. Returns the business snapshot revision/time and explicit migration issues. Runtime observations retain their own evidence timestamps and are not part of the database transaction. Desired release references and weights are projected into policy; release addresses and readiness retain their original observation timestamps in runtime_snapshot.releases. Explicit platform entries within configured authoritative base domains become FUGUE_ROUTE intents; same-name static A/AAAA/CNAME overrides are recorded as exclusions, while other static records are preserved. Verified business domain bindings owned by the application base domain also become owned FUGUE_ROUTE intents using the configured DNS TTL, replacing only exact static address inputs with an exclusion audit. Missing or conflicting route ownership rejects projection; conflicting hosted address records remain explicit issues and prevent compilation. Non-address records, reserved names and custom-domain target namespaces are not overwritten. Root application routes within the configured application base domain also project into owned FUGUE_ROUTE records, preserving explicit hosted address sources and protected names; default TTL comes from configured DNS policy. Placement collection uses at most eight concurrent workers, 4096 probes and a 30-second request budget. Exhausted or invalid evidence is reported as a migration issue and never authorizes promotion. Application and platform DNS placement capture probes each configured public candidate address with TLS hostname verification and the Edge route-proof protocol, checks every hostname path against the fixed compiled route, and binds the original inventory heartbeat and signed bundle expiry. Failed, stale or mismatched evidence stays an explicit issue; collection never extends a lease or authorizes promotion. migration_ready remains false until all serving inputs, policy execution, DNS/TLS readiness and output equivalence are verified. Writes no serving state.
+   * @description Read-only migration draft from one consistent business snapshot. PostgreSQL uses a read-only repeatable-read transaction; file storage reads under one lock. Returns the business snapshot revision/time and explicit migration issues. Runtime observations retain their own evidence timestamps and are not part of the database transaction. Desired release references and weights are projected into policy; release addresses and readiness retain their original observation timestamps in runtime_snapshot.releases. Explicit platform entries within configured authoritative base domains become FUGUE_ROUTE intents; same-name static A/AAAA/CNAME overrides are recorded as exclusions, while other static records are preserved. Root application routes within the configured application base domain also project into owned FUGUE_ROUTE records, preserving explicit hosted address sources and protected names; default TTL comes from configured DNS policy. Placement collection uses at most eight concurrent workers, 4096 probes and a 30-second request budget. Exhausted or invalid evidence is reported as a migration issue and never authorizes promotion. Application and platform DNS placement capture probes each configured public candidate address with TLS hostname verification and the Edge route-proof protocol, checks every hostname path against the fixed compiled route, and binds the original inventory heartbeat and signed bundle expiry. Failed, stale or mismatched evidence stays an explicit issue; collection never extends a lease or authorizes promotion. migration_ready remains false until all serving inputs, policy execution, DNS/TLS readiness and output equivalence are verified. Writes no serving state.
    */
   projectPlatformIntent: {
-    parameters: {
-      query?: {
-        /** @description Optional exact signed validated global PlatformIntent used instead of ambient platform routes and static DNS. Only static representable records and routes are accepted; an explicit invalid reference is rejected without fallback. */
-        static_intent_artifact_id?: string;
-        /** @description Optional exact validated signed producer policy for preview, mutually exclusive with static_intent_artifact_id. Uses its pinned static/DNS configuration references without activation; invalid references fail without ambient fallback. */
-        producer_policy_artifact_id?: string;
-      };
-    };
     responses: {
       /** @description Draft intent, captured origin observations and unresolved migration issues. */
       200: {
@@ -13828,7 +13269,7 @@ export interface operations {
       };
     };
     responses: {
-      /** @description Auditable PlatformIntent generated from legacy serving environment values and effective application domain settings */
+      /** @description Auditable PlatformIntent generated from legacy serving environment values */
       200: {
         content: {
           "application/json": {
@@ -13841,7 +13282,7 @@ export interface operations {
   };
   /**
    * Import Legacy Serving Environment
-   * @description Validates legacy serving environment values and effective application domain settings (base domains, reserved hostnames and DNS TTL), includes both in source_digest, and persists one immutable validated PlatformIntent draft tagged with env-migration. The operation never promotes serving traffic.
+   * @description Validates legacy serving environment values and persists one immutable validated PlatformIntent draft tagged with env-migration. The operation never promotes serving traffic.
    */
   importPlatformEnvironment: {
     requestBody: {
@@ -13857,30 +13298,6 @@ export interface operations {
         content: {
           "application/json": {
             [key: string]: unknown;
-          };
-        };
-      };
-      default: components["responses"]["ErrorResponse"];
-    };
-  };
-  /**
-   * Read Frozen Compiler Runtime Input
-   * @description Platform administrators with artifact.read can retrieve the exact normalized runtime snapshot bound by a trusted artifact's input_snapshot_digest. Recomputes the digest and checks intent/policy generation binding. Older artifacts without a retained snapshot return 404; missing or corrupt input never falls back to live business data.
-   */
-  getPlatformArtifactCompilerInput: {
-    parameters: {
-      path: {
-        artifact_id: string;
-      };
-    };
-    responses: {
-      /** @description Immutable runtime snapshot bound by the artifact lineage. */
-      200: {
-        content: {
-          "application/json": {
-            artifact_id: string;
-            input_snapshot_digest: string;
-            runtime_snapshot: components["schemas"]["PlatformRuntimeSnapshot"];
           };
         };
       };
@@ -14039,10 +13456,7 @@ export interface operations {
       default: components["responses"]["ErrorResponse"];
     };
   };
-  /**
-   * Prepare ReleaseSet Consumer Expectations
-   * @description Builds immutable expectations for an active ReleaseSet release from authoritative node policy topology. Same release and topology is idempotent; a new release authority or changed topology creates increasing revisions without overwriting historical sets. Edge and DNS membership is independent of heartbeat freshness; missing or stale heartbeats cannot remove an existing required consumer. DNS zone rows belong to one physical process. Incomplete preparation never satisfies full promotion.
-   */
+  /** Prepare ReleaseSet Consumer Expectations */
   preparePlatformReleaseSetConsumers: {
     requestBody: {
       content: {
@@ -14064,10 +13478,7 @@ export interface operations {
       default: components["responses"]["ErrorResponse"];
     };
   };
-  /**
-   * List Platform Consumer Convergence
-   * @description Projects immutable expected sets onto current authoritative node policy topology. Heartbeat freshness is assessed after membership, so a silent or stale Edge or DNS process remains required. ReleaseSet assessments require verified consumer identity and exact expected-set, ReleaseSet, active release fence and child artifact generation sequence; missing binding context is unknown and old or unverified receipts cannot pass. DNS zone aliases belong to one physical process. Full promotion selects the newest active release publication for the target ReleaseSet, requires the latest expected set for every referenced traffic artifact, and applies the same assessment. Historical expected sets remain available without granting current promotion authority. CLI state queries use these server assessments.
-   */
+  /** List Platform Consumer Convergence */
   listPlatformConsumerConvergence: {
     parameters: {
       query?: {
@@ -14264,12 +13675,6 @@ export interface operations {
    * @description Returns the latest expected set revision for each authorized artifact kind in each active ReleaseSet channel. Assignments are bound to the signed child artifact and the active release fencing token. Shadow assignments authorize validation only and must not replace serving state. Superseded releases and unrelated topology are excluded.
    */
   getPlatformConsumerAssignment: {
-    parameters: {
-      query?: {
-        /** @description Select only the newest applicable gray/full TrafficReleaseSet using immutable consumer group ownership. Shadow never authorizes serving. An incomplete selected topology fails closed. */
-        serving_only?: boolean;
-      };
-    };
     responses: {
       /** @description Assignments bound to the verified component identity. */
       200: {
@@ -14285,7 +13690,7 @@ export interface operations {
   };
   /**
    * Pull an artifact assigned to a trusted consumer
-   * @description Returns a validated signed child artifact or its exact signed ReleaseSet parent only when the verified component identity is currently present in that child assignment. Parent reads require the same expected_consumer_set_id and retain the child assignment and release envelope; arbitrary parents and nonselected canary members are denied. The endpoint is read-only and never records runtime facts.
+   * @description Returns a validated, signed child artifact only when the verified component identity is currently present in the active ReleaseSet expected topology. The endpoint is read-only and never records runtime facts.
    */
   getPlatformConsumerArtifact: {
     parameters: {
@@ -14986,10 +14391,7 @@ export interface operations {
       default: components["responses"]["ErrorResponse"];
     };
   };
-  /**
-   * Delete Project
-   * @description Delete a project after its resources are removed. Import idempotency results for removed apps are discarded so the same creation request can create a fresh project.
-   */
+  /** Delete Project */
   deleteProject: {
     parameters: {
       query?: {
@@ -16528,10 +15930,7 @@ export interface operations {
       default: components["responses"]["ErrorResponse"];
     };
   };
-  /**
-   * Import Git Hub App
-   * @description Import a GitHub topology. Entrypoints without explicit domains use the allocated public service hostname for both runtime environment references and the persisted project route table. For a new managed database without an explicit storage class, an explicit physical runtime uses a platform-approved PostgreSQL class with observed capacity when the configured default is exhausted.
-   */
+  /** Import Git Hub App */
   importGitHubApp: {
     parameters: {
       header?: {
@@ -16760,12 +16159,6 @@ export interface operations {
           "application/json": components["schemas"]["AppPatchResponse"];
         };
       };
-      /** @description Invalid patch, including a persistent storage size smaller than the current allocation. No deploy operation is queued for a rejected shrink. */
-      400: {
-        content: {
-          "application/json": components["schemas"]["ErrorResponse"];
-        };
-      };
       default: components["responses"]["ErrorResponse"];
     };
   };
@@ -16901,10 +16294,7 @@ export interface operations {
       default: components["responses"]["ErrorResponse"];
     };
   };
-  /**
-   * Create App Release
-   * @description Stable releases matching the current app identity, runtime, image and canonical service URL acquire canonical deployment/service names when both are omitted. Any provided spec snapshot must agree on image and runtime. This supplies workload identity only; runtime readiness must still be independently observed.
-   */
+  /** Create App Release */
   createAppRelease: {
     parameters: {
       path: {
@@ -17339,10 +16729,7 @@ export interface operations {
       default: components["responses"]["ErrorResponse"];
     };
   };
-  /**
-   * Get App Domain Diagnosis
-   * @description Checks actual shared certificate validity and ownership independently from historical TLS status. Presence alone cannot pass shared_tls_certificate or tls_ready. The separate route_active check also requires positive fresh current-generation application runtime evidence; desired replicas zero fails, missing or stale runtime evidence is unknown. A valid certificate cannot make a stopped application active. Diagnosis does not change serving configuration or synthesize runtime observations.
-   */
+  /** Get App Domain Diagnosis */
   getAppDomainDiagnosis: {
     parameters: {
       query?: {
@@ -17362,10 +16749,7 @@ export interface operations {
       default: components["responses"]["ErrorResponse"];
     };
   };
-  /**
-   * Repair App Domain
-   * @description Reconciles domain configuration and DNS verification. TLS ready is restored only from a currently usable, hostname- and owner-bound shared certificate; an expired certificate requires renewal and never receives a new ready timestamp.
-   */
+  /** Repair App Domain */
   repairAppDomain: {
     parameters: {
       path: {
@@ -17864,21 +17248,6 @@ export interface operations {
       default: components["responses"]["ErrorResponse"];
     };
   };
-  /**
-   * List Registered Diagnostic Probes
-   * @description Lists the verified diagnostic catalog and input contracts. Platform administrator access is required. Probe packages and catalog configuration are published independently of application code.
-   */
-  listPlatformDiagnosticProbes: {
-    responses: {
-      /** @description Verified diagnostic probe catalog. */
-      200: {
-        content: {
-          "application/json": components["schemas"]["DiagnosticProbeCatalogResponse"];
-        };
-      };
-      default: components["responses"]["ErrorResponse"];
-    };
-  };
   /** List Platform Diagnostic Sessions */
   listPlatformDiagnosticSessions: {
     responses: {
@@ -17893,7 +17262,7 @@ export interface operations {
   };
   /**
    * Start Platform Diagnostic Session
-   * @description Starts a bounded diagnostic session using a built-in kind or a verified catalog probe_ref. Registered probes may select an exact Pod or node within the catalog target policy; legacy kinds retain their original component and process restrictions. Platform administrator access is required.
+   * @description Starts a bounded, temporary diagnostic probe for a Fugue platform component or an allowlisted node process. Platform administrator access is required.
    */
   startPlatformDiagnosticSession: {
     requestBody: {
@@ -18813,7 +18182,6 @@ export interface operations {
           "application/json": components["schemas"]["OperationResponse"];
         };
       };
-      400: components["responses"]["ErrorResponse"];
       default: components["responses"]["ErrorResponse"];
     };
   };
@@ -19065,54 +18433,6 @@ export interface operations {
         content: {
           "application/json": components["schemas"]["OperationResponse"];
         };
-      };
-      default: components["responses"]["ErrorResponse"];
-    };
-  };
-  /**
-   * Recover App Database Storage Pressure
-   * @description Platform administrator only. Queues an observed-state recovery, including
-   * bounded LocalPV pool growth when required. Source volumes are retained
-   * until a replacement primary passes replication and write-read probes.
-   * Dry run describes the stages; live storage preconditions are evaluated by
-   * the controller before each mutation. Conflicting operations return 409.
-   */
-  recoverAppDatabase: {
-    parameters: {
-      path: {
-        id: components["parameters"]["IdPathParam"];
-      };
-    };
-    requestBody?: {
-      content: {
-        "application/json": {
-          /** @default true */
-          dry_run?: boolean;
-          target_runtime_id?: string;
-          target_node_name?: string;
-        };
-      };
-    };
-    responses: {
-      /** @description Recovery plan */
-      200: {
-        content: {
-          "application/json": Record<string, never>;
-        };
-      };
-      /** @description Recovery operation accepted or resumed */
-      202: {
-        content: {
-          "application/json": components["schemas"]["OperationResponse"];
-        };
-      };
-      /** @description Platform administrator permission is required for host storage recovery. */
-      403: {
-        content: never;
-      };
-      /** @description Another app operation or a different recovery target is active. */
-      409: {
-        content: never;
       };
       default: components["responses"]["ErrorResponse"];
     };
@@ -20865,7 +20185,6 @@ export interface operations {
           "application/json": components["schemas"]["ObjectStorageConfigStatus"];
         };
       };
-      409: components["responses"]["ObjectStorageBusy"];
       default: components["responses"]["ErrorResponse"];
     };
   };
@@ -20907,7 +20226,6 @@ export interface operations {
           "application/json": components["schemas"]["ObjectStoreEnvelope"];
         };
       };
-      409: components["responses"]["ObjectStorageBusy"];
       default: components["responses"]["ErrorResponse"];
     };
   };
@@ -20953,7 +20271,6 @@ export interface operations {
           "application/json": components["schemas"]["ObjectStoreEnvelope"];
         };
       };
-      409: components["responses"]["ObjectStorageBusy"];
       default: components["responses"]["ErrorResponse"];
     };
   };
@@ -20999,7 +20316,6 @@ export interface operations {
           "application/json": components["schemas"]["ObjectStorageConnection"];
         };
       };
-      409: components["responses"]["ObjectStorageBusy"];
       default: components["responses"]["ErrorResponse"];
     };
   };
@@ -21021,7 +20337,6 @@ export interface operations {
           "application/json": components["schemas"]["ObjectStorageCredentialEnvelope"];
         };
       };
-      409: components["responses"]["ObjectStorageBusy"];
       default: components["responses"]["ErrorResponse"];
     };
   };
@@ -21042,7 +20357,6 @@ export interface operations {
           "application/json": components["schemas"]["ObjectStoreEnvelope"];
         };
       };
-      409: components["responses"]["ObjectStorageBusy"];
       default: components["responses"]["ErrorResponse"];
     };
   };
