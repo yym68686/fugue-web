@@ -1,0 +1,442 @@
+{
+  "verified_at": "2026-09-21T06:28:46.543284+00:00",
+  "controller_commit": "874d2f525c7ece6057284dd5939b750f8d2849d2",
+  "ci_run": "https://github.com/yym68686/fugue/actions/runs/35567987047",
+  "health": {
+    "/healthz": 200,
+    "/readyz": 200
+  },
+  "components": [
+    {
+      "component": "api",
+      "image_tag": "da7a62720cecc140941007bc4e12ee70272fdf32",
+      "ready_replicas": 2,
+      "updated_replicas": 2,
+      "desired_replicas": 2
+    },
+    {
+      "component": "controller",
+      "image_tag": "874d2f525c7ece6057284dd5939b750f8d2849d2",
+      "ready_replicas": 2,
+      "updated_replicas": 2,
+      "desired_replicas": 2
+    }
+  ],
+  "controllers": [
+    {
+      "name": "fugue-fugue-controller-7c5496f89d-7fbpl",
+      "containers": [
+        {
+          "name": "controller",
+          "ready": true,
+          "restart_count": 0,
+          "image": "ghcr.io/yym68686/fugue-controller@sha256:15302192f1f0f3cf7f0207a4522572960148ca10d1e7e611da85ed5aea0fc90f"
+        }
+      ]
+    },
+    {
+      "name": "fugue-fugue-controller-7c5496f89d-9xkwt",
+      "containers": [
+        {
+          "name": "controller",
+          "ready": true,
+          "restart_count": 0,
+          "image": "ghcr.io/yym68686/fugue-controller@sha256:15302192f1f0f3cf7f0207a4522572960148ca10d1e7e611da85ed5aea0fc90f"
+        }
+      ]
+    }
+  ],
+  "authority_ready": true,
+  "serving_and_lkg_unchanged": true,
+  "traffic_policy_and_releases_unchanged": true,
+  "retained_resource_uids": [
+    {
+      "kind": "Deployment",
+      "name": "app-1783188884-8facd2b054e6",
+      "uid": "c2263e9f-c194-432b-985d-c9633d4251a1",
+      "deletion_timestamp": null,
+      "labels": {
+        "app.kubernetes.io/managed-by": "fugue",
+        "app.kubernetes.io/name": "drain-canary-0705",
+        "fugue.pro/app-id": "app_1783188884_8facd2b054e6",
+        "fugue.pro/owner-app-id": "app_1783188884_8facd2b054e6",
+        "fugue.pro/project-id": "project_1778959457_ae0be86f4b05",
+        "fugue.pro/tenant-id": "tenant_1774393589_e35b60a6fc11"
+      },
+      "desired_replicas": 1,
+      "ready_replicas": 1,
+      "phase": null
+    },
+    {
+      "kind": "Deployment",
+      "name": "app-1783188884-8facd2b054e6-candidate-21157eaa2de9",
+      "uid": "0e91b7ec-ff3b-44c5-8556-4669c242de64",
+      "deletion_timestamp": null,
+      "labels": {
+        "app.kubernetes.io/managed-by": "fugue",
+        "app.kubernetes.io/name": "drain-canary-0705",
+        "fugue.pro/app-id": "app_1783188884_8facd2b054e6",
+        "fugue.pro/app-release-id": "apprel_1789962494_15d0571bf92c",
+        "fugue.pro/app-release-role": "candidate",
+        "fugue.pro/owner-app-id": "app_1783188884_8facd2b054e6",
+        "fugue.pro/project-id": "project_1778959457_ae0be86f4b05",
+        "fugue.pro/tenant-id": "tenant_1774393589_e35b60a6fc11"
+      },
+      "desired_replicas": 1,
+      "ready_replicas": 1,
+      "phase": null
+    },
+    {
+      "kind": "Deployment",
+      "name": "app-1783188884-8facd2b054e6-candidate-5fbb58868af0",
+      "uid": "f3a682d4-ec1c-42ec-8281-6d37f15e6999",
+      "deletion_timestamp": null,
+      "labels": {
+        "app.kubernetes.io/managed-by": "fugue",
+        "app.kubernetes.io/name": "drain-canary-0705",
+        "fugue.pro/app-id": "app_1783188884_8facd2b054e6",
+        "fugue.pro/app-release-id": "apprel_1789962121_cb14b0256e0d",
+        "fugue.pro/app-release-role": "candidate",
+        "fugue.pro/owner-app-id": "app_1783188884_8facd2b054e6",
+        "fugue.pro/project-id": "project_1778959457_ae0be86f4b05",
+        "fugue.pro/tenant-id": "tenant_1774393589_e35b60a6fc11"
+      },
+      "desired_replicas": 1,
+      "ready_replicas": 1,
+      "phase": null
+    },
+    {
+      "kind": "Deployment",
+      "name": "app-1783188884-8facd2b054e6-candidate-b20fb8b63bf8",
+      "uid": "affa8021-3635-443c-adec-f40d231d07c3",
+      "deletion_timestamp": null,
+      "labels": {
+        "app.kubernetes.io/managed-by": "fugue",
+        "app.kubernetes.io/name": "drain-canary-0705",
+        "fugue.pro/app-id": "app_1783188884_8facd2b054e6",
+        "fugue.pro/app-release-id": "apprel_1789966515_75386122ffc5",
+        "fugue.pro/app-release-role": "candidate",
+        "fugue.pro/owner-app-id": "app_1783188884_8facd2b054e6",
+        "fugue.pro/project-id": "project_1778959457_ae0be86f4b05",
+        "fugue.pro/tenant-id": "tenant_1774393589_e35b60a6fc11"
+      },
+      "desired_replicas": 1,
+      "ready_replicas": 1,
+      "phase": null
+    },
+    {
+      "kind": "Deployment",
+      "name": "app-1783188884-8facd2b054e6-candidate-d28460bce944",
+      "uid": "07e304e2-fdd9-4fa9-83fc-cc48f6a119bb",
+      "deletion_timestamp": null,
+      "labels": {
+        "app.kubernetes.io/managed-by": "fugue",
+        "app.kubernetes.io/name": "drain-canary-0705",
+        "fugue.pro/app-id": "app_1783188884_8facd2b054e6",
+        "fugue.pro/app-release-id": "apprel_1789968548_31045cecb41e",
+        "fugue.pro/app-release-role": "candidate",
+        "fugue.pro/owner-app-id": "app_1783188884_8facd2b054e6",
+        "fugue.pro/project-id": "project_1778959457_ae0be86f4b05",
+        "fugue.pro/tenant-id": "tenant_1774393589_e35b60a6fc11"
+      },
+      "desired_replicas": 1,
+      "ready_replicas": 1,
+      "phase": null
+    },
+    {
+      "kind": "Service",
+      "name": "app-1783188884-8facd2b054e6",
+      "uid": "4c44342d-80be-4ccb-8162-a91017219346",
+      "deletion_timestamp": null,
+      "labels": {
+        "app.kubernetes.io/managed-by": "fugue",
+        "app.kubernetes.io/name": "drain-canary-0705",
+        "fugue.pro/app-id": "app_1783188884_8facd2b054e6",
+        "fugue.pro/owner-app-id": "app_1783188884_8facd2b054e6",
+        "fugue.pro/project-id": "project_1778959457_ae0be86f4b05",
+        "fugue.pro/tenant-id": "tenant_1774393589_e35b60a6fc11"
+      },
+      "desired_replicas": null,
+      "ready_replicas": null,
+      "phase": null
+    },
+    {
+      "kind": "Service",
+      "name": "app-1783188884-8facd2b054e6-candidate-21157eaa2de9",
+      "uid": "9f83c254-ded4-43de-af74-88b094ed25d5",
+      "deletion_timestamp": null,
+      "labels": {
+        "app.kubernetes.io/managed-by": "fugue",
+        "app.kubernetes.io/name": "drain-canary-0705",
+        "fugue.pro/app-id": "app_1783188884_8facd2b054e6",
+        "fugue.pro/app-release-id": "apprel_1789962494_15d0571bf92c",
+        "fugue.pro/app-release-role": "candidate",
+        "fugue.pro/owner-app-id": "app_1783188884_8facd2b054e6",
+        "fugue.pro/project-id": "project_1778959457_ae0be86f4b05",
+        "fugue.pro/tenant-id": "tenant_1774393589_e35b60a6fc11"
+      },
+      "desired_replicas": null,
+      "ready_replicas": null,
+      "phase": null
+    },
+    {
+      "kind": "Service",
+      "name": "app-1783188884-8facd2b054e6-candidate-5fbb58868af0",
+      "uid": "5d523925-cf99-4151-b0af-71a8ab5bcb0f",
+      "deletion_timestamp": null,
+      "labels": {
+        "app.kubernetes.io/managed-by": "fugue",
+        "app.kubernetes.io/name": "drain-canary-0705",
+        "fugue.pro/app-id": "app_1783188884_8facd2b054e6",
+        "fugue.pro/app-release-id": "apprel_1789962121_cb14b0256e0d",
+        "fugue.pro/app-release-role": "candidate",
+        "fugue.pro/owner-app-id": "app_1783188884_8facd2b054e6",
+        "fugue.pro/project-id": "project_1778959457_ae0be86f4b05",
+        "fugue.pro/tenant-id": "tenant_1774393589_e35b60a6fc11"
+      },
+      "desired_replicas": null,
+      "ready_replicas": null,
+      "phase": null
+    },
+    {
+      "kind": "Service",
+      "name": "app-1783188884-8facd2b054e6-candidate-b20fb8b63bf8",
+      "uid": "a3629c07-4286-4c69-97fe-b4d26fface36",
+      "deletion_timestamp": null,
+      "labels": {
+        "app.kubernetes.io/managed-by": "fugue",
+        "app.kubernetes.io/name": "drain-canary-0705",
+        "fugue.pro/app-id": "app_1783188884_8facd2b054e6",
+        "fugue.pro/app-release-id": "apprel_1789966515_75386122ffc5",
+        "fugue.pro/app-release-role": "candidate",
+        "fugue.pro/owner-app-id": "app_1783188884_8facd2b054e6",
+        "fugue.pro/project-id": "project_1778959457_ae0be86f4b05",
+        "fugue.pro/tenant-id": "tenant_1774393589_e35b60a6fc11"
+      },
+      "desired_replicas": null,
+      "ready_replicas": null,
+      "phase": null
+    },
+    {
+      "kind": "Service",
+      "name": "app-1783188884-8facd2b054e6-candidate-d28460bce944",
+      "uid": "4da211bd-689e-41f9-939e-673b3166ec6e",
+      "deletion_timestamp": null,
+      "labels": {
+        "app.kubernetes.io/managed-by": "fugue",
+        "app.kubernetes.io/name": "drain-canary-0705",
+        "fugue.pro/app-id": "app_1783188884_8facd2b054e6",
+        "fugue.pro/app-release-id": "apprel_1789968548_31045cecb41e",
+        "fugue.pro/app-release-role": "candidate",
+        "fugue.pro/owner-app-id": "app_1783188884_8facd2b054e6",
+        "fugue.pro/project-id": "project_1778959457_ae0be86f4b05",
+        "fugue.pro/tenant-id": "tenant_1774393589_e35b60a6fc11"
+      },
+      "desired_replicas": null,
+      "ready_replicas": null,
+      "phase": null
+    },
+    {
+      "kind": "Pod",
+      "name": "app-1783188884-8facd2b054e6-74984d6df5-6klzc",
+      "uid": "e075a037-586d-400a-b096-3ffd6630fa50",
+      "deletion_timestamp": null,
+      "labels": {
+        "app.kubernetes.io/managed-by": "fugue",
+        "app.kubernetes.io/name": "drain-canary-0705",
+        "fugue.pro/app-id": "app_1783188884_8facd2b054e6",
+        "fugue.pro/app-workload": "app-1783188884-8facd2b054e6",
+        "fugue.pro/owner-app-id": "app_1783188884_8facd2b054e6",
+        "fugue.pro/project-id": "project_1778959457_ae0be86f4b05",
+        "fugue.pro/tenant-id": "tenant_1774393589_e35b60a6fc11",
+        "pod-template-hash": "74984d6df5"
+      },
+      "desired_replicas": null,
+      "ready_replicas": null,
+      "phase": "Running"
+    },
+    {
+      "kind": "Pod",
+      "name": "app-1783188884-8facd2b054e6-candidate-21157eaa2de9-5d55d48n7nh4",
+      "uid": "3e90545b-7d8b-462b-bed1-598e5086b041",
+      "deletion_timestamp": null,
+      "labels": {
+        "app.kubernetes.io/managed-by": "fugue",
+        "app.kubernetes.io/name": "drain-canary-0705",
+        "fugue.pro/app-id": "app_1783188884_8facd2b054e6",
+        "fugue.pro/app-release-id": "apprel_1789962494_15d0571bf92c",
+        "fugue.pro/app-release-role": "candidate",
+        "fugue.pro/owner-app-id": "app_1783188884_8facd2b054e6",
+        "fugue.pro/project-id": "project_1778959457_ae0be86f4b05",
+        "fugue.pro/tenant-id": "tenant_1774393589_e35b60a6fc11",
+        "pod-template-hash": "5d55d48f54"
+      },
+      "desired_replicas": null,
+      "ready_replicas": null,
+      "phase": "Running"
+    },
+    {
+      "kind": "Pod",
+      "name": "app-1783188884-8facd2b054e6-candidate-5fbb58868af0-77c9cf48kvr8",
+      "uid": "62bc84ef-38a5-440a-9276-05259e9352a5",
+      "deletion_timestamp": null,
+      "labels": {
+        "app.kubernetes.io/managed-by": "fugue",
+        "app.kubernetes.io/name": "drain-canary-0705",
+        "fugue.pro/app-id": "app_1783188884_8facd2b054e6",
+        "fugue.pro/app-release-id": "apprel_1789962121_cb14b0256e0d",
+        "fugue.pro/app-release-role": "candidate",
+        "fugue.pro/owner-app-id": "app_1783188884_8facd2b054e6",
+        "fugue.pro/project-id": "project_1778959457_ae0be86f4b05",
+        "fugue.pro/tenant-id": "tenant_1774393589_e35b60a6fc11",
+        "pod-template-hash": "77c9cf488"
+      },
+      "desired_replicas": null,
+      "ready_replicas": null,
+      "phase": "Running"
+    },
+    {
+      "kind": "Pod",
+      "name": "app-1783188884-8facd2b054e6-candidate-b20fb8b63bf8-7545955k5vs6",
+      "uid": "37eba4f8-fd07-4212-9660-ebfcc324fa99",
+      "deletion_timestamp": null,
+      "labels": {
+        "app.kubernetes.io/managed-by": "fugue",
+        "app.kubernetes.io/name": "drain-canary-0705",
+        "fugue.pro/app-id": "app_1783188884_8facd2b054e6",
+        "fugue.pro/app-release-id": "apprel_1789966515_75386122ffc5",
+        "fugue.pro/app-release-role": "candidate",
+        "fugue.pro/app-workload": "app-1783188884-8facd2b054e6-candidate-b20fb8b63bf8",
+        "fugue.pro/owner-app-id": "app_1783188884_8facd2b054e6",
+        "fugue.pro/project-id": "project_1778959457_ae0be86f4b05",
+        "fugue.pro/tenant-id": "tenant_1774393589_e35b60a6fc11",
+        "pod-template-hash": "754595549f"
+      },
+      "desired_replicas": null,
+      "ready_replicas": null,
+      "phase": "Running"
+    },
+    {
+      "kind": "Pod",
+      "name": "app-1783188884-8facd2b054e6-candidate-d28460bce944-75799c8kcwcq",
+      "uid": "8df2dbfa-dc8f-495d-bf71-0e1fff7b53c8",
+      "deletion_timestamp": null,
+      "labels": {
+        "app.kubernetes.io/managed-by": "fugue",
+        "app.kubernetes.io/name": "drain-canary-0705",
+        "fugue.pro/app-id": "app_1783188884_8facd2b054e6",
+        "fugue.pro/app-release-id": "apprel_1789968548_31045cecb41e",
+        "fugue.pro/app-release-role": "candidate",
+        "fugue.pro/app-workload": "app-1783188884-8facd2b054e6-candidate-d28460bce944",
+        "fugue.pro/owner-app-id": "app_1783188884_8facd2b054e6",
+        "fugue.pro/project-id": "project_1778959457_ae0be86f4b05",
+        "fugue.pro/tenant-id": "tenant_1774393589_e35b60a6fc11",
+        "pod-template-hash": "75799c8df9"
+      },
+      "desired_replicas": null,
+      "ready_replicas": null,
+      "phase": "Running"
+    }
+  ],
+  "health_samples": [
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200
+  ],
+  "prepush": {
+    "apiVersion": "prepush.fugue.dev/v1",
+    "baseCommit": "bf5a79b474e3ca7bff80f8245358e359f1dcfedb",
+    "changedFilesDigest": "sha256:9fe5bb727ca6263281333b325836287a3bde1ba8ba9e70ff91577c4c80ab7adf",
+    "checks": {
+      "affected-tests": {
+        "durationMs": 5519,
+        "status": "pass"
+      },
+      "affected-vet": {
+        "durationMs": 6676,
+        "status": "pass"
+      },
+      "compile-all": {
+        "durationMs": 5517,
+        "status": "pass"
+      },
+      "declarative-release-tests": {
+        "durationMs": 23822,
+        "status": "pass"
+      },
+      "diff-check": {
+        "durationMs": 107,
+        "status": "pass"
+      },
+      "gofmt": {
+        "durationMs": 40,
+        "status": "pass"
+      },
+      "helm-lint-render": {
+        "durationMs": 0,
+        "status": "skipped"
+      },
+      "openapi-generated": {
+        "durationMs": 1466,
+        "status": "pass"
+      },
+      "shell-syntax": {
+        "durationMs": 0,
+        "status": "pass"
+      }
+    },
+    "elapsedMs": 23995,
+    "kind": "PrepushReceipt",
+    "sourceCommit": "874d2f525c7ece6057284dd5939b750f8d2849d2",
+    "status": "pass"
+  },
+  "artifact_smoke": {
+    "image": "ghcr.io/yym68686/fugue-drain-agent@sha256:818be7253656b85eb1afcfe8b4cb24800ac6027669ace3eb3f88f07bbd46948b",
+    "source_commit": "874d2f525c7ece6057284dd5939b750f8d2849d2",
+    "idle_before": {
+      "api_version": "fugue.drain-observation/v1",
+      "nonce": "c9704ee714f67242b53aa9d8e7bfd090",
+      "pod": "probe-agent",
+      "namespace": "probe-namespace",
+      "app_ports": [
+        52381
+      ],
+      "active_connections": 0
+    },
+    "busy": {
+      "api_version": "fugue.drain-observation/v1",
+      "nonce": "ccef2a4fd5fb167d6e6f2f0078797fb2",
+      "pod": "probe-agent",
+      "namespace": "probe-namespace",
+      "app_ports": [
+        52381
+      ],
+      "active_connections": 1
+    },
+    "idle_after": {
+      "api_version": "fugue.drain-observation/v1",
+      "nonce": "1bbc979c78493802b448e4314e3cbff1",
+      "pod": "probe-agent",
+      "namespace": "probe-namespace",
+      "app_ports": [
+        52381
+      ],
+      "active_connections": 0
+    },
+    "prestop_unchanged": true
+  },
+  "limitations": [
+    "Production application sidecars still use the prior pinned agent image.",
+    "The positive per-Pod observation path is verified against the immutable CI image and local controller integration fixtures.",
+    "Independent workload pin activation, production positive drain, background retry and final retirement remain pending."
+  ]
+}

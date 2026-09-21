@@ -32,7 +32,7 @@ Runtime Facts / ACK / LKG
 
 ## 当前状态判断
 
-2026-09-21 最新验收快照：P0-EP-Y1 的 Service workload 隔离及迁移恢复已完成，Y2 修复实时应用证明领先 heartbeat 发布版本时的错误等待。Controller 为 `f899071d`，API 为 `4d6f6b12`，活动 Worker 为 `9b03be63`。新生产操作完成 50% canary、100% 独立 revision 和 canonical 对齐，三个阶段均通过 required=3/ready=3；72 次 sticky origin 请求全部 200，候选 360 秒长连接跨切流完整返回。全局 migration 标记保持 0，serving/LKG 配置指针未变。旧 release 因 drain 证据不足仍保留 draining；Controller 重启复用 release、按 revision drain、readiness endpoint 归属仍待修复。producer 仍为 shadow；首次完整配置接管、positive LKG 和旧 serving 输入删除尚未完成。
+2026-09-21 最新验收快照：P0-EP-Y1 的 Service workload 隔离及迁移恢复已完成，Y2 修复实时应用证明领先 heartbeat 发布版本时的错误等待；Y3 移除 app 级 Loki 排空授权和 Deployment 消失即排空的回退，接入 nonce/Pod/端口绑定的只读观察协议。Controller 为 `874d2f52`，API 为 `da7a6272`，活动 Worker 为 `9b03be63`。此前生产操作完成 50% canary、100% 独立 revision 和 canonical 对齐，三阶段 required=3/ready=3，72 次 sticky origin 请求全部 200，候选 360 秒长连接完整返回。本次 Controller 更新后 15 个 workload 资源 UID、17 个 release 记录、traffic policy 和 serving/LKG 指针保持一致，12 次业务采样全部 200。新 agent 不可变镜像已通过 CI 真实 TCP 测试，生产应用仍固定旧 agent；新镜像激活、生产正向排空、后台重试和最终退役尚未完成。Controller 重启复用 release、readiness endpoint 归属也仍待修复。producer 仍为 shadow；首次完整配置接管、positive LKG 和旧 serving 输入删除尚未完成。
 
 生产 producer 仍为 `business-static-intent`/shadow，固定基础 intent `artifact_1789848966_aa79d274ac50` 和输入 policy `artifact_1789917932_e90aeeb2510d`；启用策略为 `artifact_1789917933_9f90cbb02a89`，显式选择 `consumer_readiness`。最新验收 shadow `artifact_1789924746_0593e3041d46`、fence 226 包含 160 route、245 DNS records、159 TLS references；两台 DNS 均为 462/462 probes、233/233 readiness records、248/248 eligible queries。八个消费者 observed，serving passing=0；六 artifact 精确重放通过，全局 serving/LKG 未切换。前端契约 `3979108b` 已实际部署，2/2 Ready、公网 200。
 
@@ -3643,3 +3643,18 @@ P0-EP-X 生产取证确认 canonical Service selector 仅有 app 标签，会同
 - [ ] 最终 retire、重启恢复、失败回滚与全局配置 serving 尚未完成。previous release 因排空证据不足仍为 draining，不能把门禁修复当作完整回收闭环。
 
 证据：[live-publication-app-proof-2026-09-21.json](verification/live-publication-app-proof-2026-09-21.json)。
+
+### P0-EP-Y3：按 Pod 身份观察排空，移除不可靠回收依据
+
+旧 Loki 查询只按 app 聚合，可能把其他 revision 的 idle 日志用来授权 previous 退役；Deployment 不存在也不能证明孤立或正在终止的 Pod 没有连接。另经代码复查确认 `/drain/prestop` 会关闭 agent 的一次性终止等待信号，不能复用为周期性观察接口。
+
+- [x] 删除 app 级 Loki drain parser/querier，以及 missing Deployment、scaled-to-zero 的直接成功回退；保留已存在资源直到取得正向证据。
+- [x] 增加只读 `/drain/observe` 和 `fugue.drain-observation/v1`：每次直接读取 TCP/IPv6 状态，回传 nonce、Pod、namespace、监听端口和 active connections，不修改 prestop 信号、终止日志或 prestop metrics。空文件、损坏输入和观察错误拒绝，不返回假零值。
+- [x] Controller 先确认当前 stable 100% 的实际 Edge proof，再沿 Deployment→ReplicaSet→Pod UID 核对目标；要求完整副本集合、镜像、Ready container identity 和连续安静期内零连接。观察后复查 UID、容器重启、Pod 集合、release target 和 traffic policy；标签漂移不能隐藏属于旧 workload 的 Pod。canonical 或共享 stable workload、缺少协议和身份、任何读取错误均继续保留。
+- [x] 覆盖协议缺字段、旧 nonce、错误 Pod/port、超大/额外响应、旧 agent、busy deadline、替换/终止 Pod、agent 重启、owner 变化及并发 policy/release 变化；全量 `make test`、Controller/agent race、干净 prepush 通过。
+- [x] `874d2f525c7ece6057284dd5939b750f8d2849d2` 经 [CI 35567987047](https://github.com/yym68686/fugue/actions/runs/35567987047) 部署 Controller，两副本 Ready、零重启。CI 同时构建新 agent digest `sha256:818be7253656b85eb1afcfe8b4cb24800ac6027669ace3eb3f88f07bbd46948b`，真实 TCP 连接验证 `0→1→0`，观察不改变 prestop 计数。
+- [x] 生产三台 Front、两地 authority、API 健康，八个配置消费者 observed、passing=0、producer shadow。验证应用的 15 个资源 UID、17 个 release 记录、traffic policy、serving/LKG 指针保留，12 次业务请求全部 200。
+- [ ] 通过正常声明式发布激活已验证 agent 镜像，保持已有 serving workload；完成生产按 Pod 正向排空和长连接观测。当前应用 sidecar 仍使用旧固定镜像，不能把 CI 镜像测试当作生产 drain 完成。
+- [ ] 接入后台重试、持久化 revision target 与条件退役/UID 删除，完成历史 canonical release 的资源归属迁移和最终回收；再验收 Controller 重启恢复与失败回滚。P0-EP-Y 的完整 drain 任务保持未勾选。
+
+证据：[pod-drain-observer-2026-09-21.json](verification/pod-drain-observer-2026-09-21.json)。本步骤完成观察协议和错误授权路径修复，不代表完整退役闭环或全局 artifact serving 接管。
