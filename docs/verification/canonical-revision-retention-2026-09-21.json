@@ -1,0 +1,246 @@
+{
+  "verified_at": "2026-09-21T03:56:46.201745+00:00",
+  "controller_commit": "48a917cac8317f6d0c86245449fb03be3d866cab",
+  "ci_run": "https://github.com/yym68686/fugue/actions/runs/35557821147",
+  "components": [
+    {
+      "component": "api",
+      "image_tag": "afd998145b6a8c5ae7b473e4af9e8b3709c0bc83",
+      "ready_replicas": 2,
+      "updated_replicas": 2,
+      "desired_replicas": 2
+    },
+    {
+      "component": "controller",
+      "image_tag": "48a917cac8317f6d0c86245449fb03be3d866cab",
+      "ready_replicas": 2,
+      "updated_replicas": 2,
+      "desired_replicas": 2
+    }
+  ],
+  "health": {
+    "/healthz": 200,
+    "/readyz": 200
+  },
+  "authority_ready": true,
+  "controller_pods": [
+    {
+      "pod": "fugue-fugue-controller-6dcf9f9fd8-ctjmw",
+      "source_commit": "48a917cac8317f6d0c86245449fb03be3d866cab",
+      "containers": [
+        {
+          "name": "controller",
+          "imageID": "ghcr.io/yym68686/fugue-controller@sha256:dfe482ce244f77ffdd7fff85d5390a15b817222a32b91adbd2960feebef85613",
+          "ready": true,
+          "restartCount": 0
+        }
+      ]
+    },
+    {
+      "pod": "fugue-fugue-controller-6dcf9f9fd8-lvqpb",
+      "source_commit": "48a917cac8317f6d0c86245449fb03be3d866cab",
+      "containers": [
+        {
+          "name": "controller",
+          "imageID": "ghcr.io/yym68686/fugue-controller@sha256:dfe482ce244f77ffdd7fff85d5390a15b817222a32b91adbd2960feebef85613",
+          "ready": true,
+          "restartCount": 0
+        }
+      ]
+    }
+  ],
+  "code_artifact": {
+    "apiVersion": "release.fugue.dev/v2",
+    "component": "controller",
+    "configDigest": "sha256:a3f491e6b70b554b26f57898885c14b119ec7e74f0ce0eb883a0591c297e43ec",
+    "configSha": "48a917cac8317f6d0c86245449fb03be3d866cab",
+    "immutableRef": "ghcr.io/yym68686/fugue-controller@sha256:dfe482ce244f77ffdd7fff85d5390a15b817222a32b91adbd2960feebef85613",
+    "intentDigest": "sha256:d09ea980ee05619d99c01424faaf751f7baac628e79f1cbd12c4887f58766434",
+    "kind": "ImmutableComponentArtifactReceipt",
+    "ociRevision": "48a917cac8317f6d0c86245449fb03be3d866cab",
+    "planDigest": "sha256:c35b45668219f700d4a99e777a0f95cdab869b24d0e1bb50bbd9ae2637f28ac3",
+    "platform": "linux/amd64",
+    "platformManifestDigest": "sha256:7059fc72db23317a329840e85ed2c851b437d414552ac635a471b4ac88b481bc",
+    "receiptDigest": "sha256:e8375ff210a1760e2dfe3bec98742ac532b1c9f977687f0425e7b350563749b5",
+    "repository": "ghcr.io/yym68686/fugue-controller",
+    "sourceSha": "48a917cac8317f6d0c86245449fb03be3d866cab",
+    "sourceTag": "48a917cac8317f6d0c86245449fb03be3d866cab",
+    "topDigest": "sha256:dfe482ce244f77ffdd7fff85d5390a15b817222a32b91adbd2960feebef85613",
+    "verification": "registry_manifest_config_and_layer_get"
+  },
+  "serving_pointers_and_lkg_unchanged": true,
+  "producer_mode": "shadow",
+  "prepush": {
+    "apiVersion": "prepush.fugue.dev/v1",
+    "baseCommit": "a5cd481e4b152a42eb4939a8e1d409212033280a",
+    "changedFilesDigest": "sha256:19c10fb28ffbe34f8d897998f8805ccdce416a554ba773ad5e0b43112e72d728",
+    "checks": {
+      "affected-tests": {
+        "durationMs": 8232,
+        "status": "pass"
+      },
+      "affected-vet": {
+        "durationMs": 1567,
+        "status": "pass"
+      },
+      "compile-all": {
+        "durationMs": 8228,
+        "status": "pass"
+      },
+      "declarative-release-tests": {
+        "durationMs": 10060,
+        "status": "pass"
+      },
+      "diff-check": {
+        "durationMs": 120,
+        "status": "pass"
+      },
+      "gofmt": {
+        "durationMs": 26,
+        "status": "pass"
+      },
+      "helm-lint-render": {
+        "durationMs": 0,
+        "status": "skipped"
+      },
+      "openapi-generated": {
+        "durationMs": 1700,
+        "status": "pass"
+      },
+      "shell-syntax": {
+        "durationMs": 0,
+        "status": "pass"
+      }
+    },
+    "elapsedMs": 10188,
+    "kind": "PrepushReceipt",
+    "sourceCommit": "48a917cac8317f6d0c86245449fb03be3d866cab",
+    "status": "pass"
+  },
+  "operation": {
+    "id": "op_1789962119_d4697625b9db",
+    "status": "completed",
+    "error_message": null,
+    "result_message": "managed app reconciled in namespace fg-tenant-1774393589-e35b60a6fc11",
+    "updated_at": "2026-09-21T03:53:25.857699Z"
+  },
+  "final_policy": {
+    "id": "apptp_1783440303_3271421d3798",
+    "tenant_id": "tenant_1774393589_e35b60a6fc11",
+    "app_id": "app_1783188884_8facd2b054e6",
+    "mode": "single",
+    "stable_release_id": "apprel_1789962494_15d0571bf92c",
+    "stable_weight": 100,
+    "candidate_weight": 0,
+    "sticky_cookie": "Fugue-Release-Stickiness",
+    "updated_by_type": "system",
+    "updated_by_id": "safe-rollout-controller",
+    "created_at": "2026-07-07T16:05:03.871294Z",
+    "updated_at": "2026-09-21T03:51:31.487904Z"
+  },
+  "retained_revision": {
+    "release_id": "apprel_1789962121_cb14b0256e0d",
+    "resources": [
+      {
+        "kind": "Deployment",
+        "name": "app-1783188884-8facd2b054e6-candidate-5fbb58868af0",
+        "uid": "f3a682d4-ec1c-42ec-8281-6d37f15e6999"
+      },
+      {
+        "kind": "Service",
+        "name": "app-1783188884-8facd2b054e6-candidate-5fbb58868af0",
+        "uid": "5d523925-cf99-4151-b0af-71a8ab5bcb0f"
+      }
+    ],
+    "same_uids_after_canonical_alignment_and_controller_update": true
+  },
+  "stream": {
+    "seconds": 360,
+    "ticks": 360,
+    "curl_exit": 0,
+    "origin_pod": "app-1783188884-8facd2b054e6-candidate-5fbb58868af0-77c9cf48kvr8",
+    "origin_receipt": "10.42.1.252 - - [21/Sep/2026 03:46:55] \"GET /stream?seconds=360&interval=1 HTTP/1.1\" 200 -"
+  },
+  "public_observations": {
+    "samples": 50,
+    "http_requests": 150,
+    "all_http_200": true,
+    "final_proofs": [
+      {
+        "node": "vps-84c8f0a9",
+        "proof_http": "HTTP/1.1 204 No Content",
+        "nonce_ok": true,
+        "app_digest": "sha256:9c1387f18a7cdc6f5488860c9b2c340543306ca2ca7ea5d1c986bddcb949c6f5",
+        "bundle": "edgegroupbundle_02fe27a12a6e71664321ea84c55f59491efc55b0089dd2b185c34471874741e0.p33505.r516",
+        "health_http": "HTTP/1.1 200 OK",
+        "release": null,
+        "curl_exit": 0
+      },
+      {
+        "node": "bwg",
+        "proof_http": "HTTP/1.1 204 No Content",
+        "nonce_ok": true,
+        "app_digest": "sha256:9c1387f18a7cdc6f5488860c9b2c340543306ca2ca7ea5d1c986bddcb949c6f5",
+        "bundle": "edgegroupbundle_c47386e518f4b425d1f5c189d9bb0d97fe501f775fe67053c3e27c7f97c9d080.p47258.r181",
+        "health_http": "HTTP/1.1 200 OK",
+        "release": null,
+        "curl_exit": 0
+      },
+      {
+        "node": "vps-591f4447",
+        "proof_http": "HTTP/1.1 204 No Content",
+        "nonce_ok": true,
+        "app_digest": "sha256:9c1387f18a7cdc6f5488860c9b2c340543306ca2ca7ea5d1c986bddcb949c6f5",
+        "bundle": "edgegroupbundle_c47386e518f4b425d1f5c189d9bb0d97fe501f775fe67053c3e27c7f97c9d080.p47258.r181",
+        "health_http": "HTTP/1.1 200 OK",
+        "release": null,
+        "curl_exit": 0
+      }
+    ]
+  },
+  "live_components_after_concurrent_release": [
+    {
+      "component": "api",
+      "image_tag": "afd998145b6a8c5ae7b473e4af9e8b3709c0bc83",
+      "ready_replicas": 2,
+      "updated_replicas": 2,
+      "desired_replicas": 2
+    },
+    {
+      "component": "controller",
+      "image_tag": "0cd5e2d2fcb6a397d04645983240b19f6073b56b",
+      "ready_replicas": 2,
+      "updated_replicas": 2,
+      "desired_replicas": 2
+    }
+  ],
+  "canonical_service_selector_overlap": {
+    "service": "app-1783188884-8facd2b054e6",
+    "selector": {
+      "app.kubernetes.io/managed-by": "fugue",
+      "app.kubernetes.io/name": "drain-canary-0705",
+      "fugue.pro/app-id": "app_1783188884_8facd2b054e6",
+      "fugue.pro/owner-app-id": "app_1783188884_8facd2b054e6",
+      "fugue.pro/project-id": "project_1778959457_ae0be86f4b05",
+      "fugue.pro/tenant-id": "tenant_1774393589_e35b60a6fc11"
+    },
+    "matching_pods": [
+      "app-1783188884-8facd2b054e6-6d9b49fddb-52br7",
+      "app-1783188884-8facd2b054e6-candidate-21157eaa2de9-5d55d48n7nh4",
+      "app-1783188884-8facd2b054e6-candidate-5fbb58868af0-77c9cf48kvr8"
+    ]
+  },
+  "operation_restart": {
+    "controller_successor": "0cd5e2d2fcb6a397d04645983240b19f6073b56b",
+    "successor_contains_retention_fix": true,
+    "first_candidate": "apprel_1789962121_cb14b0256e0d",
+    "second_candidate": "apprel_1789962494_15d0571bf92c"
+  },
+  "limitations": [
+    "Canonical Service also selects candidate Pods; exact Edge selection does not yet prove origin release isolation",
+    "Controller restart recreated a candidate for the same operation instead of resuming its existing release",
+    "Drain query is app-scoped and does not prove per-revision quiescence",
+    "Production sticky validation did not pass",
+    "Global configuration producer remains shadow; full serving and verified LKG are pending"
+  ]
+}

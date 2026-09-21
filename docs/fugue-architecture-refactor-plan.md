@@ -32,7 +32,7 @@ Runtime Facts / ACK / LKG
 
 ## 当前状态判断
 
-2026-09-21 最新验收快照：P0-EQ 独立 release readiness 和 P0-EP-T 应用流量证明已部署；P0-EP-U 修复节点丢失与过期证明导致的错误放行。Controller 运行 `b0acde19`，API 运行 `afd99814`，活动 Worker 为 `9b03be63`。P0-EP-W 已完成真实应用 50/50 canary 到 100% stable 发布，三台 Edge 的精确流量证明通过，300 秒长连接完整返回。但 canonical 对齐后的独立 revision 保护存在缺口，P0-EP-X 继续修复；生产 sticky、完整退役和回滚仍待验收。P0-EP-V 使 compiler v30 接受 Edge 已实现的默认 release cookie。自动 gray/full/verify/rollback 代码已部署，但生产 producer 仍为 shadow；首次完整配置接管、positive LKG 和旧 serving 输入删除尚未完成。
+2026-09-21 最新验收快照：P0-EP-X 的独立 revision 保护修复 `48a917ca` 已部署并验证；随后正常 Controller 发布 `0cd5e2d2` 包含该修复，API 为 `afd99814`，活动 Worker 为 `9b03be63`。真实 canary 到 100% stable 完成，150 次跨 Edge 健康请求全部 200，360 秒长连接完整返回，canonical 对齐和 Controller 更新后原 revision UID 保留。验证同时发现 canonical Service selector 会选中 candidate Pod，Controller 重启也会为同一操作重建 candidate；因此 Edge 摘要正确还不足以证明 origin release 隔离，生产 sticky、完整退役和回滚尚未验收。下一步见 P0-EP-Y。自动 gray/full/verify/rollback 代码已部署，但 producer 仍为 shadow；首次完整配置接管、positive LKG 和旧 serving 输入删除尚未完成。
 
 生产 producer 仍为 `business-static-intent`/shadow，固定基础 intent `artifact_1789848966_aa79d274ac50` 和输入 policy `artifact_1789917932_e90aeeb2510d`；启用策略为 `artifact_1789917933_9f90cbb02a89`，显式选择 `consumer_readiness`。最新验收 shadow `artifact_1789924746_0593e3041d46`、fence 226 包含 160 route、245 DNS records、159 TLS references；两台 DNS 均为 462/462 probes、233/233 readiness records、248/248 eligible queries。八个消费者 observed，serving passing=0；六 artifact 精确重放通过，全局 serving/LKG 未切换。前端契约 `3979108b` 已实际部署，2/2 Ready、公网 200。
 
@@ -3583,7 +3583,7 @@ P0-EO 生产验证（2026-09-21）：
 
 - [x] 从 machine 的显式 `AllowEdge` 声明解析成员；明确撤销角色的历史节点可排除，仍声明 Edge 的失联或缺失节点继续阻止发布。成员读取失败和歧义不会放行。
 - [x] apply 前保存候选 Deployment/Service identity；creating 和 failed release 的已保存资源继续受保护，直到显式 retired。
-- [x] 全量 `make test`、race、prepush 通过；commit `b0acde19527dd142c604cf3e7b2ebe297d54a87e` 经 [CI 35555718027](https://github.com/yym68686/fugue/actions/runs/35555718027) 部署，Controller 2/2 Ready。
+- [x] 全量 `make test`、race、prepush 通过；commit `b0acde19527dd142c604cf3e7b2ebe297d54a87e` 经 [CI 35555718066](https://github.com/yym68686/fugue/actions/runs/35555718066) 部署，Controller 2/2 Ready。
 - [x] 生产操作 `op_1789960043_73343115c9b8` 完成 50/50 canary、100% 提升和 canonical upstream 对齐；真实 observer 确认 required=3 / ready=3，三台 Edge 最终摘要一致，连续业务采样为 200。
 - [x] 300 秒长连接完整返回 300 条 tick，curl 正常退出；120 次额外短请求全部 200。该应用未回显 release 身份，且采样跨越 promotion，因此不据此认定 sticky 验收通过。
 - [ ] 完成退役与回滚验收。previous retire 因排空证据不足保留 draining；另发现 canonical 对齐覆盖 target 字段后，原 candidate revision 仍会被普通清理删除，见 P0-EP-X。
@@ -3595,5 +3595,20 @@ P0-EO 生产验证（2026-09-21）：
 - [x] 回归复现 serving、draining、failed release 改指向 canonical 后，普通清理删除独立 revision 的问题。
 - [x] 同时保护保存的 target 和按不可变 release ID 推导的 revision；Controller 重启后仍有效，显式 retired 后才交给普通清理。
 - [x] Controller 全量测试、专门 race 和全量 `make test` 通过。
-- [ ] 通过 main/Actions 发布，验证新 Controller 和真实应用发布后 revision 保留，记录生产证据。
+- [x] commit `48a917cac8317f6d0c86245449fb03be3d866cab` 经 [CI 35557821147](https://github.com/yym68686/fugue/actions/runs/35557821147) 部署，两个新 Controller Pod Ready、零重启，API/authority 正常，serving/LKG 指针未改变。干净 worktree 的 prepush 全部通过。
+- [x] 生产操作 `op_1789962119_d4697625b9db` 最终完成；原独立 revision 的 Deployment/Service 在 canonical 对齐及 Controller 再次更新后保持相同 UID、Ready。正式日志 API 证明 360 秒长连接进入该 revision，完整返回 360 条 tick；50 轮跨三台 Edge 的 150 次业务采样全部 200。
 - [ ] 补齐完整 retirement/retry 生命周期、生产 sticky、受控失败回滚与后续配置 serving 验收；不得以保留资源代替完整恢复闭环。
+
+证据：[canonical-revision-retention-2026-09-21.json](verification/canonical-revision-retention-2026-09-21.json)。验证期间另一个 main 发布将 Controller 更新到包含本修复的 `0cd5e2d2`；原操作重新执行并创建第二个 candidate。本步骤证明资源没有被普通清理提前删除，不代表重启恢复、origin 隔离或退役闭环已经完成。
+
+### P0-EP-Y：隔离真实 origin 与恢复已有 rollout
+
+P0-EP-X 生产取证确认 canonical Service selector 仅有 app 标签，会同时匹配 canonical 和两个 candidate Pod。Edge 即使选中 stable upstream，Kubernetes 仍可将请求转发到 candidate；这会破坏灰度权重、默认 sticky 和 rollback 的真实含义。必须修复后再推进首次全局 artifact serving。
+
+- [ ] 为 app workload 增加独立的执行身份标签，使 canonical Service、Compose alias 和 revision Service 只选择各自 workload；Deployment 的不可变 selector 迁移必须兼容既有对象。
+- [ ] 现有 Pod 到新 Service selector 的切换必须保持 endpoints 可用，先核实 owner/UID 和标签，再缩小 selector；不能只改 Service 后等待重建 Pod。
+- [ ] 增加 selector 匹配回归：stable Service 不得包含 candidate 或 previous；不同 revision 不得互选。readiness 需验证实际 endpoints 属于目标 workload，不能只核对 Service 和 Deployment 表面身份。
+- [ ] Controller 重启接管同一 operation 时恢复既有 candidate/已提升 release 和进度，不得重新创建 candidate 或重置已经批准的流量。使用已有持久化账本并验证 owner、spec 和 operation identity。
+- [ ] drain 证据绑定 release/workload/Pod 身份与观察时间；不能用同 app 其他 revision 的排空日志授权删除。缺少证据继续保留，并具备后台重试与最终退役路径。
+- [ ] 修复后通过真实 50/50 请求按 Pod 日志核对 origin：同 cookie 在各 Edge 的重复请求保持同 release，权重分配正确；再验证长连接、失败回滚、重启恢复与最终资源回收。
+- [ ] 每个原子修复通过本地测试、main/Actions 和生产证据后分别勾选；完成前保持全局配置 producer shadow 和原 positive LKG。
