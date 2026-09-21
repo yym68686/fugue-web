@@ -7562,6 +7562,7 @@ export interface components {
       node_updater: components["schemas"]["NodeUpdater"];
       deep_health?: components["schemas"]["NodeDeepHealthResult"];
     };
+    /** @description A timestamped node observation. localpv_boot_unit reports the retained node storage intent, desired/file/effective unit digests, reconciliation state and systemd override conflicts. File installation and daemon-reload do not prove storage activation or authorize restarting storage. Unknown overrides, stale observations and failed verification are never healthy convergence evidence. */
     NodeDeepHealthCheck: {
       name: string;
       category?: string;
