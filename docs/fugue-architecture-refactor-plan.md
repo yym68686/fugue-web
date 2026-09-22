@@ -32,11 +32,11 @@ Runtime Facts / ACK / LKG
 
 ## 当前状态判断
 
-截至 Y26，route、DNS、TLS 已完成统一 TrafficReleaseSet 的生产 full 接管。三台 active Edge 和两台 DNS 按当前 release、artifact、expected consumer set 与 fence 提供真实 serving 回执；全局 ReleaseSet、route、DNS、TLS、policy 五份 verified LKG 绑定同一验证 release 和 evidence hash。
+截至 Y28，route、DNS、TLS 已完成统一 TrafficReleaseSet 的生产 full 接管。三台 active Edge 和两台 DNS 按当前 release、artifact、expected consumer set 与 fence 提供真实 serving 回执；全局 ReleaseSet、route、DNS、TLS、policy 五份 verified LKG 绑定同一验证 release 和 evidence hash。
 
 签名 producer policy 已启用自动 serving：固定基础 intent 与输入 policy，捕获业务投影后编译、gray、full，并在观察窗口与消费者收敛通过后更新 LKG。gray/full 各至少观察 120 秒，600 秒未完成则恢复 verified 基线。policy 授权版本变化的生产演练已验证：5.321 秒内发布恢复版本，八个消费者随后收敛，原五份 positive LKG 保留。超时专用演练、重启恢复与连接连续性仍待补齐。
 
-当前已验收代码：API 与两地 DNS client `d92d9d51`、Controller `edc72b9b`、两地 Edge worker `7cff4f63`。Y26 已删除 Edge route-intents HTTP serving 路径中的业务表即时生成及 standalone LKG 回退，只返回适用的已发布 TrafficReleaseSet；缺少/损坏发布时返回 503，consumer 保留当前 artifact。业务投影仍由配置 producer 独立完成。
+当前已验收代码：API `d92d9d51`、两地 DNS client `f0588c6e`、Controller `edc72b9b`、两地 Edge worker `7cff4f63`。Y26 已删除 Edge route-intents HTTP serving 路径中的业务表即时生成及 standalone LKG 回退，只返回适用的已发布 TrafficReleaseSet；缺少/损坏发布时返回 503，consumer 保留当前 artifact。业务投影仍由配置 producer 独立完成。
 
 历史 revision 资源回收、不可变执行快照保护、排除路由负向证明和 DNS 通配监听恢复均已完成相应生产验收，详见 Y10–Y26。发布监控保留了 SSH 采集失败与一次 US A/B 期间 TLS EOF；后续独立复查正常，不能据此声称所有发布均零中断。
 
@@ -3955,3 +3955,15 @@ P0-EP-X 生产取证确认 canonical Service selector 仅有 app 标签，会同
 - [ ] 退役生产 serving 环境变量和残余 legacy reader/publisher，补齐超时、代码发布失败及其余恢复演练，继续最终简化方案清单。
 
 证据：[enrolled-dns-artifact-recovery-2026-09-22.json](verification/enrolled-dns-artifact-recovery-2026-09-22.json)。
+
+
+### P0-EP-Y28：DNS inventory bootstrap 与环境字段删除的自动补偿
+
+- [x] enrolled DNS 启动不再校验 ambient answer/TTL/nameserver，改为要求 node/group、durable cache 和显式 public inventory address；缺失身份或无效地址仍拒绝启动。新增回归、DNS race、全量 make test 和干净 prepush 通过。
+- [x] 首次 `25fffcf2` 尝试删除 13 项 serving 环境变量，经 [CI 35760588954](https://github.com/yym68686/fugue/actions/runs/35760588954) 两地均因 manifest 未收敛自动补偿到 `d92d9d51`。10 项变量仍由旧 Helm 和声明式发布器共同拥有，普通 SSA 保留了它们；不是成功部署，失败回执和探针告警保留。
+- [x] 将兼容升级拆开：`f0588c6ef4089c7221ca1f0c24d3af97f5ff4498` 先保留旧字段、增加明确的 `FUGUE_DNS_PUBLIC_IPV4` 并上线新启动逻辑，经 [CI 35762677653](https://github.com/yym68686/fugue/actions/runs/35762677653) 两地成功。这样后续删除旧变量时，上一版本已兼容 artifact-only bootstrap。
+- [x] 两地正式回执、替换后的 Pod、positive checkpoint、新鲜 readiness、249 records 与准确 inventory generation 一致，route 3/3、TLS 3/3、DNS 2/2 按当前 release 的精确 expected sets 收敛。六个公网 SOA 查询 authoritative，sequence=818、TTL=60；API 2/2 和两地 authority 正常。
+- [x] 两轮发布期间监控累计 339 次跨 Edge 健康请求全部 200。SOCKS 取证失败、过早读取 US 回执、自动配置切换期间的 convergence 失败均重试并留记录；不以 HTTP 成功声称 DNS rolling replacement 全程无中断。
+- [ ] 完成从前后 sealed manifest 推导、UID/RV/旧值绑定的共享环境字段删除，再退役这 13 项变量。本步只完成兼容启动和 inventory 分离，不将尚未删除的变量打勾。
+
+证据：[dns-inventory-bootstrap-2026-09-22.json](verification/dns-inventory-bootstrap-2026-09-22.json)。
