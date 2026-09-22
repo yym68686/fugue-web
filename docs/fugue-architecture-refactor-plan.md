@@ -38,6 +38,8 @@ Y19 的 `edc72b9b` 已在 Controller、JSON Store 和 PostgreSQL 保护绑定后
 
 Y20 的 API `56a7eeb1` 已修复默认 DNS 投影：只有冻结 App 的默认 hostname/owner 匹配才生成隐式记录，项目 HTTP 路由别名需要独立 DNS 声明。新 shadow `artifact_1790085542_92ea6c7b216b`（fence 745）保持 162 route，移除一条未经 DNS 声明授权的别名后为 246 DNS records；两地各 249 条实际查询记录、700 个离线选择器检查一致，公网 TCP 各 249/249 RRset 与候选一致（不比较 TTL/顺序）。八个消费者 observed、serving passing=0，219 次跨 Edge 健康采样全部 200，serving/LKG 保留。
 
+Y21 已首次发布完整 gray `artifact_1790087479_550a3c8023a6`，release `artifactrel_1790087645_0acc5580b15b`，cohort=complete。两台 DNS 因 `:53` 通配监听自检误拒绝而保留旧 serving；`bb75bea6` 正常发布后两台 DNS 实际加载同一 gray，各 465/465 probes、234/234 readiness records，持久化 positive checkpoint，六个公网 SOA 均为 artifact sequence 799。美国两个 Edge route/TLS 已验证，欧洲 Edge 因签名排除路由仍被要求 active proof 而门禁未通过；full 与全局 verified LKG 尚未建立。累计 534 次业务采样全部 200，producer 暂停以保留当前 gray。
+
 生产 producer 仍为 `business-static-intent`/shadow，固定基础 intent `artifact_1789848966_aa79d274ac50` 和输入 policy `artifact_1789917932_e90aeeb2510d`；启用策略为 `artifact_1789917933_9f90cbb02a89`，显式选择 `consumer_readiness`。最新验收 shadow `artifact_1789924746_0593e3041d46`、fence 226 包含 160 route、245 DNS records、159 TLS references；两台 DNS 均为 462/462 probes、233/233 readiness records、248/248 eligible queries。八个消费者 observed，serving passing=0；六 artifact 精确重放通过，全局 serving/LKG 未切换。前端契约 `3979108b` 已实际部署，2/2 Ready、公网 200。
 
 下一步 P0-EP 完成完整配置的首次真实 gray/full 接管、positive traffic/policy LKG、自动 serving 策略启用与恢复验证；随后完成剩余策略迁移和旧 serving 来源删除。自动发布代码已部署不代表生产已经启用自动 serving，也不能将 shadow 成功视为全部重构完成。
@@ -3875,3 +3877,15 @@ P0-EP-X 生产取证确认 canonical Service selector 仅有 app 标签，会同
 - [ ] 固定完整候选，继续首次 gray/full 接管、positive LKG、自动 serving 与恢复演练，以及其余旧路径删除；本步骤仍是 shadow 验收。
 
 证据：[default-dns-owner-projection-2026-09-22.json](verification/default-dns-owner-projection-2026-09-22.json)。
+
+
+### P0-EP-Y21：首次完整 gray 与 DNS 通配监听恢复
+
+- [x] 通过签名 producer policy 暂停候选刷新；初期应用部署/缩容及 DNS 选择观测变化使旧候选过时，预检拒绝且未发布 gray，恢复 shadow 后重新捕获。最终固定 `artifact_1790087479_550a3c8023a6`，162 route、246 DNS records，六 artifact 重放一致，两地各 700 个选择器检查与 249 条公网 TCP 查询通过，八个 trusted consumer 能力及最终 route 一致性通过。
+- [x] 正式 release API 发布 `artifactrel_1790087645_0acc5580b15b`（gray fence 1，cohort=complete），随后建立三类 expected consumer sets。美国两个 Edge 提供真实 route/TLS serving 证据；DNS 初次 apply 因把 `:53` 通配监听判为非 IP 失败，回到旧配置并保留失败状态。
+- [x] 修复通配 host 到本机 IPv4 探针地址的映射，仍拒绝非 IP 与非本地地址；真实 UDP/TCP 激活回归、DNS 全包 race、全量 make test、干净 prepush 通过。`bb75bea646957e8fa5f26f0fb9d925e251c176c2` 经 [CI 35742260065](https://github.com/yym68686/fugue/actions/runs/35742260065) 更新两地 client lane。
+- [x] 两台 DNS 重新尝试同一已批准 artifact 后实际 serving：各 465/465 route/TLS probes、234/234 dependency records；持久化带签名 positive checkpoint，两个发布回执匹配提交。两台公网 DNS 三个 zone 共六条 TCP SOA 回应全部 authoritative，serial=799 与 DNS artifact generation sequence 一致。
+- [x] 从首次接管预检至本步验收累计 534 次跨 Edge 健康采样全部 200。DNS 已切换实际 gray；全局 full/LKG 仍未推进，不将本地 positive checkpoint 当成全局 verified LKG。
+- [ ] 修复欧洲 Edge 对明确排除路由的验证：要求可核对的 negative exclusion proof，不能跳过检查或给予 DNS serving 资格。完成全部 required consumer 收敛后才能 full promotion；随后继续 LKG 和恢复演练。
+
+证据：[first-gray-dns-listener-2026-09-22.json](verification/first-gray-dns-listener-2026-09-22.json)。
