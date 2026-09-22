@@ -40,6 +40,8 @@ Y20 的 API `56a7eeb1` 已修复默认 DNS 投影：只有冻结 App 的默认 h
 
 Y21 已首次发布完整 gray `artifact_1790087479_550a3c8023a6`，release `artifactrel_1790087645_0acc5580b15b`，cohort=complete。两台 DNS 因 `:53` 通配监听自检误拒绝而保留旧 serving；`bb75bea6` 正常发布后两台 DNS 实际加载同一 gray，各 465/465 probes、234/234 readiness records，持久化 positive checkpoint，六个公网 SOA 均为 artifact sequence 799。美国两个 Edge route/TLS 已验证，欧洲 Edge 因签名排除路由仍被要求 active proof 而门禁未通过；full 与全局 verified LKG 尚未建立。累计 534 次业务采样全部 200，producer 暂停以保留当前 gray。
 
+Y22 的 `7cff4f63` 已经由 API 与两地 worker 正常 A/B 发布完成。欧洲两条签名排除路由以明确 `excluded` 证明核验：普通 readiness 返回 503，显式 excluded 返回 204/精确 digest，无应用流量证明；DNS 不把排除证明视为 eligibility。gray 的 route 3/3、TLS 3/3、DNS 2/2 在多次新鲜检查中全部通过。累计 882 次采样中保留 3 次 SSH 连接失败和 1 次 US A/B 期间 TLS EOF；另从美国节点发起 60 次独立复查全部 200。全局 verified LKG 与 full 尚未推进。
+
 生产 producer 仍为 `business-static-intent`/shadow，固定基础 intent `artifact_1789848966_aa79d274ac50` 和输入 policy `artifact_1789917932_e90aeeb2510d`；启用策略为 `artifact_1789917933_9f90cbb02a89`，显式选择 `consumer_readiness`。最新验收 shadow `artifact_1789924746_0593e3041d46`、fence 226 包含 160 route、245 DNS records、159 TLS references；两台 DNS 均为 462/462 probes、233/233 readiness records、248/248 eligible queries。八个消费者 observed，serving passing=0；六 artifact 精确重放通过，全局 serving/LKG 未切换。前端契约 `3979108b` 已实际部署，2/2 Ready、公网 200。
 
 下一步 P0-EP 完成完整配置的首次真实 gray/full 接管、positive traffic/policy LKG、自动 serving 策略启用与恢复验证；随后完成剩余策略迁移和旧 serving 来源删除。自动发布代码已部署不代表生产已经启用自动 serving，也不能将 shadow 成功视为全部重构完成。
@@ -3889,3 +3891,16 @@ P0-EP-X 生产取证确认 canonical Service selector 仅有 app 标签，会同
 - [ ] 修复欧洲 Edge 对明确排除路由的验证：要求可核对的 negative exclusion proof，不能跳过检查或给予 DNS serving 资格。完成全部 required consumer 收敛后才能 full promotion；随后继续 LKG 和恢复演练。
 
 证据：[first-gray-dns-listener-2026-09-22.json](verification/first-gray-dns-listener-2026-09-22.json)。
+
+
+### P0-EP-Y22：排除路由的负向证明与完整 gray 收敛
+
+- [x] 明确区分“加载了排除配置”与“可以接收流量”。只有本 worker/group 被精确加载路由排除时，显式 excluded 请求才能得到 nonce/digest/version/expiry/node/group 绑定证明；普通 readiness、错误 owner、候选索引、过期配置仍拒绝，探针不访问 origin，不发 AppTraffic proof。
+- [x] serving 验证器核对全部路由：本地排除条目必须返回 excluded，其他路由仍要求真实 active 或允许的 inactive proof；不跳过排除项。DNS readiness 对 excluded 状态始终拒绝，保留排除约束的安全语义。
+- [x] OpenAPI 先更新协议，生成与前端契约同步完成；实际 HTTPS/nonce/negative proof、错误状态、DNS 拒绝回归，race、全量 make test、前端 contract:check、干净 prepush 通过。发布计划要求同时更新提供契约的 API，已补同提交 intent 后重新通过计划和 prepush。
+- [x] `7cff4f63a98194b749e7ad8bcb24c8fd897493a9` 经 [CI 35744021956](https://github.com/yym68686/fugue/actions/runs/35744021956) 完成 API、欧洲与美国 worker A/B 发布，三个正式回执匹配提交；Controller 保持 `edc72b9b`，两地 DNS 保持已验证 `bb75bea6`。
+- [x] 欧洲持久化 162 个真实路由 proof，其中 2 个 excluded；公网两条路径各验证普通请求 503/无 proof 与 excluded 请求 204/正确 digest/无 AppTraffic proof。所有 active worker serving_verified；gray 的 route 3/3、TLS 3/3、DNS 2/2 经多次新鲜检查持续通过。
+- [x] 累计 882 次跨 Edge 采样有 3 次 SSH 连接关闭和 1 次 US A/B 期间 TLS EOF，均未取得 HTTP 响应；其余采样为 200。后续美国节点独立 60 次请求全部 200，最近 18 次原监控请求也全部 200。没有足够证据确定单次 EOF 原因，不声称零中断；原记录、最大采样间隔保留在证据中。
+- [ ] 建立 gray verified LKG，再推进同一 artifact full、验证新 fence 收敛及 full LKG；随后开启自动 serving、完成故障与恢复演练。US A/B 单次 EOF 需在后续受控发布中继续验证，不能将一次复查通过扩展为所有连接连续性已验收。
+
+证据：[excluded-route-serving-proof-2026-09-22.json](verification/excluded-route-serving-proof-2026-09-22.json)。
