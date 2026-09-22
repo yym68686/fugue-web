@@ -32,11 +32,11 @@ Runtime Facts / ACK / LKG
 
 ## 当前状态判断
 
-截至 Y36，route、DNS、TLS 已完成统一 TrafficReleaseSet 的生产 full 接管。三台 active Edge 和两台 DNS 按当前 release、artifact、expected consumer set 与 fence 提供真实 serving 回执；全局 ReleaseSet、route、DNS、TLS、policy 五份 verified LKG 绑定同一验证 release 和 evidence hash。
+截至 Y37，route、DNS、TLS 已完成统一 TrafficReleaseSet 的生产 full 接管。三台 active Edge 和两台 DNS 按当前 release、artifact、expected consumer set 与 fence 提供真实 serving 回执；全局 ReleaseSet、route、DNS、TLS、policy 五份 verified LKG 绑定同一验证 release 和 evidence hash。
 
 签名 producer policy 已启用自动 serving：固定基础 intent 与输入 policy，捕获业务投影后编译、gray、full，并在观察窗口与消费者收敛通过后更新 LKG。gray/full 各至少观察 120 秒，600 秒未完成则恢复 verified 基线。policy 授权版本变化的生产演练已验证：5.321 秒内发布恢复版本，八个消费者随后收敛，原五份 positive LKG 保留。超时专用演练、重启恢复与连接连续性仍待补齐。
 
-当前已验收代码：API 与 schema migrator `43e0052d`、两地 DNS client `56749f65`、release guardian `7faf072a`、Controller `edc72b9b`、两地 Edge worker `7cff4f63`。Y26 已删除 Edge route-intents HTTP serving 路径中的业务表即时生成及 standalone LKG 回退，只返回适用的已发布 TrafficReleaseSet；缺少/损坏发布时返回 503，consumer 保留当前 artifact。业务投影仍由配置 producer 独立完成。
+当前已验收代码：API `9e6efa8e`、schema migrator `43e0052d`、两地 DNS client `56749f65`、release guardian `7faf072a`、Controller `edc72b9b`、两地 Edge worker `7cff4f63`。Y26 已删除 Edge route-intents HTTP serving 路径中的业务表即时生成及 standalone LKG 回退，只返回适用的已发布 TrafficReleaseSet；缺少/损坏发布时返回 503，consumer 保留当前 artifact。业务投影仍由配置 producer 独立完成。
 
 历史 revision 资源回收、不可变执行快照保护、排除路由负向证明和 DNS 通配监听恢复均已完成相应生产验收，详见 Y10–Y26。发布监控保留了 SSH 采集失败与一次 US A/B 期间 TLS EOF；后续独立复查正常，不能据此声称所有发布均零中断。
 
@@ -4081,3 +4081,17 @@ P0-EP-X 生产取证确认 canonical Service selector 仅有 app 标签，会同
 - [ ] 继续把 robustness/委派中的旧生成器诊断改为 artifact 与当前运行事实，删除剩余 migration reader、API 环境来源，并完成 DNS 连续更新与其余故障恢复任务。
 
 证据：[runtime-fact-history-2026-09-22.json](verification/runtime-fact-history-2026-09-22.json)。
+
+
+### P0-EP-Y37：诊断读取真实 traffic artifact，删除请求式 DNS 生成
+
+- [x] 委派 `route_dns_invariant` 和 robustness 的 route/DNS artifact 检查改为读取当前 group 选中的 signed TrafficReleaseSet、全部三个成员及准确 publication 的新鲜 authenticated consumer facts；不再读取业务表/环境临时编译 DNS 来证明 serving。
+- [x] 验证成员签名、完整 lineage、route schema、准确 node/group/zone 的 DNS view、三类 expected sets 与消费者收敛；读取结束再次核对 publication。缺失、坏签名、陈旧/错误 release 事实、unknown zone/node、缺 expected sets 均失败，零 Edge 不再自动跳过并通过。
+- [x] 复用只读 DNS artifact 视图解码，将旧请求式 `deriveEdgeDNSBundle` 移入历史测试；原 robustness check 名称兼容，evidence 改为实际 ReleaseSet/release IDs、三个 digest 和 required consumer count。诊断不写 artifact、release 或 LKG。
+- [x] OpenAPI 先改并生成、前端 contract:check、环境/业务变化隔离与失败路径回归、API race、全量 make test、干净 prepush 通过。测试 fixture 初期类型/字段错误及空 route fixture 已在检查前修正；本地缓存空间不足风险通过清理本任务旧可重建缓存缓解，未跳过检查。
+- [x] `9e6efa8e2e25b82271b58c1dfe42dd8ca1ae5d68` 经 [CI 35795639121](https://github.com/yym68686/fugue/actions/runs/35795639121) 仅发布 API，2/2 Ready；前端 `8503663d` 的 [CI 35795671089](https://github.com/yym68686/fugue-web/actions/runs/35795671089) 成功。
+- [x] 发布前 production diagnostics 报告临时 `dnsenv_*`/2 records。发布后两个域预检及 robustness 都引用 full `artifactrel_1790118747_f337ee27450e` / `artifact_1790118623_486e6e883592`，162 routes、每域两台 consumer 共 4 条 view records，三个成员 digest 逐条匹配，required consumers=8。
+- [x] 当前 route 3/3、TLS 3/3、DNS 2/2 收敛，API/authority 正常；六条公网 SOA 均 sequence 864，165 次跨 Edge HTTP 全部 200。首轮 route convergence 未通过时新诊断明确失败，之后核对准确 full publication 并重跑完整验收通过；不把其他 robustness 检查扩大为全部通过。
+- [ ] 继续删除不再使用的 legacy compiler、migration comparison 入口及剩余环境/default reader；DNS 无间断替换、超时恢复及最终简化版其余任务仍待完成。
+
+证据：[published-traffic-diagnostics-2026-09-22.json](verification/published-traffic-diagnostics-2026-09-22.json)。
