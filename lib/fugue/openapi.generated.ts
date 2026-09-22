@@ -312,7 +312,10 @@ export interface paths {
     get: operations["explainRequest"];
   };
   "/v1/admin/robustness/status": {
-    /** Get Robustness Status */
+    /**
+     * Get Robustness Status
+     * @description Reports serving diagnostics from current signed TrafficReleaseSets and authenticated consumer facts. The generated_artifact_edge_route_intent and generated_artifact_edge_dns_bundle check names remain compatible, but no longer compile temporary legacy configuration. Their evidence identifies the actual publication, artifact digests and convergence. Missing or rejected state fails closed and diagnostics never publish.
+     */
     get: operations["getRobustnessStatus"];
   };
   "/v1/admin/robustness/check/{subject}": {
@@ -599,7 +602,7 @@ export interface paths {
   "/v1/dns/delegation/preflight": {
     /**
      * DNS Delegation Preflight
-     * @description Combines independent node probes with delegation hints from the intent and policy bound to the verified traffic LKG. Invalid configuration makes dns_delegation_configuration fail and returns no proposed parent DNS changes. Hosted-zone preflight uses the same source and preserves stored expected nameservers on configuration failure. Multi-zone DNS consumers use fresh physical-node facts projected onto the declared zone, followed by real zone probes; stale per-zone aliases cannot override the physical serving snapshot.
+     * @description Combines independent node probes with delegation hints from the intent and policy bound to the verified traffic LKG. Invalid configuration makes dns_delegation_configuration fail and returns no proposed parent DNS changes. Hosted-zone preflight uses the same source and preserves stored expected nameservers on configuration failure. Multi-zone DNS consumers use fresh physical-node facts projected onto the declared zone, followed by real zone probes; stale per-zone aliases cannot override the physical serving snapshot. route_dns_invariant validates the currently selected signed traffic parent, all three members, exact DNS consumer zone views, and fresh authenticated convergence for that publication. It never simulates a legacy DNS bundle from business tables or environment; missing artifacts or consumers fail instead of passing an empty-inventory check.
      */
     get: operations["dnsDelegationPreflight"];
   };
@@ -13535,7 +13538,10 @@ export interface operations {
       default: components["responses"]["ErrorResponse"];
     };
   };
-  /** Get Robustness Status */
+  /**
+   * Get Robustness Status
+   * @description Reports serving diagnostics from current signed TrafficReleaseSets and authenticated consumer facts. The generated_artifact_edge_route_intent and generated_artifact_edge_dns_bundle check names remain compatible, but no longer compile temporary legacy configuration. Their evidence identifies the actual publication, artifact digests and convergence. Missing or rejected state fails closed and diagnostics never publish.
+   */
   getRobustnessStatus: {
     parameters: {
       query?: {
@@ -14846,7 +14852,7 @@ export interface operations {
   };
   /**
    * DNS Delegation Preflight
-   * @description Combines independent node probes with delegation hints from the intent and policy bound to the verified traffic LKG. Invalid configuration makes dns_delegation_configuration fail and returns no proposed parent DNS changes. Hosted-zone preflight uses the same source and preserves stored expected nameservers on configuration failure. Multi-zone DNS consumers use fresh physical-node facts projected onto the declared zone, followed by real zone probes; stale per-zone aliases cannot override the physical serving snapshot.
+   * @description Combines independent node probes with delegation hints from the intent and policy bound to the verified traffic LKG. Invalid configuration makes dns_delegation_configuration fail and returns no proposed parent DNS changes. Hosted-zone preflight uses the same source and preserves stored expected nameservers on configuration failure. Multi-zone DNS consumers use fresh physical-node facts projected onto the declared zone, followed by real zone probes; stale per-zone aliases cannot override the physical serving snapshot. route_dns_invariant validates the currently selected signed traffic parent, all three members, exact DNS consumer zone views, and fresh authenticated convergence for that publication. It never simulates a legacy DNS bundle from business tables or environment; missing artifacts or consumers fail instead of passing an empty-inventory check.
    */
   dnsDelegationPreflight: {
     parameters: {
