@@ -32,11 +32,11 @@ Runtime Facts / ACK / LKG
 
 ## 当前状态判断
 
-截至 Y33，route、DNS、TLS 已完成统一 TrafficReleaseSet 的生产 full 接管。三台 active Edge 和两台 DNS 按当前 release、artifact、expected consumer set 与 fence 提供真实 serving 回执；全局 ReleaseSet、route、DNS、TLS、policy 五份 verified LKG 绑定同一验证 release 和 evidence hash。
+截至 Y34，route、DNS、TLS 已完成统一 TrafficReleaseSet 的生产 full 接管。三台 active Edge 和两台 DNS 按当前 release、artifact、expected consumer set 与 fence 提供真实 serving 回执；全局 ReleaseSet、route、DNS、TLS、policy 五份 verified LKG 绑定同一验证 release 和 evidence hash。
 
 签名 producer policy 已启用自动 serving：固定基础 intent 与输入 policy，捕获业务投影后编译、gray、full，并在观察窗口与消费者收敛通过后更新 LKG。gray/full 各至少观察 120 秒，600 秒未完成则恢复 verified 基线。policy 授权版本变化的生产演练已验证：5.321 秒内发布恢复版本，八个消费者随后收敛，原五份 positive LKG 保留。超时专用演练、重启恢复与连接连续性仍待补齐。
 
-当前已验收代码：API 与两地 DNS client `56749f65`、release guardian `7faf072a`、Controller `edc72b9b`、两地 Edge worker `7cff4f63`。Y26 已删除 Edge route-intents HTTP serving 路径中的业务表即时生成及 standalone LKG 回退，只返回适用的已发布 TrafficReleaseSet；缺少/损坏发布时返回 503，consumer 保留当前 artifact。业务投影仍由配置 producer 独立完成。
+当前已验收代码：API `f002943f`、两地 DNS client `56749f65`、release guardian `7faf072a`、Controller `edc72b9b`、两地 Edge worker `7cff4f63`。Y26 已删除 Edge route-intents HTTP serving 路径中的业务表即时生成及 standalone LKG 回退，只返回适用的已发布 TrafficReleaseSet；缺少/损坏发布时返回 503，consumer 保留当前 artifact。业务投影仍由配置 producer 独立完成。
 
 历史 revision 资源回收、不可变执行快照保护、排除路由负向证明和 DNS 通配监听恢复均已完成相应生产验收，详见 Y10–Y26。发布监控保留了 SSH 采集失败与一次 US A/B 期间 TLS EOF；后续独立复查正常，不能据此声称所有发布均零中断。
 
@@ -4037,3 +4037,17 @@ P0-EP-X 生产取证确认 canonical Service selector 仅有 app 标签，会同
 - [ ] 继续 hosted DNS 与其他 API 环境配置迁移、DNS 无中断替换、超时恢复等未完成任务。生产未注入坏候选，本地失败回归不扩大为所有生产故障已演练。
 
 证据：[dns-rejected-candidate-recovery-2026-09-22.json](verification/dns-rejected-candidate-recovery-2026-09-22.json)。
+
+
+### P0-EP-Y34：委派配置绑定 verified traffic，修复多域 DNS 预检
+
+- [x] 托管域创建与委派预检的 NS/glue 改为读取 verified TrafficReleaseSet LKG 绑定的 signed intent、输入 DNS policy 和明确 hosted-zone template；逐层验证签名、状态、digest 和来源引用，并在返回前重查 LKG。更新的未验证 producer policy、环境 NS 与 inventory 不能覆盖已声明配置。
+- [x] 缺失或损坏 verified 配置时，创建域返回 503 且不写入；预检返回明确失败与空委派计划，保留已有 expected nameservers。静态 apex NS 不覆盖 authority policy，过期 glue 不复活，声明 glue 不被 inventory 地址改写。
+- [x] 多域 DNS 使用 signed consumer node/group 约束下的新鲜物理节点 heartbeat，再执行目标域真实 UDP/TCP 探测；旧 per-zone alias 不覆盖物理 serving 状态。修复两个托管域实际解析正常、预检却报告零个节点的问题。
+- [x] OpenAPI 先更新并生成，前端 contract:check、签名引用/错误配置/无写入/模板/glue/多域节点回归、API race、全量 make test 与干净 prepush 通过。vet 曾发现测试 fixture 复制带锁 cache，已改为只保存/恢复条目，再次通过完整检查。
+- [x] `f002943fa75fff59414714e9e4e5963ae0efc466` 经 [CI 35785375428](https://github.com/yym68686/fugue/actions/runs/35785375428) 仅发布 API，2/2 Ready；前端契约 `4744e87f` 的 [CI 35785443326](https://github.com/yym68686/fugue-web/actions/runs/35785443326) 成功。
+- [x] 两个现有托管域预检从 0 个健康节点/pass=false 恢复为 2 个真实物理节点、2/2 healthy/pass=true，NS 与 verified 源一致。当前 release route 3/3、TLS 3/3、DNS 2/2 收敛，API/authority 与实际 DNS serving 正常；美国独立节点直查六个 SOA 均 sequence 849。
+- [x] 本步验收累计 294 次跨 Edge HTTP 全部 200。第一次读取 API 版本过早、第一轮预检出现一个非健康 heartbeat，均先拒绝后重新核对真实状态和新鲜事实；后续两域重复预检通过。生产只做只读预检，域创建和损坏输入由本地回归覆盖，没有修改 registrar。
+- [ ] 继续删除 legacy migration/配置预览入口及 API 环境来源，将余下诊断中的旧 bundle simulation 改为 artifact/facts；DNS 无中断替换、超时恢复等其余任务仍未完成。
+
+证据：[verified-dns-delegation-2026-09-22.json](verification/verified-dns-delegation-2026-09-22.json)。
