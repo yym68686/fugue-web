@@ -32,11 +32,11 @@ Runtime Facts / ACK / LKG
 
 ## 当前状态判断
 
-截至 Y31，route、DNS、TLS 已完成统一 TrafficReleaseSet 的生产 full 接管。三台 active Edge 和两台 DNS 按当前 release、artifact、expected consumer set 与 fence 提供真实 serving 回执；全局 ReleaseSet、route、DNS、TLS、policy 五份 verified LKG 绑定同一验证 release 和 evidence hash。
+截至 Y32，route、DNS、TLS 已完成统一 TrafficReleaseSet 的生产 full 接管。三台 active Edge 和两台 DNS 按当前 release、artifact、expected consumer set 与 fence 提供真实 serving 回执；全局 ReleaseSet、route、DNS、TLS、policy 五份 verified LKG 绑定同一验证 release 和 evidence hash。
 
 签名 producer policy 已启用自动 serving：固定基础 intent 与输入 policy，捕获业务投影后编译、gray、full，并在观察窗口与消费者收敛通过后更新 LKG。gray/full 各至少观察 120 秒，600 秒未完成则恢复 verified 基线。policy 授权版本变化的生产演练已验证：5.321 秒内发布恢复版本，八个消费者随后收敛，原五份 positive LKG 保留。超时专用演练、重启恢复与连接连续性仍待补齐。
 
-当前已验收代码：API `4f161581`、两地 DNS client / release guardian `7faf072a`、Controller `edc72b9b`、两地 Edge worker `7cff4f63`。Y26 已删除 Edge route-intents HTTP serving 路径中的业务表即时生成及 standalone LKG 回退，只返回适用的已发布 TrafficReleaseSet；缺少/损坏发布时返回 503，consumer 保留当前 artifact。业务投影仍由配置 producer 独立完成。
+当前已验收代码：API `aad532c0`、两地 DNS client / release guardian `7faf072a`、Controller `edc72b9b`、两地 Edge worker `7cff4f63`。Y26 已删除 Edge route-intents HTTP serving 路径中的业务表即时生成及 standalone LKG 回退，只返回适用的已发布 TrafficReleaseSet；缺少/损坏发布时返回 503，consumer 保留当前 artifact。业务投影仍由配置 producer 独立完成。
 
 历史 revision 资源回收、不可变执行快照保护、排除路由负向证明和 DNS 通配监听恢复均已完成相应生产验收，详见 Y10–Y26。发布监控保留了 SSH 采集失败与一次 US A/B 期间 TLS EOF；后续独立复查正常，不能据此声称所有发布均零中断。
 
@@ -4009,3 +4009,18 @@ P0-EP-X 生产取证确认 canonical Service selector 仅有 app 标签，会同
 - [ ] 删除后台 legacy DNS publisher 及剩余迁移输入/环境读取点，并将必要排序冷却状态交给受签名 policy 控制的观测流程；继续 DNS 更新连续性和其余简化方案任务。
 
 证据：[retired-legacy-dns-endpoint-2026-09-22.json](verification/retired-legacy-dns-endpoint-2026-09-22.json)。
+
+
+### P0-EP-Y32：删除后台独立 DNS publisher，保留 verified-policy 观测
+
+- [x] API 启动改为 DNS observation loop；独立 DNS 的编译、每 node shadow/full 发布、旧 LKG 初始/持续推进函数全部移入迁移测试文件，不进入生产构建。普通 compiler/read-only migration reader 暂留，不再有后台独立发布 owner。
+- [x] 新循环仅刷新 flatten 与排序冷却事实，模式和 cooldown 读取全局 signed validated verified PolicySnapshot LKG，捕获完成后再核对 policy 身份。缺失/草稿/坏签名保留原排序事实；环境 ranking 无法授权写入。复用历史 writer lock 保证滚动更新中旧新进程不并发写排序事实。
+- [x] 验证 180 秒策略保持原 switch time、改为 verified 60 秒策略后允许切换；disabled 策略不受 ambient active 覆盖。观测不创建/修改 artifact，不发布 serving/LKG 指针；取消循环可及时退出。API race、全量 make test、前端 contract:check、干净 prepush 全通过。
+- [x] 生产 metrics 改为 `fugue_dns_observation_*`，旧 publisher 指标退出生产输出；文档更新观测与 serving 的边界。
+- [x] `aad532c04def4179a440ac1cd1d349433925cd3a` 经 [CI 35776847426](https://github.com/yym68686/fugue/actions/runs/35776847426) 仅发布 API，2/2 Ready；前端契约 `56ccfb68` 的 [CI 35776852308](https://github.com/yym68686/fugue-web/actions/runs/35776852308) 成功。
+- [x] 发布前旧循环每分钟编译约 158 route 并写 2 份 node-scoped shadow。发布后新 Pod 只报告 observation，使用 verified policy active/1800 秒 cooldown，连续至少 10 次成功且错误为 0；跨 145 秒复查两份 legacy artifact ID/digest/创建时间完全未变。
+- [x] 统一 producer 继续生成并自动验证新的 full `artifactrel_1790107775_06a383a4adca` / `artifact_1790107650_1c3ec22ad6a8`，LKG 正常推进。route 3/3、TLS 3/3、DNS 2/2 收敛、DNS serving 正常、旧请求仍 410。六条美国节点直查 SOA 均 sequence 839，本步 246 次跨 Edge HTTP 全部 200。
+- [x] metrics 首次读取碰到退出旧 Pod、自动配置切换期间 convergence 首次不通过，均拒绝后重读，保留实际过程。
+- [ ] 迁移 hosted DNS 委派/诊断等剩余 API 环境读取，删除只读 legacy migration 入口及其余重复投影；继续 DNS 无中断更新和未完成的恢复演练。
+
+证据：[verified-policy-dns-observations-2026-09-22.json](verification/verified-policy-dns-observations-2026-09-22.json)。
