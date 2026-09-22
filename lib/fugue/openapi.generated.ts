@@ -1032,7 +1032,10 @@ export interface paths {
   "/v1/apps/{id}/traffic": {
     /** Get App Traffic Policy */
     get: operations["getAppTrafficPolicy"];
-    /** Patch App Traffic Policy */
+    /**
+     * Patch App Traffic Policy
+     * @description Retired releases cannot be referenced by a traffic policy, including at zero weight. A conflicting retirement returns 409 and leaves the policy unchanged.
+     */
     patch: operations["patchAppTrafficPolicy"];
   };
   "/v1/apps/{id}/releases/{release_id}/probe": {
@@ -1044,7 +1047,10 @@ export interface paths {
     post: operations["evaluateAppReleaseGate"];
   };
   "/v1/apps/{id}/releases/{release_id}/promote": {
-    /** Promote App Release */
+    /**
+     * Promote App Release
+     * @description A retired release is terminal and cannot be promoted again. Create a new release for a subsequent deployment. A conflicting retirement returns 409 and preserves the current traffic policy.
+     */
     post: operations["promoteAppRelease"];
   };
   "/v1/apps/{id}/releases/{release_id}/abort": {
@@ -6671,7 +6677,10 @@ export interface components {
       ready_at?: string;
       /** Format: date-time */
       promoted_at?: string;
-      /** Format: date-time */
+      /**
+       * Format: date-time
+       * @description Retirement is terminal. Retired rows cannot be reactivated or changed by stale writers, and traffic policies cannot reference them.
+       */
       retired_at?: string;
       /** Format: date-time */
       retention_until?: string;
@@ -17073,7 +17082,10 @@ export interface operations {
       default: components["responses"]["ErrorResponse"];
     };
   };
-  /** Patch App Traffic Policy */
+  /**
+   * Patch App Traffic Policy
+   * @description Retired releases cannot be referenced by a traffic policy, including at zero weight. A conflicting retirement returns 409 and leaves the policy unchanged.
+   */
   patchAppTrafficPolicy: {
     parameters: {
       path: {
@@ -17141,7 +17153,10 @@ export interface operations {
       default: components["responses"]["ErrorResponse"];
     };
   };
-  /** Promote App Release */
+  /**
+   * Promote App Release
+   * @description A retired release is terminal and cannot be promoted again. Create a new release for a subsequent deployment. A conflicting retirement returns 409 and preserves the current traffic policy.
+   */
   promoteAppRelease: {
     parameters: {
       path: {
