@@ -46,6 +46,8 @@ Y23 已建立首份 gray verified LKG，并将同一 artifact 提升到 full `ar
 
 Y24 已启用签名 serving policy `artifact_1790091911_5e876f84e521`，自动 producer 生成 `artifact_1790091931_a98b6cae07d2`、gray fence 2，超过 120 秒后自动 full `artifactrel_1790092057_49124bed1c6d`，再次观察后自动 verified。五份 LKG 同时指向该 full release，八个消费者通过；期间 60 次健康采样有一次 SSH 连接关闭无 HTTP，其余 59 次 200。自动成功路径已实测，失败恢复与剩余任务继续待验收。
 
+Y25 已完成 policy 版本变化恢复演练：已收敛但未验证的 gray `artifactrel_1790092573_cccdbab82b19` 在 authority 更新后自动标记 failed；5.321 秒后 producer 发布 full recovery `artifactrel_1790092696_b2d907cf9173`，指向原 verified artifact `artifact_1790092253_5f659a203e9a`。八个消费者随后全部收敛，五份 LKG 的原 verification release/evidence hash 保持，48 次健康采样全部 200。正常 serving 模式与 120 秒观察策略已恢复。
+
 生产 producer 仍为 `business-static-intent`/shadow，固定基础 intent `artifact_1789848966_aa79d274ac50` 和输入 policy `artifact_1789917932_e90aeeb2510d`；启用策略为 `artifact_1789917933_9f90cbb02a89`，显式选择 `consumer_readiness`。最新验收 shadow `artifact_1789924746_0593e3041d46`、fence 226 包含 160 route、245 DNS records、159 TLS references；两台 DNS 均为 462/462 probes、233/233 readiness records、248/248 eligible queries。八个消费者 observed，serving passing=0；六 artifact 精确重放通过，全局 serving/LKG 未切换。前端契约 `3979108b` 已实际部署，2/2 Ready、公网 200。
 
 下一步 P0-EP 完成完整配置的首次真实 gray/full 接管、positive traffic/policy LKG、自动 serving 策略启用与恢复验证；随后完成剩余策略迁移和旧 serving 来源删除。自动发布代码已部署不代表生产已经启用自动 serving，也不能将 shadow 成功视为全部重构完成。
@@ -3933,3 +3935,15 @@ P0-EP-X 生产取证确认 canonical Service selector 仅有 app 标签，会同
 - [ ] 验证 policy 版本变化和超时导致的自动恢复、failed-source 去重、consumer/控制面重启恢复及其余旧来源删除；自动成功路径不代表失败路径已经验收。
 
 证据：[automatic-traffic-serving-2026-09-22.json](verification/automatic-traffic-serving-2026-09-22.json)。
+
+
+### P0-EP-Y25：policy 授权版本变化的自动配置恢复
+
+- [x] 等待正常自动 full verified 基线后，以新签名 producer policy 将 gray 最小观察临时延长到 1800 秒，生成正式 gray `artifactrel_1790092573_cccdbab82b19`；八个 required consumer 实际收敛，但候选尚未取得 verified LKG。未制造坏签名或伪造运行事实。
+- [x] 发布另一份新 policy generation，撤销该候选的 producer authority。后台检测 policy release 不匹配，5.321 秒后正式发布 recovery full `artifactrel_1790092696_b2d907cf9173`（fence 4），复用已验证 artifact `artifact_1790092253_5f659a203e9a`，不重新编译恢复内容。
+- [x] 原 gray 记录持久化 failed、failed_source_digest、当前 producer policy release 与 recovered_by_release_id；系统审计记录 failed release、恢复 release 和 LKG artifact 的映射。
+- [x] 暂停 producer 固定恢复状态后验证 route 3/3、TLS 3/3、DNS 2/2 全部回到恢复发布；ReleaseSet/route/DNS/TLS/policy 五份 LKG 保持原 verification release 和 evidence hash，没有用失败 candidate 覆盖 positive LKG。
+- [x] API/两地 authority 正常，演练阶段 48 次跨 Edge 健康采样全部 200；随后通过新签名策略恢复正常 serving 模式、gray/full 各 120 秒和 600 秒超时。
+- [ ] 继续验证超时恢复、失败来源去重、控制面与 consumer 重启恢复，以及剩余策略迁移和旧来源移除。policy 变更恢复不等于所有故障类型已经验证。
+
+证据：[producer-policy-recovery-2026-09-22.json](verification/producer-policy-recovery-2026-09-22.json)。
