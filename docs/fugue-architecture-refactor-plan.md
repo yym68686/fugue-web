@@ -32,11 +32,11 @@ Runtime Facts / ACK / LKG
 
 ## 当前状态判断
 
-截至 Y35，route、DNS、TLS 已完成统一 TrafficReleaseSet 的生产 full 接管。三台 active Edge 和两台 DNS 按当前 release、artifact、expected consumer set 与 fence 提供真实 serving 回执；全局 ReleaseSet、route、DNS、TLS、policy 五份 verified LKG 绑定同一验证 release 和 evidence hash。
+截至 Y36，route、DNS、TLS 已完成统一 TrafficReleaseSet 的生产 full 接管。三台 active Edge 和两台 DNS 按当前 release、artifact、expected consumer set 与 fence 提供真实 serving 回执；全局 ReleaseSet、route、DNS、TLS、policy 五份 verified LKG 绑定同一验证 release 和 evidence hash。
 
 签名 producer policy 已启用自动 serving：固定基础 intent 与输入 policy，捕获业务投影后编译、gray、full，并在观察窗口与消费者收敛通过后更新 LKG。gray/full 各至少观察 120 秒，600 秒未完成则恢复 verified 基线。policy 授权版本变化的生产演练已验证：5.321 秒内发布恢复版本，八个消费者随后收敛，原五份 positive LKG 保留。超时专用演练、重启恢复与连接连续性仍待补齐。
 
-当前已验收代码：API `6d48ba72`、两地 DNS client `56749f65`、release guardian `7faf072a`、Controller `edc72b9b`、两地 Edge worker `7cff4f63`。Y26 已删除 Edge route-intents HTTP serving 路径中的业务表即时生成及 standalone LKG 回退，只返回适用的已发布 TrafficReleaseSet；缺少/损坏发布时返回 503，consumer 保留当前 artifact。业务投影仍由配置 producer 独立完成。
+当前已验收代码：API 与 schema migrator `43e0052d`、两地 DNS client `56749f65`、release guardian `7faf072a`、Controller `edc72b9b`、两地 Edge worker `7cff4f63`。Y26 已删除 Edge route-intents HTTP serving 路径中的业务表即时生成及 standalone LKG 回退，只返回适用的已发布 TrafficReleaseSet；缺少/损坏发布时返回 503，consumer 保留当前 artifact。业务投影仍由配置 producer 独立完成。
 
 历史 revision 资源回收、不可变执行快照保护、排除路由负向证明和 DNS 通配监听恢复均已完成相应生产验收，详见 Y10–Y26。发布监控保留了 SSH 采集失败与一次 US A/B 期间 TLS EOF；后续独立复查正常，不能据此声称所有发布均零中断。
 
@@ -4065,3 +4065,19 @@ P0-EP-X 生产取证确认 canonical Service selector 仅有 app 标签，会同
 - [ ] 继续迁移剩余 legacy defaults、显式 importer、API 环境 reader 与诊断模拟。已确认 Runtime Facts 查询漏掉 producer 发布事件且先 limit 后过滤，下一步修复；DNS 无中断更新和其余恢复演练仍未完成。
 
 证据：[pinned-producer-inputs-2026-09-22.json](verification/pinned-producer-inputs-2026-09-22.json)。
+
+
+### P0-EP-Y36：完整 Runtime Facts 历史查询与索引恢复
+
+- [x] Runtime Facts 查询在已有 audit log 中先按 consumer/release/artifact kind 过滤，再排序和 limit；纳入 producer shadow、gray、full、verified LKG、rollback 事件。原事件 metadata、hash、provenance 不改写，不补造历史。
+- [x] ReleaseSet 可通过 typed target、artifact reference 和 rollback 的显式恢复 LKG 引用找到历史；逻辑 consumer ID 兼容已保留 instance 映射，新签名 heartbeat 明确写入 consumer_id。非法/重复/越界 limit 返回 400，查询仍要求 platform admin 与 artifact.read。
+- [x] OpenAPI 返回类型补齐事实列表及 audit chain/hash/provenance，并区分 unsigned operational audit 与 signed consumer evidence。前端同步、文件/PG 同义结果、旧事件验签、筛选前 limit、未知身份和注入字符串、只读、race、全量 make test 与 prepush 通过。
+- [x] 首版 `de63f37342831c74df27d856221128e59cc41873` 经 [CI 35791548027](https://github.com/yym68686/fugue/actions/runs/35791548027) 上线。生产验收确认 `limit=1/2` 因历史查询执行路径在 10 秒超时返回 500，而 `limit=20/1000` 约 3.8 秒返回；该版本未作为本步验收通过，失败响应保留。
+- [x] 增加现有 audit 表的 target-history B-tree 与 metadata JSONB GIN 索引，通过 schema migrator 在线、有限资源、有锁且可重试地创建；不匹配的已有索引拒绝替换。查询使用可索引的身份/JSON 条件，先解析旧 consumer 实例，避免小 limit 扫描无关最近事件；十秒超时保持。
+- [x] 真实 PG 验证在线写入、取消恢复、重复执行不重建、错误定义拒绝、EXPLAIN 使用索引；十万条更新心跳之前的历史筛选仍约 3–5 毫秒。全量 make test、race、干净 prepush 再次通过。
+- [x] 修复版 `43e0052dc7d25e61ec33f9c5596bba97973bdb5f` 经 [CI 35793247630](https://github.com/yym68686/fugue/actions/runs/35793247630) 先发布 schema，日志确认 migration complete/Ready，再发布 API 2/2 Ready，两个正式回执匹配；前端 `3d60cc88` 的 [CI 35791568513](https://github.com/yym68686/fugue-web/actions/runs/35791568513) 成功。
+- [x] 同一历史 ReleaseSet 从空列表恢复为四条原始 producer 事件，逐条匹配发布前 audit source。生产 `limit=1/2` 耗时 0.941/0.776 秒，kind-only 查询 0.845 秒；逻辑 consumer 返回 20 条签名心跳，实例查询兼容。当前 route 3/3、TLS 3/3、DNS 2/2 收敛，API/authority 正常，六个公网 SOA 同为 sequence 860。
+- [x] 两轮发布累计验收 393 次跨 Edge HTTP 全部 200。历史查询超时属于本步发现并已修复的问题，不以 serving 正常或 CI 成功掩盖；接口修复不等于全部 runtime fact 生命周期已实现。
+- [ ] 继续把 robustness/委派中的旧生成器诊断改为 artifact 与当前运行事实，删除剩余 migration reader、API 环境来源，并完成 DNS 连续更新与其余故障恢复任务。
+
+证据：[runtime-fact-history-2026-09-22.json](verification/runtime-fact-history-2026-09-22.json)。
