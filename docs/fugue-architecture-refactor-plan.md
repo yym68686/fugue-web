@@ -32,11 +32,11 @@ Runtime Facts / ACK / LKG
 
 ## 当前状态判断
 
-截至 Y34，route、DNS、TLS 已完成统一 TrafficReleaseSet 的生产 full 接管。三台 active Edge 和两台 DNS 按当前 release、artifact、expected consumer set 与 fence 提供真实 serving 回执；全局 ReleaseSet、route、DNS、TLS、policy 五份 verified LKG 绑定同一验证 release 和 evidence hash。
+截至 Y35，route、DNS、TLS 已完成统一 TrafficReleaseSet 的生产 full 接管。三台 active Edge 和两台 DNS 按当前 release、artifact、expected consumer set 与 fence 提供真实 serving 回执；全局 ReleaseSet、route、DNS、TLS、policy 五份 verified LKG 绑定同一验证 release 和 evidence hash。
 
 签名 producer policy 已启用自动 serving：固定基础 intent 与输入 policy，捕获业务投影后编译、gray、full，并在观察窗口与消费者收敛通过后更新 LKG。gray/full 各至少观察 120 秒，600 秒未完成则恢复 verified 基线。policy 授权版本变化的生产演练已验证：5.321 秒内发布恢复版本，八个消费者随后收敛，原五份 positive LKG 保留。超时专用演练、重启恢复与连接连续性仍待补齐。
 
-当前已验收代码：API `f002943f`、两地 DNS client `56749f65`、release guardian `7faf072a`、Controller `edc72b9b`、两地 Edge worker `7cff4f63`。Y26 已删除 Edge route-intents HTTP serving 路径中的业务表即时生成及 standalone LKG 回退，只返回适用的已发布 TrafficReleaseSet；缺少/损坏发布时返回 503，consumer 保留当前 artifact。业务投影仍由配置 producer 独立完成。
+当前已验收代码：API `6d48ba72`、两地 DNS client `56749f65`、release guardian `7faf072a`、Controller `edc72b9b`、两地 Edge worker `7cff4f63`。Y26 已删除 Edge route-intents HTTP serving 路径中的业务表即时生成及 standalone LKG 回退，只返回适用的已发布 TrafficReleaseSet；缺少/损坏发布时返回 503，consumer 保留当前 artifact。业务投影仍由配置 producer 独立完成。
 
 历史 revision 资源回收、不可变执行快照保护、排除路由负向证明和 DNS 通配监听恢复均已完成相应生产验收，详见 Y10–Y26。发布监控保留了 SSH 采集失败与一次 US A/B 期间 TLS EOF；后续独立复查正常，不能据此声称所有发布均零中断。
 
@@ -4051,3 +4051,17 @@ P0-EP-X 生产取证确认 canonical Service selector 仅有 app 标签，会同
 - [ ] 继续删除 legacy migration/配置预览入口及 API 环境来源，将余下诊断中的旧 bundle simulation 改为 artifact/facts；DNS 无中断替换、超时恢复等其余任务仍未完成。
 
 证据：[verified-dns-delegation-2026-09-22.json](verification/verified-dns-delegation-2026-09-22.json)。
+
+
+### P0-EP-Y35：退役 ambient producer capture，预览必须选择签名 policy
+
+- [x] producer schema 只接受 `business-static-intent` 和准确 intent ID/digest；删除 `business-migration` 生产分支。新策略验证、shadow 发布及已存储历史策略重新发布都执行相同强类型约束；历史内容仍可只读查询。
+- [x] `routes/project` 必须传入唯一的 signed validated `producer_policy_artifact_id`：缺失、空值或重复返回 400；retired static-only selector 返回 410。无引用时不再从进程环境生成预览，错误引用不回退；原环境 capture adapter 只保留在历史比较测试。
+- [x] 明确引用的草稿仍保留一致业务 snapshot、独立 runtime facts 和固定配置来源；预览不创建 artifact、release 或 LKG。生产 serving policy 已固定完整输入，本步没有修改其版本或观察窗口。
+- [x] OpenAPI 先改并生成，前端 contract:check、非法/历史策略重新激活拒绝、原始内容可读、无写入、固定输入预览、API/producer race、全量 make test、真实 PostgreSQL producer guard 回归和干净 prepush 全通过。旧临时 PG 端口不可用、新测试库缺 schema marker 两次环境失败已记录；用仓库 schema migrator 初始化后成功重跑。
+- [x] `6d48ba725e19593d2dcfe0abbb5d67ce83ead3c3` 经 [CI 35787806649](https://github.com/yym68686/fugue/actions/runs/35787806649) 仅发布 API，2/2 Ready；前端契约 `e4065ed9` 的 [CI 35787840132](https://github.com/yym68686/fugue-web/actions/runs/35787840132) 成功。
+- [x] 生产旧入口分别返回预期 400/410，错误引用 503，现有准确 policy 预览 200、162 routes。新 API Pod 取得 leadership 后自行创建 `artifact_1790114170_21c7dfbf1863`，正常完成 gray、full 和 verified LKG；观察过程中保留原始创建日志，绑定当前 Pod 和准确 artifact。
+- [x] 当前 release route 3/3、TLS 3/3、DNS 2/2 收敛，API/authority 正常；六个公网 SOA 同为 sequence 854。验收累计 333 次跨 Edge HTTP 全部 200。新周期按原 600 秒刷新及 gray/full 各 120 秒窗口等待，日志 tail 截断不当作生产失败或忽略证据。
+- [ ] 继续迁移剩余 legacy defaults、显式 importer、API 环境 reader 与诊断模拟。已确认 Runtime Facts 查询漏掉 producer 发布事件且先 limit 后过滤，下一步修复；DNS 无中断更新和其余恢复演练仍未完成。
+
+证据：[pinned-producer-inputs-2026-09-22.json](verification/pinned-producer-inputs-2026-09-22.json)。
