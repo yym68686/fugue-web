@@ -44,6 +44,8 @@ Y22 的 `7cff4f63` 已经由 API 与两地 worker 正常 A/B 发布完成。欧�
 
 Y23 已建立首份 gray verified LKG，并将同一 artifact 提升到 full `artifactrel_1790091416_15e293b47203`。全部 route 3/3、TLS 3/3、DNS 2/2 以 full 身份收敛并通过超过 120 秒观察；ReleaseSet、route、DNS、TLS、policy 五份签名 LKG 原子绑定同一 full release/evidence hash。full 阶段 72 次健康采样全部 200，两地六个公网 SOA 仍为 artifact sequence 799。producer 当前暂停，下一步启用自动 serving 与恢复演练。
 
+Y24 已启用签名 serving policy `artifact_1790091911_5e876f84e521`，自动 producer 生成 `artifact_1790091931_a98b6cae07d2`、gray fence 2，超过 120 秒后自动 full `artifactrel_1790092057_49124bed1c6d`，再次观察后自动 verified。五份 LKG 同时指向该 full release，八个消费者通过；期间 60 次健康采样有一次 SSH 连接关闭无 HTTP，其余 59 次 200。自动成功路径已实测，失败恢复与剩余任务继续待验收。
+
 生产 producer 仍为 `business-static-intent`/shadow，固定基础 intent `artifact_1789848966_aa79d274ac50` 和输入 policy `artifact_1789917932_e90aeeb2510d`；启用策略为 `artifact_1789917933_9f90cbb02a89`，显式选择 `consumer_readiness`。最新验收 shadow `artifact_1789924746_0593e3041d46`、fence 226 包含 160 route、245 DNS records、159 TLS references；两台 DNS 均为 462/462 probes、233/233 readiness records、248/248 eligible queries。八个消费者 observed，serving passing=0；六 artifact 精确重放通过，全局 serving/LKG 未切换。前端契约 `3979108b` 已实际部署，2/2 Ready、公网 200。
 
 下一步 P0-EP 完成完整配置的首次真实 gray/full 接管、positive traffic/policy LKG、自动 serving 策略启用与恢复验证；随后完成剩余策略迁移和旧 serving 来源删除。自动发布代码已部署不代表生产已经启用自动 serving，也不能将 shadow 成功视为全部重构完成。
@@ -3919,3 +3921,15 @@ P0-EP-X 生产取证确认 canonical Service selector 仅有 app 标签，会同
 - [ ] 启用签名 producer serving policy，验证自动灰度/full/LKG 更新与失败回退；继续控制面/consumer 重启恢复、旧来源移除及剩余简化方案任务。
 
 证据：[first-full-traffic-lkg-2026-09-22.json](verification/first-full-traffic-lkg-2026-09-22.json)。
+
+
+### P0-EP-Y24：签名 producer 自动 gray→full→verified LKG
+
+- [x] 仅在现存 full verified TrafficReleaseSet 基线通过后启用 producer `serving` 模式；原基础 intent、输入 policy、应用域名与 DNS query policy 引用保持。签名策略设置 complete cohort、gray/full 各 120 秒、600 秒超时恢复，interval=60 秒、refresh=600 秒。
+- [x] 新 producer policy `artifact_1790091911_5e876f84e521` / release `artifactrel_1790091915_7c818829cd03` 通过正式创建、验证与 release API 激活；未发布代码。
+- [x] producer 自动生成 artifact `artifact_1790091931_a98b6cae07d2`，shadow 后发布 gray `artifactrel_1790091932_92417538b1ea`（fence 2），保留旧 full verified LKG；灰度时间和收敛通过后自动 full `artifactrel_1790092057_49124bed1c6d`（fence 2）。
+- [x] full 实际消费者 route 3/3、TLS 3/3、DNS 2/2 通过，超过 full 最小观察窗口后 producer 自动验证并原子推进 ReleaseSet/route/DNS/TLS/policy 五份 LKG，均绑定同一 full release/evidence hash。整个成功链路不依赖人工 ACK 或手工 full/LKG 调用。
+- [x] API/两地 authority 正常；60 次跨 Edge 采样中 59 次 200、一次 SSH 连接关闭未取得 HTTP，失败如实保留。既有后台监控继续正常。
+- [ ] 验证 policy 版本变化和超时导致的自动恢复、failed-source 去重、consumer/控制面重启恢复及其余旧来源删除；自动成功路径不代表失败路径已经验收。
+
+证据：[automatic-traffic-serving-2026-09-22.json](verification/automatic-traffic-serving-2026-09-22.json)。
