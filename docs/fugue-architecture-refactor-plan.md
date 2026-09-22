@@ -3820,3 +3820,14 @@ P0-EP-X 生产取证确认 canonical Service selector 仅有 app 标签，会同
 - [ ] 最后一条存在资源的历史 revision 保存了早于 operation 最终 spec 的执行配置；需要按该 revision 的历史 promote 证据核对，不能把最终 operation spec 当作所有中间 revision 的同一份配置。已缺失资源的账本、其余 rollback 与全局配置 serving 继续待完成。
 
 证据：[historical-revision-label-migration-2026-09-22.json](verification/historical-revision-label-migration-2026-09-22.json)。
+
+
+### P0-EP-Y17：按 revision 的历史 promote 来源核验，保留损坏快照
+
+- [x] 已提升历史 revision 的来源不再要求等于 operation 完成时保存的最终 spec；改为该 release 的系统 safe-zero-downtime promote 审计、PromotedAt 与 operation 生命周期一致，同时仍严格校验该 release 的保存 spec、实际完整模板及 executable key。未提升的 failed candidate 继续比较来源 operation spec。
+- [x] JSON Store/真实 PostgreSQL 覆盖 operation completion 更新最终 spec、缺失/错误 promote、时间越界、来源冲突和 CAS；Controller 完整模板拒绝回归、race、全量 make test、干净 prepush 通过。`9525c444099e0f13414445993bc93acd8285c791` 经 [CI 35725027354](https://github.com/yym68686/fugue/actions/runs/35725027354) 发布 API/Controller，均 2/2 Ready。
+- [x] 生产确认最后一条历史 release 自己的 SpecSnapshot 也与原 Pod 环境变量不同；旧 canonical baseline 对齐曾覆盖 snapshot。迁移按预期拒绝，没有建立错误 binding 或删除资源；9 个资源 UID、所有 release/traffic、serving/LKG 保留，165 次节点侧采样全部 200，API/authority 正常。
+- [ ] 该历史 revision 未完成迁移/回收。需要用现存资源的精确 owner/UID 与新鲜已停止运行时证据，原子记录退休 tombstone 后回收，不能伪造已丢失的原始 intent 或让不一致 snapshot 获得重新 serving 资格。
+- [ ] 防止后续 canonical 对齐覆盖已绑定 revision 的执行快照；继续全局配置接管和剩余任务。Y17 的生产正向验收是“错误快照安全保留”，不声称历史回收完成。
+
+证据：[historical-release-source-retained-2026-09-22.json](verification/historical-release-source-retained-2026-09-22.json)。

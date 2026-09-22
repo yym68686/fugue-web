@@ -1,0 +1,105 @@
+{
+  "verified_at": "2026-09-22T12:21:34.676336+00:00",
+  "commit": "9525c444099e0f13414445993bc93acd8285c791",
+  "ci": "https://github.com/yym68686/fugue/actions/runs/35725027354",
+  "components": [
+    {
+      "component": "api",
+      "image_tag": "9525c444099e0f13414445993bc93acd8285c791",
+      "ready_replicas": 2,
+      "updated_replicas": 2,
+      "desired_replicas": 2
+    },
+    {
+      "component": "controller",
+      "image_tag": "9525c444099e0f13414445993bc93acd8285c791",
+      "ready_replicas": 2,
+      "updated_replicas": 2,
+      "desired_replicas": 2
+    }
+  ],
+  "health": {
+    "/healthz": 200,
+    "/readyz": 200
+  },
+  "authority_ready": true,
+  "retained_release": {
+    "id": "apprel_1789962121_cb14b0256e0d",
+    "role": "previous",
+    "status": "draining",
+    "promoted_at": "2026-09-21T03:46:28.509251Z",
+    "revision_workload": null
+  },
+  "snapshot_template_differing_env_keys": [
+    "FUGUE_ARCHITECTURE_PROBE"
+  ],
+  "preserved_resource_uids": [
+    "2737266e-a698-42cc-8458-bee134957e51",
+    "32893ea0-ec92-471f-a5d0-01e2e2637fa7",
+    "4c44342d-80be-4ccb-8162-a91017219346",
+    "5d523925-cf99-4151-b0af-71a8ab5bcb0f",
+    "62bc84ef-38a5-440a-9276-05259e9352a5",
+    "6529067e-b785-4081-a583-ef3aee995473",
+    "76f36511-8a51-4a6f-a207-7f2b390875e6",
+    "c2263e9f-c194-432b-985d-c9633d4251a1",
+    "f3a682d4-ec1c-42ec-8281-6d37f15e6999"
+  ],
+  "traffic_and_releases_preserved": true,
+  "serving_lkg_preserved": true,
+  "health_samples": 165,
+  "all_samples_200": true,
+  "sampling_origin": "ovhvpseu via SSH",
+  "prepush": {
+    "apiVersion": "prepush.fugue.dev/v1",
+    "baseCommit": "79e28964ad945f28836eb85a0f7658413c6d9dc5",
+    "changedFilesDigest": "sha256:8abe18321907b8360fed9de3934479f0b37e507acb724d7a46696f7c983fdfb9",
+    "checks": {
+      "affected-tests": {
+        "durationMs": 38717,
+        "status": "pass"
+      },
+      "affected-vet": {
+        "durationMs": 17738,
+        "status": "pass"
+      },
+      "compile-all": {
+        "durationMs": 21731,
+        "status": "pass"
+      },
+      "declarative-release-tests": {
+        "durationMs": 36513,
+        "status": "pass"
+      },
+      "diff-check": {
+        "durationMs": 315,
+        "status": "pass"
+      },
+      "gofmt": {
+        "durationMs": 24,
+        "status": "pass"
+      },
+      "helm-lint-render": {
+        "durationMs": 0,
+        "status": "skipped"
+      },
+      "openapi-generated": {
+        "durationMs": 16011,
+        "status": "pass"
+      },
+      "shell-syntax": {
+        "durationMs": 0,
+        "status": "pass"
+      }
+    },
+    "elapsedMs": 39752,
+    "kind": "PrepushReceipt",
+    "sourceCommit": "9525c444099e0f13414445993bc93acd8285c791",
+    "status": "pass"
+  },
+  "postgres_and_race_log": "=== RUN   TestHistoricalReleaseWorkloadMigration\n=== RUN   TestHistoricalReleaseWorkloadMigration/previous\n=== RUN   TestHistoricalReleaseWorkloadMigration/failed\n=== RUN   TestHistoricalReleaseWorkloadMigration/final_spec_changed\n=== RUN   TestHistoricalReleaseWorkloadMigration/missing_promotion\n=== RUN   TestHistoricalReleaseWorkloadMigration/promotion_after_receipt\n=== RUN   TestHistoricalReleaseWorkloadMigration/wrong_mode\n=== RUN   TestHistoricalReleaseWorkloadMigration/missing_source\n=== RUN   TestHistoricalReleaseWorkloadMigration/wrong_actor\n=== RUN   TestHistoricalReleaseWorkloadMigration/wrong_app\n=== RUN   TestHistoricalReleaseWorkloadMigration/ambiguous_source\n=== RUN   TestHistoricalReleaseWorkloadMigration/stale_release\n=== RUN   TestHistoricalReleaseWorkloadMigration/stale_operation\n=== RUN   TestHistoricalReleaseWorkloadMigration/running_operation\n=== RUN   TestHistoricalReleaseWorkloadMigration/canceled\n=== RUN   TestHistoricalReleaseWorkloadMigration/concurrent\n--- PASS: TestHistoricalReleaseWorkloadMigration (1.11s)\n    --- PASS: TestHistoricalReleaseWorkloadMigration/previous (0.02s)\n    --- PASS: TestHistoricalReleaseWorkloadMigration/failed (0.03s)\n    --- PASS: TestHistoricalReleaseWorkloadMigration/final_spec_changed (0.04s)\n    --- PASS: TestHistoricalReleaseWorkloadMigration/missing_promotion (0.05s)\n    --- PASS: TestHistoricalReleaseWorkloadMigration/promotion_after_receipt (0.06s)\n    --- PASS: TestHistoricalReleaseWorkloadMigration/wrong_mode (0.06s)\n    --- PASS: TestHistoricalReleaseWorkloadMigration/missing_source (0.06s)\n    --- PASS: TestHistoricalReleaseWorkloadMigration/wrong_actor (0.07s)\n    --- PASS: TestHistoricalReleaseWorkloadMigration/wrong_app (0.08s)\n    --- PASS: TestHistoricalReleaseWorkloadMigration/ambiguous_source (0.09s)\n    --- PASS: TestHistoricalReleaseWorkloadMigration/stale_release (0.11s)\n    --- PASS: TestHistoricalReleaseWorkloadMigration/stale_operation (0.10s)\n    --- PASS: TestHistoricalReleaseWorkloadMigration/running_operation (0.09s)\n    --- PASS: TestHistoricalReleaseWorkloadMigration/canceled (0.11s)\n    --- PASS: TestHistoricalReleaseWorkloadMigration/concurrent (0.13s)\n=== RUN   TestHistoricalReleaseWorkloadMigrationPostgres\n=== RUN   TestHistoricalReleaseWorkloadMigrationPostgres/previous\n=== RUN   TestHistoricalReleaseWorkloadMigrationPostgres/failed\n=== RUN   TestHistoricalReleaseWorkloadMigrationPostgres/final_spec_changed\n=== RUN   TestHistoricalReleaseWorkloadMigrationPostgres/missing_promotion\n=== RUN   TestHistoricalReleaseWorkloadMigrationPostgres/promotion_after_receipt\n=== RUN   TestHistoricalReleaseWorkloadMigrationPostgres/wrong_mode\n=== RUN   TestHistoricalReleaseWorkloadMigrationPostgres/missing_source\n=== RUN   TestHistoricalReleaseWorkloadMigrationPostgres/wrong_actor\n=== RUN   TestHistoricalReleaseWorkloadMigrationPostgres/wrong_app\n=== RUN   TestHistoricalReleaseWorkloadMigrationPostgres/ambiguous_source\n=== RUN   TestHistoricalReleaseWorkloadMigrationPostgres/stale_release\n=== RUN   TestHistoricalReleaseWorkloadMigrationPostgres/stale_operation\n=== RUN   TestHistoricalReleaseWorkloadMigrationPostgres/running_operation\n=== RUN   TestHistoricalReleaseWorkloadMigrationPostgres/canceled\n=== RUN   TestHistoricalReleaseWorkloadMigrationPostgres/concurrent\n--- PASS: TestHistoricalReleaseWorkloadMigrationPostgres (0.41s)\n    --- PASS: TestHistoricalReleaseWorkloadMigrationPostgres/previous (0.03s)\n    --- PASS: TestHistoricalReleaseWorkloadMigrationPostgres/failed (0.02s)\n    --- PASS: TestHistoricalReleaseWorkloadMigrationPostgres/final_spec_changed (0.02s)\n    --- PASS: TestHistoricalReleaseWorkloadMigrationPostgres/missing_promotion (0.03s)\n    --- PASS: TestHistoricalReleaseWorkloadMigrationPostgres/promotion_after_receipt (0.02s)\n    --- PASS: TestHistoricalReleaseWorkloadMigrationPostgres/wrong_mode (0.01s)\n    --- PASS: TestHistoricalReleaseWorkloadMigrationPostgres/missing_source (0.02s)\n    --- PASS: TestHistoricalReleaseWorkloadMigrationPostgres/wrong_actor (0.02s)\n    --- PASS: TestHistoricalReleaseWorkloadMigrationPostgres/wrong_app (0.01s)\n    --- PASS: TestHistoricalReleaseWorkloadMigrationPostgres/ambiguous_source (0.02s)\n    --- PASS: TestHistoricalReleaseWorkloadMigrationPostgres/stale_release (0.01s)\n    --- PASS: TestHistoricalReleaseWorkloadMigrationPostgres/stale_operation (0.01s)\n    --- PASS: TestHistoricalReleaseWorkloadMigrationPostgres/running_operation (0.01s)\n    --- PASS: TestHistoricalReleaseWorkloadMigrationPostgres/canceled (0.01s)\n    --- PASS: TestHistoricalReleaseWorkloadMigrationPostgres/concurrent (0.03s)\nPASS\nok  \tfugue/internal/store\t4.090s\n=== RUN   TestHistoricalWorkloadMigrationRequiresSourceAndExactExistingResources\n=== RUN   TestHistoricalWorkloadMigrationRequiresSourceAndExactExistingResources/previous\n=== PAUSE TestHistoricalWorkloadMigrationRequiresSourceAndExactExistingResources/previous\n=== RUN   TestHistoricalWorkloadMigrationRequiresSourceAndExactExistingResources/failed\n=== PAUSE TestHistoricalWorkloadMigrationRequiresSourceAndExactExistingResources/failed\n=== RUN   TestHistoricalWorkloadMigrationRequiresSourceAndExactExistingResources/final_spec_changed\n=== PAUSE TestHistoricalWorkloadMigrationRequiresSourceAndExactExistingResources/final_spec_changed\n=== RUN   TestHistoricalWorkloadMigrationRequiresSourceAndExactExistingResources/missing_promotion\n=== PAUSE TestHistoricalWorkloadMigrationRequiresSourceAndExactExistingResources/missing_promotion\n=== RUN   TestHistoricalWorkloadMigrationRequiresSourceAndExactExistingResources/promotion_after_operation\n=== PAUSE TestHistoricalWorkloadMigrationRequiresSourceAndExactExistingResources/promotion_after_operation\n=== RUN   TestHistoricalWorkloadMigrationRequiresSourceAndExactExistingResources/missing_source\n=== PAUSE TestHistoricalWorkloadMigrationRequiresSourceAndExactExistingResources/missing_source\n=== RUN   TestHistoricalWorkloadMigrationRequiresSourceAndExactExistingResources/wrong_spec\n=== PAUSE TestHistoricalWorkloadMigrationRequiresSourceAndExactExistingResources/wrong_spec\n=== RUN   TestHistoricalWorkloadMigrationRequiresSourceAndExactExistingResources/new_uid\n=== PAUSE TestHistoricalWorkloadMigrationRequiresSourceAndExactExistingResources/new_uid\n=== RUN   TestHistoricalWorkloadMigrationRequiresSourceAndExactExistingResources/new_generation\n=== PAUSE TestHistoricalWorkloadMigrationRequiresSourceAndExactExistingResources/new_generation\n=== RUN   TestHistoricalWorkloadMigrationRequiresSourceAndExactExistingResources/recreated_after_operation\n=== PAUSE TestHistoricalWorkloadMigrationRequiresSourceAndExactExistingResources/recreated_after_operation\n=== RUN   TestHistoricalWorkloadMigrationRequiresSourceAndExactExistingResources/old_resource\n=== PAUSE TestHistoricalWorkloadMigrationRequiresSourceAndExactExistingResources/old_resource\n=== RUN   TestHistoricalWorkloadMigrationRequiresSourceAndExactExistingResources/wrong_owner\n=== PAUSE TestHistoricalWorkloadMigrationRequiresSourceAndExactExistingResources/wrong_owner\n=== RUN   TestHistoricalWorkloadMigrationRequiresSourceAndExactExistingResources/wrong_selector\n=== PAUSE TestHistoricalWorkloadMigrationRequiresSourceAndExactExistingResources/wrong_selector\n=== RUN   TestHistoricalWorkloadMigrationRequiresSourceAndExactExistingResources/wrong_image\n=== PAUSE TestHistoricalWorkloadMigrationRequiresSourceAndExactExistingResources/wrong_image\n=== RUN   TestHistoricalWorkloadMigrationRequiresSourceAndExactExistingResources/old_agent\n=== PAUSE TestHistoricalWorkloadMigrationRequiresSourceAndExactExistingResources/old_agent\n=== RUN   TestHistoricalWorkloadMigrationRequiresSourceAndExactExistingResources/agent_changed\n=== PAUSE TestHistoricalWorkloadMigrationRequiresSourceAndExactExistingResources/agent_changed\n=== RUN   TestHistoricalWorkloadMigrationRequiresSourceAndExactExistingResources/agent_config_changed\n=== PAUSE TestHistoricalWorkloadMigrationRequiresSourceAndExactExistingResources/agent_config_changed\n=== RUN   TestHistoricalWorkloadMigrationRequiresSourceAndExactExistingResources/missing_deployment\n=== PAUSE TestHistoricalWorkloadMigrationRequiresSourceAndExactExistingResources/missing_deployment\n=== RUN   TestHistoricalWorkloadMigrationRequiresSourceAndExactExistingResources/canceled\n=== PAUSE TestHistoricalWorkloadMigrationRequiresSourceAndExactExistingResources/canceled\n=== RUN   TestHistoricalWorkloadMigrationRequiresSourceAndExactExistingResources/missing_labels\n=== PAUSE TestHistoricalWorkloadMigrationRequiresSourceAndExactExistingResources/missing_labels\n=== RUN   TestHistoricalWorkloadMigrationRequiresSourceAndExactExistingResources/label_retry\n=== PAUSE TestHistoricalWorkloadMigrationRequiresSourceAndExactExistingResources/label_retry\n=== RUN   TestHistoricalWorkloadMigrationRequiresSourceAndExactExistingResources/label_wrong_owner\n=== PAUSE TestHistoricalWorkloadMigrationRequiresSourceAndExactExistingResources/label_wrong_owner\n=== RUN   TestHistoricalWorkloadMigrationRequiresSourceAndExactExistingResources/label_wrong_image\n=== PAUSE TestHistoricalWorkloadMigrationRequiresSourceAndExactExistingResources/label_wrong_image\n=== RUN   TestHistoricalWorkloadMigrationRequiresSourceAndExactExistingResources/label_replaced_after_preflight\n=== PAUSE TestHistoricalWorkloadMigrationRequiresSourceAndExactExistingResources/label_replaced_after_preflight\n=== CONT  TestHistoricalWorkloadMigrationRequiresSourceAndExactExistingResources/previous\n=== CONT  TestHistoricalWorkloadMigrationRequiresSourceAndExactExistingResources/wrong_owner\n=== CONT  TestHistoricalWorkloadMigrationRequiresSourceAndExactExistingResources/missing_deployment\n=== CONT  TestHistoricalWorkloadMigrationRequiresSourceAndExactExistingResources/missing_source\n=== CONT  TestHistoricalWorkloadMigrationRequiresSourceAndExactExistingResources/label_replaced_after_preflight\n=== CONT  TestHistoricalWorkloadMigrationRequiresSourceAndExactExistingResources/label_wrong_image\n=== CONT  TestHistoricalWorkloadMigrationRequiresSourceAndExactExistingResources/label_wrong_owner\n=== CONT  TestHistoricalWorkloadMigrationRequiresSourceAndExactExistingResources/missing_labels\n=== CONT  TestHistoricalWorkloadMigrationRequiresSourceAndExactExistingResources/label_retry\n=== CONT  TestHistoricalWorkloadMigrationRequiresSourceAndExactExistingResources/missing_promotion\n=== CONT  TestHistoricalWorkloadMigrationRequiresSourceAndExactExistingResources/promotion_after_operation\n=== CONT  TestHistoricalWorkloadMigrationRequiresSourceAndExactExistingResources/new_uid\n=== CONT  TestHistoricalWorkloadMigrationRequiresSourceAndExactExistingResources/failed\n=== CONT  TestHistoricalWorkloadMigrationRequiresSourceAndExactExistingResources/final_spec_changed\n=== CONT  TestHistoricalWorkloadMigrationRequiresSourceAndExactExistingResources/old_agent\n=== CONT  TestHistoricalWorkloadMigrationRequiresSourceAndExactExistingResources/agent_config_changed\n=== CONT  TestHistoricalWorkloadMigrationRequiresSourceAndExactExistingResources/canceled\n=== CONT  TestHistoricalWorkloadMigrationRequiresSourceAndExactExistingResources/agent_changed\n=== CONT  TestHistoricalWorkloadMigrationRequiresSourceAndExactExistingResources/wrong_image\n=== CONT  TestHistoricalWorkloadMigrationRequiresSourceAndExactExistingResources/new_generation\n=== CONT  TestHistoricalWorkloadMigrationRequiresSourceAndExactExistingResources/old_resource\n=== CONT  TestHistoricalWorkloadMigrationRequiresSourceAndExactExistingResources/wrong_spec\n=== CONT  TestHistoricalWorkloadMigrationRequiresSourceAndExactExistingResources/recreated_after_operation\n=== CONT  TestHistoricalWorkloadMigrationRequiresSourceAndExactExistingResources/wrong_selector\n--- PASS: TestHistoricalWorkloadMigrationRequiresSourceAndExactExistingResources (0.00s)\n    --- PASS: TestHistoricalWorkloadMigrationRequiresSourceAndExactExistingResources/missing_deployment (0.06s)\n    --- PASS: TestHistoricalWorkloadMigrationRequiresSourceAndExactExistingResources/missing_source (0.06s)\n    --- PASS: TestHistoricalWorkloadMigrationRequiresSourceAndExactExistingResources/wrong_owner (0.07s)\n    --- PASS: TestHistoricalWorkloadMigrationRequiresSourceAndExactExistingResources/previous (0.08s)\n    --- PASS: TestHistoricalWorkloadMigrationRequiresSourceAndExactExistingResources/label_wrong_image (0.05s)\n    --- PASS: TestHistoricalWorkloadMigrationRequiresSourceAndExactExistingResources/label_replaced_after_preflight (0.06s)\n    --- PASS: TestHistoricalWorkloadMigrationRequiresSourceAndExactExistingResources/label_wrong_owner (0.05s)\n    --- PASS: TestHistoricalWorkloadMigrationRequiresSourceAndExactExistingResources/missing_labels (0.08s)\n    --- PASS: TestHistoricalWorkloadMigrationRequiresSourceAndExactExistingResources/missing_promotion (0.05s)\n    --- PASS: TestHistoricalWorkloadMigrationRequiresSourceAndExactExistingResources/promotion_after_operation (0.05s)\n    --- PASS: TestHistoricalWorkloadMigrationRequiresSourceAndExactExistingResources/label_retry (0.10s)\n    --- PASS: TestHistoricalWorkloadMigrationRequiresSourceAndExactExistingResources/new_uid (0.06s)\n    --- PASS: TestHistoricalWorkloadMigrationRequiresSourceAndExactExistingResources/failed (0.06s)\n    --- PASS: TestHistoricalWorkloadMigrationRequiresSourceAndExactExistingResources/final_spec_changed (0.06s)\n    --- PASS: TestHistoricalWorkloadMigrationRequiresSourceAndExactExistingResources/canceled (0.04s)\n    --- PASS: TestHistoricalWorkloadMigrationRequiresSourceAndExactExistingResources/agent_config_changed (0.05s)\n    --- PASS: TestHistoricalWorkloadMigrationRequiresSourceAndExactExistingResources/old_agent (0.06s)\n    --- PASS: TestHistoricalWorkloadMigrationRequiresSourceAndExactExistingResources/agent_changed (0.06s)\n    --- PASS: TestHistoricalWorkloadMigrationRequiresSourceAndExactExistingResources/wrong_image (0.05s)\n    --- PASS: TestHistoricalWorkloadMigrationRequiresSourceAndExactExistingResources/new_generation (0.06s)\n    --- PASS: TestHistoricalWorkloadMigrationRequiresSourceAndExactExistingResources/old_resource (0.05s)\n    --- PASS: TestHistoricalWorkloadMigrationRequiresSourceAndExactExistingResources/wrong_spec (0.06s)\n    --- PASS: TestHistoricalWorkloadMigrationRequiresSourceAndExactExistingResources/recreated_after_operation (0.05s)\n    --- PASS: TestHistoricalWorkloadMigrationRequiresSourceAndExactExistingResources/wrong_selector (0.05s)\nPASS\nok  \tfugue/internal/controller\t4.003s\n",
+  "limitations": [
+    "No production historical binding or retirement occurred for the mismatched revision.",
+    "The release snapshot was historically overwritten and no longer matches the original Pod.",
+    "Closed-runtime recovery must avoid inventing original intent and must atomically fence any future reactivation."
+  ]
+}
