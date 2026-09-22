@@ -1,0 +1,175 @@
+{
+  "verified_at": "2026-09-22T14:02:48.217072+00:00",
+  "commit": "56a7eeb1707eae8714bf752a3fbc18a568d8018e",
+  "ci": "https://github.com/yym68686/fugue/actions/runs/35736262352",
+  "components": [
+    {
+      "component": "api",
+      "image_tag": "56a7eeb1707eae8714bf752a3fbc18a568d8018e",
+      "ready_replicas": 2,
+      "updated_replicas": 2,
+      "desired_replicas": 2
+    },
+    {
+      "component": "controller",
+      "image_tag": "edc72b9bf5b43527afd27f92a317a8cdc3a76c55",
+      "ready_replicas": 2,
+      "updated_replicas": 2,
+      "desired_replicas": 2
+    }
+  ],
+  "health": {
+    "/healthz": 200,
+    "/readyz": 200
+  },
+  "authority_ready": true,
+  "api_receipt": {
+    "apiVersion": "release.fugue.dev/v2",
+    "component": "api",
+    "configDigest": "sha256:534f648ee99f2b5237b16e7d3f55c48253cd623955ee63e63ee886ce0b44422e",
+    "configSha": "56a7eeb1707eae8714bf752a3fbc18a568d8018e",
+    "immutableRef": "ghcr.io/yym68686/fugue-api@sha256:f56d937ffc786d381b0f8c7e44784c7e0354a956137e47443dba8135d10f86f9",
+    "intentDigest": "sha256:f60cdad7dee021eef4492f1843e391451979fe1ee30660197bb2829c0bd35299",
+    "kind": "ImmutableComponentArtifactReceipt",
+    "ociRevision": "56a7eeb1707eae8714bf752a3fbc18a568d8018e",
+    "planDigest": "sha256:771223740f46165f7142cb46011da064ae02cdee2b4c83f857340d7ed10fe924",
+    "platform": "linux/amd64",
+    "platformManifestDigest": "sha256:b8ca764aa0a2e5145b7b66c5715c0380e62d80363cd9ce33efd81034fed561ab",
+    "receiptDigest": "sha256:f20d6e81174b68a6259613430a96f19c6eea24bbf5e85324539fe99022d90d84",
+    "repository": "ghcr.io/yym68686/fugue-api",
+    "sourceSha": "56a7eeb1707eae8714bf752a3fbc18a568d8018e",
+    "sourceTag": "56a7eeb1707eae8714bf752a3fbc18a568d8018e",
+    "topDigest": "sha256:f56d937ffc786d381b0f8c7e44784c7e0354a956137e47443dba8135d10f86f9",
+    "verification": "registry_manifest_config_and_layer_get"
+  },
+  "state": {
+    "observed_at": "2026-09-22T14:00:57.129270+00:00",
+    "release_set_id": "artifact_1790085542_92ea6c7b216b",
+    "artifact_release_id": "artifactrel_1790085542_2cbd30ff9fc1",
+    "route_artifact_id": "artifact_1790085541_4ce1f73550ab",
+    "dns_artifact_id": "artifact_1790085541_4df83e56ea80",
+    "tls_artifact_id": "artifact_1790085542_abae0bd09f3e",
+    "route_count": 162,
+    "dns_record_count": 246,
+    "release_channel": "shadow",
+    "fencing_token": 745,
+    "serving_promotion": false,
+    "input_prefix": "/tmp/fugue-default-dns-after",
+    "producer_policy_release_id": "artifactrel_1789925851_cd3899cc21ff",
+    "source_digest": "sha256:7e9fa49b712b6adfc02c95290149910747e87276d63638a747dc5874240c818e"
+  },
+  "route_comparison": {
+    "artifact_id": "artifact_1790085541_4ce1f73550ab",
+    "artifact_digest": "sha256:2641ab7dc4a300d23a73b690f5ce2990391e45564ac7f2a12fb98d8d52fa7adf",
+    "artifact_generation": "route-544e6b13de39a2fa57123bb826374208de594372c3765fca5ae1034bb960e4a3",
+    "source_generation": "routeintents_c4be1746b5c25297905285fa318e399f80bc20b21cdf7fac7f5b7d954699b8d6",
+    "captured_at": "2026-09-22T14:02:37.192765284Z",
+    "source_route_count": 162,
+    "artifact_route_count": 162,
+    "matching_route_count": 162,
+    "equivalent": true,
+    "differences": [],
+    "snapshot_differences": []
+  },
+  "dns_query_comparisons": [
+    {
+      "artifact_id": "artifact_1790085541_4df83e56ea80",
+      "checks": 700,
+      "differences": [],
+      "limits": "Offline selector replay at captured query time; excludes TTL, current live probes and public wire dispatch; no serving mutation.",
+      "node_id": "vps-591f4447",
+      "observed_at": "2026-09-22T14:00:50.090977904Z",
+      "records": 249
+    },
+    {
+      "artifact_id": "artifact_1790085541_4df83e56ea80",
+      "checks": 700,
+      "differences": [],
+      "limits": "Offline selector replay at captured query time; excludes TTL, current live probes and public wire dispatch; no serving mutation.",
+      "node_id": "vps-84c8f0a9",
+      "observed_at": "2026-09-22T14:00:51.896075718Z",
+      "records": 249
+    }
+  ],
+  "trusted_shadow_consumers": 8,
+  "serving_passing": 0,
+  "serving_lkg_preserved": true,
+  "health_samples": 219,
+  "all_samples_200": true,
+  "sampling_origin": "ovhvpseu via SSH",
+  "first_sample": "2026-09-22T13:42:59.811650+00:00",
+  "last_sample": "2026-09-22T14:02:45.632139+00:00",
+  "prepush": {
+    "apiVersion": "prepush.fugue.dev/v1",
+    "baseCommit": "edc72b9bf5b43527afd27f92a317a8cdc3a76c55",
+    "changedFilesDigest": "sha256:1de6318a40e655ab1e69bedaf43fa02a95ae2614e78c58e38d7619d22e1c8661",
+    "checks": {
+      "affected-tests": {
+        "durationMs": 1987,
+        "status": "pass"
+      },
+      "affected-vet": {
+        "durationMs": 4603,
+        "status": "pass"
+      },
+      "compile-all": {
+        "durationMs": 18786,
+        "status": "pass"
+      },
+      "declarative-release-tests": {
+        "durationMs": 20948,
+        "status": "pass"
+      },
+      "diff-check": {
+        "durationMs": 250,
+        "status": "pass"
+      },
+      "gofmt": {
+        "durationMs": 48,
+        "status": "pass"
+      },
+      "helm-lint-render": {
+        "durationMs": 0,
+        "status": "skipped"
+      },
+      "openapi-generated": {
+        "durationMs": 1814,
+        "status": "pass"
+      },
+      "shell-syntax": {
+        "durationMs": 0,
+        "status": "pass"
+      }
+    },
+    "elapsedMs": 25978,
+    "kind": "PrepushReceipt",
+    "sourceCommit": "56a7eeb1707eae8714bf752a3fbc18a568d8018e",
+    "status": "pass"
+  },
+  "limits": [
+    "DNS comparison replays the production selector against captured legacy cache and fresh shadow readiness at captured time; excludes live network probe effects, public wire dispatch and TTL equivalence.",
+    "Global configuration remains shadow; actual gray/full and positive LKG are still pending."
+  ],
+  "public_dns_wire_comparison": [
+    {
+      "node_id": "vps-591f4447",
+      "artifact_id": "artifact_1790085541_4df83e56ea80",
+      "checked_at": "2026-09-22T14:01:44.108692Z",
+      "finished_at": "2026-09-22T14:02:17.675552Z",
+      "total": 249,
+      "matched": 249,
+      "limits": "TCP public queries through explicit SOCKS origin, compares RRsets excluding TTL and ordering; actual endpoints continue legacy serving."
+    },
+    {
+      "node_id": "vps-84c8f0a9",
+      "artifact_id": "artifact_1790085541_4df83e56ea80",
+      "checked_at": "2026-09-22T14:01:44.785677Z",
+      "finished_at": "2026-09-22T14:02:08.294913Z",
+      "total": 249,
+      "matched": 249,
+      "limits": "TCP public queries through explicit SOCKS origin, compares RRsets excluding TTL and ordering; actual endpoints continue legacy serving."
+    }
+  ],
+  "frontend_contract_commit": "9c22bd5bd4f6580b32d2df25c89734ffc7d79407",
+  "frontend_contract_ci": "https://github.com/yym68686/fugue-web/actions/runs/35736293859"
+}

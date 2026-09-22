@@ -36,6 +36,8 @@ Runtime Facts / ACK / LKG
 
 Y19 的 `edc72b9b` 已在 Controller、JSON Store 和 PostgreSQL 保护绑定后的 source/image/runtime/SpecSnapshot；canonical 对齐仅更新服务目标，下一次发布保留原已绑定 stable，执行模板不符则拒绝对齐。独立数据库约束在旧 schema migrator 重放后仍有效；生产 schema/API/Controller 回执核对通过，API/Controller 2/2 Ready，6 个资源 UID、14 条活动 release、traffic/serving/LKG 保留，222 次节点侧跨 Edge 请求全部 200。全局配置仍为 shadow。
 
+Y20 的 API `56a7eeb1` 已修复默认 DNS 投影：只有冻结 App 的默认 hostname/owner 匹配才生成隐式记录，项目 HTTP 路由别名需要独立 DNS 声明。新 shadow `artifact_1790085542_92ea6c7b216b`（fence 745）保持 162 route，移除一条未经 DNS 声明授权的别名后为 246 DNS records；两地各 249 条实际查询记录、700 个离线选择器检查一致，公网 TCP 各 249/249 RRset 与候选一致（不比较 TTL/顺序）。八个消费者 observed、serving passing=0，219 次跨 Edge 健康采样全部 200，serving/LKG 保留。
+
 生产 producer 仍为 `business-static-intent`/shadow，固定基础 intent `artifact_1789848966_aa79d274ac50` 和输入 policy `artifact_1789917932_e90aeeb2510d`；启用策略为 `artifact_1789917933_9f90cbb02a89`，显式选择 `consumer_readiness`。最新验收 shadow `artifact_1789924746_0593e3041d46`、fence 226 包含 160 route、245 DNS records、159 TLS references；两台 DNS 均为 462/462 probes、233/233 readiness records、248/248 eligible queries。八个消费者 observed，serving passing=0；六 artifact 精确重放通过，全局 serving/LKG 未切换。前端契约 `3979108b` 已实际部署，2/2 Ready、公网 200。
 
 下一步 P0-EP 完成完整配置的首次真实 gray/full 接管、positive traffic/policy LKG、自动 serving 策略启用与恢复验证；随后完成剩余策略迁移和旧 serving 来源删除。自动发布代码已部署不代表生产已经启用自动 serving，也不能将 shadow 成功视为全部重构完成。
@@ -3860,3 +3862,16 @@ P0-EP-X 生产取证确认 canonical Service selector 仅有 app 标签，会同
 - [ ] 完成更早无 workload 的账本收敛、其余 rollback、完整配置首次 gray/full 接管、positive LKG 和旧 serving 路径删除。此步不代表全局配置已经 serving。
 
 证据：[bound-release-intent-2026-09-22.json](verification/bound-release-intent-2026-09-22.json)。
+
+
+### P0-EP-Y20：默认 DNS 归属修复与全量查询对比
+
+- [x] 从两台 DNS 的实际 legacy cache、签名候选和新鲜 readiness 回执重放选择器，定位唯一额外记录来自项目 HTTP 路由别名。修复 `projectDefaultAppDNS`，必须匹配冻结 App 的默认 route hostname、App ID 和 tenant；项目 route table 别名不再隐式获得 DNS。显式 DNS 和 verified domain projection 保持原有规则，不引入项目名称判断。
+- [x] OpenAPI 先更新投影语义并重新生成；默认匹配、别名、缺 App/route、错误 owner、显式别名保留、歧义归属回归和 race 通过。全量 make test、前端 contract:check 通过；干净 checkout 完整 API 测试后 prepush 在 26 秒内通过。此前两次本地 prepush 因 API 完整测试超过默认 55 秒而超时，未忽略失败或缩减检查。
+- [x] `56a7eeb1707eae8714bf752a3fbc18a568d8018e` 经 [CI 35736262352](https://github.com/yym68686/fugue/actions/runs/35736262352) 仅更新 API，2/2 Ready；Controller 保持 `edc72b9b`、2/2 Ready。前端契约同步 `9c22bd5b` 的 [CI 35736293859](https://github.com/yym68686/fugue-web/actions/runs/35736293859) 成功。
+- [x] 自动 producer 在原 policy 下生成 shadow `artifact_1790085542_92ea6c7b216b`，fence 745：162 route 与当前 serving 完全一致，DNS artifact 为 246 records，两台 consumer 各执行 249 个 zone record。原 HTTP 别名路由仍保留，仅移除缺少 DNS 声明的隐式地址记录。
+- [x] 两台 DNS 各 700 个默认/地域选择器重放零差异；从欧洲节点经临时 SOCKS 向两台公网 TCP/53 各查询全部 249 条记录，249/249 RRset 均与候选一致，无传输失败。比较排除 TTL 与答案顺序，覆盖当前公网请求来源；不扩大声称所有 ECS/UDP 场景都已经验证。
+- [x] 八个消费者 identity-verified 且 observed，serving passing=0；API/两地 authority 正常，219 次跨 Edge 健康采样全部 200，当前 serving 和 policy/artifact LKG 保留。
+- [ ] 固定完整候选，继续首次 gray/full 接管、positive LKG、自动 serving 与恢复演练，以及其余旧路径删除；本步骤仍是 shadow 验收。
+
+证据：[default-dns-owner-projection-2026-09-22.json](verification/default-dns-owner-projection-2026-09-22.json)。
