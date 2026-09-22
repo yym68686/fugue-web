@@ -32,11 +32,11 @@ Runtime Facts / ACK / LKG
 
 ## 当前状态判断
 
-截至 Y28，route、DNS、TLS 已完成统一 TrafficReleaseSet 的生产 full 接管。三台 active Edge 和两台 DNS 按当前 release、artifact、expected consumer set 与 fence 提供真实 serving 回执；全局 ReleaseSet、route、DNS、TLS、policy 五份 verified LKG 绑定同一验证 release 和 evidence hash。
+截至 Y29，route、DNS、TLS 已完成统一 TrafficReleaseSet 的生产 full 接管。三台 active Edge 和两台 DNS 按当前 release、artifact、expected consumer set 与 fence 提供真实 serving 回执；全局 ReleaseSet、route、DNS、TLS、policy 五份 verified LKG 绑定同一验证 release 和 evidence hash。
 
 签名 producer policy 已启用自动 serving：固定基础 intent 与输入 policy，捕获业务投影后编译、gray、full，并在观察窗口与消费者收敛通过后更新 LKG。gray/full 各至少观察 120 秒，600 秒未完成则恢复 verified 基线。policy 授权版本变化的生产演练已验证：5.321 秒内发布恢复版本，八个消费者随后收敛，原五份 positive LKG 保留。超时专用演练、重启恢复与连接连续性仍待补齐。
 
-当前已验收代码：API `d92d9d51`、两地 DNS client `f0588c6e`、Controller `edc72b9b`、两地 Edge worker `7cff4f63`。Y26 已删除 Edge route-intents HTTP serving 路径中的业务表即时生成及 standalone LKG 回退，只返回适用的已发布 TrafficReleaseSet；缺少/损坏发布时返回 503，consumer 保留当前 artifact。业务投影仍由配置 producer 独立完成。
+当前已验收代码：API `d92d9d51`、两地 DNS client / release guardian `eac7d113`、Controller `edc72b9b`、两地 Edge worker `7cff4f63`。Y26 已删除 Edge route-intents HTTP serving 路径中的业务表即时生成及 standalone LKG 回退，只返回适用的已发布 TrafficReleaseSet；缺少/损坏发布时返回 503，consumer 保留当前 artifact。业务投影仍由配置 producer 独立完成。
 
 历史 revision 资源回收、不可变执行快照保护、排除路由负向证明和 DNS 通配监听恢复均已完成相应生产验收，详见 Y10–Y26。发布监控保留了 SSH 采集失败与一次 US A/B 期间 TLS EOF；后续独立复查正常，不能据此声称所有发布均零中断。
 
@@ -3964,6 +3964,20 @@ P0-EP-X 生产取证确认 canonical Service selector 仅有 app 标签，会同
 - [x] 将兼容升级拆开：`f0588c6ef4089c7221ca1f0c24d3af97f5ff4498` 先保留旧字段、增加明确的 `FUGUE_DNS_PUBLIC_IPV4` 并上线新启动逻辑，经 [CI 35762677653](https://github.com/yym68686/fugue/actions/runs/35762677653) 两地成功。这样后续删除旧变量时，上一版本已兼容 artifact-only bootstrap。
 - [x] 两地正式回执、替换后的 Pod、positive checkpoint、新鲜 readiness、249 records 与准确 inventory generation 一致，route 3/3、TLS 3/3、DNS 2/2 按当前 release 的精确 expected sets 收敛。六个公网 SOA 查询 authoritative，sequence=818、TTL=60；API 2/2 和两地 authority 正常。
 - [x] 两轮发布期间监控累计 339 次跨 Edge 健康请求全部 200。SOCKS 取证失败、过早读取 US 回执、自动配置切换期间的 convergence 失败均重试并留记录；不以 HTTP 成功声称 DNS rolling replacement 全程无中断。
-- [ ] 完成从前后 sealed manifest 推导、UID/RV/旧值绑定的共享环境字段删除，再退役这 13 项变量。本步只完成兼容启动和 inventory 分离，不将尚未删除的变量打勾。
+- [x] 共享环境字段删除与 13 项生产 DNS serving 变量退役已由 Y29 完成；Y28 当时仅完成兼容启动和 inventory 分离。
 
 证据：[dns-inventory-bootstrap-2026-09-22.json](verification/dns-inventory-bootstrap-2026-09-22.json)。
+
+
+### P0-EP-Y29：声明式共享环境字段删除与 DNS serving env 退役
+
+- [x] 发布器从已校验摘要的 forward/LKG manifest 推导双向 literal env 删除集合，只允许本组件的命名 container、旧 manifest 中存在而目标已删除的字段。live-only 字段、引用型变量、未知 owner、旧值漂移均无删除权限；只接受本声明式 owner 及历史 Helm Update 的共同所有权。
+- [x] dry-run 不写生产；执行 JSON Patch 同时测试 UID、resourceVersion 和每个旧 entry，再删除。严格核对返回对象只发生已审核删除与一次 generation 增长，随后普通 SSA 应用目标。补偿由同一 manifest 对推导反向删除；首次安装不授予删除权限。
+- [x] `0d7e50a3` 的 [CI 35764737713](https://github.com/yym68686/fugue/actions/runs/35764737713) 更新 guardian 成功，两地 client 在字段删除后的 apply 失败并补偿回 `f0588c6e`。原始 Kubernetes 错误被旧 ownership parser 覆盖为“not a typed SSA conflict”，不能仅凭该回执断言原始错误类型。
+- [x] 补充 observation-only CAS 有限重试与原始错误保留：只有同 UID、同 generation、完整 spec/metadata 等价的状态更新才能刷新 resourceVersion；配置、UID、generation 变化立即拒绝。生产只读 shared-ownership 快照重放、真实 JSON Patch CAS 正反例、dry-run、引用字段/首次安装兼容、race、全量 make test 和干净 prepush 通过。
+- [x] `eac7d1136a352e3b4347b32f39d271322267aedd` 经 [CI 35766566247](https://github.com/yym68686/fugue/actions/runs/35766566247) 成功发布 guardian 与两地 client。实际 DNS DaemonSet 均由 32 项 env 降为 19 项：删除 answer、route-A、extra-zone、TTL、nameserver、stale、旧 health probe、sync 和 override 共 13 项；保留公网地址为 inventory，主 zone 暂供 bootstrap identity。
+- [x] 新 Pod 在无上述环境配置下正常恢复 signed checkpoint、249 records、465 route/TLS probes 和 234 readiness records；准确 inventory generation 与实际 artifact 一致。current release 的 route 3/3、TLS 3/3、DNS 2/2 收敛，API/authority 正常。两台 DNS 三个 zone 六条公网 SOA 同为 sequence 824、TTL 60；另一美国节点直接查询也通过。
+- [x] 本轮验收时累计 390 次跨 Edge HTTP 全部 200。连续公网 TCP DNS 监控保留 10 次 EOF（与两轮发布/补偿的 Pod 替换时间重合）及一次后续 SOCKS 查询超时；之后连续检查与独立来源复查正常。不能将发布完成等同为连接连续性完成。
+- [ ] 修复 DNS liveness 与外部 serving readiness 的耦合，以及单 Pod/hostPort rolling replacement 的节点级连接空窗；继续 API 环境来源和旧 publisher 删除。DNS consumer env 退役不代表全平台同名变量均已删除。
+
+证据：[dns-serving-env-retirement-2026-09-22.json](verification/dns-serving-env-retirement-2026-09-22.json)。
