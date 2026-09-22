@@ -32,11 +32,11 @@ Runtime Facts / ACK / LKG
 
 ## 当前状态判断
 
-截至 Y32，route、DNS、TLS 已完成统一 TrafficReleaseSet 的生产 full 接管。三台 active Edge 和两台 DNS 按当前 release、artifact、expected consumer set 与 fence 提供真实 serving 回执；全局 ReleaseSet、route、DNS、TLS、policy 五份 verified LKG 绑定同一验证 release 和 evidence hash。
+截至 Y33，route、DNS、TLS 已完成统一 TrafficReleaseSet 的生产 full 接管。三台 active Edge 和两台 DNS 按当前 release、artifact、expected consumer set 与 fence 提供真实 serving 回执；全局 ReleaseSet、route、DNS、TLS、policy 五份 verified LKG 绑定同一验证 release 和 evidence hash。
 
 签名 producer policy 已启用自动 serving：固定基础 intent 与输入 policy，捕获业务投影后编译、gray、full，并在观察窗口与消费者收敛通过后更新 LKG。gray/full 各至少观察 120 秒，600 秒未完成则恢复 verified 基线。policy 授权版本变化的生产演练已验证：5.321 秒内发布恢复版本，八个消费者随后收敛，原五份 positive LKG 保留。超时专用演练、重启恢复与连接连续性仍待补齐。
 
-当前已验收代码：API `aad532c0`、两地 DNS client / release guardian `7faf072a`、Controller `edc72b9b`、两地 Edge worker `7cff4f63`。Y26 已删除 Edge route-intents HTTP serving 路径中的业务表即时生成及 standalone LKG 回退，只返回适用的已发布 TrafficReleaseSet；缺少/损坏发布时返回 503，consumer 保留当前 artifact。业务投影仍由配置 producer 独立完成。
+当前已验收代码：API 与两地 DNS client `56749f65`、release guardian `7faf072a`、Controller `edc72b9b`、两地 Edge worker `7cff4f63`。Y26 已删除 Edge route-intents HTTP serving 路径中的业务表即时生成及 standalone LKG 回退，只返回适用的已发布 TrafficReleaseSet；缺少/损坏发布时返回 503，consumer 保留当前 artifact。业务投影仍由配置 producer 独立完成。
 
 历史 revision 资源回收、不可变执行快照保护、排除路由负向证明和 DNS 通配监听恢复均已完成相应生产验收，详见 Y10–Y26。发布监控保留了 SSH 采集失败与一次 US A/B 期间 TLS EOF；后续独立复查正常，不能据此声称所有发布均零中断。
 
@@ -4024,3 +4024,16 @@ P0-EP-X 生产取证确认 canonical Service selector 仅有 app 标签，会同
 - [ ] 迁移 hosted DNS 委派/诊断等剩余 API 环境读取，删除只读 legacy migration 入口及其余重复投影；继续 DNS 无中断更新和未完成的恢复演练。
 
 证据：[verified-policy-dns-observations-2026-09-22.json](verification/verified-policy-dns-observations-2026-09-22.json)。
+
+
+### P0-EP-Y33：候选拒绝时持续验证旧 DNS artifact
+
+- [x] 统一 serving sync 失败后的恢复收尾：旧 positive artifact 仍为实际 serving snapshot 时，重新采集其独立 route/TLS proof。覆盖 child/parent 下载、签名/schema/replay、候选 readiness、监听自检和持久化失败，避免坏候选长期占据同步流程而饿死旧 readiness。
+- [x] 保留原 artifact、release、applied-at、签名、静态值 expiry 和磁盘 checkpoint；只刷新瞬态事实。不同 release 的 proof 不计为通过，max-stale 超期继续 SERVFAIL；取消操作不发起恢复探测。已经应用的候选或明确负向 readiness 观察不被旧状态覆盖，不报告候选 apply success。
+- [x] OpenAPI 先记录语义并生成；九类失败/拒绝的真实同步回归、旧 artifact 持续应答、错误 proof 拒绝、expiry 不延长、DNS 全包 race、全量 make test、前端 contract:check 与干净 prepush 全通过。
+- [x] `56749f65db0946a3adc58bb6b56939722da7d5e9` 经 [CI 35780051047](https://github.com/yym68686/fugue/actions/runs/35780051047) 正式发布 API 与两地 DNS client；前端契约 `a31dd86e` 的 [CI 35780052706](https://github.com/yym68686/fugue-web/actions/runs/35780052706) 成功。
+- [x] 两台新 DNS positive checkpoint、新鲜 readiness、249 records、accurate inventory、独立 `/livez` 和 artifact serving 正常；当前 release route 3/3、TLS 3/3、DNS 2/2 收敛，API 2/2 与两地 authority 正常。美国独立节点六个 SOA 查询均 sequence 843。
+- [x] 本步验收 189 次跨 Edge HTTP 全部 200。DNS 监控保留发布前本机 SOCKS 端口断开导致的 72 个 connection-refused 样本，以及欧洲 Pod 替换时三个 zone 的一次 EOF 轮次；恢复后连续复查通过。第一轮 Ready 清单过早读取也明确拒绝后重试。
+- [ ] 继续 hosted DNS 与其他 API 环境配置迁移、DNS 无中断替换、超时恢复等未完成任务。生产未注入坏候选，本地失败回归不扩大为所有生产故障已演练。
+
+证据：[dns-rejected-candidate-recovery-2026-09-22.json](verification/dns-rejected-candidate-recovery-2026-09-22.json)。
