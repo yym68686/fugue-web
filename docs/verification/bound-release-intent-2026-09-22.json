@@ -1,0 +1,208 @@
+{
+  "verified_at": "2026-09-22T13:33:16.499701+00:00",
+  "commit": "edc72b9bf5b43527afd27f92a317a8cdc3a76c55",
+  "ci": "https://github.com/yym68686/fugue/actions/runs/35732965170",
+  "components": [
+    {
+      "component": "api",
+      "image_tag": "edc72b9bf5b43527afd27f92a317a8cdc3a76c55",
+      "ready_replicas": 2,
+      "updated_replicas": 2,
+      "desired_replicas": 2
+    },
+    {
+      "component": "controller",
+      "image_tag": "edc72b9bf5b43527afd27f92a317a8cdc3a76c55",
+      "ready_replicas": 2,
+      "updated_replicas": 2,
+      "desired_replicas": 2
+    }
+  ],
+  "health": {
+    "/healthz": 200,
+    "/readyz": 200
+  },
+  "authority_ready": true,
+  "schema_guard": {
+    "function": "CREATE OR REPLACE FUNCTION public.fugue_preserve_bound_release_intent()\n RETURNS trigger\n LANGUAGE plpgsql\nAS $function$\nBEGIN\n IF OLD.revision_workload_json IS NOT NULL AND\n    (NEW.source_ref IS DISTINCT FROM OLD.source_ref OR\n     NEW.resolved_image_ref IS DISTINCT FROM OLD.resolved_image_ref OR\n     NEW.runtime_id IS DISTINCT FROM OLD.runtime_id OR\n     NEW.spec_snapshot_json IS DISTINCT FROM OLD.spec_snapshot_json) THEN\n  RAISE EXCEPTION 'bound revision executable intent is immutable' USING ERRCODE = '40001';\n END IF;\n RETURN NEW;\nEND\n$function$\n",
+    "trigger": {
+      "name": "fugue_app_release_intent_immutable",
+      "enabled": "O",
+      "definition": "CREATE TRIGGER fugue_app_release_intent_immutable BEFORE UPDATE ON public.fugue_app_releases FOR EACH ROW EXECUTE FUNCTION fugue_preserve_bound_release_intent()"
+    }
+  },
+  "receipts": {
+    "schema": {
+      "artifact": {
+        "apiVersion": "release.fugue.dev/v2",
+        "component": "schema",
+        "configDigest": "sha256:54b414081918e477573c9bc65e54a902249cc20ba475c7fd963456ec4e2c789a",
+        "configSha": "edc72b9bf5b43527afd27f92a317a8cdc3a76c55",
+        "immutableRef": "ghcr.io/yym68686/fugue-schema-migrate@sha256:d261e614e29dd5c29311e0a4178779168be8787be00197b0fd8f32d5c45782e1",
+        "intentDigest": "sha256:dbe75b5805b23818f8ea0e04eb9a78ac912afce6d3423655ab7f7e4978924e6e",
+        "kind": "ImmutableComponentArtifactReceipt",
+        "ociRevision": "edc72b9bf5b43527afd27f92a317a8cdc3a76c55",
+        "planDigest": "sha256:525116f68212bbfeb12ed1053eb66132df7a75678970df790f95dbb7e05f26f5",
+        "platform": "linux/amd64",
+        "platformManifestDigest": "sha256:5afcebee17db58ac835d1d9e89fcec483a941b17f45c4d63cff6d528ed0f6d88",
+        "receiptDigest": "sha256:8dbc67d1f082ed1d4cac82470af7a3c97947e3037cdfbb7896cefb28328f0407",
+        "repository": "ghcr.io/yym68686/fugue-schema-migrate",
+        "sourceSha": "edc72b9bf5b43527afd27f92a317a8cdc3a76c55",
+        "sourceTag": "edc72b9bf5b43527afd27f92a317a8cdc3a76c55",
+        "topDigest": "sha256:d261e614e29dd5c29311e0a4178779168be8787be00197b0fd8f32d5c45782e1",
+        "verification": "registry_manifest_config_and_layer_get"
+      },
+      "monitor": {
+        "apiVersion": "release.fugue.dev/v1",
+        "artifactDigest": "sha256:8dbc67d1f082ed1d4cac82470af7a3c97947e3037cdfbb7896cefb28328f0407",
+        "component": "schema",
+        "configSha": "edc72b9bf5b43527afd27f92a317a8cdc3a76c55",
+        "executionPlanDigest": "sha256:f90ea37a224db892821deb6abad6dfe0b965ee4e3b562d0f65acb69e02ad7254",
+        "forwardManifestDigest": "sha256:2be3573f4ca7a8c7d2960e75aaf4c9bb690f18dff23fc5354d9fc5e43cf094d6",
+        "kind": "DeclarativeComponentMonitorRecord",
+        "lkgManifestDigest": "sha256:9da24f6dfbe131ee7e71b8bec8bea821a6b6c5f2781b38650d94f0770b7120dd",
+        "recordDigest": "sha256:5a487ef5f6654173e46cb3bfd9694c1c7e47487037282fa8de935d6d92d5a52e",
+        "releasePlanDigest": "sha256:525116f68212bbfeb12ed1053eb66132df7a75678970df790f95dbb7e05f26f5",
+        "terminalReceiptDigest": "sha256:dec7aea3b5148a3573453f2a05dd919a30206aba4857d6098e6a527ace3bd7a2"
+      }
+    },
+    "api": {
+      "artifact": {
+        "apiVersion": "release.fugue.dev/v2",
+        "component": "api",
+        "configDigest": "sha256:d2c8929e8f3773f500e8443b1cef790cd1546203f00653d881b575c6abd4f3b7",
+        "configSha": "edc72b9bf5b43527afd27f92a317a8cdc3a76c55",
+        "immutableRef": "ghcr.io/yym68686/fugue-api@sha256:355bb5a7a1e0365933d0aaafa36b5886191457252eeb14508ab3eeb2935f00d6",
+        "intentDigest": "sha256:59fc8ba6d70255e784e00b69264283eca6c2dc6fa9e6e533972ce8e4f1336e13",
+        "kind": "ImmutableComponentArtifactReceipt",
+        "ociRevision": "edc72b9bf5b43527afd27f92a317a8cdc3a76c55",
+        "planDigest": "sha256:525116f68212bbfeb12ed1053eb66132df7a75678970df790f95dbb7e05f26f5",
+        "platform": "linux/amd64",
+        "platformManifestDigest": "sha256:646d0b4e23d8816ff29243b558afc326c6f43ba2fb1d30adca3b2e2e4413dd60",
+        "receiptDigest": "sha256:ecf05a9b07db6ec431f653f85df706a51cc650f80383f89c881ca007da3a5eee",
+        "repository": "ghcr.io/yym68686/fugue-api",
+        "sourceSha": "edc72b9bf5b43527afd27f92a317a8cdc3a76c55",
+        "sourceTag": "edc72b9bf5b43527afd27f92a317a8cdc3a76c55",
+        "topDigest": "sha256:355bb5a7a1e0365933d0aaafa36b5886191457252eeb14508ab3eeb2935f00d6",
+        "verification": "registry_manifest_config_and_layer_get"
+      },
+      "monitor": {
+        "apiVersion": "release.fugue.dev/v1",
+        "artifactDigest": "sha256:ecf05a9b07db6ec431f653f85df706a51cc650f80383f89c881ca007da3a5eee",
+        "component": "api",
+        "configSha": "edc72b9bf5b43527afd27f92a317a8cdc3a76c55",
+        "executionPlanDigest": "sha256:6f4972101e8da3d81d5551c19ac712acfb54073d12dd90eb878fa970e49f7050",
+        "forwardManifestDigest": "sha256:eb503314684baaf3b8a63d384313d7b5f652be62e37c0c0a92934af777d748e5",
+        "kind": "DeclarativeComponentMonitorRecord",
+        "lkgManifestDigest": "sha256:369c62cef35e7b7cac192cc7b6b1db69082f1710637347fd69f3504ea4be369e",
+        "recordDigest": "sha256:4878f0f072a6a63eddd4d0e8582f35ff140286ba4ae18eaa3556ebd2ce7916fa",
+        "releasePlanDigest": "sha256:525116f68212bbfeb12ed1053eb66132df7a75678970df790f95dbb7e05f26f5",
+        "terminalReceiptDigest": "sha256:3a659c6fcaa948bfab744f156cc5f63270a954f709bce6f3f96534d23e5a0f42"
+      }
+    },
+    "controller": {
+      "artifact": {
+        "apiVersion": "release.fugue.dev/v2",
+        "component": "controller",
+        "configDigest": "sha256:86a22196796ca93218505bf9579bb1bc1ced38da78b99c33160fde1659ea2bb0",
+        "configSha": "edc72b9bf5b43527afd27f92a317a8cdc3a76c55",
+        "immutableRef": "ghcr.io/yym68686/fugue-controller@sha256:a3ff7681ef827338ba0c788a9e56449044412c0df0c5cee9dcab6c23cc02c1f1",
+        "intentDigest": "sha256:21605b902f52f1c0d0854a35dc6cdcdcfac5f8befe0cde85f7ab49dc25580dc2",
+        "kind": "ImmutableComponentArtifactReceipt",
+        "ociRevision": "edc72b9bf5b43527afd27f92a317a8cdc3a76c55",
+        "planDigest": "sha256:525116f68212bbfeb12ed1053eb66132df7a75678970df790f95dbb7e05f26f5",
+        "platform": "linux/amd64",
+        "platformManifestDigest": "sha256:ead9f822ec598b602c60f01e47e267a198d0e1bcc7a3f4fea142493128db45f0",
+        "receiptDigest": "sha256:a9f052b118387a759f5d049a884c51a4ba878d48e30cc04d0d28a16fb1e26309",
+        "repository": "ghcr.io/yym68686/fugue-controller",
+        "sourceSha": "edc72b9bf5b43527afd27f92a317a8cdc3a76c55",
+        "sourceTag": "edc72b9bf5b43527afd27f92a317a8cdc3a76c55",
+        "topDigest": "sha256:a3ff7681ef827338ba0c788a9e56449044412c0df0c5cee9dcab6c23cc02c1f1",
+        "verification": "registry_manifest_config_and_layer_get"
+      },
+      "monitor": {
+        "apiVersion": "release.fugue.dev/v1",
+        "artifactDigest": "sha256:a9f052b118387a759f5d049a884c51a4ba878d48e30cc04d0d28a16fb1e26309",
+        "component": "controller",
+        "configSha": "edc72b9bf5b43527afd27f92a317a8cdc3a76c55",
+        "executionPlanDigest": "sha256:61d082d4d656ff88458598bebdc0e428501262dd920779b82847402f072092ce",
+        "forwardManifestDigest": "sha256:b2b29ce37cb5e7bf4469c2fe5b62a11d2f31e8c724de6afe6c41e16804ccfced",
+        "kind": "DeclarativeComponentMonitorRecord",
+        "lkgManifestDigest": "sha256:a3f53bbd87b94432fea2c5f648d4208fdf1a4db3ccae9d11489318f5cab096d7",
+        "recordDigest": "sha256:a5516094c6adcd284fb286daebc35f9453949b12af9705b4a9f2c41a645f9330",
+        "releasePlanDigest": "sha256:525116f68212bbfeb12ed1053eb66132df7a75678970df790f95dbb7e05f26f5",
+        "terminalReceiptDigest": "sha256:0014f79e847f009fc0ba43b64307b5abd3007c838675dd3de7e1c3d7f7f7e77e"
+      }
+    }
+  },
+  "application_releases_unchanged": true,
+  "bound_release_ids": [
+    "apprel_op_10e539b159adcdd4ae4e055b28bb27dd0a7a72d84adcc893"
+  ],
+  "application_traffic_unchanged": true,
+  "preserved_resource_uids": [
+    "2737266e-a698-42cc-8458-bee134957e51",
+    "32893ea0-ec92-471f-a5d0-01e2e2637fa7",
+    "4c44342d-80be-4ccb-8162-a91017219346",
+    "6529067e-b785-4081-a583-ef3aee995473",
+    "76f36511-8a51-4a6f-a207-7f2b390875e6",
+    "c2263e9f-c194-432b-985d-c9633d4251a1"
+  ],
+  "serving_and_lkg_preserved": true,
+  "health_samples": 222,
+  "all_samples_200": true,
+  "sampling_origin": "ovhvpseu via SSH to all three Edge addresses",
+  "first_sample": "2026-09-22T13:13:18.081537+00:00",
+  "last_sample": "2026-09-22T13:33:15.383451+00:00",
+  "prepush": {
+    "apiVersion": "prepush.fugue.dev/v1",
+    "baseCommit": "548f1ae74b2419accc7c41353cf237c1ed615950",
+    "changedFilesDigest": "sha256:0df9e23ab3145c79992a35b97067b30a90fe8e2fbd23259aeab7e194739fdd50",
+    "checks": {
+      "affected-tests": {
+        "durationMs": 46979,
+        "status": "pass"
+      },
+      "affected-vet": {
+        "durationMs": 21260,
+        "status": "pass"
+      },
+      "compile-all": {
+        "durationMs": 23623,
+        "status": "pass"
+      },
+      "declarative-release-tests": {
+        "durationMs": 46654,
+        "status": "pass"
+      },
+      "diff-check": {
+        "durationMs": 272,
+        "status": "pass"
+      },
+      "gofmt": {
+        "durationMs": 20,
+        "status": "pass"
+      },
+      "helm-lint-render": {
+        "durationMs": 0,
+        "status": "skipped"
+      },
+      "openapi-generated": {
+        "durationMs": 14273,
+        "status": "pass"
+      },
+      "shell-syntax": {
+        "durationMs": 0,
+        "status": "pass"
+      }
+    },
+    "elapsedMs": 47224,
+    "kind": "PrepushReceipt",
+    "sourceCommit": "edc72b9bf5b43527afd27f92a317a8cdc3a76c55",
+    "status": "pass"
+  },
+  "limits": [
+    "Mutation rejection and old-schema replay were exercised against disposable PostgreSQL; production schema and release preservation were verified read-only.",
+    "Global configuration remains shadow; full architecture refactor is not complete."
+  ]
+}
