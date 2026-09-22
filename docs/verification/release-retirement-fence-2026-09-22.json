@@ -1,0 +1,401 @@
+{
+  "verified_at": "2026-09-22T06:56:48.196065+00:00",
+  "commit": "d657089accf144abfe644ad581c4e7abdd5bfb07",
+  "ci": "https://github.com/yym68686/fugue/actions/runs/35696356786",
+  "health": {
+    "/healthz": 200,
+    "/readyz": 200
+  },
+  "components": [
+    {
+      "component": "api",
+      "image_tag": "d657089accf144abfe644ad581c4e7abdd5bfb07",
+      "ready_replicas": 2,
+      "updated_replicas": 2,
+      "desired_replicas": 2
+    },
+    {
+      "component": "controller",
+      "image_tag": "d657089accf144abfe644ad581c4e7abdd5bfb07",
+      "ready_replicas": 2,
+      "updated_replicas": 2,
+      "desired_replicas": 2
+    }
+  ],
+  "authority_ready": true,
+  "fronts": [
+    {
+      "pod": "fugue-fugue-edge-front-ll46v",
+      "ready": true
+    },
+    {
+      "pod": "fugue-fugue-edge-front-2fdt7",
+      "ready": true
+    },
+    {
+      "pod": "fugue-fugue-edge-country-de-front-rs4mw",
+      "ready": true
+    }
+  ],
+  "database_functions_match_source": true,
+  "schema": {
+    "functions": {
+      "fugue_guard_app_release_retirement": "\nDECLARE p record;\nBEGIN\n IF TG_OP = 'UPDATE' AND (OLD.status = 'retired' OR OLD.role = 'retired') THEN\n  IF NEW IS DISTINCT FROM OLD THEN\n   RAISE EXCEPTION 'retired release is immutable' USING ERRCODE = '40001';\n  END IF;\n  RETURN NEW;\n END IF;\n IF NEW.status = 'retired' OR NEW.role = 'retired' THEN\n  IF NEW.status <> 'retired' OR NEW.role <> 'retired' THEN\n   RAISE EXCEPTION 'incomplete release retirement' USING ERRCODE = '40001';\n  END IF;\n  FOR p IN SELECT stable_release_id,candidate_release_id FROM fugue_app_traffic_policies\n   WHERE app_id = NEW.app_id OR stable_release_id = NEW.id OR candidate_release_id = NEW.id FOR UPDATE LOOP\n   IF p.stable_release_id = NEW.id OR p.candidate_release_id = NEW.id THEN\n    RAISE EXCEPTION 'traffic still references retiring release' USING ERRCODE = '40001';\n   END IF;\n  END LOOP;\n END IF;\n RETURN NEW;\nEND\n",
+      "fugue_guard_retired_traffic_references": "\nDECLARE r record;\nBEGIN\n FOR r IN SELECT id,status,role FROM fugue_app_releases\n  WHERE id IN (NEW.stable_release_id,NEW.candidate_release_id) ORDER BY id FOR SHARE LOOP\n  IF r.status = 'retired' OR r.role = 'retired' THEN\n   RAISE EXCEPTION 'traffic cannot reference retired release' USING ERRCODE = '40001';\n  END IF;\n END LOOP;\n RETURN NEW;\nEND\n"
+    },
+    "triggers": [
+      {
+        "name": "fugue_app_release_retirement_fence",
+        "enabled": "O",
+        "definition": "CREATE TRIGGER fugue_app_release_retirement_fence BEFORE INSERT OR UPDATE ON public.fugue_app_releases FOR EACH ROW EXECUTE FUNCTION fugue_guard_app_release_retirement()"
+      },
+      {
+        "name": "fugue_app_traffic_retirement_fence",
+        "enabled": "O",
+        "definition": "CREATE TRIGGER fugue_app_traffic_retirement_fence BEFORE INSERT OR UPDATE ON public.fugue_app_traffic_policies FOR EACH ROW EXECUTE FUNCTION fugue_guard_retired_traffic_references()"
+      }
+    ],
+    "referenced_retired": 0
+  },
+  "app_release_records_preserved": 23,
+  "resources_preserved": [
+    {
+      "kind": "Deployment",
+      "name": "app-1783188884-8facd2b054e6",
+      "uid": "c2263e9f-c194-432b-985d-c9633d4251a1",
+      "ready": 1,
+      "deleting": null
+    },
+    {
+      "kind": "Deployment",
+      "name": "app-1783188884-8facd2b054e6-candidate-21157eaa2de9",
+      "uid": "0e91b7ec-ff3b-44c5-8556-4669c242de64",
+      "ready": null,
+      "deleting": null
+    },
+    {
+      "kind": "Deployment",
+      "name": "app-1783188884-8facd2b054e6-candidate-34a2281ed121",
+      "uid": "38cf4a53-77ca-406d-95e8-ecd282ab17fd",
+      "ready": 1,
+      "deleting": null
+    },
+    {
+      "kind": "Deployment",
+      "name": "app-1783188884-8facd2b054e6-candidate-5fbb58868af0",
+      "uid": "f3a682d4-ec1c-42ec-8281-6d37f15e6999",
+      "ready": null,
+      "deleting": null
+    },
+    {
+      "kind": "Deployment",
+      "name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+      "uid": "d70a7bb0-649a-46c3-991a-04c42f46175b",
+      "ready": 1,
+      "deleting": null
+    },
+    {
+      "kind": "Deployment",
+      "name": "app-1783188884-8facd2b054e6-candidate-6dd9e7fffc9e",
+      "uid": "bf44b702-a763-4593-bdc8-7ced7e8fd458",
+      "ready": 1,
+      "deleting": null
+    },
+    {
+      "kind": "Deployment",
+      "name": "app-1783188884-8facd2b054e6-candidate-92a2743727b5",
+      "uid": "32893ea0-ec92-471f-a5d0-01e2e2637fa7",
+      "ready": 1,
+      "deleting": null
+    },
+    {
+      "kind": "Deployment",
+      "name": "app-1783188884-8facd2b054e6-candidate-a282d52a201b",
+      "uid": "0dd7cc37-f629-4802-a9f9-d55449c7d695",
+      "ready": 1,
+      "deleting": null
+    },
+    {
+      "kind": "Deployment",
+      "name": "app-1783188884-8facd2b054e6-candidate-b20fb8b63bf8",
+      "uid": "affa8021-3635-443c-adec-f40d231d07c3",
+      "ready": null,
+      "deleting": null
+    },
+    {
+      "kind": "Deployment",
+      "name": "app-1783188884-8facd2b054e6-candidate-d28460bce944",
+      "uid": "07e304e2-fdd9-4fa9-83fc-cc48f6a119bb",
+      "ready": null,
+      "deleting": null
+    },
+    {
+      "kind": "Deployment",
+      "name": "app-1783188884-8facd2b054e6-candidate-ff13953dfefc",
+      "uid": "e6ece651-7212-4a82-9832-a6dd94edb699",
+      "ready": null,
+      "deleting": null
+    },
+    {
+      "kind": "Service",
+      "name": "app-1783188884-8facd2b054e6",
+      "uid": "4c44342d-80be-4ccb-8162-a91017219346",
+      "ready": null,
+      "deleting": null
+    },
+    {
+      "kind": "Service",
+      "name": "app-1783188884-8facd2b054e6-candidate-21157eaa2de9",
+      "uid": "9f83c254-ded4-43de-af74-88b094ed25d5",
+      "ready": null,
+      "deleting": null
+    },
+    {
+      "kind": "Service",
+      "name": "app-1783188884-8facd2b054e6-candidate-34a2281ed121",
+      "uid": "2490e5c8-4173-4878-919d-3d1958c412b4",
+      "ready": null,
+      "deleting": null
+    },
+    {
+      "kind": "Service",
+      "name": "app-1783188884-8facd2b054e6-candidate-5fbb58868af0",
+      "uid": "5d523925-cf99-4151-b0af-71a8ab5bcb0f",
+      "ready": null,
+      "deleting": null
+    },
+    {
+      "kind": "Service",
+      "name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5",
+      "uid": "0854ef98-319b-4fc8-a309-540da019cb92",
+      "ready": null,
+      "deleting": null
+    },
+    {
+      "kind": "Service",
+      "name": "app-1783188884-8facd2b054e6-candidate-6dd9e7fffc9e",
+      "uid": "d6452145-8baf-4186-9ad5-ab2e91fca2f8",
+      "ready": null,
+      "deleting": null
+    },
+    {
+      "kind": "Service",
+      "name": "app-1783188884-8facd2b054e6-candidate-92a2743727b5",
+      "uid": "2737266e-a698-42cc-8458-bee134957e51",
+      "ready": null,
+      "deleting": null
+    },
+    {
+      "kind": "Service",
+      "name": "app-1783188884-8facd2b054e6-candidate-a282d52a201b",
+      "uid": "0256a048-bcf5-421a-8ac8-1dbada44b83b",
+      "ready": null,
+      "deleting": null
+    },
+    {
+      "kind": "Service",
+      "name": "app-1783188884-8facd2b054e6-candidate-b20fb8b63bf8",
+      "uid": "a3629c07-4286-4c69-97fe-b4d26fface36",
+      "ready": null,
+      "deleting": null
+    },
+    {
+      "kind": "Service",
+      "name": "app-1783188884-8facd2b054e6-candidate-d28460bce944",
+      "uid": "4da211bd-689e-41f9-939e-673b3166ec6e",
+      "ready": null,
+      "deleting": null
+    },
+    {
+      "kind": "Service",
+      "name": "app-1783188884-8facd2b054e6-candidate-ff13953dfefc",
+      "uid": "b5c5a6bb-8ecb-4d0a-b955-26c7ddf1d6b5",
+      "ready": null,
+      "deleting": null
+    },
+    {
+      "kind": "Pod",
+      "name": "app-1783188884-8facd2b054e6-79db8cbfdd-qsdcg",
+      "uid": "6529067e-b785-4081-a583-ef3aee995473",
+      "ready": null,
+      "deleting": null
+    },
+    {
+      "kind": "Pod",
+      "name": "app-1783188884-8facd2b054e6-candidate-21157eaa2de9-5d55d48n7nh4",
+      "uid": "3e90545b-7d8b-462b-bed1-598e5086b041",
+      "ready": null,
+      "deleting": null
+    },
+    {
+      "kind": "Pod",
+      "name": "app-1783188884-8facd2b054e6-candidate-34a2281ed121-6dcb575s2mp4",
+      "uid": "b5227b1d-3fca-4653-b460-7f354a1d3b65",
+      "ready": null,
+      "deleting": null
+    },
+    {
+      "kind": "Pod",
+      "name": "app-1783188884-8facd2b054e6-candidate-5fbb58868af0-77c9cf48kvr8",
+      "uid": "62bc84ef-38a5-440a-9276-05259e9352a5",
+      "ready": null,
+      "deleting": null
+    },
+    {
+      "kind": "Pod",
+      "name": "app-1783188884-8facd2b054e6-candidate-675bf9cb08c5-64f8fcbvrbgn",
+      "uid": "78b78ae0-d23b-41e0-aed6-1e62e362665a",
+      "ready": null,
+      "deleting": null
+    },
+    {
+      "kind": "Pod",
+      "name": "app-1783188884-8facd2b054e6-candidate-6dd9e7fffc9e-5f4687dlvn44",
+      "uid": "30b4707f-7adb-4c3d-b298-961b2d5e1dd9",
+      "ready": null,
+      "deleting": null
+    },
+    {
+      "kind": "Pod",
+      "name": "app-1783188884-8facd2b054e6-candidate-92a2743727b5-6db6d9dfl2kf",
+      "uid": "76f36511-8a51-4a6f-a207-7f2b390875e6",
+      "ready": null,
+      "deleting": null
+    },
+    {
+      "kind": "Pod",
+      "name": "app-1783188884-8facd2b054e6-candidate-a282d52a201b-7bc79ffk2v9b",
+      "uid": "b06603ca-7a16-4bf6-ba89-21272e76ee57",
+      "ready": null,
+      "deleting": null
+    },
+    {
+      "kind": "Pod",
+      "name": "app-1783188884-8facd2b054e6-candidate-b20fb8b63bf8-7545955k5vs6",
+      "uid": "37eba4f8-fd07-4212-9660-ebfcc324fa99",
+      "ready": null,
+      "deleting": null
+    },
+    {
+      "kind": "Pod",
+      "name": "app-1783188884-8facd2b054e6-candidate-d28460bce944-75799c8kcwcq",
+      "uid": "8df2dbfa-dc8f-495d-bf71-0e1fff7b53c8",
+      "ready": null,
+      "deleting": null
+    },
+    {
+      "kind": "Pod",
+      "name": "app-1783188884-8facd2b054e6-candidate-ff13953dfefc-78cfdd4sd87b",
+      "uid": "028a5183-d923-48c1-9944-bdf5fb398508",
+      "ready": null,
+      "deleting": null
+    }
+  ],
+  "traffic_preserved": true,
+  "serving_lkg_preserved": true,
+  "producer_mode": "shadow",
+  "observed_consumers": 8,
+  "passing_consumers": 0,
+  "health_samples": [
+    {
+      "edge": "vps-84c8f0a9",
+      "http_status": 200
+    },
+    {
+      "edge": "bwg",
+      "http_status": 200
+    },
+    {
+      "edge": "vps-591f4447",
+      "http_status": 200
+    },
+    {
+      "edge": "vps-84c8f0a9",
+      "http_status": 200
+    },
+    {
+      "edge": "bwg",
+      "http_status": 200
+    },
+    {
+      "edge": "vps-591f4447",
+      "http_status": 200
+    },
+    {
+      "edge": "vps-84c8f0a9",
+      "http_status": 200
+    },
+    {
+      "edge": "bwg",
+      "http_status": 200
+    },
+    {
+      "edge": "vps-591f4447",
+      "http_status": 200
+    },
+    {
+      "edge": "vps-84c8f0a9",
+      "http_status": 200
+    },
+    {
+      "edge": "bwg",
+      "http_status": 200
+    },
+    {
+      "edge": "vps-591f4447",
+      "http_status": 200
+    }
+  ],
+  "prepush": {
+    "apiVersion": "prepush.fugue.dev/v1",
+    "baseCommit": "6bd5a8538e0049a50af7b25ea7de4a680f1b90c1",
+    "changedFilesDigest": "sha256:240a57f1b356fc60d37e99cc7207d7a14631393ff1bf5acf7c3a73dc137b86f1",
+    "checks": {
+      "affected-tests": {
+        "durationMs": 123594,
+        "status": "pass"
+      },
+      "affected-vet": {
+        "durationMs": 3803,
+        "status": "pass"
+      },
+      "compile-all": {
+        "durationMs": 13434,
+        "status": "pass"
+      },
+      "declarative-release-tests": {
+        "durationMs": 14888,
+        "status": "pass"
+      },
+      "diff-check": {
+        "durationMs": 410,
+        "status": "pass"
+      },
+      "gofmt": {
+        "durationMs": 44,
+        "status": "pass"
+      },
+      "helm-lint-render": {
+        "durationMs": 0,
+        "status": "skipped"
+      },
+      "openapi-generated": {
+        "durationMs": 1095,
+        "status": "pass"
+      },
+      "shell-syntax": {
+        "durationMs": 0,
+        "status": "pass"
+      }
+    },
+    "elapsedMs": 141147,
+    "kind": "PrepushReceipt",
+    "sourceCommit": "d657089accf144abfe644ad581c4e7abdd5bfb07",
+    "status": "pass"
+  },
+  "postgres_race_tests": "=== RUN   TestAppReleaseRetirementFencePostgres\n--- PASS: TestAppReleaseRetirementFencePostgres (0.29s)\nPASS\nok  \tfugue/internal/schemamigrate\t2.372s\n=== RUN   TestAppReleaseRetirementFence\n--- PASS: TestAppReleaseRetirementFence (0.10s)\n=== RUN   TestAppReleaseRetirementFencePostgres\n--- PASS: TestAppReleaseRetirementFencePostgres (0.11s)\nPASS\nok  \tfugue/internal/store\t3.789s\n=== RUN   TestAppReleaseServicePromoteReplacesStable\n=== PAUSE TestAppReleaseServicePromoteReplacesStable\n=== CONT  TestAppReleaseServicePromoteReplacesStable\n--- PASS: TestAppReleaseServicePromoteReplacesStable (0.03s)\nPASS\nok  \tfugue/internal/releaseflow\t2.343s\n",
+  "limitations": [
+    "Retirement fencing is enforced; binding-based drain resolution, guarded retirement CAS, cleanup retries and historical migration remain incomplete.",
+    "This migration does not retire or delete existing workloads."
+  ]
+}
