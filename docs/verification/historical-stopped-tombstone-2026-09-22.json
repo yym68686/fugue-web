@@ -1,0 +1,307 @@
+{
+  "verified_at": "2026-09-22T13:00:53.985838+00:00",
+  "commit": "548f1ae74b2419accc7c41353cf237c1ed615950",
+  "ci": "https://github.com/yym68686/fugue/actions/runs/35729508135",
+  "components": [
+    {
+      "component": "api",
+      "image_tag": "548f1ae74b2419accc7c41353cf237c1ed615950",
+      "ready_replicas": 2,
+      "updated_replicas": 2,
+      "desired_replicas": 2
+    },
+    {
+      "component": "controller",
+      "image_tag": "548f1ae74b2419accc7c41353cf237c1ed615950",
+      "ready_replicas": 2,
+      "updated_replicas": 2,
+      "desired_replicas": 2
+    }
+  ],
+  "health": {
+    "/healthz": 200,
+    "/readyz": 200
+  },
+  "authority_ready": true,
+  "retirement": {
+    "releases": [
+      {
+        "id": "apprel_1789962121_cb14b0256e0d",
+        "status": "retired",
+        "role": "retired",
+        "retired_at": "2026-09-22T12:58:13.913291+00:00",
+        "revision_workload": {
+          "bound_at": "2026-09-22T12:58:14.483963Z",
+          "image_ref": "registry.fugue.internal:5000/fugue-apps/index-docker-io-library-python:image-6d43704baacd",
+          "namespace": "fg-tenant-1774393589-e35b60a6fc11",
+          "runtime_id": "runtime_managed_shared",
+          "release_key": "cc2a6ff4d8c50798f168404d3585edc29cce2fc1510bb418d01b06d71f291c80",
+          "service_uid": "5d523925-cf99-4151-b0af-71a8ab5bcb0f",
+          "operation_id": "op_1789962119_d4697625b9db",
+          "service_name": "app-1783188884-8facd2b054e6-candidate-5fbb58868af0",
+          "deployment_uid": "f3a682d4-ec1c-42ec-8281-6d37f15e6999",
+          "deployment_name": "app-1783188884-8facd2b054e6-candidate-5fbb58868af0",
+          "deployment_generation": 1
+        },
+        "spec_snapshot": {
+          "env": {
+            "SAFE_ROLLOUT_PASS": "postfix-anon-1783448365",
+            "FUGUE_ARCHITECTURE_PROBE": "release-proof-20260921"
+          },
+          "files": [
+            {
+              "mode": 420,
+              "path": "/app/server.py",
+              "content": "from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler\nimport json\nimport time\nimport urllib.parse\n\nclass Handler(BaseHTTPRequestHandler):\n    protocol_version = \"HTTP/1.1\"\n\n    def log_message(self, fmt, *args):\n        print(\"%s - - [%s] %s\" % (self.client_address[0], self.log_date_time_string(), fmt % args), flush=True)\n\n    def send_bytes(self, code, body, content_type=\"text/plain; charset=utf-8\"):\n        if isinstance(body, str):\n            body = body.encode(\"utf-8\")\n        self.send_response(code)\n        self.send_header(\"Content-Type\", content_type)\n        self.send_header(\"Content-Length\", str(len(body)))\n        self.send_header(\"Connection\", \"close\")\n        self.end_headers()\n        self.wfile.write(body)\n\n    def do_GET(self):\n        parsed = urllib.parse.urlparse(self.path)\n        qs = urllib.parse.parse_qs(parsed.query)\n        if parsed.path in (\"/\", \"/health\", \"/healthz\"):\n            self.send_bytes(200, json.dumps({\"ok\": True, \"app\": \"fugue-drain-canary\"}) + \"\\n\", \"application/json\")\n            return\n        if parsed.path == \"/stream\":\n            seconds = int(qs.get(\"seconds\", [\"30\"])[0])\n            interval = float(qs.get(\"interval\", [\"1\"])[0])\n            self.send_response(200)\n            self.send_header(\"Content-Type\", \"text/plain; charset=utf-8\")\n            self.send_header(\"Cache-Control\", \"no-cache\")\n            self.send_header(\"Connection\", \"close\")\n            self.end_headers()\n            for i in range(seconds):\n                line = f\"tick {i+1}/{seconds}\\n\".encode(\"utf-8\")\n                self.wfile.write(line)\n                self.wfile.flush()\n                time.sleep(interval)\n            return\n        if parsed.path == \"/sleep\":\n            seconds = int(qs.get(\"seconds\", [\"1\"])[0])\n            time.sleep(seconds)\n            self.send_bytes(200, f\"slept {seconds}\\n\")\n            return\n        self.send_bytes(404, \"not found\\n\")\n\nThreadingHTTPServer((\"0.0.0.0\", 8000), Handler).serve_forever()\n"
+            }
+          ],
+          "image": "registry.fugue.internal:5000/fugue-apps/index-docker-io-library-python:image-6d43704baacd",
+          "ports": [
+            8000
+          ],
+          "command": [
+            "sh",
+            "-lc",
+            "python -u /app/server.py"
+          ],
+          "replicas": 1,
+          "resources": {
+            "cpu_millicores": 31,
+            "memory_mebibytes": 96,
+            "memory_limit_mebibytes": 192
+          },
+          "continuity": {
+            "zero_downtime": {
+              "mode": "safe",
+              "canary": {
+                "enabled": true,
+                "max_weight": 100,
+                "step_weights": [
+                  50,
+                  100
+                ],
+                "initial_weight": 50,
+                "min_observation_seconds": 120
+              },
+              "enabled": true,
+              "strategy": "stable_candidate",
+              "rollback_window_seconds": 300
+            }
+          },
+          "runtime_id": "runtime_managed_shared",
+          "right_sizing": {
+            "mode": "auto",
+            "min_samples": 12,
+            "window_hours": 168
+          },
+          "restart_token": "restart_1783190168_eb48d171734f",
+          "workload_class": "service",
+          "image_mirror_limit": 1
+        }
+      }
+    ],
+    "audit": [
+      {
+        "id": "audit_1790081894_4cc0cc6bb607",
+        "action": "app.release.historical_stopped_retired",
+        "target_id": "apprel_1789962121_cb14b0256e0d",
+        "metadata": {
+          "app_id": "app_1783188884_8facd2b054e6",
+          "reason": "current runtime positively stopped; historical executable snapshot was not reconstructed",
+          "operation_id": "op_1789962119_d4697625b9db",
+          "app_release_id": "apprel_1789962121_cb14b0256e0d",
+          "drain_evidence": "{\"active_connections\":0,\"intent_snapshot_verified\":false,\"observer_errors\":0,\"ready\":true,\"revision_workload\":{\"operation_id\":\"op_1789962119_d4697625b9db\",\"namespace\":\"fg-tenant-1774393589-e35b60a6fc11\",\"deployment_name\":\"app-1783188884-8facd2b054e6-candidate-5fbb58868af0\",\"deployment_uid\":\"f3a682d4-ec1c-42ec-8281-6d37f15e6999\",\"deployment_generation\":1,\"service_name\":\"app-1783188884-8facd2b054e6-candidate-5fbb58868af0\",\"service_uid\":\"5d523925-cf99-4151-b0af-71a8ab5bcb0f\",\"release_key\":\"cc2a6ff4d8c50798f168404d3585edc29cce2fc1510bb418d01b06d71f291c80\",\"runtime_id\":\"runtime_managed_shared\",\"image_ref\":\"registry.fugue.internal:5000/fugue-apps/index-docker-io-library-python:image-6d43704baacd\",\"bound_at\":\"2026-09-22T12:58:14.483963Z\"},\"runtime_receipts\":[{\"probe_image\":\"ghcr.io/yym68686/fugue-api@sha256:f5ec82db85bdd5e014b0d968104d2e4842c7d45e1b7c84736fefead22de7f863\",\"schema\":\"fugue.diagnostic.probe_report.v1\",\"session_id\":\"diagnostic-retire-cbd8d434cc55c406acf88c8272a61c28dde80777\",\"probe_id\":\"pod-runtime-state\",\"probe_digest\":\"sha256:17aa043dc879b78001d9fe68d7a447434b26925817cd2e9510201c17add4e928\",\"catalog_digest\":\"sha256:b195d740e8e32a9dedae73d40c8a8b6e88f91a167593ea3903c02e7734b1bd21\",\"target\":{\"type\":\"node\",\"node\":\"ns101351\"},\"started_at\":\"2026-09-22T12:57:56.960133378Z\",\"finished_at\":\"2026-09-22T12:58:08.960683545Z\",\"quality\":{\"status\":\"complete\",\"gaps\":[],\"truncated\":false},\"evidence\":[{\"name\":\"pod-runtime\",\"source\":\"pod-runtime-state\",\"observed_at\":\"2026-09-22T12:57:56.960138594Z\",\"status\":\"complete\",\"data\":{\"boot_id\":\"de54074e-3897-41e3-96d3-6989b40d4806\",\"facts\":{\"target\":{\"namespace\":\"fg-tenant-1774393589-e35b60a6fc11\",\"name\":\"app-1783188884-8facd2b054e6-candidate-5fbb58868af0-77c9cf48kvr8\",\"uid\":\"62bc84ef-38a5-440a-9276-05259e9352a5\"},\"sandboxes\":[{\"id\":\"e88ff1ce9b4f275f1da9e160b7e9c6d432ac91a4677b1bcd5df9d61de7291fc6\",\"metadata\":{\"namespace\":\"fg-tenant-1774393589-e35b60a6fc11\",\"name\":\"app-1783188884-8facd2b054e6-candidate-5fbb58868af0-77c9cf48kvr8\",\"uid\":\"62bc84ef-38a5-440a-9276-05259e9352a5\"},\"state\":\"SANDBOX_NOTREADY\",\"pid\":0,\"process_status\":\"deleted\",\"net_namespace_closed\":true}],\"containers\":[{\"id\":\"498ce295dac55239c1f21781161976e216ab5a6e9b29dca90406673364898ee5\",\"sandbox_id\":\"e88ff1ce9b4f275f1da9e160b7e9c6d432ac91a4677b1bcd5df9d61de7291fc6\",\"name\":\"fugue-drain-agent\",\"state\":\"CONTAINER_EXITED\",\"pid\":3350559,\"process_present\":false},{\"id\":\"8cce71d6440cae4071d63cf9c3eb4d152abb196975a8c245682b448bcbd11f1c\",\"sandbox_id\":\"e88ff1ce9b4f275f1da9e160b7e9c6d432ac91a4677b1bcd5df9d61de7291fc6\",\"name\":\"drain-canary-0705\",\"state\":\"CONTAINER_EXITED\",\"pid\":3350642,\"process_present\":false}],\"quiescent\":true},\"node\":\"ns101351\",\"observed_from\":\"2026-09-22T12:57:56.960519616Z\",\"observed_until\":\"2026-09-22T12:58:02.46034123Z\",\"runtime_peer\":{\"pid\":1235,\"start_ticks\":\"3063\",\"command\":\"containerd\",\"rss_bytes\":0},\"scope\":\"current runtime state for this exact Pod UID; no deletion authorization\"}}]}],\"runtime_stopped\":true,\"source\":\"verified_cri_runtime\",\"workload\":{\"runtime_stopped\":true,\"deployment_uid\":\"f3a682d4-ec1c-42ec-8281-6d37f15e6999\",\"deployment_version\":\"93273179\",\"service_version\":\"92948426\",\"generation\":1,\"pods\":[{\"name\":\"app-1783188884-8facd2b054e6-candidate-5fbb58868af0-77c9cf48kvr8\",\"uid\":\"62bc84ef-38a5-440a-9276-05259e9352a5\",\"replica_set_uid\":\"cafd30fe-1525-4456-b3c9-1eae98df0c18\",\"agent_image\":\"\",\"agent_restarts\":0,\"agent_port\":0,\"quiet_period_ms\":0,\"app_ports\":[8000],\"container_identities\":[\"drain-canary-0705:containerd://8cce71d6440cae4071d63cf9c3eb4d152abb196975a8c245682b448bcbd11f1c:0:2026-09-21T15:28:37Z\",\"fugue-drain-agent:containerd://498ce295dac55239c1f21781161976e216ab5a6e9b29dca90406673364898ee5:0:2026-09-21T15:28:37Z\"],\"resource_version\":\"93274836\",\"node\":\"ns101351\",\"node_uid\":\"f2c29b3a-155c-4a9b-a8de-16d167056075\",\"boot_id\":\"de54074e-3897-41e3-96d3-6989b40d4806\",\"stopped_containers\":{\"drain-canary-0705\":\"8cce71d6440cae4071d63cf9c3eb4d152abb196975a8c245682b448bcbd11f1c\",\"fugue-drain-agent\":\"498ce295dac55239c1f21781161976e216ab5a6e9b29dca90406673364898ee5\"}}],\"replica_set_uids\":[\"cafd30fe-1525-4456-b3c9-1eae98df0c18\"]}}"
+        },
+        "created_at": "2026-09-22T12:58:14.496456+00:00"
+      }
+    ]
+  },
+  "removed_uids": [
+    "5d523925-cf99-4151-b0af-71a8ab5bcb0f",
+    "62bc84ef-38a5-440a-9276-05259e9352a5",
+    "f3a682d4-ec1c-42ec-8281-6d37f15e6999"
+  ],
+  "preserved_uids": [
+    "2737266e-a698-42cc-8458-bee134957e51",
+    "32893ea0-ec92-471f-a5d0-01e2e2637fa7",
+    "4c44342d-80be-4ccb-8162-a91017219346",
+    "6529067e-b785-4081-a583-ef3aee995473",
+    "76f36511-8a51-4a6f-a207-7f2b390875e6",
+    "c2263e9f-c194-432b-985d-c9633d4251a1"
+  ],
+  "serving_lkg_preserved": true,
+  "traffic_preserved": true,
+  "health_samples": 90,
+  "all_samples_200": false,
+  "sampling_transport_failures": [
+    {
+      "at": "2026-09-22T12:57:43.275696+00:00",
+      "edge": "vps-84c8f0a9",
+      "http": "",
+      "exit": 255
+    }
+  ],
+  "recovery_samples": [
+    {
+      "edge": "vps-84c8f0a9",
+      "http": "200",
+      "exit": 0,
+      "at": "2026-09-22T13:00:05.388197+00:00"
+    },
+    {
+      "edge": "bwg",
+      "http": "200",
+      "exit": 0,
+      "at": "2026-09-22T13:00:05.632852+00:00"
+    },
+    {
+      "edge": "vps-591f4447",
+      "http": "200",
+      "exit": 0,
+      "at": "2026-09-22T13:00:05.628629+00:00"
+    },
+    {
+      "edge": "vps-84c8f0a9",
+      "http": "200",
+      "exit": 0,
+      "at": "2026-09-22T13:00:06.054199+00:00"
+    },
+    {
+      "edge": "bwg",
+      "http": "200",
+      "exit": 0,
+      "at": "2026-09-22T13:00:06.294642+00:00"
+    },
+    {
+      "edge": "vps-591f4447",
+      "http": "200",
+      "exit": 0,
+      "at": "2026-09-22T13:00:06.265475+00:00"
+    },
+    {
+      "edge": "vps-84c8f0a9",
+      "http": "200",
+      "exit": 0,
+      "at": "2026-09-22T13:00:06.690715+00:00"
+    },
+    {
+      "edge": "bwg",
+      "http": "200",
+      "exit": 0,
+      "at": "2026-09-22T13:00:06.929917+00:00"
+    },
+    {
+      "edge": "vps-591f4447",
+      "http": "200",
+      "exit": 0,
+      "at": "2026-09-22T13:00:06.910904+00:00"
+    },
+    {
+      "edge": "vps-84c8f0a9",
+      "http": "200",
+      "exit": 0,
+      "at": "2026-09-22T13:00:07.319026+00:00"
+    },
+    {
+      "edge": "bwg",
+      "http": "200",
+      "exit": 0,
+      "at": "2026-09-22T13:00:07.566931+00:00"
+    },
+    {
+      "edge": "vps-591f4447",
+      "http": "200",
+      "exit": 0,
+      "at": "2026-09-22T13:00:07.560397+00:00"
+    },
+    {
+      "edge": "vps-84c8f0a9",
+      "http": "200",
+      "exit": 0,
+      "at": "2026-09-22T13:00:07.953603+00:00"
+    },
+    {
+      "edge": "bwg",
+      "http": "200",
+      "exit": 0,
+      "at": "2026-09-22T13:00:08.247752+00:00"
+    },
+    {
+      "edge": "vps-591f4447",
+      "http": "200",
+      "exit": 0,
+      "at": "2026-09-22T13:00:08.207986+00:00"
+    },
+    {
+      "edge": "vps-84c8f0a9",
+      "http": "200",
+      "exit": 0,
+      "at": "2026-09-22T13:00:08.695415+00:00"
+    },
+    {
+      "edge": "bwg",
+      "http": "200",
+      "exit": 0,
+      "at": "2026-09-22T13:00:08.911639+00:00"
+    },
+    {
+      "edge": "vps-591f4447",
+      "http": "200",
+      "exit": 0,
+      "at": "2026-09-22T13:00:08.880430+00:00"
+    }
+  ],
+  "sampling_origin": "ovhvpseu via SSH",
+  "prepush": {
+    "apiVersion": "prepush.fugue.dev/v1",
+    "baseCommit": "9525c444099e0f13414445993bc93acd8285c791",
+    "changedFilesDigest": "sha256:0476c636a6406a08c29c615934b578ae376e8193ff35d6347e13835d695d4d08",
+    "checks": {
+      "affected-tests": {
+        "durationMs": 43708,
+        "status": "pass"
+      },
+      "affected-vet": {
+        "durationMs": 19300,
+        "status": "pass"
+      },
+      "compile-all": {
+        "durationMs": 26086,
+        "status": "pass"
+      },
+      "declarative-release-tests": {
+        "durationMs": 42903,
+        "status": "pass"
+      },
+      "diff-check": {
+        "durationMs": 249,
+        "status": "pass"
+      },
+      "gofmt": {
+        "durationMs": 33,
+        "status": "pass"
+      },
+      "helm-lint-render": {
+        "durationMs": 0,
+        "status": "skipped"
+      },
+      "openapi-generated": {
+        "durationMs": 18153,
+        "status": "pass"
+      },
+      "shell-syntax": {
+        "durationMs": 0,
+        "status": "pass"
+      }
+    },
+    "elapsedMs": 45607,
+    "kind": "PrepushReceipt",
+    "sourceCommit": "548f1ae74b2419accc7c41353cf237c1ed615950",
+    "status": "pass"
+  },
+  "limitations": [
+    "All independently retained historical revision workloads for the verification application are now reclaimed; absent historical ledger records still remain.",
+    "Old rows whose workloads are absent still require ledger convergence.",
+    "Global configuration serving and remaining architecture tasks are pending."
+  ]
+}
