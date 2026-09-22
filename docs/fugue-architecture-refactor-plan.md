@@ -32,11 +32,11 @@ Runtime Facts / ACK / LKG
 
 ## 当前状态判断
 
-截至 Y30，route、DNS、TLS 已完成统一 TrafficReleaseSet 的生产 full 接管。三台 active Edge 和两台 DNS 按当前 release、artifact、expected consumer set 与 fence 提供真实 serving 回执；全局 ReleaseSet、route、DNS、TLS、policy 五份 verified LKG 绑定同一验证 release 和 evidence hash。
+截至 Y31，route、DNS、TLS 已完成统一 TrafficReleaseSet 的生产 full 接管。三台 active Edge 和两台 DNS 按当前 release、artifact、expected consumer set 与 fence 提供真实 serving 回执；全局 ReleaseSet、route、DNS、TLS、policy 五份 verified LKG 绑定同一验证 release 和 evidence hash。
 
 签名 producer policy 已启用自动 serving：固定基础 intent 与输入 policy，捕获业务投影后编译、gray、full，并在观察窗口与消费者收敛通过后更新 LKG。gray/full 各至少观察 120 秒，600 秒未完成则恢复 verified 基线。policy 授权版本变化的生产演练已验证：5.321 秒内发布恢复版本，八个消费者随后收敛，原五份 positive LKG 保留。超时专用演练、重启恢复与连接连续性仍待补齐。
 
-当前已验收代码：API `7ea99db5`、两地 DNS client / release guardian `7faf072a`、Controller `edc72b9b`、两地 Edge worker `7cff4f63`。Y26 已删除 Edge route-intents HTTP serving 路径中的业务表即时生成及 standalone LKG 回退，只返回适用的已发布 TrafficReleaseSet；缺少/损坏发布时返回 503，consumer 保留当前 artifact。业务投影仍由配置 producer 独立完成。
+当前已验收代码：API `4f161581`、两地 DNS client / release guardian `7faf072a`、Controller `edc72b9b`、两地 Edge worker `7cff4f63`。Y26 已删除 Edge route-intents HTTP serving 路径中的业务表即时生成及 standalone LKG 回退，只返回适用的已发布 TrafficReleaseSet；缺少/损坏发布时返回 503，consumer 保留当前 artifact。业务投影仍由配置 producer 独立完成。
 
 历史 revision 资源回收、不可变执行快照保护、排除路由负向证明和 DNS 通配监听恢复均已完成相应生产验收，详见 Y10–Y26。发布监控保留了 SSH 采集失败与一次 US A/B 期间 TLS EOF；后续独立复查正常，不能据此声称所有发布均零中断。
 
@@ -3995,3 +3995,17 @@ P0-EP-X 生产取证确认 canonical Service selector 仅有 app 标签，会同
 - [ ] 修复单 Pod 独占 hostPort 53 的 rolling replacement 连接空窗；继续其余 legacy 来源、策略迁移和恢复演练。liveness 修复不代表已实现无间断 DNS 更新。
 
 证据：[dns-independent-liveness-2026-09-22.json](verification/dns-independent-liveness-2026-09-22.json)。
+
+
+### P0-EP-Y31：退役独立 DNS bundle 的 HTTP serving 出口
+
+- [x] OpenAPI 将 `GET /v1/edge/dns` 标记 retired/deprecated，合法旧请求返回 410 和保留当前 verified LKG 的说明；删除 HTTP handler 对独立 full DNS bundle 的查询、签名返回和 serving 响应。原认证、node/group/zone 范围及参数校验保留。
+- [x] 即使数据库仍有旧 full bundle、环境静态记录和业务 App，也不能从该出口取得 serving 配置。历史编译/迁移测试使用明确的 test-only adapter，生产 router 不注册它；正常 TrafficReleaseSet consumer 协议保持。
+- [x] 存储不变、无 artifact body/ETag、合法旧请求 410、错误凭证拒绝、原 scoped zone 校验及迁移正反回归通过；API race、全量 make test、前端 contract:check 和干净 prepush 全通过，完整 API prepush 使用 240 秒预算，实际 146 秒。
+- [x] DNS 排障手册改为查询 full/gray TrafficReleaseSet、hostname lineage 和 DNS inventory；历史架构说明标明旧接口已退役。
+- [x] `4f161581fb4b13cba37eecd74e7b58260e671394` 经 [CI 35773591993](https://github.com/yym68686/fugue/actions/runs/35773591993) 仅发布 API，2/2 Ready；前端契约 `f12741e8` 的 [CI 35773594523](https://github.com/yym68686/fugue-web/actions/runs/35773594523) 成功。
+- [x] 两台实际 DNS consumer 使用自己的 scoped token 请求旧接口，均返回 410；token 不进入日志或 URL。它们继续正常 artifact serving，当前 release route 3/3、TLS 3/3、DNS 2/2 收敛、verified LKG 保留，API/authority 正常。另一美国节点直查两台 DNS 三个 zone 的六个 SOA，全部 sequence 833。
+- [x] 本步累计 186 次跨 Edge HTTP 全部 200。上线未完成时的副本检查、自动配置切换中的 convergence 检查均先拒绝后重试；一次 SOCKS DNS EOF 保留，独立来源复查正常。
+- [ ] 删除后台 legacy DNS publisher 及剩余迁移输入/环境读取点，并将必要排序冷却状态交给受签名 policy 控制的观测流程；继续 DNS 更新连续性和其余简化方案任务。
+
+证据：[retired-legacy-dns-endpoint-2026-09-22.json](verification/retired-legacy-dns-endpoint-2026-09-22.json)。
