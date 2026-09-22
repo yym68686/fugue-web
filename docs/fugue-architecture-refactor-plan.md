@@ -32,11 +32,11 @@ Runtime Facts / ACK / LKG
 
 ## 当前状态判断
 
-截至 Y29，route、DNS、TLS 已完成统一 TrafficReleaseSet 的生产 full 接管。三台 active Edge 和两台 DNS 按当前 release、artifact、expected consumer set 与 fence 提供真实 serving 回执；全局 ReleaseSet、route、DNS、TLS、policy 五份 verified LKG 绑定同一验证 release 和 evidence hash。
+截至 Y30，route、DNS、TLS 已完成统一 TrafficReleaseSet 的生产 full 接管。三台 active Edge 和两台 DNS 按当前 release、artifact、expected consumer set 与 fence 提供真实 serving 回执；全局 ReleaseSet、route、DNS、TLS、policy 五份 verified LKG 绑定同一验证 release 和 evidence hash。
 
 签名 producer policy 已启用自动 serving：固定基础 intent 与输入 policy，捕获业务投影后编译、gray、full，并在观察窗口与消费者收敛通过后更新 LKG。gray/full 各至少观察 120 秒，600 秒未完成则恢复 verified 基线。policy 授权版本变化的生产演练已验证：5.321 秒内发布恢复版本，八个消费者随后收敛，原五份 positive LKG 保留。超时专用演练、重启恢复与连接连续性仍待补齐。
 
-当前已验收代码：API `d92d9d51`、两地 DNS client / release guardian `eac7d113`、Controller `edc72b9b`、两地 Edge worker `7cff4f63`。Y26 已删除 Edge route-intents HTTP serving 路径中的业务表即时生成及 standalone LKG 回退，只返回适用的已发布 TrafficReleaseSet；缺少/损坏发布时返回 503，consumer 保留当前 artifact。业务投影仍由配置 producer 独立完成。
+当前已验收代码：API `7ea99db5`、两地 DNS client / release guardian `7faf072a`、Controller `edc72b9b`、两地 Edge worker `7cff4f63`。Y26 已删除 Edge route-intents HTTP serving 路径中的业务表即时生成及 standalone LKG 回退，只返回适用的已发布 TrafficReleaseSet；缺少/损坏发布时返回 503，consumer 保留当前 artifact。业务投影仍由配置 producer 独立完成。
 
 历史 revision 资源回收、不可变执行快照保护、排除路由负向证明和 DNS 通配监听恢复均已完成相应生产验收，详见 Y10–Y26。发布监控保留了 SSH 采集失败与一次 US A/B 期间 TLS EOF；后续独立复查正常，不能据此声称所有发布均零中断。
 
@@ -3981,3 +3981,17 @@ P0-EP-X 生产取证确认 canonical Service selector 仅有 app 标签，会同
 - [ ] 修复 DNS liveness 与外部 serving readiness 的耦合，以及单 Pod/hostPort rolling replacement 的节点级连接空窗；继续 API 环境来源和旧 publisher 删除。DNS consumer env 退役不代表全平台同名变量均已删除。
 
 证据：[dns-serving-env-retirement-2026-09-22.json](verification/dns-serving-env-retirement-2026-09-22.json)。
+
+
+### P0-EP-Y30：DNS 执行 liveness 独立于 serving readiness
+
+- [x] DNS 新增节点本地 `GET /livez`：执行存活且没有致命监听错误时 200/status=ok，监听失败时 503/status=failed。独立于 artifact、控制面、外部 route/TLS readiness 与 serving 状态锁；不会给 DNS serving 授权。
+- [x] 两地 livenessProbe 改用 `/livez`，readinessProbe 保持 `/healthz`。缺 artifact、损坏 cache、短暂外部依赖失败仍保持 readiness 失败，但不会单因该状态触发 Kubernetes liveness 重启。
+- [x] OpenAPI 先记录节点接口语义并生成；DNS race、缺配置与锁隔离回归、全量 make test、前端 contract:check 全通过。API `7ea99db5` 与前端契约 `9692c7f9` 已上线；初次两地 client 在 dry-run 因旧 Helm probe path owner 冲突拒绝，未写生产。
+- [x] 声明式发布器复用 UID/RV/旧值绑定的标量迁移机制，允许已声明 HTTP probe path 从 Helm Update owner 迁移；probe port/timing/exec、整个 probe 和 image 不在此扩展范围。正反回归、发布器 race、全量测试通过。
+- [x] 本地最终 prepush 首次因磁盘不足失败；清理本任务 24 小时前可重建 Go cache 约 3.97 GB 后重跑完整检查通过。`7faf072a169828f1a6bb2ed280c3bb84e5aa791a` 经 [CI 35770850060](https://github.com/yym68686/fugue/actions/runs/35770850060) 正式发布两地 client 和 guardian；不绕过检查或手工改生产字段。
+- [x] 两台新 DNS `/livez` 均 200/status=ok，实际 DaemonSet 路径正确；`/healthz`、signed checkpoint、249 records、readiness、inventory generation 正常。当前 release route 3/3、TLS 3/3、DNS 2/2 收敛；六条公网 SOA 同为 sequence 829，API/authority 正常。
+- [x] 本步验收累计 354 次跨 Edge HTTP 全部 200。连续 DNS 采样保留欧洲 Pod 替换时三个 zone 的一次 EOF 轮次，之后连续复查通过；没有主动在生产破坏 readiness，依赖故障与锁隔离由本地测试验证。
+- [ ] 修复单 Pod 独占 hostPort 53 的 rolling replacement 连接空窗；继续其余 legacy 来源、策略迁移和恢复演练。liveness 修复不代表已实现无间断 DNS 更新。
+
+证据：[dns-independent-liveness-2026-09-22.json](verification/dns-independent-liveness-2026-09-22.json)。
