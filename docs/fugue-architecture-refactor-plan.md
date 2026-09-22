@@ -32,7 +32,7 @@ Runtime Facts / ACK / LKG
 
 ## 当前状态判断
 
-2026-09-22 最新验收快照：P0-EP-Y1/Y2 已完成 origin 隔离及实际流量证明修复，Y3/Y4 完成只读 Pod 排空观测，Y5/Y6 完成不可变 revision workload 数据库防护及实际身份绑定。Y7 已完成 Controller 重启接管同一 operation：`a574b678` 实现恢复机制；正常发布 `fa292dfe` 替换 Controller 后，原操作 `op_1790016761_a910f794f5f7` 保留同一个 candidate、Deployment/Service/Pod 身份与 50/50 权重，经过新鲜观察窗口后完成 100% 提升和 canonical 对齐。144 次 sticky origin 请求、246 次健康采样全部 200，API/Controller 2/2 Ready，三台 Front、两地 authority 正常，serving/LKG 指针保留。Y8 已部署 `8cf7a49e`，把 release readiness 从 Service 地址数量提升为 EndpointSlice→Pod→ReplicaSet→Deployment UID 链、release key、镜像、Pod Ready 和地址归属验证；生产 9 个 managed release 全部产生 `endpoint_pods`，12 次公网健康采样全部 200，六类 artifact 重放一致且 serving/LKG 未变。Y9 已部署 `d657089a`，增加 schema/API/Store 双层退休终态 fence：退休记录不可被旧 writer 重新激活，traffic policy 不能引用 retired release，自动 stable 同步不会复用 tombstone；生产两个 PostgreSQL trigger 启用且函数与仓库源码一致，23 个 release、33 个 workload UID、traffic/LKG 保持，12 次公网采样全部 200。另一轮重启验收的 600 秒流完整返回，但触发原有 p99 门禁，自动回到旧 stable 100%；该轮不计作成功发布。一次 Pod 列表传输失败造成 112 秒身份采样空窗，独立业务采样继续正常，随后六次接口复查均成功。临时观察窗口已恢复为 120 秒。Y10 已部署 `e5378e17`，按不可变 binding 观察 Pod 排空，以 exact release/policy CAS 退役并按 UID/resourceVersion 删除资源；生产两条 previous 完成退役，6 个旧资源删除，其余 27 个资源身份保留，93 次跨 Edge 采样全部 200，traffic/serving/LKG 未变。历史未绑定资源迁移与其余 rollback 场景仍待完成。producer 仍为 shadow，八个消费者 observed、passing=0；首次完整配置接管、positive LKG 和旧 serving 输入删除尚未完成。
+2026-09-22 最新验收快照：P0-EP-Y1/Y2 已完成 origin 隔离及实际流量证明修复，Y3/Y4 完成只读 Pod 排空观测，Y5/Y6 完成不可变 revision workload 数据库防护及实际身份绑定。Y7 已完成 Controller 重启接管同一 operation：`a574b678` 实现恢复机制；正常发布 `fa292dfe` 替换 Controller 后，原操作 `op_1790016761_a910f794f5f7` 保留同一个 candidate、Deployment/Service/Pod 身份与 50/50 权重，经过新鲜观察窗口后完成 100% 提升和 canonical 对齐。144 次 sticky origin 请求、246 次健康采样全部 200，API/Controller 2/2 Ready，三台 Front、两地 authority 正常，serving/LKG 指针保留。Y8 已部署 `8cf7a49e`，把 release readiness 从 Service 地址数量提升为 EndpointSlice→Pod→ReplicaSet→Deployment UID 链、release key、镜像、Pod Ready 和地址归属验证；生产 9 个 managed release 全部产生 `endpoint_pods`，12 次公网健康采样全部 200，六类 artifact 重放一致且 serving/LKG 未变。Y9 已部署 `d657089a`，增加 schema/API/Store 双层退休终态 fence：退休记录不可被旧 writer 重新激活，traffic policy 不能引用 retired release，自动 stable 同步不会复用 tombstone；生产两个 PostgreSQL trigger 启用且函数与仓库源码一致，23 个 release、33 个 workload UID、traffic/LKG 保持，12 次公网采样全部 200。另一轮重启验收的 600 秒流完整返回，但触发原有 p99 门禁，自动回到旧 stable 100%；该轮不计作成功发布。一次 Pod 列表传输失败造成 112 秒身份采样空窗，独立业务采样继续正常，随后六次接口复查均成功。临时观察窗口已恢复为 120 秒。Y10 已部署 `e5378e17`，按不可变 binding 观察 Pod 排空，以 exact release/policy CAS 退役并按 UID/resourceVersion 删除资源；生产两条 previous 完成退役，6 个旧资源删除，其余 27 个资源身份保留，93 次跨 Edge 采样全部 200，traffic/serving/LKG 未变。Y11 的 `c9f1a1cd` 已让失败 candidate 复用同一套排空/退役门禁；生产一条失败 candidate 安全回收 3 个资源，其余 24 个资源 UID 保留，原 operation 仍为 failed，93 次健康采样全部 200。历史未绑定资源迁移与其余 rollback 场景仍待完成。producer 仍为 shadow，八个消费者 observed、passing=0；首次完整配置接管、positive LKG 和旧 serving 输入删除尚未完成。
 
 生产 producer 仍为 `business-static-intent`/shadow，固定基础 intent `artifact_1789848966_aa79d274ac50` 和输入 policy `artifact_1789917932_e90aeeb2510d`；启用策略为 `artifact_1789917933_9f90cbb02a89`，显式选择 `consumer_readiness`。最新验收 shadow `artifact_1789924746_0593e3041d46`、fence 226 包含 160 route、245 DNS records、159 TLS references；两台 DNS 均为 462/462 probes、233/233 readiness records、248/248 eligible queries。八个消费者 observed，serving passing=0；六 artifact 精确重放通过，全局 serving/LKG 未切换。前端契约 `3979108b` 已实际部署，2/2 Ready、公网 200。
 
@@ -3742,3 +3742,15 @@ P0-EP-X 生产取证确认 canonical Service selector 仅有 app 标签，会同
 - [ ] 完成历史未绑定和 failed release 的可验证迁移/退役路径，以及其余 rollback 与全局 TrafficReleaseSet 首次 serving 验收；不能将本步两条 bound previous 的回收扩展声称为所有历史资源已回收。
 
 证据：[release-drain-retirement-2026-09-22.json](verification/release-drain-retirement-2026-09-22.json)。
+
+
+### P0-EP-Y11：失败回滚 candidate 的后台排空与退役
+
+- [x] 将已绑定且来源 deploy operation 已 failed 的 candidate 接入同一后台 drain 流程；仍要求 stable 100%、实际 Edge proof、连续零连接、binding/Pod 身份复核和 exact release/policy CAS，不以 failed 状态本身授权删除。
+- [x] 保留原 operation 的 failed 结果，退役审计单独保存原 role/status/reason 和实时 drain 回执。宽限期从 traffic policy、withdrawn release 与 stable promotion 的最近变化计时，避免沿用旧 stable 的历史时间。
+- [x] 覆盖 busy、未确认流量、仍被 policy 引用、retention/retire grace、来源 operation outcome 不符和排空后状态变化；Controller race、真实 PostgreSQL previous/failed 双场景 CAS、全量 `make test` 与干净 prepush 通过。
+- [x] `c9f1a1cd13b03ed861648b637a488e244a78853c` 经 [CI 35702371067](https://github.com/yym68686/fugue/actions/runs/35702371067) 发布，API/Controller 2/2 Ready；生产一条 failed candidate 成为 retired，零连接/nonce/Pod 身份审计完整，原 failed operation 结果保留。
+- [x] 对应 Deployment、Service、Pod 三个 UID 已移除，其余 24 个资源 UID、其他 release 和 traffic policy 保留；93 次跨 Edge 请求全部 200，API/两地 authority 正常，serving/policy/artifact LKG 未变。
+- [ ] 历史未绑定资源及不支持正向观测的旧 agent 尚需迁移；本步骤不授权缺少来源或排空证明的资源回收，完整全局配置 serving 仍待完成。
+
+证据：[failed-candidate-drain-retirement-2026-09-22.json](verification/failed-candidate-drain-retirement-2026-09-22.json)。
