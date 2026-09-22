@@ -364,15 +364,17 @@ export interface paths {
   };
   "/v1/admin/platform-config/dns/compare": {
     /**
-     * Compare a Signed DNS Consumer View with its Current Published DNS Bundle
-     * @description Read-only platform administrator diagnostic for one exact physical DNS node and zone. Validates the candidate artifact signature, schema, policy lineage and consumer ownership, then compares its materialized records with the current trusted full DNS bundle or verified LKG used by the legacy bundle endpoint. Both sides use one server observation time and absolute value expirations; expired values are not renewed. Compares RRset values, effective TTL, policy, candidates, scoped candidates and ownership metadata; ignores record_generation and record ordering, but preserves nested selection order and TXT bytes. A missing, ambiguous or untrusted source is unavailable, never equivalent. Does not regenerate legacy records from business tables, write artifacts or releases, attest actual serving, or authorize promotion. Equivalence covers only the requested node/zone.
+     * Retired Legacy Configuration Comparison
+     * @deprecated
+     * @description Legacy business/standalone-bundle comparison is retired. Authorized platform administrators receive 410 without reading legacy serving inputs or writing configuration. Use published traffic diagnostics, hostname/artifact lineage, and runtime facts for current serving state.
      */
     get: operations["comparePlatformDNSMigration"];
   };
   "/v1/admin/platform-config/routes/compare": {
     /**
-     * Compare Business Route Projection with a Signed Artifact
-     * @description Read-only migration diagnostic for platform administrators. Captures the current legacy business projection and compares its route semantics, TLS allowlist and cache policies with one exact validated global route artifact. Omitted exclusion_lifecycle and clear are equivalent only when the route has no excluded edge IDs or group IDs; exclusion lists, other lifecycle states, expiry and reason remain significant. Cache policies are compared by identity; every policy field, nested rule order and relative order among implicit HTML fallback policies remains significant. Other top-level policy ordering is immaterial. Empty or duplicate cache policy identities make comparison unavailable. This is not a serving verification, an atomic business database snapshot, or authorization to promote. No artifacts, releases, LKG or business records are written.
+     * Retired Legacy Configuration Comparison
+     * @deprecated
+     * @description Legacy business/standalone-bundle comparison is retired. Authorized platform administrators receive 410 without reading legacy serving inputs or writing configuration. Use published traffic diagnostics, hostname/artifact lineage, and runtime facts for current serving state.
      */
     get: operations["comparePlatformRouteMigration"];
   };
@@ -13785,88 +13787,30 @@ export interface operations {
     };
   };
   /**
-   * Compare a Signed DNS Consumer View with its Current Published DNS Bundle
-   * @description Read-only platform administrator diagnostic for one exact physical DNS node and zone. Validates the candidate artifact signature, schema, policy lineage and consumer ownership, then compares its materialized records with the current trusted full DNS bundle or verified LKG used by the legacy bundle endpoint. Both sides use one server observation time and absolute value expirations; expired values are not renewed. Compares RRset values, effective TTL, policy, candidates, scoped candidates and ownership metadata; ignores record_generation and record ordering, but preserves nested selection order and TXT bytes. A missing, ambiguous or untrusted source is unavailable, never equivalent. Does not regenerate legacy records from business tables, write artifacts or releases, attest actual serving, or authorize promotion. Equivalence covers only the requested node/zone.
+   * Retired Legacy Configuration Comparison
+   * @deprecated
+   * @description Legacy business/standalone-bundle comparison is retired. Authorized platform administrators receive 410 without reading legacy serving inputs or writing configuration. Use published traffic diagnostics, hostname/artifact lineage, and runtime facts for current serving state.
    */
   comparePlatformDNSMigration: {
-    parameters: {
-      query: {
-        artifact_id: string;
-        /** @description Physical DNS process identity, not a zone alias. */
-        node_id: string;
-        zone: string;
-      };
-    };
     responses: {
-      /** @description Comparison for the requested node and zone at captured_at. */
-      200: {
-        content: {
-          "application/json": components["schemas"]["PlatformDNSMigrationComparison"];
-        };
-      };
-      /** @description Required comparison identity is missing or invalid. */
-      400: {
+      /** @description Legacy migration comparison is retired. */
+      410: {
         content: {
           "application/json": components["schemas"]["ErrorResponse"];
         };
       };
-      /** @description Artifact not found. */
-      404: {
-        content: {
-          "application/json": components["schemas"]["ErrorResponse"];
-        };
-      };
-      /** @description Candidate is untrusted, incompatible, or lacks the exact consumer view. */
-      409: {
-        content: {
-          "application/json": components["schemas"]["ErrorResponse"];
-        };
-      };
-      /** @description Current DNS inventory or trusted published reference is unavailable or ambiguous. */
-      503: {
-        content: {
-          "application/json": components["schemas"]["ErrorResponse"];
-        };
-      };
+      default: components["responses"]["ErrorResponse"];
     };
   };
   /**
-   * Compare Business Route Projection with a Signed Artifact
-   * @description Read-only migration diagnostic for platform administrators. Captures the current legacy business projection and compares its route semantics, TLS allowlist and cache policies with one exact validated global route artifact. Omitted exclusion_lifecycle and clear are equivalent only when the route has no excluded edge IDs or group IDs; exclusion lists, other lifecycle states, expiry and reason remain significant. Cache policies are compared by identity; every policy field, nested rule order and relative order among implicit HTML fallback policies remains significant. Other top-level policy ordering is immaterial. Empty or duplicate cache policy identities make comparison unavailable. This is not a serving verification, an atomic business database snapshot, or authorization to promote. No artifacts, releases, LKG or business records are written.
+   * Retired Legacy Configuration Comparison
+   * @deprecated
+   * @description Legacy business/standalone-bundle comparison is retired. Authorized platform administrators receive 410 without reading legacy serving inputs or writing configuration. Use published traffic diagnostics, hostname/artifact lineage, and runtime facts for current serving state.
    */
   comparePlatformRouteMigration: {
-    parameters: {
-      query: {
-        artifact_id: string;
-      };
-    };
     responses: {
-      /** @description Semantic comparison of the captured business projection and verified artifact projection. */
-      200: {
-        content: {
-          "application/json": components["schemas"]["PlatformRouteMigrationComparison"];
-        };
-      };
-      /** @description An exact artifact ID is required. */
-      400: {
-        content: {
-          "application/json": components["schemas"]["ErrorResponse"];
-        };
-      };
-      /** @description Artifact not found. */
-      404: {
-        content: {
-          "application/json": components["schemas"]["ErrorResponse"];
-        };
-      };
-      /** @description Artifact is untrusted, incompatible, or not a validated global route artifact. */
-      409: {
-        content: {
-          "application/json": components["schemas"]["ErrorResponse"];
-        };
-      };
-      /** @description Storage or the business projection is unavailable or invalid. */
-      503: {
+      /** @description Legacy migration comparison is retired. */
+      410: {
         content: {
           "application/json": components["schemas"]["ErrorResponse"];
         };
