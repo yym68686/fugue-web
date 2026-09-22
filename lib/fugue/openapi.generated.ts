@@ -526,7 +526,11 @@ export interface paths {
     delete: operations["deletePlatformDomainBinding"];
   };
   "/v1/edge/dns": {
-    /** Edge DNS Bundle */
+    /**
+     * Retired Legacy DNS Bundle Endpoint
+     * @deprecated
+     * @description The independent DNS bundle serving protocol is retired. Authenticated, correctly scoped legacy requests receive 410 and must retain their current verified LKG. DNS consumers use their bound platform identity, serving assignment and signed TrafficReleaseSet artifact instead. No legacy bundle, business projection or ambient configuration is returned, even when an old standalone full bundle remains stored.
+     */
     get: operations["edgeDNSBundle"];
   };
   "/v1/dns/nodes": {
@@ -14468,7 +14472,11 @@ export interface operations {
       default: components["responses"]["ErrorResponse"];
     };
   };
-  /** Edge DNS Bundle */
+  /**
+   * Retired Legacy DNS Bundle Endpoint
+   * @deprecated
+   * @description The independent DNS bundle serving protocol is retired. Authenticated, correctly scoped legacy requests receive 410 and must retain their current verified LKG. DNS consumers use their bound platform identity, serving assignment and signed TrafficReleaseSet artifact instead. No legacy bundle, business projection or ambient configuration is returned, even when an old standalone full bundle remains stored.
+   */
   edgeDNSBundle: {
     parameters: {
       query: {
@@ -14482,16 +14490,7 @@ export interface operations {
       };
     };
     responses: {
-      /** @description Successful response */
-      200: {
-        headers: {
-          ETag?: string;
-          "X-Fugue-DNS-Bundle-Version"?: string;
-        };
-        content: {
-          "application/json": components["schemas"]["EdgeDNSBundle"];
-        };
-      };
+      410: components["responses"]["ErrorResponse"];
       default: components["responses"]["ErrorResponse"];
     };
   };
