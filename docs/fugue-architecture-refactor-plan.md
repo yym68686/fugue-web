@@ -32,36 +32,15 @@ Runtime Facts / ACK / LKG
 
 ## 当前状态判断
 
-2026-09-22 最新验收快照：P0-EP-Y1/Y2 已完成 origin 隔离及实际流量证明修复，Y3/Y4 完成只读 Pod 排空观测，Y5/Y6 完成不可变 revision workload 数据库防护及实际身份绑定。Y7 已完成 Controller 重启接管同一 operation：`a574b678` 实现恢复机制；正常发布 `fa292dfe` 替换 Controller 后，原操作 `op_1790016761_a910f794f5f7` 保留同一个 candidate、Deployment/Service/Pod 身份与 50/50 权重，经过新鲜观察窗口后完成 100% 提升和 canonical 对齐。144 次 sticky origin 请求、246 次健康采样全部 200，API/Controller 2/2 Ready，三台 Front、两地 authority 正常，serving/LKG 指针保留。Y8 已部署 `8cf7a49e`，把 release readiness 从 Service 地址数量提升为 EndpointSlice→Pod→ReplicaSet→Deployment UID 链、release key、镜像、Pod Ready 和地址归属验证；生产 9 个 managed release 全部产生 `endpoint_pods`，12 次公网健康采样全部 200，六类 artifact 重放一致且 serving/LKG 未变。Y9 已部署 `d657089a`，增加 schema/API/Store 双层退休终态 fence：退休记录不可被旧 writer 重新激活，traffic policy 不能引用 retired release，自动 stable 同步不会复用 tombstone；生产两个 PostgreSQL trigger 启用且函数与仓库源码一致，23 个 release、33 个 workload UID、traffic/LKG 保持，12 次公网采样全部 200。另一轮重启验收的 600 秒流完整返回，但触发原有 p99 门禁，自动回到旧 stable 100%；该轮不计作成功发布。一次 Pod 列表传输失败造成 112 秒身份采样空窗，独立业务采样继续正常，随后六次接口复查均成功。临时观察窗口已恢复为 120 秒。Y10 已部署 `e5378e17`，按不可变 binding 观察 Pod 排空，以 exact release/policy CAS 退役并按 UID/resourceVersion 删除资源；生产两条 previous 完成退役，6 个旧资源删除，其余 27 个资源身份保留，93 次跨 Edge 采样全部 200，traffic/serving/LKG 未变。Y11 的 `c9f1a1cd` 已让失败 candidate 复用同一套排空/退役门禁；生产一条失败 candidate 安全回收 3 个资源，其余 24 个资源 UID 保留，原 operation 仍为 failed，93 次健康采样全部 200。Y12 的 `fcb19eaf` 首次历史迁移因 operation timing 读取差异触发 CAS 拒绝；恢复提交 `8f974a58` 已上线，历史 previous 和 failed 各一条成功绑定原 UID，failed 完成 3 个资源回收，previous 因发布前已存在的容器终止/Unknown 状态继续保留，其余 21 个资源 UID 保持。330 次观测包含 328 次 200 与两次连接超时；随后 36 次本机及 3 次集群内复查全部 200，采样最大间隔 134.7 秒如实保留。Y13 已部署独立诊断包 `a01be832`，以签名 recipe 固定 Pod UID、节点启动身份和 CRI peer，生产正式 session 正确区分已退出旧 Pod 与仍在运行的 canonical Pod，两份证据 complete；21 个业务资源 UID、traffic/release、serving/LKG 与 API/Controller 均保持，18 次节点侧跨 Edge 请求全部 200。Y14 的 Controller `fffcd610` 已把新鲜签名 CRI 证据接入现有退役门禁：异常 previous 自动获取 complete 报告后，经过 workload/traffic 复核和 CAS 退役，3 个旧资源删除，其余 18 个资源 UID、traffic/LKG 保留，69 次节点侧跨 Edge 请求全部 200。Y15 已迁移并回收两条旧 helper revision：固定历史 helper 镜像，其他执行参数仍严格校验；6 个旧资源删除，其余 12 个 UID、traffic/LKG 保留，213 次节点侧业务采样全部 200。恢复提交 `d43dc00f` 将停止态观察的节点新鲜度改为 Ready+owned kubelet Lease，Controller 2/2 Ready；两次回收均发生在该恢复版上线前，保留版本归属。Y16 的 `79e28964` 已在严格来源/执行配置预检后复用 metadata migration，为缺标签的旧 revision 补齐隔离标签并保留原 Pod UID，随后签名 CRI 观察授权回收 3 个资源，其余 9 个 UID、traffic/LKG 保留，33 次节点侧请求全部 200。Y17 进一步确认最后一条历史 release 的 SpecSnapshot 也曾被旧 canonical 写入覆盖，严格迁移正确拒绝。Y18 的 `548f1ae7` 通过精确归属和新鲜签名 CRI 证明，在同一事务记录实际 binding 并退休，保留原损坏快照且未产生可重新 serving 的绑定中间态；3 个旧资源删除，只剩 canonical 与当前 stable revision 的 6 个资源。90 次采样中 89 次 200、一次 SSH 采集连接失败，后续 18 次复查全部 200；traffic/LKG 保留。历史缺失资源账本、快照防覆盖、其余 rollback 与全局配置接管仍待完成。producer 仍为 shadow，八个消费者 observed、passing=0；首次完整配置接管、positive LKG 和旧 serving 输入删除尚未完成。
+截至 Y26，route、DNS、TLS 已完成统一 TrafficReleaseSet 的生产 full 接管。三台 active Edge 和两台 DNS 按当前 release、artifact、expected consumer set 与 fence 提供真实 serving 回执；全局 ReleaseSet、route、DNS、TLS、policy 五份 verified LKG 绑定同一验证 release 和 evidence hash。
 
-Y19 的 `edc72b9b` 已在 Controller、JSON Store 和 PostgreSQL 保护绑定后的 source/image/runtime/SpecSnapshot；canonical 对齐仅更新服务目标，下一次发布保留原已绑定 stable，执行模板不符则拒绝对齐。独立数据库约束在旧 schema migrator 重放后仍有效；生产 schema/API/Controller 回执核对通过，API/Controller 2/2 Ready，6 个资源 UID、14 条活动 release、traffic/serving/LKG 保留，222 次节点侧跨 Edge 请求全部 200。全局配置仍为 shadow。
+签名 producer policy 已启用自动 serving：固定基础 intent 与输入 policy，捕获业务投影后编译、gray、full，并在观察窗口与消费者收敛通过后更新 LKG。gray/full 各至少观察 120 秒，600 秒未完成则恢复 verified 基线。policy 授权版本变化的生产演练已验证：5.321 秒内发布恢复版本，八个消费者随后收敛，原五份 positive LKG 保留。超时专用演练、重启恢复与连接连续性仍待补齐。
 
-Y20 的 API `56a7eeb1` 已修复默认 DNS 投影：只有冻结 App 的默认 hostname/owner 匹配才生成隐式记录，项目 HTTP 路由别名需要独立 DNS 声明。新 shadow `artifact_1790085542_92ea6c7b216b`（fence 745）保持 162 route，移除一条未经 DNS 声明授权的别名后为 246 DNS records；两地各 249 条实际查询记录、700 个离线选择器检查一致，公网 TCP 各 249/249 RRset 与候选一致（不比较 TTL/顺序）。八个消费者 observed、serving passing=0，219 次跨 Edge 健康采样全部 200，serving/LKG 保留。
+当前已验收代码：API `3bde9088`、Controller `edc72b9b`、两地 Edge worker `7cff4f63`、两地 DNS client `bb75bea6`。Y26 已删除 Edge route-intents HTTP serving 路径中的业务表即时生成及 standalone LKG 回退，只返回适用的已发布 TrafficReleaseSet；缺少/损坏发布时返回 503，consumer 保留当前 artifact。业务投影仍由配置 producer 独立完成。
 
-Y21 已首次发布完整 gray `artifact_1790087479_550a3c8023a6`，release `artifactrel_1790087645_0acc5580b15b`，cohort=complete。两台 DNS 因 `:53` 通配监听自检误拒绝而保留旧 serving；`bb75bea6` 正常发布后两台 DNS 实际加载同一 gray，各 465/465 probes、234/234 readiness records，持久化 positive checkpoint，六个公网 SOA 均为 artifact sequence 799。美国两个 Edge route/TLS 已验证，欧洲 Edge 因签名排除路由仍被要求 active proof 而门禁未通过；full 与全局 verified LKG 尚未建立。累计 534 次业务采样全部 200，producer 暂停以保留当前 gray。
+历史 revision 资源回收、不可变执行快照保护、排除路由负向证明和 DNS 通配监听恢复均已完成相应生产验收，详见 Y10–Y26。发布监控保留了 SSH 采集失败与一次 US A/B 期间 TLS EOF；后续独立复查正常，不能据此声称所有发布均零中断。
 
-Y22 的 `7cff4f63` 已经由 API 与两地 worker 正常 A/B 发布完成。欧洲两条签名排除路由以明确 `excluded` 证明核验：普通 readiness 返回 503，显式 excluded 返回 204/精确 digest，无应用流量证明；DNS 不把排除证明视为 eligibility。gray 的 route 3/3、TLS 3/3、DNS 2/2 在多次新鲜检查中全部通过。累计 882 次采样中保留 3 次 SSH 连接失败和 1 次 US A/B 期间 TLS EOF；另从美国节点发起 60 次独立复查全部 200。全局 verified LKG 与 full 尚未推进。
-
-Y23 已建立首份 gray verified LKG，并将同一 artifact 提升到 full `artifactrel_1790091416_15e293b47203`。全部 route 3/3、TLS 3/3、DNS 2/2 以 full 身份收敛并通过超过 120 秒观察；ReleaseSet、route、DNS、TLS、policy 五份签名 LKG 原子绑定同一 full release/evidence hash。full 阶段 72 次健康采样全部 200，两地六个公网 SOA 仍为 artifact sequence 799。producer 当前暂停，下一步启用自动 serving 与恢复演练。
-
-Y24 已启用签名 serving policy `artifact_1790091911_5e876f84e521`，自动 producer 生成 `artifact_1790091931_a98b6cae07d2`、gray fence 2，超过 120 秒后自动 full `artifactrel_1790092057_49124bed1c6d`，再次观察后自动 verified。五份 LKG 同时指向该 full release，八个消费者通过；期间 60 次健康采样有一次 SSH 连接关闭无 HTTP，其余 59 次 200。自动成功路径已实测，失败恢复与剩余任务继续待验收。
-
-Y25 已完成 policy 版本变化恢复演练：已收敛但未验证的 gray `artifactrel_1790092573_cccdbab82b19` 在 authority 更新后自动标记 failed；5.321 秒后 producer 发布 full recovery `artifactrel_1790092696_b2d907cf9173`，指向原 verified artifact `artifact_1790092253_5f659a203e9a`。八个消费者随后全部收敛，五份 LKG 的原 verification release/evidence hash 保持，48 次健康采样全部 200。正常 serving 模式与 120 秒观察策略已恢复。
-
-生产 producer 仍为 `business-static-intent`/shadow，固定基础 intent `artifact_1789848966_aa79d274ac50` 和输入 policy `artifact_1789917932_e90aeeb2510d`；启用策略为 `artifact_1789917933_9f90cbb02a89`，显式选择 `consumer_readiness`。最新验收 shadow `artifact_1789924746_0593e3041d46`、fence 226 包含 160 route、245 DNS records、159 TLS references；两台 DNS 均为 462/462 probes、233/233 readiness records、248/248 eligible queries。八个消费者 observed，serving passing=0；六 artifact 精确重放通过，全局 serving/LKG 未切换。前端契约 `3979108b` 已实际部署，2/2 Ready、公网 200。
-
-下一步 P0-EP 完成完整配置的首次真实 gray/full 接管、positive traffic/policy LKG、自动 serving 策略启用与恢复验证；随后完成剩余策略迁移和旧 serving 来源删除。自动发布代码已部署不代表生产已经启用自动 serving，也不能将 shadow 成功视为全部重构完成。
-
-Fugue 已经具备相当一部分基础设施：`PlatformArtifact` 已有 generation、content hash、签名、验证状态、release channel、fencing token 和 LKG；Edge 与 DNS 也有签名校验、本地缓存和过期控制。
-
-主要缺口是：
-
-- serving intent 仍分散在业务表、环境变量和即时计算逻辑中；
-- route/DNS bundle 仍可能从 mutable app、domain、runtime 状态即时推导；
-- policy 参数和决策分散在代码与环境变量中；
-- route、DNS、TLS 已完成统一 TrafficReleaseSet 的生产 full serving 和 verified LKG；自动 serving、恢复演练与旧来源删除仍待完成；
-- runtime facts、期望状态和 release ledger 仍需要进一步分离；
-- executor 仍需要逐步脱离控制面业务数据库。
+尚未完成的主要工作：DNS 启动旧配置 fallback 与其他 legacy serving 来源删除、环境变量退役、超时和重启恢复演练、非对称签名迁移、其余 policy 与 runtime facts 收敛，以及最终简化版清单的逐项核验。自动 serving 已启用不代表整份重构方案完成。本文后续步骤记录中的版本和状态是当时快照，以本节及最新验证为准。
 
 ## 需要删除的内容
 
@@ -852,7 +831,7 @@ control-plane v42:
 `EdgeRouteIntent` 不应成为第二个配置真相。
 
 - [x] `EdgeRouteIntent` 由 `PlatformIntent` 编译或投影得到。
-- [ ] Edge Control 只读取该投影，不接受独立的用户配置来源。
+- [x] Edge Control 的 route-intents serving 接口只读取已发布 TrafficReleaseSet 的投影，Y26 已删除业务表与 standalone LKG fallback。
 - [ ] EdgeRouteIntent 的 generation 必须绑定 PlatformIntent digest。
 - [ ] EdgeRouteIntent 的变更必须能够追溯到 PlatformIntent 和 PolicySnapshot。
 
@@ -3947,3 +3926,16 @@ P0-EP-X 生产取证确认 canonical Service selector 仅有 app 标签，会同
 - [ ] 继续验证超时恢复、失败来源去重、控制面与 consumer 重启恢复，以及剩余策略迁移和旧来源移除。policy 变更恢复不等于所有故障类型已经验证。
 
 证据：[producer-policy-recovery-2026-09-22.json](verification/producer-policy-recovery-2026-09-22.json)。
+
+
+### P0-EP-Y26：删除 Edge route-intents 的 legacy serving fallback
+
+- [x] OpenAPI 将 edge_group_id 设为必需，并明确只读取适用的已发布 gray/full TrafficReleaseSet。HTTP serving handler 删除业务表即时 derive 和 standalone route LKG fallback；缺参数 400，缺失/损坏/未准备好的发布 503，保留 consumer 原 serving artifact。
+- [x] standalone LKG 读取帮助函数从生产代码移至历史兼容测试；compiler/迁移诊断仍可显式投影 artifact。业务 App 与配置 producer 保留，不再从 consumer 请求中临时推导 serving intent。
+- [x] 回归覆盖已有业务 App/环境 route/standalone LKG 时仍拒绝 fallback，未选中 cohort 保留 consumer cache，不把成员 LKG 扩散到其他组；正常已发布投影、签名/拓扑错误、race、全量 make test 和前端 contract:check 通过。干净 prepush 采用仓库 CI 的 240 秒预算，全部通过。
+- [x] `3bde90882755cbe9399d9b03e8cf93ad62a308e5` 经 [CI 35753217572](https://github.com/yym68686/fugue/actions/runs/35753217572) 仅发布 API，2/2 Ready；前端契约 `85bce63f` 的 [CI 35753854167](https://github.com/yym68686/fugue-web/actions/runs/35753854167) 成功。
+- [x] 两地 authority 的新鲜 reconcile generation 与当前发布的 route artifact 一致，route 3/3、TLS 3/3、DNS 2/2 收敛，API/authority 正常。后台 producer 持续执行后续正常 gray/full 更新，verified LKG 保持。
+- [x] 186 次监控采样含 185 次 200 和一次 SSH 连接关闭未取得 HTTP，最近 18 次全部 200；生产未删除有效 release 做负向试验，缺发布拒绝行为由本地集成测试验证。
+- [ ] 删除 DNS 启动与其他 legacy serving 路径，完成剩余故障恢复与简化方案任务；此步不声称所有业务表/环境变量依赖均已移除。
+
+证据：[traffic-only-route-intents-2026-09-22.json](verification/traffic-only-route-intents-2026-09-22.json)。
