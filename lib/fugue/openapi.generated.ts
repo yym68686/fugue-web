@@ -375,8 +375,8 @@ export interface paths {
   };
   "/v1/admin/platform-config/routes/project": {
     /**
-     * Project Business Routes into PlatformIntent
-     * @description Read-only migration draft from one consistent business snapshot. PostgreSQL uses a read-only repeatable-read transaction; file storage reads under one lock. Returns the business snapshot revision/time and explicit migration issues. Runtime observations retain their own evidence timestamps and are not part of the database transaction. Desired release references and weights are projected into policy; release addresses and readiness retain their original observation timestamps in runtime_snapshot.releases. Explicit platform entries within configured authoritative base domains become FUGUE_ROUTE intents; same-name static A/AAAA/CNAME overrides are recorded as exclusions, while other static records are preserved. Verified business domain bindings owned by the application base domain also become owned FUGUE_ROUTE intents using the configured DNS TTL, replacing only exact static address inputs with an exclusion audit. Missing or conflicting route ownership rejects projection; conflicting hosted address records remain explicit issues and prevent compilation. Non-address records, reserved names and custom-domain target namespaces are not overwritten. Only root routes matching the frozen owning App default route hostname and tenant within the configured application base domain project into default FUGUE_ROUTE records. Project route aliases alone do not authorize DNS publication; they require explicit DNS intent or a verified domain binding. Explicit hosted address sources and protected names are preserved; default TTL comes from configured DNS policy. Placement collection uses at most eight concurrent workers, 4096 probes and a 30-second request budget. Exhausted or invalid evidence is reported as a migration issue and never authorizes promotion. Application and platform DNS placement capture probes each configured public candidate address with TLS hostname verification and the Edge route-proof protocol, checks every hostname path against the fixed compiled route, and binds the original inventory heartbeat and signed bundle expiry. Failed, stale or mismatched evidence stays an explicit issue; collection never extends a lease or authorizes promotion. migration_ready remains false until all serving inputs, policy execution, DNS/TLS readiness and output equivalence are verified. Writes no serving state.
+     * Preview Pinned Platform Configuration
+     * @description Read-only draft selected by one exact signed validated producer_policy_artifact_id. Missing or duplicate policy references return 400. The retired static-only selector returns 410; process environment cannot select a fallback configuration. Captures one consistent business snapshot. PostgreSQL uses a read-only repeatable-read transaction; file storage reads under one lock. Returns the business snapshot revision/time and explicit migration issues. Runtime observations retain their own evidence timestamps and are not part of the database transaction. Desired release references and weights are projected into policy; release addresses and readiness retain their original observation timestamps in runtime_snapshot.releases. Explicit platform entries within configured authoritative base domains become FUGUE_ROUTE intents; same-name static A/AAAA/CNAME overrides are recorded as exclusions, while other static records are preserved. Verified business domain bindings owned by the application base domain also become owned FUGUE_ROUTE intents using the configured DNS TTL, replacing only exact static address inputs with an exclusion audit. Missing or conflicting route ownership rejects projection; conflicting hosted address records remain explicit issues and prevent compilation. Non-address records, reserved names and custom-domain target namespaces are not overwritten. Only root routes matching the frozen owning App default route hostname and tenant within the configured application base domain project into default FUGUE_ROUTE records. Project route aliases alone do not authorize DNS publication; they require explicit DNS intent or a verified domain binding. Explicit hosted address sources and protected names are preserved; default TTL comes from configured DNS policy. Placement collection uses at most eight concurrent workers, 4096 probes and a 30-second request budget. Exhausted or invalid evidence is reported as a migration issue and never authorizes promotion. Application and platform DNS placement capture probes each configured public candidate address with TLS hostname verification and the Edge route-proof protocol, checks every hostname path against the fixed compiled route, and binds the original inventory heartbeat and signed bundle expiry. Failed, stale or mismatched evidence stays an explicit issue; collection never extends a lease or authorizes promotion. migration_ready remains false until all serving inputs, policy execution, DNS/TLS readiness and output equivalence are verified. Writes no serving state.
      */
     get: operations["projectPlatformIntent"];
   };
@@ -11535,11 +11535,11 @@ export interface components {
         rollout_timeout_seconds: number;
       };
       /** @enum {string} */
-      input_source: "business-migration" | "business-static-intent";
-      /** @description Required only for business-static-intent; an exact immutable platform_intent ID in global scope. */
-      static_intent_artifact_id?: string;
-      /** @description Exact content_hash of the pinned static intent. Required only for business-static-intent. */
-      static_intent_digest?: string;
+      input_source: "business-static-intent";
+      /** @description Required exact immutable platform_intent ID in global scope. */
+      static_intent_artifact_id: string;
+      /** @description Required exact content_hash of the pinned static intent. */
+      static_intent_digest: string;
       /** @description Optional exact validated global PolicySnapshot holding DNS declarations and optional route defaults. Supported fields are schema_version, generation, scope, dns_authorities, dns_client_policies, dns_readiness, tls_readiness, traffic_rollout_cohorts, dns_query_policy, dns_placement_mode; the optional route defaults group must include all four of minimum_healthy_edges (1..10000), max_stale_seconds (1..604800), route_constraints and dns_route_state_constraints. Explicit empty arrays are allowed; null, partial groups and unknown fields are rejected. Base route_constraints are defaults by hostname; an explicit business route policy takes precedence. Requires business-static-intent and DNS consumers in the pinned intent. */
       dns_policy_artifact_id?: string;
       dns_policy_digest?: string;
@@ -13845,16 +13845,19 @@ export interface operations {
     };
   };
   /**
-   * Project Business Routes into PlatformIntent
-   * @description Read-only migration draft from one consistent business snapshot. PostgreSQL uses a read-only repeatable-read transaction; file storage reads under one lock. Returns the business snapshot revision/time and explicit migration issues. Runtime observations retain their own evidence timestamps and are not part of the database transaction. Desired release references and weights are projected into policy; release addresses and readiness retain their original observation timestamps in runtime_snapshot.releases. Explicit platform entries within configured authoritative base domains become FUGUE_ROUTE intents; same-name static A/AAAA/CNAME overrides are recorded as exclusions, while other static records are preserved. Verified business domain bindings owned by the application base domain also become owned FUGUE_ROUTE intents using the configured DNS TTL, replacing only exact static address inputs with an exclusion audit. Missing or conflicting route ownership rejects projection; conflicting hosted address records remain explicit issues and prevent compilation. Non-address records, reserved names and custom-domain target namespaces are not overwritten. Only root routes matching the frozen owning App default route hostname and tenant within the configured application base domain project into default FUGUE_ROUTE records. Project route aliases alone do not authorize DNS publication; they require explicit DNS intent or a verified domain binding. Explicit hosted address sources and protected names are preserved; default TTL comes from configured DNS policy. Placement collection uses at most eight concurrent workers, 4096 probes and a 30-second request budget. Exhausted or invalid evidence is reported as a migration issue and never authorizes promotion. Application and platform DNS placement capture probes each configured public candidate address with TLS hostname verification and the Edge route-proof protocol, checks every hostname path against the fixed compiled route, and binds the original inventory heartbeat and signed bundle expiry. Failed, stale or mismatched evidence stays an explicit issue; collection never extends a lease or authorizes promotion. migration_ready remains false until all serving inputs, policy execution, DNS/TLS readiness and output equivalence are verified. Writes no serving state.
+   * Preview Pinned Platform Configuration
+   * @description Read-only draft selected by one exact signed validated producer_policy_artifact_id. Missing or duplicate policy references return 400. The retired static-only selector returns 410; process environment cannot select a fallback configuration. Captures one consistent business snapshot. PostgreSQL uses a read-only repeatable-read transaction; file storage reads under one lock. Returns the business snapshot revision/time and explicit migration issues. Runtime observations retain their own evidence timestamps and are not part of the database transaction. Desired release references and weights are projected into policy; release addresses and readiness retain their original observation timestamps in runtime_snapshot.releases. Explicit platform entries within configured authoritative base domains become FUGUE_ROUTE intents; same-name static A/AAAA/CNAME overrides are recorded as exclusions, while other static records are preserved. Verified business domain bindings owned by the application base domain also become owned FUGUE_ROUTE intents using the configured DNS TTL, replacing only exact static address inputs with an exclusion audit. Missing or conflicting route ownership rejects projection; conflicting hosted address records remain explicit issues and prevent compilation. Non-address records, reserved names and custom-domain target namespaces are not overwritten. Only root routes matching the frozen owning App default route hostname and tenant within the configured application base domain project into default FUGUE_ROUTE records. Project route aliases alone do not authorize DNS publication; they require explicit DNS intent or a verified domain binding. Explicit hosted address sources and protected names are preserved; default TTL comes from configured DNS policy. Placement collection uses at most eight concurrent workers, 4096 probes and a 30-second request budget. Exhausted or invalid evidence is reported as a migration issue and never authorizes promotion. Application and platform DNS placement capture probes each configured public candidate address with TLS hostname verification and the Edge route-proof protocol, checks every hostname path against the fixed compiled route, and binds the original inventory heartbeat and signed bundle expiry. Failed, stale or mismatched evidence stays an explicit issue; collection never extends a lease or authorizes promotion. migration_ready remains false until all serving inputs, policy execution, DNS/TLS readiness and output equivalence are verified. Writes no serving state.
    */
   projectPlatformIntent: {
     parameters: {
-      query?: {
-        /** @description Optional exact signed validated global PlatformIntent used instead of ambient platform routes and static DNS. Only static representable records and routes are accepted; an explicit invalid reference is rejected without fallback. */
+      query: {
+        /**
+         * @deprecated
+         * @description Retired static-only selector; returns 410. Select an exact signed producer policy that pins all required configuration inputs.
+         */
         static_intent_artifact_id?: string;
-        /** @description Optional exact validated signed producer policy for preview, mutually exclusive with static_intent_artifact_id. Uses its pinned static/DNS configuration references without activation; invalid references fail without ambient fallback. */
-        producer_policy_artifact_id?: string;
+        /** @description Exactly one validated signed producer policy ID. Uses its pinned static/DNS configuration references without activation; invalid or retired sources fail without ambient fallback. */
+        producer_policy_artifact_id: string;
       };
     };
     responses: {
@@ -13862,6 +13865,24 @@ export interface operations {
       200: {
         content: {
           "application/json": components["schemas"]["PlatformIntentProjectionResponse"];
+        };
+      };
+      /** @description Exactly one producer policy reference is required. */
+      400: {
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"];
+        };
+      };
+      /** @description Static-only preview is retired; select a signed producer policy. */
+      410: {
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"];
+        };
+      };
+      /** @description Pinned configuration is untrusted, unavailable, or cannot be projected. */
+      503: {
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"];
         };
       };
       default: components["responses"]["ErrorResponse"];
