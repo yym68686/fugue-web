@@ -454,7 +454,10 @@ export interface paths {
     get: operations["getPlatformHostnameLineage"];
   };
   "/v1/admin/platform-state/runtime-facts": {
-    /** List Platform Runtime Facts */
+    /**
+     * List Platform Runtime Facts
+     * @description Read-only projection of persisted heartbeat, artifact, and producer publication audit events. Filters are applied before the bounded limit, ordered by created_at and id descending. Producer shadow, gray, full, verified-LKG, and rollback events are included. ReleaseSet filters also match their typed audit target or artifact reference. consumer_id accepts canonical consumer identity or the historical stored instance ID; historical heartbeat identities are resolved without rewriting signed audit records. Original event hashes, provenance and metadata are retained. An invalid or repeated limit returns 400.
+     */
     get: operations["listPlatformRuntimeFacts"];
   };
   "/v1/admin/platform-config/policy-lkg": {
@@ -6237,6 +6240,21 @@ export interface components {
       database_failover?: components["schemas"]["AppContinuityDatabaseFailoverRequest"];
       zero_downtime?: components["schemas"]["AppZeroDowntimePolicy"];
     };
+    PlatformRuntimeFactsResponse: {
+      runtime_facts: components["schemas"]["AuditEvent"][];
+      /** Format: date-time */
+      generated_at: string;
+    };
+    /** @description Original audit provenance. Unsigned operational events contain empty identity, algorithm and signature fields; these do not prove consumer identity. */
+    AuditEventProvenance: {
+      issuer: string;
+      key_id: string;
+      /** @enum {string} */
+      algorithm: "" | "hmac-sha256";
+      signature: string;
+      /** Format: date-time */
+      signed_at: string;
+    };
     AuditEvent: {
       id: string;
       tenant_id?: string;
@@ -6246,6 +6264,12 @@ export interface components {
       target_type: string;
       target_id?: string;
       metadata?: components["schemas"]["StringMap"];
+      chain_id?: string;
+      /** Format: int64 */
+      chain_sequence?: number;
+      previous_hash?: string;
+      event_hash?: string;
+      provenance?: components["schemas"]["AuditEventProvenance"];
       /** Format: date-time */
       created_at: string;
     };
@@ -14177,7 +14201,10 @@ export interface operations {
       default: components["responses"]["ErrorResponse"];
     };
   };
-  /** List Platform Runtime Facts */
+  /**
+   * List Platform Runtime Facts
+   * @description Read-only projection of persisted heartbeat, artifact, and producer publication audit events. Filters are applied before the bounded limit, ordered by created_at and id descending. Producer shadow, gray, full, verified-LKG, and rollback events are included. ReleaseSet filters also match their typed audit target or artifact reference. consumer_id accepts canonical consumer identity or the historical stored instance ID; historical heartbeat identities are resolved without rewriting signed audit records. Original event hashes, provenance and metadata are retained. An invalid or repeated limit returns 400.
+   */
   listPlatformRuntimeFacts: {
     parameters: {
       query?: {
@@ -14191,9 +14218,13 @@ export interface operations {
       /** @description Runtime fact event projection from the platform audit log */
       200: {
         content: {
-          "application/json": {
-            [key: string]: unknown;
-          };
+          "application/json": components["schemas"]["PlatformRuntimeFactsResponse"];
+        };
+      };
+      /** @description Invalid bounded query limit. */
+      400: {
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"];
         };
       };
       default: components["responses"]["ErrorResponse"];
