@@ -557,7 +557,10 @@ export interface paths {
   "/v1/dns/zones": {
     /** List Hosted DNS Zones */
     get: operations["listHostedDNSZones"];
-    /** Create Hosted DNS Zone */
+    /**
+     * Create Hosted DNS Zone
+     * @description Expected nameservers come from the signed intent and DNS authority policy references bound to the verified TrafficReleaseSet LKG. A new zone uses that release's explicit hosted-zone templates. Missing or invalid verified configuration returns 503 before creating a zone; environment nameservers cannot supply a fallback.
+     */
     post: operations["createHostedDNSZone"];
   };
   "/v1/dns/zones/{zone}": {
@@ -591,7 +594,10 @@ export interface paths {
     post: operations["dnsHeartbeat"];
   };
   "/v1/dns/delegation/preflight": {
-    /** DNS Delegation Preflight */
+    /**
+     * DNS Delegation Preflight
+     * @description Combines independent node probes with delegation hints from the intent and policy bound to the verified traffic LKG. Invalid configuration makes dns_delegation_configuration fail and returns no proposed parent DNS changes. Hosted-zone preflight uses the same source and preserves stored expected nameservers on configuration failure. Multi-zone DNS consumers use fresh physical-node facts projected onto the declared zone, followed by real zone probes; stale per-zone aliases cannot override the physical serving snapshot.
+     */
     get: operations["dnsDelegationPreflight"];
   };
   "/v1/edge/domains/{hostname}/tls-bundle": {
@@ -14598,7 +14604,10 @@ export interface operations {
       default: components["responses"]["ErrorResponse"];
     };
   };
-  /** Create Hosted DNS Zone */
+  /**
+   * Create Hosted DNS Zone
+   * @description Expected nameservers come from the signed intent and DNS authority policy references bound to the verified TrafficReleaseSet LKG. A new zone uses that release's explicit hosted-zone templates. Missing or invalid verified configuration returns 503 before creating a zone; environment nameservers cannot supply a fallback.
+   */
   createHostedDNSZone: {
     requestBody: {
       content: {
@@ -14783,7 +14792,10 @@ export interface operations {
       default: components["responses"]["ErrorResponse"];
     };
   };
-  /** DNS Delegation Preflight */
+  /**
+   * DNS Delegation Preflight
+   * @description Combines independent node probes with delegation hints from the intent and policy bound to the verified traffic LKG. Invalid configuration makes dns_delegation_configuration fail and returns no proposed parent DNS changes. Hosted-zone preflight uses the same source and preserves stored expected nameservers on configuration failure. Multi-zone DNS consumers use fresh physical-node facts projected onto the declared zone, followed by real zone probes; stale per-zone aliases cannot override the physical serving snapshot.
+   */
   dnsDelegationPreflight: {
     parameters: {
       query?: {
