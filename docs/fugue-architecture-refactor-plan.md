@@ -42,6 +42,8 @@ Y21 已首次发布完整 gray `artifact_1790087479_550a3c8023a6`，release `art
 
 Y22 的 `7cff4f63` 已经由 API 与两地 worker 正常 A/B 发布完成。欧洲两条签名排除路由以明确 `excluded` 证明核验：普通 readiness 返回 503，显式 excluded 返回 204/精确 digest，无应用流量证明；DNS 不把排除证明视为 eligibility。gray 的 route 3/3、TLS 3/3、DNS 2/2 在多次新鲜检查中全部通过。累计 882 次采样中保留 3 次 SSH 连接失败和 1 次 US A/B 期间 TLS EOF；另从美国节点发起 60 次独立复查全部 200。全局 verified LKG 与 full 尚未推进。
 
+Y23 已建立首份 gray verified LKG，并将同一 artifact 提升到 full `artifactrel_1790091416_15e293b47203`。全部 route 3/3、TLS 3/3、DNS 2/2 以 full 身份收敛并通过超过 120 秒观察；ReleaseSet、route、DNS、TLS、policy 五份签名 LKG 原子绑定同一 full release/evidence hash。full 阶段 72 次健康采样全部 200，两地六个公网 SOA 仍为 artifact sequence 799。producer 当前暂停，下一步启用自动 serving 与恢复演练。
+
 生产 producer 仍为 `business-static-intent`/shadow，固定基础 intent `artifact_1789848966_aa79d274ac50` 和输入 policy `artifact_1789917932_e90aeeb2510d`；启用策略为 `artifact_1789917933_9f90cbb02a89`，显式选择 `consumer_readiness`。最新验收 shadow `artifact_1789924746_0593e3041d46`、fence 226 包含 160 route、245 DNS records、159 TLS references；两台 DNS 均为 462/462 probes、233/233 readiness records、248/248 eligible queries。八个消费者 observed，serving passing=0；六 artifact 精确重放通过，全局 serving/LKG 未切换。前端契约 `3979108b` 已实际部署，2/2 Ready、公网 200。
 
 下一步 P0-EP 完成完整配置的首次真实 gray/full 接管、positive traffic/policy LKG、自动 serving 策略启用与恢复验证；随后完成剩余策略迁移和旧 serving 来源删除。自动发布代码已部署不代表生产已经启用自动 serving，也不能将 shadow 成功视为全部重构完成。
@@ -53,7 +55,7 @@ Fugue 已经具备相当一部分基础设施：`PlatformArtifact` 已有 genera
 - serving intent 仍分散在业务表、环境变量和即时计算逻辑中；
 - route/DNS bundle 仍可能从 mutable app、domain、runtime 状态即时推导；
 - policy 参数和决策分散在代码与环境变量中；
-- route、DNS、TLS 已使用统一 TrafficReleaseSet 做完整 shadow，但正式 serving、verified LKG 与恢复尚未完成；
+- route、DNS、TLS 已完成统一 TrafficReleaseSet 的生产 full serving 和 verified LKG；自动 serving、恢复演练与旧来源删除仍待完成；
 - runtime facts、期望状态和 release ledger 仍需要进一步分离；
 - executor 仍需要逐步脱离控制面业务数据库。
 
@@ -834,7 +836,7 @@ control-plane v42:
 - [ ] deterministic compiler 生成可重放 artifact。
 - [ ] 每个 artifact 都包含完整 lineage。
 - [ ] immutable artifact 创建后不可变。
-- [ ] route、DNS、TLS 使用一个 `TrafficReleaseSet`。
+- [x] route、DNS、TLS 使用一个 `TrafficReleaseSet`，Y23 已完成生产 full 和五成员恢复基线。
 - [ ] consumer 使用 verified LKG 恢复。
 - [ ] runtime facts 不修改 intent。
 - [ ] 代码安全内核负责签名、schema、fencing、事务和 fail-closed。
@@ -3904,3 +3906,16 @@ P0-EP-X 生产取证确认 canonical Service selector 仅有 app 标签，会同
 - [ ] 建立 gray verified LKG，再推进同一 artifact full、验证新 fence 收敛及 full LKG；随后开启自动 serving、完成故障与恢复演练。US A/B 单次 EOF 需在后续受控发布中继续验证，不能将一次复查通过扩展为所有连接连续性已验收。
 
 证据：[excluded-route-serving-proof-2026-09-22.json](verification/excluded-route-serving-proof-2026-09-22.json)。
+
+
+### P0-EP-Y23：首次 full serving 与统一 verified LKG
+
+- [x] gray 的八个 required consumer 均以当前期望集合、artifact sequence、release 身份和 fence 持续通过；本地持久化回执、TLS/route 真实探针、公网 DNS 与健康观察齐全后，正式 verify-lkg API 建立初始恢复基线。
+- [x] 核对 ReleaseSet、route、DNS、TLS、policy 五份 LKG，全部绑定 gray `artifactrel_1790087645_0acc5580b15b` 与同一个 verification evidence hash，不以 shadow 或手工 ACK 代替正向运行证据。
+- [x] 正式 full release API 发布同一 artifact `artifact_1790087479_550a3c8023a6`，新 release `artifactrel_1790091416_15e293b47203`，full fence 1；未重新编译或替换 artifact。建立新的三类 expected consumer sets，gray 回执不计为 full 收敛。
+- [x] 过渡期旧 gray 继续服务，full 身份不匹配时不报通过；最终三台 active Edge serving_verified、两台 DNS serving，route 3/3、TLS 3/3、DNS 2/2 经超过 120 秒的新鲜重复检查保持通过。六个公网 SOA authoritative 且 sequence=799。
+- [x] full verify-lkg 成功；五份签名 LKG 全部更新为同一 full release/evidence hash，内容 digest 与固定 artifact 一致。API/两地 authority 正常。
+- [x] full 发布之后至本次验收 72 次跨三台 Edge 请求全部 200；此前代码 A/B 阶段的 4 次采集/传输失败仍保留在 Y22 证据中，不混入本阶段统计。
+- [ ] 启用签名 producer serving policy，验证自动灰度/full/LKG 更新与失败回退；继续控制面/consumer 重启恢复、旧来源移除及剩余简化方案任务。
+
+证据：[first-full-traffic-lkg-2026-09-22.json](verification/first-full-traffic-lkg-2026-09-22.json)。
