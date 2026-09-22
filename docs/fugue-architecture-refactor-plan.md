@@ -32,7 +32,7 @@ Runtime Facts / ACK / LKG
 
 ## 当前状态判断
 
-2026-09-22 最新验收快照：P0-EP-Y1/Y2 已完成 origin 隔离及实际流量证明修复，Y3/Y4 完成只读 Pod 排空观测，Y5/Y6 完成不可变 revision workload 数据库防护及实际身份绑定。Y7 已完成 Controller 重启接管同一 operation：`a574b678` 实现恢复机制；正常发布 `fa292dfe` 替换 Controller 后，原操作 `op_1790016761_a910f794f5f7` 保留同一个 candidate、Deployment/Service/Pod 身份与 50/50 权重，经过新鲜观察窗口后完成 100% 提升和 canonical 对齐。144 次 sticky origin 请求、246 次健康采样全部 200，API/Controller 2/2 Ready，三台 Front、两地 authority 正常，serving/LKG 指针保留。Y8 已部署 `8cf7a49e`，把 release readiness 从 Service 地址数量提升为 EndpointSlice→Pod→ReplicaSet→Deployment UID 链、release key、镜像、Pod Ready 和地址归属验证；生产 9 个 managed release 全部产生 `endpoint_pods`，12 次公网健康采样全部 200，六类 artifact 重放一致且 serving/LKG 未变。Y9 已部署 `d657089a`，增加 schema/API/Store 双层退休终态 fence：退休记录不可被旧 writer 重新激活，traffic policy 不能引用 retired release，自动 stable 同步不会复用 tombstone；生产两个 PostgreSQL trigger 启用且函数与仓库源码一致，23 个 release、33 个 workload UID、traffic/LKG 保持，12 次公网采样全部 200。另一轮重启验收的 600 秒流完整返回，但触发原有 p99 门禁，自动回到旧 stable 100%；该轮不计作成功发布。一次 Pod 列表传输失败造成 112 秒身份采样空窗，独立业务采样继续正常，随后六次接口复查均成功。临时观察窗口已恢复为 120 秒。历史未绑定资源迁移、基于 binding 的 drain 重试、条件退役/UID 删除及其余 rollback 场景仍待完成。producer 仍为 shadow，八个消费者 observed、passing=0；首次完整配置接管、positive LKG 和旧 serving 输入删除尚未完成。
+2026-09-22 最新验收快照：P0-EP-Y1/Y2 已完成 origin 隔离及实际流量证明修复，Y3/Y4 完成只读 Pod 排空观测，Y5/Y6 完成不可变 revision workload 数据库防护及实际身份绑定。Y7 已完成 Controller 重启接管同一 operation：`a574b678` 实现恢复机制；正常发布 `fa292dfe` 替换 Controller 后，原操作 `op_1790016761_a910f794f5f7` 保留同一个 candidate、Deployment/Service/Pod 身份与 50/50 权重，经过新鲜观察窗口后完成 100% 提升和 canonical 对齐。144 次 sticky origin 请求、246 次健康采样全部 200，API/Controller 2/2 Ready，三台 Front、两地 authority 正常，serving/LKG 指针保留。Y8 已部署 `8cf7a49e`，把 release readiness 从 Service 地址数量提升为 EndpointSlice→Pod→ReplicaSet→Deployment UID 链、release key、镜像、Pod Ready 和地址归属验证；生产 9 个 managed release 全部产生 `endpoint_pods`，12 次公网健康采样全部 200，六类 artifact 重放一致且 serving/LKG 未变。Y9 已部署 `d657089a`，增加 schema/API/Store 双层退休终态 fence：退休记录不可被旧 writer 重新激活，traffic policy 不能引用 retired release，自动 stable 同步不会复用 tombstone；生产两个 PostgreSQL trigger 启用且函数与仓库源码一致，23 个 release、33 个 workload UID、traffic/LKG 保持，12 次公网采样全部 200。另一轮重启验收的 600 秒流完整返回，但触发原有 p99 门禁，自动回到旧 stable 100%；该轮不计作成功发布。一次 Pod 列表传输失败造成 112 秒身份采样空窗，独立业务采样继续正常，随后六次接口复查均成功。临时观察窗口已恢复为 120 秒。Y10 已部署 `e5378e17`，按不可变 binding 观察 Pod 排空，以 exact release/policy CAS 退役并按 UID/resourceVersion 删除资源；生产两条 previous 完成退役，6 个旧资源删除，其余 27 个资源身份保留，93 次跨 Edge 采样全部 200，traffic/serving/LKG 未变。历史未绑定资源迁移与其余 rollback 场景仍待完成。producer 仍为 shadow，八个消费者 observed、passing=0；首次完整配置接管、positive LKG 和旧 serving 输入删除尚未完成。
 
 生产 producer 仍为 `business-static-intent`/shadow，固定基础 intent `artifact_1789848966_aa79d274ac50` 和输入 policy `artifact_1789917932_e90aeeb2510d`；启用策略为 `artifact_1789917933_9f90cbb02a89`，显式选择 `consumer_readiness`。最新验收 shadow `artifact_1789924746_0593e3041d46`、fence 226 包含 160 route、245 DNS records、159 TLS references；两台 DNS 均为 462/462 probes、233/233 readiness records、248/248 eligible queries。八个消费者 observed，serving passing=0；六 artifact 精确重放通过，全局 serving/LKG 未切换。前端契约 `3979108b` 已实际部署，2/2 Ready、公网 200。
 
@@ -3607,9 +3607,9 @@ P0-EP-X 生产取证确认 canonical Service selector 仅有 app 标签，会同
 
 - [x] 为 app workload 增加独立的执行身份标签，使 canonical Service、Compose alias 和 revision Service 只选择各自 workload；Deployment 的不可变 selector 保持原值。见 P0-EP-Y1 的生产与渲染回归证据；历史 candidate Service 已有 release ID 隔离，新建 revision 同时携带 workload 标签。
 - [x] 先核实 owner/UID，再补齐既有 Pod 与模板标签，最后缩小 Service selector。验证应用原 Pod UID 保留，canonical endpoints 仅包含 canonical Pod；初次上线的并发冲突及错误 failed 状态经两个恢复提交处理，见 Y1 事故记录。
-- [ ] 增加 selector 匹配回归：stable Service 不得包含 candidate 或 previous；不同 revision 不得互选。readiness 需验证实际 endpoints 属于目标 workload，不能只核对 Service 和 Deployment 表面身份。
+- [x] 增加 selector 匹配回归：stable Service 不得包含 candidate 或 previous；不同 revision 不得互选。Y8 已验证实际 endpoints 的 Pod→ReplicaSet→Deployment UID 链和目标 workload 归属。
 - [x] Controller 重启接管同一 operation 时恢复既有 candidate/已提升 release 和进度，不得重新创建 candidate 或重置已经批准的流量。使用已有持久化账本并验证 owner、spec 和 operation identity。Y7 生产验证 50% canary 接管并最终完成；已提升/canonical 与 promotion 中间状态另有本地回归覆盖。
-- [ ] drain 证据绑定 release/workload/Pod 身份与观察时间；不能用同 app 其他 revision 的排空日志授权删除。缺少证据继续保留，并具备后台重试与最终退役路径。
+- [x] drain 证据绑定 release/workload/Pod 身份与观察时间；不能用同 app 其他 revision 的排空日志授权删除。Y10 已完成绑定 revision 的后台重试、条件退役与 UID 删除；缺少 binding 或正向证据的历史资源继续保留，历史迁移单独验收。
 - [ ] 修复后通过真实 50/50 请求按 Pod 日志核对 origin：同 cookie 在各 Edge 的重复请求保持同 release，权重分配正确；再验证长连接、失败回滚、重启恢复与最终资源回收。
 - [ ] 每个原子修复通过本地测试、main/Actions 和生产证据后分别勾选；完成前保持全局配置 producer shadow 和原 positive LKG。
 
@@ -3729,3 +3729,16 @@ P0-EP-X 生产取证确认 canonical Service selector 仅有 app 标签，会同
 - [ ] Y9 只建立终态安全边界，不代表资源已经回收。继续完成 binding-based drain 观察、退休条件 CAS、UID 删除重试、历史未绑定资源迁移和完整 rollback 后，才能勾选完整退役闭环。
 
 证据：[release-retirement-fence-2026-09-22.json](verification/release-retirement-fence-2026-09-22.json)。
+
+
+### P0-EP-Y10：按不可变 binding 排空、条件退役与 UID 删除
+
+- [x] drain 观察使用不可变 revision binding，核对 Deployment/Service UID、release key、workload/owner、代次和实际 Pod 集合；canonical 对齐后的当前 target 不会覆盖旧 revision 身份。先取得当前 stable 100% 的新鲜 Edge proof，再观察连续安静期，观察后复核 workload 和 policy。
+- [x] exact previous/stable/policy CAS 提交退役；retention、retire grace、取消、并发 policy/release 变化都会阻止旧证据写入。JSON Store 与真实 PostgreSQL 覆盖成功、previous/stable/policy/retention 改变及取消，旧 writer 仍受 Y9 终态 fence 限制。
+- [x] 后台 reconcile 重试 completed deploy 的 draining revision；cleanup 要求 retired 身份，复核 owner/release key/Service selector，并使用 UID+resourceVersion 删除前置条件。普通 prune 继续保护尚未清理的 bound tombstone，Controller 中断后可以继续 cleanup。
+- [x] 全量 `make test`、Controller race、PostgreSQL CAS 回归和干净 prepush 通过；`e5378e17f76f160bb41a24684b7566119c3082a8` 经 [CI 35700275472](https://github.com/yym68686/fugue/actions/runs/35700275472) 发布，API/Controller 均 2/2 Ready。
+- [x] 生产两条已绑定 previous 从 draining 进入 retired；持久化审计包含 binding、Pod/container 身份、nonce、连续安静期与零连接回执。对应 2 个 Deployment、2 个 Service、2 个 Pod 已移除，其余 27 个资源 UID 保持，active release 列表仅减少这两条，流量策略完全不变。
+- [x] 93 次跨三台 Edge 的健康采样全部 200；API、两地 authority 正常，非 shadow serving 和 policy/artifact LKG 保留。此步没有激活全局配置 serving。
+- [ ] 完成历史未绑定和 failed release 的可验证迁移/退役路径，以及其余 rollback 与全局 TrafficReleaseSet 首次 serving 验收；不能将本步两条 bound previous 的回收扩展声称为所有历史资源已回收。
+
+证据：[release-drain-retirement-2026-09-22.json](verification/release-drain-retirement-2026-09-22.json)。
