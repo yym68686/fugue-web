@@ -36,11 +36,13 @@ Runtime Facts / ACK / LKG
 
 签名 producer policy 已启用自动 serving：固定基础 intent 与输入 policy，捕获业务投影后编译、gray、full，并在观察窗口与消费者收敛通过后更新 LKG。gray/full 各至少观察 120 秒，600 秒未完成则恢复 verified 基线。policy 授权版本变化的生产演练已验证：5.321 秒内发布恢复版本，八个消费者随后收敛，原五份 positive LKG 保留。超时专用演练、重启恢复与连接连续性仍待补齐。
 
-当前已验收代码：API `3bde9088`、Controller `edc72b9b`、两地 Edge worker `7cff4f63`、两地 DNS client `bb75bea6`。Y26 已删除 Edge route-intents HTTP serving 路径中的业务表即时生成及 standalone LKG 回退，只返回适用的已发布 TrafficReleaseSet；缺少/损坏发布时返回 503，consumer 保留当前 artifact。业务投影仍由配置 producer 独立完成。
+当前已验收代码：API 与两地 DNS client `d92d9d51`、Controller `edc72b9b`、两地 Edge worker `7cff4f63`。Y26 已删除 Edge route-intents HTTP serving 路径中的业务表即时生成及 standalone LKG 回退，只返回适用的已发布 TrafficReleaseSet；缺少/损坏发布时返回 503，consumer 保留当前 artifact。业务投影仍由配置 producer 独立完成。
 
 历史 revision 资源回收、不可变执行快照保护、排除路由负向证明和 DNS 通配监听恢复均已完成相应生产验收，详见 Y10–Y26。发布监控保留了 SSH 采集失败与一次 US A/B 期间 TLS EOF；后续独立复查正常，不能据此声称所有发布均零中断。
 
-尚未完成的主要工作：DNS 启动旧配置 fallback 与其他 legacy serving 来源删除、环境变量退役、超时和重启恢复演练、非对称签名迁移、其余 policy 与 runtime facts 收敛，以及最终简化版清单的逐项核验。自动 serving 已启用不代表整份重构方案完成。本文后续步骤记录中的版本和状态是当时快照，以本节及最新验证为准。
+Y27 已删除已登记 DNS consumer 的启动旧 cache/bundle fallback：丢失全部 positive checkpoint 时也不回到环境配置；正式两地重启已恢复 artifact、新鲜 readiness 和准确 inventory heartbeat，六个公网 SOA 与实际 artifact sequence 一致。
+
+尚未完成的主要工作：其他 legacy serving 来源删除、环境变量退役、超时和重启恢复演练、非对称签名迁移、其余 policy 与 runtime facts 收敛，以及最终简化版清单的逐项核验。自动 serving 已启用不代表整份重构方案完成。本文后续步骤记录中的版本和状态是当时快照，以本节及最新验证为准。
 
 ## 需要删除的内容
 
@@ -3939,3 +3941,17 @@ P0-EP-X 生产取证确认 canonical Service selector 仅有 app 标签，会同
 - [ ] 删除 DNS 启动与其他 legacy serving 路径，完成剩余故障恢复与简化方案任务；此步不声称所有业务表/环境变量依赖均已移除。
 
 证据：[traffic-only-route-intents-2026-09-22.json](verification/traffic-only-route-intents-2026-09-22.json)。
+
+
+### P0-EP-Y27：已登记 DNS 启动必须使用 artifact 与运行事实修复
+
+- [x] 配置 platform identity 的 DNS consumer 从启动起要求 TrafficReleaseSet artifact，缺少全部 positive checkpoint 时保持 bound/recovery_failed，返回 SERVFAIL，禁止 legacy cache/previous cache/业务 bundle SyncOnce/ambient override 回退。有效 current/previous checkpoint 仍严格校验并重新采集瞬态 readiness。
+- [x] enrolled Run 不启动旧 zone bundle sync、legacy health/override 循环，只运行 artifact serving 与 inventory heartbeat；新盘在真实发布+route/TLS+UDP/TCP 自检通过后可正常加载 artifact。未登记的旧兼容实现暂时保留，下一步退役其生产配置入口。
+- [x] inventory heartbeat 读取真实 artifact serving 状态、generation、记录数与 stale 边界，避免重启后一直报告休眠 legacy snapshot。保留候选诊断状态，但 shadow 不能使 enrolled consumer 获得 serving 数据。
+- [x] 缺全部 checkpoint 且存在旧 cache/环境地址、启动前查询、旧 API 零请求、真实 UDP/TCP 新盘激活、current/previous 恢复、损坏/签名失败、API outage 刷新事实、准确 heartbeat 回归，DNS 全包 race、全量 make test、前端 contract:check、干净 prepush 全通过。
+- [x] `d92d9d51ff7c5b9415379d23e3072b381289c8e2` 经 [CI 35756622479](https://github.com/yym68686/fugue/actions/runs/35756622479) 发布 API 与两地 client。首次 API 镜像下载 Go module 遇 proxy.golang.org HTTP/2 INTERNAL_ERROR；重跑失败任务后 attempt 2 全部成功，没有改代码绕过失败。
+- [x] 两个 DNS Pod 均由正常发布替换，实际从签名 positive checkpoint 恢复后 refresh readiness，健康 serving full artifact；inventory 的 dns-* generation、249 record count 与实际状态一致。启动日志为 artifact consumer，无 legacy bundle sync；两台公网三个 zone 的六条 SOA 均为 artifact sequence 813。API 2/2 Ready、两地 authority 正常。
+- [x] 本步累计 276 次跨 Edge 健康采样全部 200。发布前临时 SOCKS 隧道断开导致取证失败，重建临时隧道并重新读取基线后才推送；未计入成功样本。生产 checkpoint 未人为删除，全部丢失负向路径由本地测试验证。
+- [ ] 退役生产 serving 环境变量和残余 legacy reader/publisher，补齐超时、代码发布失败及其余恢复演练，继续最终简化方案清单。
+
+证据：[enrolled-dns-artifact-recovery-2026-09-22.json](verification/enrolled-dns-artifact-recovery-2026-09-22.json)。
