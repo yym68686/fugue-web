@@ -1,0 +1,609 @@
+{
+  "max_sampling_gap_seconds": 134.696644,
+  "initial_deployment": {
+    "commit": "fcb19eaf0d3d725170558fac3b522b26c45d4b4f",
+    "ci": "https://github.com/yym68686/fugue/actions/runs/35704895621",
+    "outcome": "retained both target revisions because operation timing facts caused CAS mismatch; no successful migration claimed"
+  },
+  "verified_at": "2026-09-22T09:02:22.127124+00:00",
+  "commit": "8f974a58c72dd3e55e8021f2be3ed73a3fafb57f",
+  "ci": "https://github.com/yym68686/fugue/actions/runs/35706278216",
+  "components": [
+    {
+      "component": "api",
+      "image_tag": "8f974a58c72dd3e55e8021f2be3ed73a3fafb57f",
+      "ready_replicas": 2,
+      "updated_replicas": 2,
+      "desired_replicas": 2
+    },
+    {
+      "component": "controller",
+      "image_tag": "8f974a58c72dd3e55e8021f2be3ed73a3fafb57f",
+      "ready_replicas": 2,
+      "updated_replicas": 2,
+      "desired_replicas": 2
+    }
+  ],
+  "health": {
+    "/healthz": 200,
+    "/readyz": 200
+  },
+  "authority_ready": true,
+  "retirement": {
+    "releases": [
+      {
+        "id": "apprel_1789973255_32b1fa2a238f",
+        "role": "previous",
+        "status": "draining",
+        "retired_at": null,
+        "revision_workload": {
+          "bound_at": "2026-09-22T08:50:55.25442Z",
+          "image_ref": "registry.fugue.internal:5000/fugue-apps/index-docker-io-library-python:image-6d43704baacd",
+          "namespace": "fg-tenant-1774393589-e35b60a6fc11",
+          "runtime_id": "runtime_managed_shared",
+          "release_key": "9675cf5b425ff7a832f19b4313f0af5540ab2da39725d76f942c9c0a77eabd71",
+          "service_uid": "b5c5a6bb-8ecb-4d0a-b955-26c7ddf1d6b5",
+          "operation_id": "op_1789973245_abed9b90ac3d",
+          "service_name": "app-1783188884-8facd2b054e6-candidate-ff13953dfefc",
+          "deployment_uid": "e6ece651-7212-4a82-9832-a6dd94edb699",
+          "deployment_name": "app-1783188884-8facd2b054e6-candidate-ff13953dfefc",
+          "deployment_generation": 1
+        }
+      },
+      {
+        "id": "apprel_1790010291_93e8cb9cce45",
+        "role": "retired",
+        "status": "retired",
+        "retired_at": "2026-09-22T08:50:54.531691+00:00",
+        "revision_workload": {
+          "bound_at": "2026-09-22T08:50:49.741403Z",
+          "image_ref": "registry.fugue.internal:5000/fugue-apps/index-docker-io-library-python:image-6d43704baacd",
+          "namespace": "fg-tenant-1774393589-e35b60a6fc11",
+          "runtime_id": "runtime_managed_shared",
+          "release_key": "fe5f3095203936d91107ad2e38537a7e6669a3d3bcb9b8e3cf53290c721196ea",
+          "service_uid": "d6452145-8baf-4186-9ad5-ab2e91fca2f8",
+          "operation_id": "op_1790010289_6b8cf4c85f73",
+          "service_name": "app-1783188884-8facd2b054e6-candidate-6dd9e7fffc9e",
+          "deployment_uid": "bf44b702-a763-4593-bdc8-7ced7e8fd458",
+          "deployment_name": "app-1783188884-8facd2b054e6-candidate-6dd9e7fffc9e",
+          "deployment_generation": 1
+        }
+      }
+    ],
+    "audit": [
+      {
+        "id": "audit_1790067049_7b22820fd0de",
+        "action": "app.release.workload.migrated",
+        "target_id": "apprel_1790010291_93e8cb9cce45",
+        "created_at": "2026-09-22T08:50:49.746675+00:00",
+        "metadata": {
+          "app_id": "app_1783188884_8facd2b054e6",
+          "operation_id": "op_1790010289_6b8cf4c85f73",
+          "app_release_id": "apprel_1790010291_93e8cb9cce45",
+          "revision_workload": "{\"operation_id\":\"op_1790010289_6b8cf4c85f73\",\"namespace\":\"fg-tenant-1774393589-e35b60a6fc11\",\"deployment_name\":\"app-1783188884-8facd2b054e6-candidate-6dd9e7fffc9e\",\"deployment_uid\":\"bf44b702-a763-4593-bdc8-7ced7e8fd458\",\"deployment_generation\":1,\"service_name\":\"app-1783188884-8facd2b054e6-candidate-6dd9e7fffc9e\",\"service_uid\":\"d6452145-8baf-4186-9ad5-ab2e91fca2f8\",\"release_key\":\"fe5f3095203936d91107ad2e38537a7e6669a3d3bcb9b8e3cf53290c721196ea\",\"runtime_id\":\"runtime_managed_shared\",\"image_ref\":\"registry.fugue.internal:5000/fugue-apps/index-docker-io-library-python:image-6d43704baacd\",\"bound_at\":\"0001-01-01T00:00:00Z\"}"
+        }
+      },
+      {
+        "id": "audit_1790067054_4d20621d4eca",
+        "action": "app.release.failed_retired",
+        "target_id": "apprel_1790010291_93e8cb9cce45",
+        "created_at": "2026-09-22T08:50:54.591126+00:00",
+        "metadata": {
+          "app_id": "app_1783188884_8facd2b054e6",
+          "observed_at": "2026-09-22T08:50:53.719289448Z",
+          "source_role": "candidate",
+          "operation_id": "op_1790010289_6b8cf4c85f73",
+          "source_reason": "bind candidate revision workload: revision Deployment does not match applied executable identity",
+          "source_status": "failed",
+          "app_release_id": "apprel_1790010291_93e8cb9cce45",
+          "drain_evidence": "{\"active_connections\":0,\"observer_errors\":0,\"previous_deployment\":\"app-1783188884-8facd2b054e6-candidate-6dd9e7fffc9e\",\"quiet_since\":\"2026-09-22T08:50:51.020737319Z\",\"ready\":true,\"receipts\":[{\"completed_at\":\"2026-09-22T08:50:53.520320173Z\",\"pod_uid\":\"30b4707f-7adb-4c3d-b298-961b2d5e1dd9\",\"receipt\":{\"api_version\":\"fugue.drain-observation/v1\",\"nonce\":\"ce6f383d87493995e195557b323da67c\",\"pod\":\"app-1783188884-8facd2b054e6-candidate-6dd9e7fffc9e-5f4687dlvn44\",\"namespace\":\"fg-tenant-1774393589-e35b60a6fc11\",\"app_ports\":[8000],\"active_connections\":0},\"started_at\":\"2026-09-22T08:50:53.02332573Z\"}],\"release_id\":\"apprel_1790010291_93e8cb9cce45\",\"revision_workload\":{\"operation_id\":\"op_1790010289_6b8cf4c85f73\",\"namespace\":\"fg-tenant-1774393589-e35b60a6fc11\",\"deployment_name\":\"app-1783188884-8facd2b054e6-candidate-6dd9e7fffc9e\",\"deployment_uid\":\"bf44b702-a763-4593-bdc8-7ced7e8fd458\",\"deployment_generation\":1,\"service_name\":\"app-1783188884-8facd2b054e6-candidate-6dd9e7fffc9e\",\"service_uid\":\"d6452145-8baf-4186-9ad5-ab2e91fca2f8\",\"release_key\":\"fe5f3095203936d91107ad2e38537a7e6669a3d3bcb9b8e3cf53290c721196ea\",\"runtime_id\":\"runtime_managed_shared\",\"image_ref\":\"registry.fugue.internal:5000/fugue-apps/index-docker-io-library-python:image-6d43704baacd\",\"bound_at\":\"2026-09-22T08:50:49.741403Z\"},\"workload\":{\"deployment_uid\":\"bf44b702-a763-4593-bdc8-7ced7e8fd458\",\"deployment_version\":\"93321874\",\"service_version\":\"93321742\",\"generation\":1,\"pods\":[{\"name\":\"app-1783188884-8facd2b054e6-candidate-6dd9e7fffc9e-5f4687dlvn44\",\"uid\":\"30b4707f-7adb-4c3d-b298-961b2d5e1dd9\",\"replica_set_uid\":\"19d014b8-0d72-4e20-a347-06e5b444afd8\",\"agent_image\":\"ghcr.io/yym68686/fugue-drain-agent@sha256:818be7253656b85eb1afcfe8b4cb24800ac6027669ace3eb3f88f07bbd46948b\",\"agent_restarts\":0,\"agent_port\":19090,\"quiet_period_ms\":2000,\"app_ports\":[8000],\"container_identities\":[\"drain-canary-0705:containerd://deb2d35ce8ef6dc92442d6fd53b602995e8106548e148d59a37ada57e047867a:0\",\"fugue-drain-agent:containerd://b8824809834345db51a2c461221023ddbcb6d2908343e631e06d8b7c4d6ec04b:0\"]}],\"replica_set_uids\":[\"19d014b8-0d72-4e20-a347-06e5b444afd8\"]}}",
+          "candidate_release": "apprel_op_10e539b159adcdd4ae4e055b28bb27dd0a7a72d84adcc893",
+          "active_connections": "0",
+          "max_active_requests": "0"
+        }
+      },
+      {
+        "id": "audit_1790067055_6c3b0cd93510",
+        "action": "app.release.workload.migrated",
+        "target_id": "apprel_1789973255_32b1fa2a238f",
+        "created_at": "2026-09-22T08:50:55.260325+00:00",
+        "metadata": {
+          "app_id": "app_1783188884_8facd2b054e6",
+          "operation_id": "op_1789973245_abed9b90ac3d",
+          "app_release_id": "apprel_1789973255_32b1fa2a238f",
+          "revision_workload": "{\"operation_id\":\"op_1789973245_abed9b90ac3d\",\"namespace\":\"fg-tenant-1774393589-e35b60a6fc11\",\"deployment_name\":\"app-1783188884-8facd2b054e6-candidate-ff13953dfefc\",\"deployment_uid\":\"e6ece651-7212-4a82-9832-a6dd94edb699\",\"deployment_generation\":1,\"service_name\":\"app-1783188884-8facd2b054e6-candidate-ff13953dfefc\",\"service_uid\":\"b5c5a6bb-8ecb-4d0a-b955-26c7ddf1d6b5\",\"release_key\":\"9675cf5b425ff7a832f19b4313f0af5540ab2da39725d76f942c9c0a77eabd71\",\"runtime_id\":\"runtime_managed_shared\",\"image_ref\":\"registry.fugue.internal:5000/fugue-apps/index-docker-io-library-python:image-6d43704baacd\",\"bound_at\":\"0001-01-01T00:00:00Z\"}"
+        }
+      }
+    ]
+  },
+  "retained_unhealthy_workload": {
+    "release_id": "apprel_1789973255_32b1fa2a238f",
+    "pod_uid": "028a5183-d923-48c1-9944-bdf5fb398508",
+    "container_states": [
+      {
+        "name": "drain-canary-0705",
+        "ready": false,
+        "state": {
+          "terminated": {
+            "containerID": "containerd://7fba339e050943fe1de60c03bdf1317d259e717a1504a9184607f44009151c24",
+            "exitCode": 255,
+            "finishedAt": "2026-09-21T15:28:37Z",
+            "reason": "Unknown",
+            "startedAt": "2026-09-21T06:47:39Z"
+          }
+        }
+      },
+      {
+        "name": "fugue-drain-agent",
+        "ready": false,
+        "state": {
+          "terminated": {
+            "containerID": "containerd://506d507dbed2f8ba21ae11700756e40b0ba67cb9e90bd7be35a9aa84d7351b17",
+            "exitCode": 255,
+            "finishedAt": "2026-09-21T15:28:37Z",
+            "reason": "Unknown",
+            "startedAt": "2026-09-21T06:47:38Z"
+          }
+        }
+      }
+    ],
+    "same_before_release": true,
+    "outcome": "binding migrated; workload retained because no fresh positive drain evidence is available"
+  },
+  "source_operations": [
+    {
+      "id": "op_1789973245_abed9b90ac3d",
+      "status": "completed",
+      "completed_at": "2026-09-21T06:51:45.587006Z"
+    },
+    {
+      "id": "op_1790010289_6b8cf4c85f73",
+      "status": "failed",
+      "completed_at": "2026-09-21T17:04:55.508898Z"
+    }
+  ],
+  "deleted_resource_uids": [
+    "30b4707f-7adb-4c3d-b298-961b2d5e1dd9",
+    "bf44b702-a763-4593-bdc8-7ced7e8fd458",
+    "d6452145-8baf-4186-9ad5-ab2e91fca2f8"
+  ],
+  "preserved_resource_uids": [
+    "028a5183-d923-48c1-9944-bdf5fb398508",
+    "07e304e2-fdd9-4fa9-83fc-cc48f6a119bb",
+    "0e91b7ec-ff3b-44c5-8556-4669c242de64",
+    "2737266e-a698-42cc-8458-bee134957e51",
+    "32893ea0-ec92-471f-a5d0-01e2e2637fa7",
+    "37eba4f8-fd07-4212-9660-ebfcc324fa99",
+    "3e90545b-7d8b-462b-bed1-598e5086b041",
+    "4c44342d-80be-4ccb-8162-a91017219346",
+    "4da211bd-689e-41f9-939e-673b3166ec6e",
+    "5d523925-cf99-4151-b0af-71a8ab5bcb0f",
+    "62bc84ef-38a5-440a-9276-05259e9352a5",
+    "6529067e-b785-4081-a583-ef3aee995473",
+    "76f36511-8a51-4a6f-a207-7f2b390875e6",
+    "8df2dbfa-dc8f-495d-bf71-0e1fff7b53c8",
+    "9f83c254-ded4-43de-af74-88b094ed25d5",
+    "a3629c07-4286-4c69-97fe-b4d26fface36",
+    "affa8021-3635-443c-adec-f40d231d07c3",
+    "b5c5a6bb-8ecb-4d0a-b955-26c7ddf1d6b5",
+    "c2263e9f-c194-432b-985d-c9633d4251a1",
+    "e6ece651-7212-4a82-9832-a6dd94edb699",
+    "f3a682d4-ec1c-42ec-8281-6d37f15e6999"
+  ],
+  "traffic_preserved": true,
+  "serving_lkg_preserved": true,
+  "health_samples": 330,
+  "all_health_samples_200": false,
+  "transport_timeouts": [
+    {
+      "at": "2026-09-22T08:56:43.432007+00:00",
+      "edge": "bwg",
+      "http": "000",
+      "exit": 28
+    },
+    {
+      "at": "2026-09-22T08:56:43.432007+00:00",
+      "edge": "vps-591f4447",
+      "http": "000",
+      "exit": 28
+    }
+  ],
+  "recovery_samples": [
+    {
+      "at": "2026-09-22T09:00:51.946170+00:00",
+      "edge": "vps-84c8f0a9",
+      "result": "200 0.000442 1.070160 1.808174 1.808958",
+      "error": "",
+      "exit": 0
+    },
+    {
+      "at": "2026-09-22T09:00:51.428507+00:00",
+      "edge": "bwg",
+      "result": "200 0.000523 0.828286 1.289858 1.290087",
+      "error": "",
+      "exit": 0
+    },
+    {
+      "at": "2026-09-22T09:00:51.429619+00:00",
+      "edge": "vps-591f4447",
+      "result": "200 0.000341 0.879985 1.289570 1.290005",
+      "error": "",
+      "exit": 0
+    },
+    {
+      "at": "2026-09-22T09:00:57.209725+00:00",
+      "edge": "vps-84c8f0a9",
+      "result": "200 0.000516 2.451994 3.233127 3.233299",
+      "error": "",
+      "exit": 0
+    },
+    {
+      "at": "2026-09-22T09:00:55.226471+00:00",
+      "edge": "bwg",
+      "result": "200 0.000556 0.608535 1.251699 1.251824",
+      "error": "",
+      "exit": 0
+    },
+    {
+      "at": "2026-09-22T09:00:55.193689+00:00",
+      "edge": "vps-591f4447",
+      "result": "200 0.000479 0.783809 1.215719 1.215969",
+      "error": "",
+      "exit": 0
+    },
+    {
+      "at": "2026-09-22T09:01:00.612130+00:00",
+      "edge": "vps-84c8f0a9",
+      "result": "200 0.001583 0.677847 1.368477 1.368593",
+      "error": "",
+      "exit": 0
+    },
+    {
+      "at": "2026-09-22T09:01:00.569265+00:00",
+      "edge": "bwg",
+      "result": "200 0.000690 0.672988 1.322528 1.322612",
+      "error": "",
+      "exit": 0
+    },
+    {
+      "at": "2026-09-22T09:01:00.567611+00:00",
+      "edge": "vps-591f4447",
+      "result": "200 0.000434 0.713411 1.322310 1.322437",
+      "error": "",
+      "exit": 0
+    },
+    {
+      "at": "2026-09-22T09:01:04.239227+00:00",
+      "edge": "vps-84c8f0a9",
+      "result": "200 0.006728 0.900344 1.592081 1.592288",
+      "error": "",
+      "exit": 0
+    },
+    {
+      "at": "2026-09-22T09:01:03.478284+00:00",
+      "edge": "bwg",
+      "result": "200 0.006691 0.403050 0.832207 0.832323",
+      "error": "",
+      "exit": 0
+    },
+    {
+      "at": "2026-09-22T09:01:04.012515+00:00",
+      "edge": "vps-591f4447",
+      "result": "200 0.006701 0.850175 1.366012 1.366150",
+      "error": "",
+      "exit": 0
+    },
+    {
+      "at": "2026-09-22T09:01:07.843787+00:00",
+      "edge": "vps-84c8f0a9",
+      "result": "200 0.000508 0.885320 1.568183 1.568322",
+      "error": "",
+      "exit": 0
+    },
+    {
+      "at": "2026-09-22T09:01:07.178551+00:00",
+      "edge": "bwg",
+      "result": "200 0.000515 0.540542 0.902200 0.902404",
+      "error": "",
+      "exit": 0
+    },
+    {
+      "at": "2026-09-22T09:01:07.922944+00:00",
+      "edge": "vps-591f4447",
+      "result": "200 0.000511 1.179804 1.643033 1.647829",
+      "error": "",
+      "exit": 0
+    },
+    {
+      "at": "2026-09-22T09:01:12.392569+00:00",
+      "edge": "vps-84c8f0a9",
+      "result": "200 0.000533 1.696585 2.439119 2.439442",
+      "error": "",
+      "exit": 0
+    },
+    {
+      "at": "2026-09-22T09:01:10.887323+00:00",
+      "edge": "bwg",
+      "result": "200 0.000678 0.526176 0.934987 0.935139",
+      "error": "",
+      "exit": 0
+    },
+    {
+      "at": "2026-09-22T09:01:11.341727+00:00",
+      "edge": "vps-591f4447",
+      "result": "200 0.000549 0.720097 1.389368 1.389487",
+      "error": "",
+      "exit": 0
+    },
+    {
+      "at": "2026-09-22T09:01:16.738683+00:00",
+      "edge": "vps-84c8f0a9",
+      "result": "200 0.000670 0.898758 2.315349 2.315747",
+      "error": "",
+      "exit": 0
+    },
+    {
+      "at": "2026-09-22T09:01:15.543971+00:00",
+      "edge": "bwg",
+      "result": "200 0.001655 0.683672 1.113157 1.113382",
+      "error": "",
+      "exit": 0
+    },
+    {
+      "at": "2026-09-22T09:01:16.587088+00:00",
+      "edge": "vps-591f4447",
+      "result": "200 0.000655 1.669949 2.164431 2.164760",
+      "error": "",
+      "exit": 0
+    },
+    {
+      "at": "2026-09-22T09:01:20.262198+00:00",
+      "edge": "vps-84c8f0a9",
+      "result": "200 0.000497 0.754536 1.487897 1.488131",
+      "error": "",
+      "exit": 0
+    },
+    {
+      "at": "2026-09-22T09:01:19.739890+00:00",
+      "edge": "bwg",
+      "result": "200 0.000431 0.585717 0.963108 0.963496",
+      "error": "",
+      "exit": 0
+    },
+    {
+      "at": "2026-09-22T09:01:19.995020+00:00",
+      "edge": "vps-591f4447",
+      "result": "200 0.000321 0.781202 1.220059 1.220218",
+      "error": "",
+      "exit": 0
+    },
+    {
+      "at": "2026-09-22T09:01:23.758193+00:00",
+      "edge": "vps-84c8f0a9",
+      "result": "200 0.000564 0.819517 1.467603 1.468106",
+      "error": "",
+      "exit": 0
+    },
+    {
+      "at": "2026-09-22T09:01:23.399996+00:00",
+      "edge": "bwg",
+      "result": "200 0.000472 0.596824 1.112439 1.112610",
+      "error": "",
+      "exit": 0
+    },
+    {
+      "at": "2026-09-22T09:01:23.400193+00:00",
+      "edge": "vps-591f4447",
+      "result": "200 0.000354 0.655498 1.112714 1.112774",
+      "error": "",
+      "exit": 0
+    },
+    {
+      "at": "2026-09-22T09:01:27.237185+00:00",
+      "edge": "vps-84c8f0a9",
+      "result": "200 0.000602 0.765146 1.442232 1.442760",
+      "error": "",
+      "exit": 0
+    },
+    {
+      "at": "2026-09-22T09:01:27.078594+00:00",
+      "edge": "bwg",
+      "result": "200 0.001010 0.765569 1.278601 1.285553",
+      "error": "",
+      "exit": 0
+    },
+    {
+      "at": "2026-09-22T09:01:27.078731+00:00",
+      "edge": "vps-591f4447",
+      "result": "200 0.000340 0.764976 1.284826 1.284921",
+      "error": "",
+      "exit": 0
+    },
+    {
+      "at": "2026-09-22T09:01:30.874594+00:00",
+      "edge": "vps-84c8f0a9",
+      "result": "200 0.000571 0.782609 1.604163 1.604352",
+      "error": "",
+      "exit": 0
+    },
+    {
+      "at": "2026-09-22T09:01:30.216522+00:00",
+      "edge": "bwg",
+      "result": "200 0.000442 0.549116 0.945331 0.945467",
+      "error": "",
+      "exit": 0
+    },
+    {
+      "at": "2026-09-22T09:01:30.419221+00:00",
+      "edge": "vps-591f4447",
+      "result": "200 0.000465 0.719878 1.147534 1.147731",
+      "error": "",
+      "exit": 0
+    },
+    {
+      "at": "2026-09-22T09:01:34.196521+00:00",
+      "edge": "vps-84c8f0a9",
+      "result": "200 0.000482 0.612848 1.293220 1.293594",
+      "error": "",
+      "exit": 0
+    },
+    {
+      "at": "2026-09-22T09:01:33.886328+00:00",
+      "edge": "bwg",
+      "result": "200 0.000378 0.547975 0.982980 0.983252",
+      "error": "",
+      "exit": 0
+    },
+    {
+      "at": "2026-09-22T09:01:34.093814+00:00",
+      "edge": "vps-591f4447",
+      "result": "200 0.000373 0.737317 1.189369 1.189612",
+      "error": "",
+      "exit": 0
+    }
+  ],
+  "independent_cluster_samples": [
+    {
+      "edge": "vps-84c8f0a9",
+      "status": 200,
+      "result": {
+        "attempt_count": 1,
+        "command": [
+          "curl",
+          "--silent",
+          "--show-error",
+          "--http1.1",
+          "--noproxy",
+          "*",
+          "--resolve",
+          "drain-canary-0705.fugue.pro:443:51.38.126.103",
+          "--max-time",
+          "8",
+          "-o",
+          "/dev/null",
+          "--write-out",
+          "%{http_code} %{time_total}",
+          "https://drain-canary-0705.fugue.pro/health"
+        ],
+        "container": "controller",
+        "namespace": "fugue-system",
+        "output": "200 0.818146",
+        "pod": "fugue-fugue-controller-64ffc98849-kkccw"
+      }
+    },
+    {
+      "edge": "bwg",
+      "status": 200,
+      "result": {
+        "attempt_count": 1,
+        "command": [
+          "curl",
+          "--silent",
+          "--show-error",
+          "--http1.1",
+          "--noproxy",
+          "*",
+          "--resolve",
+          "drain-canary-0705.fugue.pro:443:95.169.10.156",
+          "--max-time",
+          "8",
+          "-o",
+          "/dev/null",
+          "--write-out",
+          "%{http_code} %{time_total}",
+          "https://drain-canary-0705.fugue.pro/health"
+        ],
+        "container": "controller",
+        "namespace": "fugue-system",
+        "output": "200 0.273843",
+        "pod": "fugue-fugue-controller-64ffc98849-kkccw"
+      }
+    },
+    {
+      "edge": "vps-591f4447",
+      "status": 200,
+      "result": {
+        "attempt_count": 1,
+        "command": [
+          "curl",
+          "--silent",
+          "--show-error",
+          "--http1.1",
+          "--noproxy",
+          "*",
+          "--resolve",
+          "drain-canary-0705.fugue.pro:443:15.204.94.71",
+          "--max-time",
+          "8",
+          "-o",
+          "/dev/null",
+          "--write-out",
+          "%{http_code} %{time_total}",
+          "https://drain-canary-0705.fugue.pro/health"
+        ],
+        "container": "controller",
+        "namespace": "fugue-system",
+        "output": "200 0.175840",
+        "pod": "fugue-fugue-controller-64ffc98849-kkccw"
+      }
+    }
+  ],
+  "prepush": {
+    "apiVersion": "prepush.fugue.dev/v1",
+    "baseCommit": "fcb19eaf0d3d725170558fac3b522b26c45d4b4f",
+    "changedFilesDigest": "sha256:e327f7c59422109973173f4feed023cd55e74123e0a1ce2fdd78c00ab956c0f6",
+    "checks": {
+      "affected-tests": {
+        "durationMs": 41717,
+        "status": "pass"
+      },
+      "affected-vet": {
+        "durationMs": 17225,
+        "status": "pass"
+      },
+      "compile-all": {
+        "durationMs": 25547,
+        "status": "pass"
+      },
+      "declarative-release-tests": {
+        "durationMs": 39494,
+        "status": "pass"
+      },
+      "diff-check": {
+        "durationMs": 316,
+        "status": "pass"
+      },
+      "gofmt": {
+        "durationMs": 18,
+        "status": "pass"
+      },
+      "helm-lint-render": {
+        "durationMs": 0,
+        "status": "skipped"
+      },
+      "openapi-generated": {
+        "durationMs": 15558,
+        "status": "pass"
+      },
+      "shell-syntax": {
+        "durationMs": 0,
+        "status": "pass"
+      }
+    },
+    "elapsedMs": 43311,
+    "kind": "PrepushReceipt",
+    "sourceCommit": "8f974a58c72dd3e55e8021f2be3ed73a3fafb57f",
+    "status": "pass"
+  },
+  "postgres_migration_tests": "=== RUN   TestHistoricalReleaseWorkloadMigration\n=== RUN   TestHistoricalReleaseWorkloadMigration/previous\n=== RUN   TestHistoricalReleaseWorkloadMigration/failed\n=== RUN   TestHistoricalReleaseWorkloadMigration/missing_source\n=== RUN   TestHistoricalReleaseWorkloadMigration/wrong_actor\n=== RUN   TestHistoricalReleaseWorkloadMigration/wrong_app\n=== RUN   TestHistoricalReleaseWorkloadMigration/ambiguous_source\n=== RUN   TestHistoricalReleaseWorkloadMigration/stale_release\n=== RUN   TestHistoricalReleaseWorkloadMigration/stale_operation\n=== RUN   TestHistoricalReleaseWorkloadMigration/running_operation\n=== RUN   TestHistoricalReleaseWorkloadMigration/canceled\n=== RUN   TestHistoricalReleaseWorkloadMigration/concurrent\n--- PASS: TestHistoricalReleaseWorkloadMigration (0.57s)\n    --- PASS: TestHistoricalReleaseWorkloadMigration/previous (0.02s)\n    --- PASS: TestHistoricalReleaseWorkloadMigration/failed (0.03s)\n    --- PASS: TestHistoricalReleaseWorkloadMigration/missing_source (0.03s)\n    --- PASS: TestHistoricalReleaseWorkloadMigration/wrong_actor (0.04s)\n    --- PASS: TestHistoricalReleaseWorkloadMigration/wrong_app (0.04s)\n    --- PASS: TestHistoricalReleaseWorkloadMigration/ambiguous_source (0.06s)\n    --- PASS: TestHistoricalReleaseWorkloadMigration/stale_release (0.06s)\n    --- PASS: TestHistoricalReleaseWorkloadMigration/stale_operation (0.06s)\n    --- PASS: TestHistoricalReleaseWorkloadMigration/running_operation (0.06s)\n    --- PASS: TestHistoricalReleaseWorkloadMigration/canceled (0.07s)\n    --- PASS: TestHistoricalReleaseWorkloadMigration/concurrent (0.08s)\n=== RUN   TestHistoricalReleaseWorkloadMigrationPostgres\n=== RUN   TestHistoricalReleaseWorkloadMigrationPostgres/previous\n=== RUN   TestHistoricalReleaseWorkloadMigrationPostgres/failed\n=== RUN   TestHistoricalReleaseWorkloadMigrationPostgres/missing_source\n=== RUN   TestHistoricalReleaseWorkloadMigrationPostgres/wrong_actor\n=== RUN   TestHistoricalReleaseWorkloadMigrationPostgres/wrong_app\n=== RUN   TestHistoricalReleaseWorkloadMigrationPostgres/ambiguous_source\n=== RUN   TestHistoricalReleaseWorkloadMigrationPostgres/stale_release\n=== RUN   TestHistoricalReleaseWorkloadMigrationPostgres/stale_operation\n=== RUN   TestHistoricalReleaseWorkloadMigrationPostgres/running_operation\n=== RUN   TestHistoricalReleaseWorkloadMigrationPostgres/canceled\n=== RUN   TestHistoricalReleaseWorkloadMigrationPostgres/concurrent\n--- PASS: TestHistoricalReleaseWorkloadMigrationPostgres (0.30s)\n    --- PASS: TestHistoricalReleaseWorkloadMigrationPostgres/previous (0.03s)\n    --- PASS: TestHistoricalReleaseWorkloadMigrationPostgres/failed (0.01s)\n    --- PASS: TestHistoricalReleaseWorkloadMigrationPostgres/missing_source (0.01s)\n    --- PASS: TestHistoricalReleaseWorkloadMigrationPostgres/wrong_actor (0.01s)\n    --- PASS: TestHistoricalReleaseWorkloadMigrationPostgres/wrong_app (0.01s)\n    --- PASS: TestHistoricalReleaseWorkloadMigrationPostgres/ambiguous_source (0.01s)\n    --- PASS: TestHistoricalReleaseWorkloadMigrationPostgres/stale_release (0.01s)\n    --- PASS: TestHistoricalReleaseWorkloadMigrationPostgres/stale_operation (0.01s)\n    --- PASS: TestHistoricalReleaseWorkloadMigrationPostgres/running_operation (0.02s)\n    --- PASS: TestHistoricalReleaseWorkloadMigrationPostgres/canceled (0.02s)\n    --- PASS: TestHistoricalReleaseWorkloadMigrationPostgres/concurrent (0.06s)\nPASS\nok  \tfugue/internal/store\t3.485s\n",
+  "verification_transport_failures": [
+    {
+      "endpoint": "/v1/admin/edge/authorities",
+      "outcome": "40-second transport timeout during final evidence collection, followed by a Pod inventory transport timeout; verification rerun required"
+    }
+  ],
+  "limitations": [
+    "Historical resources without matching executable templates or positive drain protocol remain retained.",
+    "Global TrafficReleaseSet serving activation remains pending."
+  ]
+}
