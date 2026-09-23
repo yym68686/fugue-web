@@ -1,0 +1,346 @@
+{
+  "at": "2026-09-23T19:01:31.692386+00:00",
+  "commit": "de7adc6177b0db195eb9970c790036729638551c",
+  "ci": "https://github.com/yym68686/fugue/actions/runs/35905586131",
+  "candidate": {
+    "name": "fugue-dns-de-b-87xdx",
+    "uid": "2b15c8ec-1027-4277-82c3-3c33df35cd9c",
+    "node": "vps-84c8f0a9",
+    "pod_ip": "10.42.1.26",
+    "image": "ghcr.io/yym68686/fugue-edge@sha256:8d2098c95ad89c5990e6e64321d337fdb69c5fd4ed59f632fe45fcd8420334e8",
+    "cache": "/var/lib/fugue/dns-slots/b",
+    "service_account": "fugue-dns-de-b",
+    "assignment": {
+      "expected_consumer_set_id": "expectedconsumerset_623f6349a7545021",
+      "release_set_id": "artifact_1790189596_13ab76154bc9",
+      "artifact_release_id": "artifactrel_1790189720_28c598469e66",
+      "artifact_kind": "dns_answer_bundle",
+      "scope_key": "global",
+      "expected_generation": "dns-d5124f1320b3a32c44d756a74715ab1bb256b3f89e6f7875d8c43def1d88772a",
+      "revision": 8,
+      "artifact_id": "artifact_1790189596_b9177af29b31",
+      "content_hash": "sha256:290db367bfe8db43acb998e36ae388faec723183678fceb4b5a58529cf7351f7",
+      "generation_sequence": 1021,
+      "release_channel": "full",
+      "fencing_token": 223,
+      "expected_protocol_version": "v1",
+      "expected_schema_version": "v1",
+      "heartbeat_deadline": "2026-09-23T18:56:50.488663448Z",
+      "convergence_deadline": "2026-09-23T19:00:20.488663448Z"
+    },
+    "ready": true,
+    "fact_count": 465,
+    "ready_fact_count": 465,
+    "health": {
+      "platform_serving": {
+        "state": "serving",
+        "release_set_id": "artifact_1790189596_13ab76154bc9",
+        "artifact_id": "artifact_1790189596_b9177af29b31",
+        "digest": "sha256:290db367bfe8db43acb998e36ae388faec723183678fceb4b5a58529cf7351f7",
+        "release_channel": "full",
+        "fencing_token": 223,
+        "zones": 3,
+        "readiness": {
+          "plan_digest": "sha256:01b93f9750ccb02377696c1b53056477a9fece4b86ec9446c93d44ff873997ad",
+          "probes": 465,
+          "ready_probes": 465,
+          "failed_probes": 0,
+          "records": 234,
+          "ready_records": 234,
+          "checked_at": "2026-09-23T19:01:13.45024783Z",
+          "fresh_until": "2026-09-23T19:02:54.47581667Z",
+          "serving": true
+        },
+        "last_error": "platform request rejected: HTTP 409",
+        "reported_at": "0001-01-01T00:00:00Z"
+      },
+      "platform_candidate": {
+        "state": "",
+        "record_count": 0,
+        "verified_at": "0001-01-01T00:00:00Z",
+        "reported_at": "0001-01-01T00:00:00Z",
+        "consumer_view_count": 0,
+        "probe_record_count": 0
+      },
+      "status": "ok",
+      "healthy": true,
+      "dns_node_id": "vps-84c8f0a9",
+      "edge_group_id": "edge-group-country-de",
+      "zone": "fugue.pro",
+      "bundle_version": "dns-d5124f1320b3a32c44d756a74715ab1bb256b3f89e6f7875d8c43def1d88772a",
+      "serving_generation": "dns-d5124f1320b3a32c44d756a74715ab1bb256b3f89e6f7875d8c43def1d88772a",
+      "lkg_generation": "dns-d5124f1320b3a32c44d756a74715ab1bb256b3f89e6f7875d8c43def1d88772a",
+      "last_good_generation": "dns-d5124f1320b3a32c44d756a74715ab1bb256b3f89e6f7875d8c43def1d88772a",
+      "bundle_valid_until": "2026-09-24T19:00:41.48958174Z",
+      "record_count": 249,
+      "last_error": "platform request rejected: HTTP 409",
+      "stale_cache": false,
+      "cache_path": "/var/lib/fugue/dns/dns-cache.json",
+      "listen_addr": ":7834",
+      "udp_addr": ":53",
+      "tcp_addr": ":53"
+    },
+    "unexpected_error_lines": []
+  },
+  "receipt": {
+    "apiVersion": "release.fugue.dev/v2",
+    "component": "edge-client-dns-de-b",
+    "configDigest": "sha256:388fa8e4a527d29f2e54df073821cd32dc947f7bd44b4e7177ed22c033f9321c",
+    "configSha": "de7adc6177b0db195eb9970c790036729638551c",
+    "immutableRef": "ghcr.io/yym68686/fugue-edge@sha256:8d2098c95ad89c5990e6e64321d337fdb69c5fd4ed59f632fe45fcd8420334e8",
+    "intentDigest": "sha256:72fc903d4ff8c6e62c82933551eab269782e28abf8219b87e0cbfa2b32878b56",
+    "kind": "ImmutableComponentArtifactReceipt",
+    "ociRevision": "de7adc6177b0db195eb9970c790036729638551c",
+    "planDigest": "sha256:95b2ebd998c4eebf65b7cf00a010e01f4a4026ff90f399f509b5e5876212f947",
+    "platform": "linux/amd64",
+    "platformManifestDigest": "sha256:1646f92d62cde4311b6d2c6b73ed4d1f25e64b36fa6619653c3fffd4ec065dfa",
+    "receiptDigest": "sha256:f12550131afa8dd3312654f59d1ca0ec582c1f0f6768d6107e7b6ef6c78df804",
+    "repository": "ghcr.io/yym68686/fugue-edge",
+    "sourceSha": "de7adc6177b0db195eb9970c790036729638551c",
+    "sourceTag": "de7adc6177b0db195eb9970c790036729638551c",
+    "topDigest": "sha256:8d2098c95ad89c5990e6e64321d337fdb69c5fd4ed59f632fe45fcd8420334e8",
+    "verification": "registry_manifest_config_and_layer_get"
+  },
+  "unchanged_resources": [
+    {
+      "kind": "DaemonSet",
+      "name": "fugue-fugue-dns",
+      "uid": "b2559411-6a5b-4b8d-bab7-776498c2d878"
+    },
+    {
+      "kind": "DaemonSet",
+      "name": "fugue-fugue-dns-country-de",
+      "uid": "a21b5d35-ca3e-44b3-897c-1786c41576b4"
+    },
+    {
+      "kind": "Pod",
+      "name": "fugue-fugue-dns-country-de-h264p",
+      "uid": "1430db17-c77e-4cc6-9c64-fd8da7b13a8a"
+    },
+    {
+      "kind": "Pod",
+      "name": "fugue-fugue-dns-jlbl9",
+      "uid": "bd7b5281-e6c4-45e1-b17d-fb17fca5eaac"
+    },
+    {
+      "kind": "Service",
+      "name": "fugue-dns-public-de",
+      "uid": "be149bb0-24a0-4835-9f82-40aae5645323"
+    },
+    {
+      "kind": "Service",
+      "name": "fugue-dns-public-us",
+      "uid": "182da187-4dbc-4a7b-a42b-5725d72e0ca1"
+    },
+    {
+      "kind": "EndpointSlice",
+      "name": "fugue-dns-public-de-f646z",
+      "uid": "23527c1c-0b8c-45f7-91a4-7dec36a83d12"
+    },
+    {
+      "kind": "EndpointSlice",
+      "name": "fugue-dns-public-us-4pzrb",
+      "uid": "cb3cc0c6-1d57-4934-9d57-b5b14bdb04ea"
+    }
+  ],
+  "selected_heartbeats": [
+    {
+      "consumer_id": "dns-server:vps-84c8f0a9",
+      "credential_id": "kubernetes:fugue-system:fugue-dns-consumer-de:1430db17-c77e-4cc6-9c64-fd8da7b13a8a",
+      "sequence": 1790190068722710138,
+      "last_heartbeat_at": "2026-09-23T19:01:09.038366Z",
+      "apply_status": "applied",
+      "probe_status": "passed"
+    },
+    {
+      "consumer_id": "dns-server:vps-591f4447",
+      "credential_id": "kubernetes:fugue-system:fugue-dns-consumer-us:bd7b5281-e6c4-45e1-b17d-fb17fca5eaac",
+      "sequence": 1790190050948597022,
+      "last_heartbeat_at": "2026-09-23T19:00:51.157222Z",
+      "apply_status": "applied",
+      "probe_status": "passed"
+    }
+  ],
+  "health": {
+    "/healthz": 200,
+    "/readyz": 200
+  },
+  "components": [
+    {
+      "component": "api",
+      "image_tag": "003d167da801c2286997de013ed0bac8f73be0c9",
+      "ready_replicas": 2,
+      "updated_replicas": 2,
+      "desired_replicas": 2
+    },
+    {
+      "component": "controller",
+      "image_tag": "df46c0173a694804111d620ad32d4a06f73be79d",
+      "ready_replicas": 2,
+      "updated_replicas": 2,
+      "desired_replicas": 2
+    }
+  ],
+  "sampling": {
+    "first_at": "2026-09-23T18:51:51.492873+00:00",
+    "last_at": "2026-09-23T19:01:23.081632+00:00",
+    "dns": 732,
+    "http": 183,
+    "failures": []
+  },
+  "prepush": {
+    "apiVersion": "prepush.fugue.dev/v1",
+    "baseCommit": "003d167da801c2286997de013ed0bac8f73be0c9",
+    "changedFilesDigest": "sha256:9c386fda0ac49fd4653cda1aac53de17db93dbb19eef8e9ae24ec4c1c12a7e8a",
+    "checks": {
+      "affected-tests": {
+        "durationMs": 22601,
+        "status": "pass"
+      },
+      "affected-vet": {
+        "durationMs": 23691,
+        "status": "pass"
+      },
+      "compile-all": {
+        "durationMs": 22600,
+        "status": "pass"
+      },
+      "declarative-release-tests": {
+        "durationMs": 46822,
+        "status": "pass"
+      },
+      "diff-check": {
+        "durationMs": 241,
+        "status": "pass"
+      },
+      "gofmt": {
+        "durationMs": 28,
+        "status": "pass"
+      },
+      "helm-lint-render": {
+        "durationMs": 0,
+        "status": "skipped"
+      },
+      "openapi-generated": {
+        "durationMs": 1763,
+        "status": "pass"
+      },
+      "shell-syntax": {
+        "durationMs": 0,
+        "status": "pass"
+      }
+    },
+    "elapsedMs": 47150,
+    "kind": "PrepushReceipt",
+    "sourceCommit": "de7adc6177b0db195eb9970c790036729638551c",
+    "status": "pass"
+  },
+  "limits": [
+    "Candidate remains outside all DNS transport Service selectors; this step does not switch or retire the existing public DNS backend.",
+    "Candidate trusted heartbeat rejection is required while unselected. It is not an accepted control-plane receipt and cannot authorize convergence.",
+    "Independent cache, identity and OnDelete workload are preparation for safe DNS replacement. TCP/UDP draining and replacement continuity remain open.",
+    "The initial read-only baseline caught the selected DE container Ready=false; final Ready=true, but UID, image, container ID and restart count were unchanged. Readiness conditions are mutable runtime facts, not evidence of a Pod replacement."
+  ],
+  "wire_verification": {
+    "origin": "existing Germany node, Python UDP/TCP sockets",
+    "first_at": "2026-09-23T19:00:16.217700+00:00",
+    "last_at": "2026-09-23T19:02:14.619334+00:00",
+    "samples": 720,
+    "failures": [],
+    "serials": [
+      1021
+    ],
+    "targets": [
+      "10.42.1.26",
+      "51.38.126.103"
+    ],
+    "protocols": [
+      "udp",
+      "tcp"
+    ],
+    "zones": [
+      "fugue.pro",
+      "i00.pro",
+      "oaix.cc"
+    ],
+    "max_elapsed_seconds": 0.012092
+  },
+  "ci_terminal": {
+    "apiVersion": "release.fugue.dev/v2",
+    "component": "edge-client-dns-de-b",
+    "configSha": "de7adc6177b0db195eb9970c790036729638551c",
+    "executionPlanDigest": "sha256:8c95ea3ab510c0c1966435da675a04aca3172e1964098c4f907c084180bbd08f",
+    "final": {
+      "available": 1,
+      "configSha": "de7adc6177b0db195eb9970c790036729638551c",
+      "desired": 1,
+      "fieldManagers": [
+        "fugue-dns-de-b-declarative",
+        "k3s"
+      ],
+      "generation": 1,
+      "healthDigest": "sha256:cbd3745ff5c0d4515cd78bc6c97e1e68ef31075196a407b09d68109c3ed935d2",
+      "imageId": "sha256:8d2098c95ad89c5990e6e64321d337fdb69c5fd4ed59f632fe45fcd8420334e8",
+      "imageRef": "ghcr.io/yym68686/fugue-edge@sha256:8d2098c95ad89c5990e6e64321d337fdb69c5fd4ed59f632fe45fcd8420334e8",
+      "manifestSha": "de7adc6177b0db195eb9970c790036729638551c",
+      "observedGeneration": 1,
+      "ociRevision": "de7adc6177b0db195eb9970c790036729638551c",
+      "present": true,
+      "primary": {
+        "apiVersion": "apps/v1",
+        "kind": "DaemonSet",
+        "name": "fugue-dns-de-b",
+        "namespace": "fugue-system"
+      },
+      "ready": 1,
+      "resourceVersion": "94673179",
+      "resources": [
+        {
+          "fieldManagers": [
+            "fugue-dns-de-b-declarative",
+            "k3s"
+          ],
+          "generation": 1,
+          "identity": {
+            "apiVersion": "apps/v1",
+            "kind": "DaemonSet",
+            "name": "fugue-dns-de-b",
+            "namespace": "fugue-system"
+          },
+          "objectDigest": "sha256:813260b15f0f7679283908485f5a3419292ad8c560d92e6f9a247b01482853e5",
+          "present": true,
+          "resourceVersion": "94673179",
+          "retainOnRollback": false,
+          "uid": "28b6ee61-e6f0-4479-a609-150233c21545"
+        },
+        {
+          "fieldManagers": [
+            "fugue-dns-de-b-declarative"
+          ],
+          "identity": {
+            "apiVersion": "v1",
+            "kind": "ServiceAccount",
+            "name": "fugue-dns-de-b",
+            "namespace": "fugue-system"
+          },
+          "objectDigest": "sha256:9d783c5955089a7ecc13f9e8624fe8edaa249b7b4d7680052a4f23271b8361d7",
+          "present": true,
+          "resourceVersion": "94672908",
+          "retainOnRollback": false,
+          "uid": "2aad270f-0c01-4913-a6e0-9e88c8951f76"
+        }
+      ],
+      "templateDigest": "sha256:ee0488a25ac5fa4f609ad4c8c90c43c0b4d6a2cc834ba98dca6bc756ebbe4ff4",
+      "uid": "28b6ee61-e6f0-4479-a609-150233c21545",
+      "unavailable": 0,
+      "updated": 1
+    },
+    "forwardApplyCount": 1,
+    "kind": "DeclarativeComponentExecutionResult",
+    "lkgApplyCount": 0,
+    "reason": "forward-verified",
+    "receiptDigest": "sha256:7be13eba504d7acba59115b726c0863d3a15199975e715fed14b29c9ad5b2223",
+    "status": "verified"
+  },
+  "local_ci_plan_identical": true
+}

@@ -598,7 +598,7 @@
     "The response is an observation, not independent signed serving authorization. Backend and publication rereads are not a cross-system atomic transaction.",
     "DNS Pods were not replaced. Cache isolation, switching, drain and migration of robustness traffic-safety readers remain open.",
     "Production producer creates and applies new gray/full assignments during the observation window; the endpoint intentionally returns 503 until Pod heartbeat and expected-set identities converge. Those transient rejections are recorded in capture_attempts.",
-    "Extended client-side dig query IDs were compared against node tcpdump: after each node capture began, 583 successful replies were observed at the server with maximum server response time 10.8 ms; five timed-out query IDs had no matching ingress packet in either server capture. Six additional successful queries preceded capture start and were excluded from correlation."
+    "Extended client-side dig query IDs were compared against node tcpdump: after each node capture began, 583 successful replies were observed at the server with maximum server response time 10.8 ms; five timed-out query IDs had no matching ingress packet in either server capture. Twelve successful queries were excluded by the conservative per-node first-packet cutoff; six preceded capture startup and six overlapped the initial observed packet interval."
   ],
   "packet_correlation": {
     "at": "2026-09-23T17:00:05.090211+00:00",

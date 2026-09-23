@@ -4213,13 +4213,27 @@ P0-EP-X 生产取证确认 canonical Service selector 仅有 app 标签，会同
 
 ### P0-EP-Y47：控制面读取绑定真实 DNS 后端的 Runtime Facts
 
-- [x] 新增管理员只读 `GET /v1/admin/platform-state/dns-runtime-facts/{node_id}`。读取先解析当前签名 DNS consumer assignment 和 identity-bound heartbeat，再核对当前 Pod UID、ServiceAccount、节点、受管理公网 Service、EndpointSlice 和唯一 Ready backend；使用 Kubernetes Pod proxy 读取声明的 HTTP readiness port，禁用重定向，不转发凭证到目标端口，响应限制 8 MiB。
-- [x] 读取结束重新核对 Pod/Service/EndpointSlice、当前发布、expected set、artifact lineage 和 route projection。Pod proxy 返回的 snapshot 必须与 signed parent/child、route artifact、assignment、plan digest、traffic binding 和原始 proof 时间一致；未知节点、切换中、身份不匹配、查询失败、伪造/过期/重复 proof 返回 503，不回退业务表、legacy cache 或其他节点事实。
+- [x] 新增管理员只读 `GET /v1/admin/platform-state/dns-runtime-facts/{node_id}`。读取先解析当前签名 DNS consumer assignment 和 identity-bound heartbeat，再核对当前 Pod UID、ServiceAccount、节点、受管理公网 Service、EndpointSlice 和唯一选中 backend；未就绪后端可供诊断读取，但结果不得为 ready。使用 Kubernetes Pod proxy 读取声明的 HTTP readiness port，禁用重定向，不转发凭证到目标端口，响应限制 8 MiB。
+- [x] 读取结束重新核对 Pod/Service/EndpointSlice、当前发布、expected set、artifact lineage 和 route projection。Pod proxy 返回的 snapshot 必须与 signed parent/child、route artifact、assignment、plan digest、traffic binding 和原始 proof 时间一致；未知节点、切换中、身份不匹配、查询失败、结构损坏/身份不符/重复 proof 返回 503；负向和过期 proof 保留为不具备 readiness 的诊断事实，不回退业务表、legacy cache 或其他节点事实。
 - [x] 保留原始 `observed_at`、`checked_at`、`valid_until` 和 proof 内容；`ready_probe_ids` 与 `ready` 只在当前 evaluated_at 下重新计算，不续期证明。负向/过期事实可作为诊断返回但不会变成 ready；读取不会 probe、heartbeat、写 cache、修改 artifact、release 或 LKG。响应包含 Pod/Service UID，便于审计实际数据面归属。
 - [x] OpenAPI、生成路由和前端类型已同步。回归覆盖重定向、未知字段、超大响应、无 HTTP port、重复 container、Pod/Service/EndpointSlice 变化、错误 assignment、错误 digest、过期/负向/未来 proof、取消和不变持久状态；两台现网 Pod proxy 均返回 465 条 facts，直接 proxy 与控制面响应逐字段一致。
 - [x] 干净 prepush 用时 131 秒，在 240 秒 CI 预算内通过；全量 make test、专项 race、前端 contract:check 均通过。后端 `003d167da801c2286997de013ed0bac8f73be0c9` 经 [CI 35883795851](https://github.com/yym68686/fugue/actions/runs/35883795851) 成功发布 API 2/2；前端契约 `f24bf129` 经 [CI 35883814618](https://github.com/yym68686/fugue-web/actions/runs/35883814618) 成功。
 - [x] 生产验收最终在稳定 full assignment 下通过：DE/US 两个实际 Pod UID 与公网 Service EndpointSlice 匹配；每节点 `fact_count=465`、`ready_fact_count=465`，两次控制面读取和直接 Pod proxy 各保留 465 条未变化 proof；assignment、parent/route/plan digest、fence、generation、traffic binding 逐项一致。控制面读取约 2.8–3.9 秒，未知 node=503、非法 node=400、未认证=401。发布切换期间的 503 记录了旧 heartbeat/expected-set 与当前 full/gray 不一致时的 fail-closed 行为。
-- [x] 发布窗口的中间 503 全部保留为一致性保护证据：DNS 正在 gray/full 或 expected-set 切换、旧 heartbeat 尚未跟上时，接口拒绝混合快照；DNS 自身日志显示后续 heartbeat、serving 和 465/465 readiness 恢复。该行为符合“读取必须绑定当前发布”的语义，不声称切换期间持续返回旧事实。
-- [ ] 继续分析已经保留的公网 UDP timeout（本窗口监控共 3,492 次 DNS、873 次 HTTP，失败样本独立保留；定向 Python 查询 54/54、独立连续查询 432/432 全通过；另一次 600 次并发 `dig` 中 595 成功、5 超时。按节点抓包覆盖开始后的 588 次查询，583 个成功在服务端看到请求和应答，5 个超时 ID 在两端服务节点均没有匹配 ingress 包；这提示丢包可能发生在服务节点之前，但没有客户端抓包，根因仍未确认），并完成候选/旧实例独立 cache、回执隔离、单后端切换、UDP/TCP 排空和真实 DNS Pod 替换演练。Y42/Y44 无中断更新仍未完成。
+- [x] 发布窗口的中间 503 原样保留。配对采样已确认部分发生在 gray/full 或 expected-set 切换、旧 heartbeat 尚未跟上时；最初 DE 503 的准确原因未被捕获，不能一概归因于一致性保护。后续 heartbeat、serving 和 465/465 readiness 恢复；不声称切换期间持续返回旧事实。
+- [ ] 继续分析已经保留的公网 UDP timeout（本窗口监控共 3,492 次 DNS、873 次 HTTP，失败样本独立保留；定向 Python 查询 54/54、独立连续查询 432/432 全通过；另一次 600 次并发 `dig` 中 595 成功、5 超时。按各节点首包时间保守筛选后的 588 次查询（另外 12 次成功查询未纳入关联），583 个成功在服务端看到请求和应答，5 个超时 ID 在两端服务节点均没有匹配 ingress 包；这提示丢包可能发生在服务节点之前，但没有客户端抓包，根因仍未确认），并完成候选/旧实例独立 cache、回执隔离、单后端切换、UDP/TCP 排空和真实 DNS Pod 替换演练。Y42/Y44 无中断更新仍未完成。
 
 证据：[dns-backend-runtime-facts-2026-09-23.json](verification/dns-backend-runtime-facts-2026-09-23.json)。
+
+### P0-EP-Y48：DNS 独立候选槽位与凭证解耦
+
+- [x] 已登记的 artifact DNS consumer 可以仅用绑定 Pod 的身份启动，不再强制提供旧 inventory token；未登记、空身份路径和只有旧 checkpoint 的进程仍不能绕过凭证要求。候选缺 verified checkpoint 时保持 SERVFAIL，不退回 ambient/legacy 配置。
+- [x] 德国新增独立 `edge-client-dns-de-b` 声明式发布通道和 ServiceAccount，独立 Pod UID、cache/cursor hostPath `/var/lib/fugue/dns-slots/b`，不占用 hostNetwork/hostPort。使用现有镜像仓库与通用发布执行器；精确计划仅发布候选，旧 DNS/SSH/API 不触发更新。
+- [x] 候选使用 OnDelete，防止后续 template 修改自动替换可能已被选择的实例。候选标签不匹配任何现有 DNS transport Service；原实例持续服务。候选没有 inventory credential，无法抢写逻辑 DNS inventory；可信 heartbeat 仍受 Y45 的当前公网后端检查约束，不增加绕过开关。
+- [x] 回归验证缺凭证、真实 UDP/TCP serving、409 心跳拒绝不丢已验证 snapshot/checkpoint、重启不复用 transient readiness，以及 manifest listener/cache/selector 隔离。全量 make test、DNS race、精确单提交发布计划和干净 prepush 通过；prepush 47.15 秒，CI 与本地 plan 完全一致。
+- [x] 后端 `de7adc6177b0db195eb9970c790036729638551c` 经 [CI 35905586131](https://github.com/yym68686/fugue/actions/runs/35905586131) 成功部署。候选 `fugue-dns-de-b-87xdx` Ready、零 restart，实际 image 与 immutable receipt/OCI revision 精确匹配；终态回执 `forward-verified`、desired/ready/available=1。
+- [x] 候选与原德国后端的 assignment、parent digest、plan digest 一致，465/465 readiness facts 有效；候选 409 拒绝被完整保留，reported_at 未伪造为接受。两地逻辑 consumer 的新鲜 applied/passed 回执仍绑定原 Pod UID；原 DaemonSet/Service spec、Pod image/container ID/restart count、EndpointSlice target 身份不变。基线碰到德国原 Pod Ready=false，最终恢复 true；不能把这一运行事实变化误判为 Pod 替换或忽略。
+- [x] 18:51:51–19:01:23 UTC 发布窗口 732 次公网 DNS UDP/TCP、183 次跨 Edge HTTP 全部通过；节点内另做 720 次候选 PodIP/当前公网 IP、三个 zone、UDP/TCP 查询，全部权威应答且 serial=1021，最长约 12.1 毫秒。首次无 checkpoint 到首次 ready 的启动等待只发生在未选中候选。
+- [x] 复核并纠正 Y47 文档：未就绪/负向/过期 facts 的诊断语义，与 malformed/身份不符拒绝分开；最初未定位的 503 不再一概称为一致性保护；抓包关联排除数按实际 12 条记录修正。没有修改或抹去历史失败样本。
+- [ ] 后续仍需候选与当前发布的切换前复核、单一后端 CAS 切换、配置变化期间旧连接持续刷新、TCP/UDP conntrack 排空与身份绑定的安全退役；还需处理旧 inventory 依赖后才能移除旧 Pod。当前没有切换公网流量，不把“候选并存”计为 DNS 无中断替换完成，Y42/Y44 保持未完成。
+
+证据：[dns-isolated-candidate-2026-09-24.json](verification/dns-isolated-candidate-2026-09-24.json)。
