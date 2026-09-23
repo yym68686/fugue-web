@@ -464,6 +464,13 @@ export interface paths {
     /** Get Platform Hostname Lineage */
     get: operations["getPlatformHostnameLineage"];
   };
+  "/v1/admin/platform-state/dns-runtime-facts/{node_id}": {
+    /**
+     * Read DNS observations from the current authenticated public backend
+     * @description Requires platform admin and artifact.read. Resolves a fresh verified Kubernetes DNS heartbeat, the current signed traffic assignment and the uniquely selected public Service backend. Reads runtime-facts through the Kubernetes Pod proxy using the DNS container's declared HTTP readiness port, with redirects disabled and an 8 MiB response limit. Pod UID, Service and EndpointSlice observations are checked around the read; current publication and expectation are checked again afterwards. Proof IDs, plan digest, node/group and release bindings are validated against signed artifacts. ready_probe_ids and ready are evaluated at evaluated_at; expired or negative proofs cannot pass. The snapshot keeps its original timestamps and values. A failed or ambiguous lookup returns 503 without fallback, probing, configuration writes or proof renewal. This is a diagnostic observation, not serving authorization or a transaction spanning Kubernetes and the publication store.
+     */
+    get: operations["getPlatformDNSRuntimeFacts"];
+  };
   "/v1/admin/platform-state/runtime-facts": {
     /**
      * List Platform Runtime Facts
@@ -11855,6 +11862,20 @@ export interface components {
       scope_key: string;
       artifact_kinds: string[];
     };
+    PlatformDNSRuntimeFactsResponse: {
+      backend: {
+        namespace: string;
+        pod_name: string;
+        pod_uid: string;
+        service_name: string;
+        service_uid: string;
+      };
+      snapshot: components["schemas"]["DNSServingRuntimeFacts"];
+      /** Format: date-time */
+      evaluated_at: string;
+      ready: boolean;
+      ready_probe_ids: string[];
+    };
     DNSServingRuntimeFacts: {
       /** @enum {string} */
       schema: "fugue.dns.runtime-facts/v1";
@@ -14234,6 +14255,30 @@ export interface operations {
           };
         };
       };
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
+  /**
+   * Read DNS observations from the current authenticated public backend
+   * @description Requires platform admin and artifact.read. Resolves a fresh verified Kubernetes DNS heartbeat, the current signed traffic assignment and the uniquely selected public Service backend. Reads runtime-facts through the Kubernetes Pod proxy using the DNS container's declared HTTP readiness port, with redirects disabled and an 8 MiB response limit. Pod UID, Service and EndpointSlice observations are checked around the read; current publication and expectation are checked again afterwards. Proof IDs, plan digest, node/group and release bindings are validated against signed artifacts. ready_probe_ids and ready are evaluated at evaluated_at; expired or negative proofs cannot pass. The snapshot keeps its original timestamps and values. A failed or ambiguous lookup returns 503 without fallback, probing, configuration writes or proof renewal. This is a diagnostic observation, not serving authorization or a transaction spanning Kubernetes and the publication store.
+   */
+  getPlatformDNSRuntimeFacts: {
+    parameters: {
+      path: {
+        node_id: string;
+      };
+    };
+    responses: {
+      /** @description Backend-bound original observations and current readiness assessment */
+      200: {
+        content: {
+          "application/json": components["schemas"]["PlatformDNSRuntimeFactsResponse"];
+        };
+      };
+      400: components["responses"]["ErrorResponse"];
+      401: components["responses"]["ErrorResponse"];
+      403: components["responses"]["ErrorResponse"];
+      503: components["responses"]["ErrorResponse"];
       default: components["responses"]["ErrorResponse"];
     };
   };
