@@ -4237,3 +4237,17 @@ P0-EP-X 生产取证确认 canonical Service selector 仅有 app 标签，会同
 - [ ] 后续仍需候选与当前发布的切换前复核、单一后端 CAS 切换、配置变化期间旧连接持续刷新、TCP/UDP conntrack 排空与身份绑定的安全退役；还需处理旧 inventory 依赖后才能移除旧 Pod。当前没有切换公网流量，不把“候选并存”计为 DNS 无中断替换完成，Y42/Y44 保持未完成。
 
 证据：[dns-isolated-candidate-2026-09-24.json](verification/dns-isolated-candidate-2026-09-24.json)。
+
+### P0-EP-Y49：受保护的 DNS 后端切换与旧 inventory 冲突恢复
+
+- [x] transport selector 变化增加通用只读门槛：地址唯一归属节点、新旧各一个 Ready live Pod、typed consumer annotation、DNS/HTTP 端口所有权、原 Service EndpointSlice UID/IP/ports、Pod 读取前后 resourceVersion；新旧 snapshot 的 assignment/parent/plan digest 相同，证明成员唯一、正向且未过期，逐项绑定 release/fence。写入前重读，仍使用原 Service UID/RV/spec JSON CAS。
+- [x] 非切换配置保留既有网络协调流程；检查只读取可信 Pod proxy，不续期证明、不编译 artifact、不替换 Pod。反例覆盖重复/未就绪后端、未授权身份、metadata 漂移、foreign endpoint、过期 proof、assignment 不符及写入前变化无写入。全量 make test、精确零组件发布计划、干净 prepush 39.475 秒通过。
+- [x] `9f8510e41da6d6f55ae7ce7f3aec0a72481459d7` 经 CI 35908108566 完成 generation=3 切换；德国高端口 19:16:18 UTC、公网 53 于 19:16:22 UTC 指向候选，未替换 Pod。新 Pod 的 applied/passed 回执与控制面 runtime-facts 接管到新 UID，465/465 facts ready；原后端可信心跳被 409 拒绝。
+- [x] 本机与德国节点各建立四条持久连接（53/15353 × UDP/TCP），全部跨过 selector 切换，各完成 110 次查询、总 880 次，无断连/超时；旧实例继续刷新已验证配置与 readiness。该结果不覆盖旧 Pod 终止和 conntrack 安全退役。
+- [x] 验收发现未预期兼容性冲突：旧实例仍写 legacy DNS inventory，因其可信心跳被拒绝而将逻辑节点显示为 degraded；新实例真实 serving 正常不能掩盖旧诊断错误。没有把切换计为最终通过，也没有伪造旧 inventory 健康。
+- [x] 通过更高 generation=4 的纯配置恢复提交 `b9d61746be8f1d950929b800799932ff91743020` 恢复原 selector。CI 35908633673 首次在任何写入前因某个 selector 无 Ready backend 拒绝（错误未标明具体 listener），只读复核后重跑失败 job，attempt=2 成功，公网 19:23:49 UTC 恢复。
+- [x] 19:24:57 UTC 复核：两个 legacy inventory 均 healthy，可信回执和 runtime-facts 重新绑定原德国 Pod，API health/ready=200、authority 正常；3 个 Pod、3 个 DaemonSet、4 个 Service UID/spec 恢复或不变，镜像/container ID/restart count 未变。候选保留且重新不具备写逻辑回执的权限。
+- [x] 19:15:29–19:24:53 UTC 切换/恢复窗口 720 次公网 DNS、180 次 HTTP 全通过。更早 19:11:33 UTC 的单次德国 TCP timeout 独立保留，发生在本次 push 前，根因尚未确认，不计作已修复。
+- [ ] 迁移 legacy inventory 的健康事实来源，并隔离未选中实例的 inventory 写入；再次接管时须同时验证 trusted facts、旧诊断兼容和配置推进。后续再做安全排空、旧 hostPort 退役与美国槽位。Y49 接管目标和 Y42/Y44 无中断替换继续未完成。
+
+证据：[dns-handoff-recovery-2026-09-24.json](verification/dns-handoff-recovery-2026-09-24.json)。

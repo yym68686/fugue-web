@@ -1,0 +1,592 @@
+{
+  "at": "2026-09-23T19:25:54.048065+00:00",
+  "handoff_commit": "9f8510e41da6d6f55ae7ce7f3aec0a72481459d7",
+  "handoff_ci": 35908108566,
+  "recovery_commit": "b9d61746be8f1d950929b800799932ff91743020",
+  "recovery_ci": 35908633673,
+  "recovery_attempt": 2,
+  "handoff_public_at": "2026-09-23T19:16:22.5898879Z",
+  "recovery_public_at": "2026-09-23T19:23:49.4251800Z",
+  "production_step_complete": false,
+  "gates_implemented": true,
+  "prepush": {
+    "apiVersion": "prepush.fugue.dev/v1",
+    "baseCommit": "de7adc6177b0db195eb9970c790036729638551c",
+    "changedFilesDigest": "sha256:fd37015e4eb45e7c2c6b265819769682df584c532217d33aab7868f5f0caf74d",
+    "checks": {
+      "affected-tests": {
+        "durationMs": 0,
+        "status": "skipped"
+      },
+      "affected-vet": {
+        "durationMs": 17434,
+        "status": "pass"
+      },
+      "compile-all": {
+        "durationMs": 17079,
+        "status": "pass"
+      },
+      "declarative-release-tests": {
+        "durationMs": 39145,
+        "status": "pass"
+      },
+      "diff-check": {
+        "durationMs": 282,
+        "status": "pass"
+      },
+      "dns-transport-tests": {
+        "durationMs": 17079,
+        "status": "pass"
+      },
+      "gofmt": {
+        "durationMs": 15,
+        "status": "pass"
+      },
+      "helm-lint-render": {
+        "durationMs": 0,
+        "status": "skipped"
+      },
+      "openapi-generated": {
+        "durationMs": 1510,
+        "status": "pass"
+      },
+      "shell-syntax": {
+        "durationMs": 0,
+        "status": "pass"
+      }
+    },
+    "elapsedMs": 39475,
+    "kind": "PrepushReceipt",
+    "sourceCommit": "9f8510e41da6d6f55ae7ce7f3aec0a72481459d7",
+    "status": "pass"
+  },
+  "recovery_prepush": {
+    "apiVersion": "prepush.fugue.dev/v1",
+    "baseCommit": "9f8510e41da6d6f55ae7ce7f3aec0a72481459d7",
+    "changedFilesDigest": "sha256:a91f3d603c536ee08a0a380406d696680483657b336e228b75ad7b38a547e8db",
+    "checks": {
+      "affected-tests": {
+        "durationMs": 0,
+        "status": "skipped"
+      },
+      "affected-vet": {
+        "durationMs": 0,
+        "status": "skipped"
+      },
+      "compile-all": {
+        "durationMs": 18415,
+        "status": "pass"
+      },
+      "diff-check": {
+        "durationMs": 251,
+        "status": "pass"
+      },
+      "dns-transport-tests": {
+        "durationMs": 18414,
+        "status": "pass"
+      },
+      "gofmt": {
+        "durationMs": 0,
+        "status": "pass"
+      },
+      "helm-lint-render": {
+        "durationMs": 0,
+        "status": "skipped"
+      },
+      "openapi-generated": {
+        "durationMs": 1372,
+        "status": "pass"
+      },
+      "shell-syntax": {
+        "durationMs": 0,
+        "status": "pass"
+      }
+    },
+    "elapsedMs": 20049,
+    "kind": "PrepushReceipt",
+    "sourceCommit": "b9d61746be8f1d950929b800799932ff91743020",
+    "status": "pass"
+  },
+  "handoff_first_facts": {
+    "at": "2026-09-23T19:17:00.245877+00:00",
+    "direct": [
+      {
+        "pod": "fugue-dns-de-b-87xdx",
+        "ready": true,
+        "assignment": {
+          "expected_consumer_set_id": "expectedconsumerset_427902c4bf2cef32",
+          "release_set_id": "artifact_1790190472_2dc99981f367",
+          "artifact_release_id": "artifactrel_1790190596_afb3bd034a3e",
+          "artifact_kind": "dns_answer_bundle",
+          "scope_key": "global",
+          "expected_generation": "dns-e941a03da9ca5fdb1e267689a7e7d2be284c7989979328abc3795bd023022552",
+          "revision": 8,
+          "artifact_id": "artifact_1790190472_866dec01bdea",
+          "content_hash": "sha256:96350b3b70c8ad7ed0ef0e5ddb1b2143d190b0968ad5acc221b89c29b4d3132a",
+          "generation_sequence": 1023,
+          "release_channel": "full",
+          "fencing_token": 225,
+          "expected_protocol_version": "v1",
+          "expected_schema_version": "v1",
+          "heartbeat_deadline": "2026-09-23T19:11:27.248386054Z",
+          "convergence_deadline": "2026-09-23T19:14:57.248386054Z"
+        },
+        "fact_count": 465,
+        "ready_facts": 465
+      },
+      {
+        "pod": "fugue-fugue-dns-country-de-h264p",
+        "ready": true,
+        "assignment": {
+          "expected_consumer_set_id": "expectedconsumerset_427902c4bf2cef32",
+          "release_set_id": "artifact_1790190472_2dc99981f367",
+          "artifact_release_id": "artifactrel_1790190596_afb3bd034a3e",
+          "artifact_kind": "dns_answer_bundle",
+          "scope_key": "global",
+          "expected_generation": "dns-e941a03da9ca5fdb1e267689a7e7d2be284c7989979328abc3795bd023022552",
+          "revision": 8,
+          "artifact_id": "artifact_1790190472_866dec01bdea",
+          "content_hash": "sha256:96350b3b70c8ad7ed0ef0e5ddb1b2143d190b0968ad5acc221b89c29b4d3132a",
+          "generation_sequence": 1023,
+          "release_channel": "full",
+          "fencing_token": 225,
+          "expected_protocol_version": "v1",
+          "expected_schema_version": "v1",
+          "heartbeat_deadline": "2026-09-23T19:11:27.248386054Z",
+          "convergence_deadline": "2026-09-23T19:14:57.248386054Z"
+        },
+        "fact_count": 465,
+        "ready_facts": 465
+      }
+    ],
+    "consumers": [
+      {
+        "id": "artifactconsumer_038d69486623a19d",
+        "consumer_id": "dns-server:vps-84c8f0a9",
+        "credential_id": "kubernetes:fugue-system:fugue-dns-de-b:2b15c8ec-1027-4277-82c3-3c33df35cd9c",
+        "token_id": "90TEpG0BaHsL-rDUyv23Ug",
+        "component": "dns-server",
+        "node_id": "vps-84c8f0a9",
+        "artifact_kind": "dns_answer_bundle",
+        "scope_key": "global",
+        "release_set_id": "artifact_1790190472_2dc99981f367",
+        "expected_consumer_set_id": "expectedconsumerset_427902c4bf2cef32",
+        "fencing_token": 225,
+        "supported_artifact_kinds": [
+          "dns_answer_bundle"
+        ],
+        "protocol_version": "v1",
+        "schema_version": "v1",
+        "compatibility_capabilities": [
+          "traffic_release_v1"
+        ],
+        "sequence": 1790191013712539234,
+        "issued_at": "2026-09-23T19:16:53.715045Z",
+        "nonce": "0e003ec8ef74867cc33b6a65a6164c9a",
+        "generation_sequence": 1023,
+        "evidence_hash": "sha256:c3561eb0527f25530bd44188f2574ed76ca647aaa7aecb79b746f6714a18c741",
+        "identity_verified": true,
+        "desired_generation": "dns-e941a03da9ca5fdb1e267689a7e7d2be284c7989979328abc3795bd023022552",
+        "actual_generation": "dns-e941a03da9ca5fdb1e267689a7e7d2be284c7989979328abc3795bd023022552",
+        "lkg_generation": "dns-e941a03da9ca5fdb1e267689a7e7d2be284c7989979328abc3795bd023022552",
+        "apply_status": "applied",
+        "probe_status": "passed",
+        "last_heartbeat_at": "2026-09-23T19:16:54.028693Z",
+        "updated_at": "2026-09-23T19:16:54.028693Z"
+      },
+      {
+        "id": "artifactconsumer_d988d3a8439b9350",
+        "consumer_id": "dns-server:vps-591f4447",
+        "credential_id": "kubernetes:fugue-system:fugue-dns-consumer-us:bd7b5281-e6c4-45e1-b17d-fb17fca5eaac",
+        "token_id": "X9R3vL-UtvTQ-Cvo4IfIVQ",
+        "component": "dns-server",
+        "node_id": "vps-591f4447",
+        "artifact_kind": "dns_answer_bundle",
+        "scope_key": "global",
+        "release_set_id": "artifact_1790190472_2dc99981f367",
+        "expected_consumer_set_id": "expectedconsumerset_427902c4bf2cef32",
+        "fencing_token": 225,
+        "supported_artifact_kinds": [
+          "dns_answer_bundle"
+        ],
+        "protocol_version": "v1",
+        "schema_version": "v1",
+        "compatibility_capabilities": [
+          "traffic_release_v1"
+        ],
+        "sequence": 1790190980969127531,
+        "issued_at": "2026-09-23T19:16:20.972298Z",
+        "nonce": "27d395c8eae7fb77584f4156bea5a137",
+        "generation_sequence": 1023,
+        "evidence_hash": "sha256:65e60aecfb25d4531630901d1b7340e63a3fae770880b446b3f7bf7d576b28db",
+        "identity_verified": true,
+        "desired_generation": "dns-e941a03da9ca5fdb1e267689a7e7d2be284c7989979328abc3795bd023022552",
+        "actual_generation": "dns-e941a03da9ca5fdb1e267689a7e7d2be284c7989979328abc3795bd023022552",
+        "lkg_generation": "dns-e941a03da9ca5fdb1e267689a7e7d2be284c7989979328abc3795bd023022552",
+        "apply_status": "applied",
+        "probe_status": "passed",
+        "last_heartbeat_at": "2026-09-23T19:16:21.136299Z",
+        "updated_at": "2026-09-23T19:16:21.136299Z"
+      }
+    ],
+    "api_status": 200,
+    "backend": {
+      "namespace": "fugue-system",
+      "pod_name": "fugue-dns-de-b-87xdx",
+      "pod_uid": "2b15c8ec-1027-4277-82c3-3c33df35cd9c",
+      "service_name": "fugue-dns-public-de",
+      "service_uid": "be149bb0-24a0-4835-9f82-40aae5645323"
+    },
+    "ready": true
+  },
+  "inventory_mismatch": {
+    "at": "2026-09-23T19:19:16.701089+00:00",
+    "inventory": {
+      "nodes": [
+        {
+          "id": "vps-84c8f0a9",
+          "physical_node_id": "vps-84c8f0a9",
+          "edge_group_id": "edge-group-country-de",
+          "public_ipv4": "51.38.126.103",
+          "mesh_ip": "51.38.126.103",
+          "zone": "fugue.pro",
+          "status": "degraded",
+          "healthy": true,
+          "dns_bundle_version": "dns-e941a03da9ca5fdb1e267689a7e7d2be284c7989979328abc3795bd023022552",
+          "serving_generation": "dns-e941a03da9ca5fdb1e267689a7e7d2be284c7989979328abc3795bd023022552",
+          "lkg_generation": "dns-e941a03da9ca5fdb1e267689a7e7d2be284c7989979328abc3795bd023022552",
+          "record_count": 249,
+          "cache_status": "stale",
+          "cache_write_errors": 0,
+          "cache_load_errors": 0,
+          "bundle_sync_errors": 0,
+          "query_count": 23013,
+          "query_error_count": 159,
+          "query_rcode_counts": {
+            "NOERROR": 22854,
+            "NXDOMAIN": 65,
+            "REFUSED": 94
+          },
+          "query_qtype_counts": {
+            "A": 7386,
+            "AAAA": 3617,
+            "ANY": 6,
+            "CAA": 4,
+            "CNAME": 49,
+            "DNSKEY": 423,
+            "DS": 2,
+            "HTTPS": 31,
+            "MX": 102,
+            "NS": 184,
+            "SOA": 11118,
+            "SRV": 3,
+            "SVCB": 2,
+            "TXT": 86
+          },
+          "listen_addr": ":7834",
+          "udp_addr": ":53",
+          "tcp_addr": ":53",
+          "udp_listen": true,
+          "tcp_listen": true,
+          "last_error": "platform request rejected: HTTP 409",
+          "last_seen_at": "2026-09-23T19:19:05.512347Z",
+          "last_heartbeat_at": "2026-09-23T19:19:05.512347Z",
+          "created_at": "2026-05-11T22:43:52.957527Z",
+          "updated_at": "2026-09-23T19:19:05.512347Z"
+        },
+        {
+          "id": "vps-591f4447",
+          "physical_node_id": "vps-591f4447",
+          "edge_group_id": "edge-group-country-us",
+          "public_ipv4": "15.204.94.71",
+          "mesh_ip": "15.204.94.71",
+          "zone": "fugue.pro",
+          "status": "healthy",
+          "healthy": true,
+          "dns_bundle_version": "dns-e941a03da9ca5fdb1e267689a7e7d2be284c7989979328abc3795bd023022552",
+          "serving_generation": "dns-e941a03da9ca5fdb1e267689a7e7d2be284c7989979328abc3795bd023022552",
+          "lkg_generation": "dns-e941a03da9ca5fdb1e267689a7e7d2be284c7989979328abc3795bd023022552",
+          "record_count": 249,
+          "cache_status": "ready",
+          "cache_write_errors": 0,
+          "cache_load_errors": 0,
+          "bundle_sync_errors": 0,
+          "query_count": 30954,
+          "query_error_count": 164,
+          "query_rcode_counts": {
+            "NOERROR": 30790,
+            "NXDOMAIN": 64,
+            "REFUSED": 100
+          },
+          "query_qtype_counts": {
+            "A": 12008,
+            "AAAA": 6910,
+            "ANY": 9,
+            "CAA": 4,
+            "CNAME": 66,
+            "DNSKEY": 788,
+            "DS": 6,
+            "HTTPS": 35,
+            "MX": 97,
+            "NS": 202,
+            "SOA": 10725,
+            "SRV": 3,
+            "SVCB": 3,
+            "TXT": 98
+          },
+          "listen_addr": ":7834",
+          "udp_addr": ":53",
+          "tcp_addr": ":53",
+          "udp_listen": true,
+          "tcp_listen": true,
+          "last_seen_at": "2026-09-23T19:18:48.527992Z",
+          "last_heartbeat_at": "2026-09-23T19:18:48.527992Z",
+          "created_at": "2026-05-11T22:43:52.636682Z",
+          "updated_at": "2026-09-23T19:18:48.527992Z"
+        }
+      ]
+    }
+  },
+  "recovered": {
+    "at": "2026-09-23T19:24:57.556815+00:00",
+    "resources_restored_or_unchanged": [
+      {
+        "kind": "Pod",
+        "name": "fugue-dns-de-b-87xdx",
+        "uid": "2b15c8ec-1027-4277-82c3-3c33df35cd9c"
+      },
+      {
+        "kind": "Pod",
+        "name": "fugue-fugue-dns-country-de-h264p",
+        "uid": "1430db17-c77e-4cc6-9c64-fd8da7b13a8a"
+      },
+      {
+        "kind": "Pod",
+        "name": "fugue-fugue-dns-jlbl9",
+        "uid": "bd7b5281-e6c4-45e1-b17d-fb17fca5eaac"
+      },
+      {
+        "kind": "DaemonSet",
+        "name": "fugue-dns-de-b",
+        "uid": "28b6ee61-e6f0-4479-a609-150233c21545"
+      },
+      {
+        "kind": "DaemonSet",
+        "name": "fugue-fugue-dns",
+        "uid": "b2559411-6a5b-4b8d-bab7-776498c2d878"
+      },
+      {
+        "kind": "DaemonSet",
+        "name": "fugue-fugue-dns-country-de",
+        "uid": "a21b5d35-ca3e-44b3-897c-1786c41576b4"
+      },
+      {
+        "kind": "Service",
+        "name": "fugue-dns-public-de",
+        "uid": "be149bb0-24a0-4835-9f82-40aae5645323"
+      },
+      {
+        "kind": "Service",
+        "name": "fugue-dns-public-us",
+        "uid": "182da187-4dbc-4a7b-a42b-5725d72e0ca1"
+      },
+      {
+        "kind": "Service",
+        "name": "fugue-dns-transport-de",
+        "uid": "c6d910fa-e7ae-4ae0-8b1f-ff132417b1eb"
+      },
+      {
+        "kind": "Service",
+        "name": "fugue-dns-transport-us",
+        "uid": "7aec5e4e-19b9-4c68-83ed-59a003badf87"
+      }
+    ],
+    "selected_backend": {
+      "namespace": "fugue-system",
+      "pod_name": "fugue-fugue-dns-country-de-h264p",
+      "pod_uid": "1430db17-c77e-4cc6-9c64-fd8da7b13a8a",
+      "service_name": "fugue-dns-public-de",
+      "service_uid": "be149bb0-24a0-4835-9f82-40aae5645323"
+    },
+    "snapshot_assignment": {
+      "expected_consumer_set_id": "expectedconsumerset_c15d95405cdd0cd9",
+      "release_set_id": "artifact_1790191106_c1a37025495a",
+      "artifact_release_id": "artifactrel_1790191230_4fa40bd83a30",
+      "artifact_kind": "dns_answer_bundle",
+      "scope_key": "global",
+      "expected_generation": "dns-ad3a9b1e7f326abb87316c9d6c539982814f8d88f3bd3e0da31d152f523da507",
+      "revision": 8,
+      "artifact_id": "artifact_1790191106_c9db4fb2698e",
+      "content_hash": "sha256:f08130865456ff91c1afb57c5aba7d35cbe967dcf8a68580966b2b9e9427c162",
+      "generation_sequence": 1024,
+      "release_channel": "full",
+      "fencing_token": 226,
+      "expected_protocol_version": "v1",
+      "expected_schema_version": "v1",
+      "heartbeat_deadline": "2026-09-23T19:22:00.566279506Z",
+      "convergence_deadline": "2026-09-23T19:25:30.566279506Z"
+    },
+    "selected_fact_ready": true,
+    "heartbeat": {
+      "consumer_id": "dns-server:vps-84c8f0a9",
+      "credential_id": "kubernetes:fugue-system:fugue-dns-consumer-de:1430db17-c77e-4cc6-9c64-fd8da7b13a8a",
+      "last_heartbeat_at": "2026-09-23T19:24:39.475158Z",
+      "sequence": 1790191479186650066
+    },
+    "inventory": [
+      {
+        "id": "vps-84c8f0a9",
+        "status": "healthy",
+        "healthy": true,
+        "last_error": null
+      },
+      {
+        "id": "vps-591f4447",
+        "status": "healthy",
+        "healthy": true,
+        "last_error": null
+      }
+    ],
+    "health": {
+      "/healthz": 200,
+      "/readyz": 200
+    },
+    "authority_ready": true
+  },
+  "persistent_streams": {
+    "node": [
+      {
+        "event": "finished",
+        "port": 53,
+        "protocol": "udp",
+        "started_at": "2026-09-23T19:15:24.901931+00:00",
+        "queries": 110,
+        "failures": [],
+        "client_socket": [
+          "51.38.126.103",
+          55055
+        ],
+        "ended_at": "2026-09-23T19:20:54.997521+00:00"
+      },
+      {
+        "event": "finished",
+        "port": 15353,
+        "protocol": "udp",
+        "started_at": "2026-09-23T19:15:24.903213+00:00",
+        "queries": 110,
+        "failures": [],
+        "client_socket": [
+          "51.38.126.103",
+          56514
+        ],
+        "ended_at": "2026-09-23T19:20:54.999015+00:00"
+      },
+      {
+        "event": "finished",
+        "port": 53,
+        "protocol": "tcp",
+        "started_at": "2026-09-23T19:15:24.902504+00:00",
+        "queries": 110,
+        "failures": [],
+        "client_socket": [
+          "51.38.126.103",
+          33130
+        ],
+        "ended_at": "2026-09-23T19:20:55.014122+00:00"
+      },
+      {
+        "event": "finished",
+        "port": 15353,
+        "protocol": "tcp",
+        "started_at": "2026-09-23T19:15:24.903933+00:00",
+        "queries": 110,
+        "failures": [],
+        "client_socket": [
+          "51.38.126.103",
+          48022
+        ],
+        "ended_at": "2026-09-23T19:20:55.014582+00:00"
+      }
+    ],
+    "client": [
+      {
+        "event": "finished",
+        "port": 15353,
+        "protocol": "tcp",
+        "started_at": "2026-09-23T19:15:21.997498+00:00",
+        "queries": 110,
+        "failures": [],
+        "client_socket": [
+          "198.18.0.1",
+          59113
+        ],
+        "ended_at": "2026-09-23T19:21:23.197320+00:00"
+      },
+      {
+        "event": "finished",
+        "port": 53,
+        "protocol": "udp",
+        "started_at": "2026-09-23T19:15:21.997051+00:00",
+        "queries": 110,
+        "failures": [],
+        "client_socket": [
+          "198.18.0.1",
+          52652
+        ],
+        "ended_at": "2026-09-23T19:21:23.438898+00:00"
+      },
+      {
+        "event": "finished",
+        "port": 15353,
+        "protocol": "udp",
+        "started_at": "2026-09-23T19:15:21.997420+00:00",
+        "queries": 110,
+        "failures": [],
+        "client_socket": [
+          "198.18.0.1",
+          51134
+        ],
+        "ended_at": "2026-09-23T19:21:25.146258+00:00"
+      },
+      {
+        "event": "finished",
+        "port": 53,
+        "protocol": "tcp",
+        "started_at": "2026-09-23T19:15:21.997311+00:00",
+        "queries": 110,
+        "failures": [],
+        "client_socket": [
+          "198.18.0.1",
+          59112
+        ],
+        "ended_at": "2026-09-23T19:21:25.442648+00:00"
+      }
+    ]
+  },
+  "sampling": {
+    "first_at": "2026-09-23T19:15:29.037084+00:00",
+    "last_at": "2026-09-23T19:24:54.259100+00:00",
+    "dns": 732,
+    "http": 183,
+    "failures": []
+  },
+  "earlier_sampling_failures": [
+    {
+      "at": "2026-09-23T19:11:33.473754+00:00",
+      "kind": "dns",
+      "server": "51.38.126.103",
+      "zone": "oaix.cc",
+      "protocol": "tcp",
+      "pass": false,
+      "sequence": null,
+      "exit": 9,
+      "error": "\n; <<>> DiG 9.10.6 <<>> +tcp +time=2 +tries=1 @51.38.126.103 oaix.cc SOA +noall +comments +answer\n; (1 server found)\n;; global options: +cmd\n;; connection timed out; no servers could be reached\n"
+    }
+  ],
+  "limits": [
+    "The newly selected Pod served and reported trusted heartbeat successfully, but legacy inventory was still written by the old unselected Pod and reported degraded due to its 409. New backend activation is not considered complete.",
+    "Recovery attempt one failed before any Service write because a declared target selector had no Ready backend; the logged error did not name the listener. Read-only revalidation succeeded before retrying the failed CI job.",
+    "Both directions used the same guarded selector CAS and preserved all Pod identities, images, restart counts and durable caches. No live resources were manually patched.",
+    "Persistent TCP/UDP success covers the forward selector handoff, not backend termination or the later recovery. Retiring old hostPort and migrating legacy inventory remain required."
+  ]
+}
