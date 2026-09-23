@@ -787,7 +787,10 @@ export interface paths {
     get: operations["getControlPlaneStatus"];
   };
   "/v1/discovery/bundle": {
-    /** Get Discovery Bundle */
+    /**
+     * Get Discovery Bundle
+     * @description Public bootstrap topology with a summary of explicitly declared static platform entry routes from the verified global TrafficReleaseSet LKG. The signed parent, all member signatures and lineage, and pinned base intent identity/digest are verified. Application-owned and non-root routes are excluded; weighted targets are never flattened to one origin. Group modes, TTL, disabled state and route policy retain artifact semantics. Missing initial LKG returns topology without platform routes. Invalid or changing verified configuration returns 503 without a signed bundle. Environment routes and mutable business policies are not fallback sources.
+     */
     get: operations["getDiscoveryBundle"];
   };
   "/v1/cluster/pods": {
@@ -3440,6 +3443,7 @@ export interface components {
       edge_groups: components["schemas"]["EdgeGroup"][];
       edge_nodes: components["schemas"]["EdgeNode"][];
       dns_nodes: components["schemas"]["DNSNode"][];
+      /** @description Explicit static platform entry routes from the verified traffic artifact; excludes application-owned routes and path-specific routing. */
       platform_routes?: components["schemas"]["PlatformRoute"][];
       public_runtime_env?: {
         [key: string]: string;
@@ -5090,6 +5094,8 @@ export interface components {
       user?: string;
       password?: string;
       service_name?: string;
+      /** @description Persisted Kubernetes credential identity owned by this backing service. Fugue allocates it independently of display names and preserves it across code releases, renames and ordinary configuration updates. Existing credentials are adopted only after ownership and reference validation. */
+      credential_secret_name?: string;
       runtime_id?: string;
       failover_target_runtime_id?: string;
       primary_node_name?: string;
@@ -15682,7 +15688,10 @@ export interface operations {
       default: components["responses"]["ErrorResponse"];
     };
   };
-  /** Get Discovery Bundle */
+  /**
+   * Get Discovery Bundle
+   * @description Public bootstrap topology with a summary of explicitly declared static platform entry routes from the verified global TrafficReleaseSet LKG. The signed parent, all member signatures and lineage, and pinned base intent identity/digest are verified. Application-owned and non-root routes are excluded; weighted targets are never flattened to one origin. Group modes, TTL, disabled state and route policy retain artifact semantics. Missing initial LKG returns topology without platform routes. Invalid or changing verified configuration returns 503 without a signed bundle. Environment routes and mutable business policies are not fallback sources.
+   */
   getDiscoveryBundle: {
     responses: {
       /** @description Successful response */
@@ -15698,6 +15707,12 @@ export interface operations {
       /** @description Discovery bundle unchanged */
       304: {
         content: never;
+      };
+      /** @description Verified platform route summary is unavailable or changed during observation. */
+      503: {
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"];
+        };
       };
       default: components["responses"]["ErrorResponse"];
     };
