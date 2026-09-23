@@ -5090,6 +5090,8 @@ export interface components {
       user?: string;
       password?: string;
       service_name?: string;
+      /** @description Persisted Kubernetes credential identity owned by this backing service. Fugue allocates it independently of display names and preserves it across code releases, renames and ordinary configuration updates. Existing credentials are adopted only after ownership and reference validation. */
+      credential_secret_name?: string;
       runtime_id?: string;
       failover_target_runtime_id?: string;
       primary_node_name?: string;
