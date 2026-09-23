@@ -1,0 +1,405 @@
+{
+  "at": "2026-09-23T11:54:25.911009+00:00",
+  "commit": "fc6f11182c9429abe971ebc1426efad81bc08354",
+  "services": [
+    {
+      "name": "fugue-dns-transport-de",
+      "uid": "c6d910fa-e7ae-4ae0-8b1f-ff132417b1eb",
+      "spec": {
+        "clusterIP": "10.43.167.88",
+        "clusterIPs": [
+          "10.43.167.88"
+        ],
+        "externalIPs": [
+          "51.38.126.103"
+        ],
+        "externalTrafficPolicy": "Local",
+        "internalTrafficPolicy": "Local",
+        "ipFamilies": [
+          "IPv4"
+        ],
+        "ipFamilyPolicy": "SingleStack",
+        "ports": [
+          {
+            "name": "dns-udp",
+            "port": 15353,
+            "protocol": "UDP",
+            "targetPort": 53
+          },
+          {
+            "name": "dns-tcp",
+            "port": 15353,
+            "protocol": "TCP",
+            "targetPort": 53
+          }
+        ],
+        "selector": {
+          "app.kubernetes.io/component": "dns-country-de",
+          "app.kubernetes.io/instance": "fugue",
+          "app.kubernetes.io/name": "fugue"
+        },
+        "sessionAffinity": "None",
+        "type": "ClusterIP"
+      }
+    },
+    {
+      "name": "fugue-dns-transport-us",
+      "uid": "7aec5e4e-19b9-4c68-83ed-59a003badf87",
+      "spec": {
+        "clusterIP": "10.43.168.215",
+        "clusterIPs": [
+          "10.43.168.215"
+        ],
+        "externalIPs": [
+          "15.204.94.71"
+        ],
+        "externalTrafficPolicy": "Local",
+        "internalTrafficPolicy": "Local",
+        "ipFamilies": [
+          "IPv4"
+        ],
+        "ipFamilyPolicy": "SingleStack",
+        "ports": [
+          {
+            "name": "dns-udp",
+            "port": 15353,
+            "protocol": "UDP",
+            "targetPort": 53
+          },
+          {
+            "name": "dns-tcp",
+            "port": 15353,
+            "protocol": "TCP",
+            "targetPort": 53
+          }
+        ],
+        "selector": {
+          "app.kubernetes.io/component": "dns",
+          "app.kubernetes.io/instance": "fugue",
+          "app.kubernetes.io/name": "fugue"
+        },
+        "sessionAffinity": "None",
+        "type": "ClusterIP"
+      }
+    }
+  ],
+  "unchanged_pods": [
+    {
+      "name": "fugue-fugue-dns-jlbl9",
+      "node": "vps-591f4447",
+      "containers": [
+        {
+          "name": "dns",
+          "image": "ghcr.io/yym68686/fugue-edge@sha256:68ed005b1106eb74a82f39d2fa44504b05c57704cc792136eadd0bb2a0c803ef",
+          "image_id": "ghcr.io/yym68686/fugue-edge@sha256:68ed005b1106eb74a82f39d2fa44504b05c57704cc792136eadd0bb2a0c803ef",
+          "ready": true,
+          "restart_count": 0,
+          "state": "running"
+        }
+      ]
+    },
+    {
+      "name": "fugue-fugue-dns-country-de-h264p",
+      "node": "vps-84c8f0a9",
+      "containers": [
+        {
+          "name": "dns",
+          "image": "ghcr.io/yym68686/fugue-edge@sha256:7f608a13eaf821d5d9cc1a7d0257bc64c0f47530515435f463c50b47a9ebd7a1",
+          "image_id": "ghcr.io/yym68686/fugue-edge@sha256:7f608a13eaf821d5d9cc1a7d0257bc64c0f47530515435f463c50b47a9ebd7a1",
+          "ready": true,
+          "restart_count": 0,
+          "state": "running"
+        }
+      ]
+    }
+  ],
+  "queries": [
+    {
+      "ip": "15.204.94.71",
+      "port": 53,
+      "protocol": "udp",
+      "zone": "fugue.pro",
+      "serial": 960,
+      "nameserver": "ns1.dns.fugue.pro."
+    },
+    {
+      "ip": "15.204.94.71",
+      "port": 53,
+      "protocol": "udp",
+      "zone": "i00.pro",
+      "serial": 960,
+      "nameserver": "ns1.dns.fugue.pro."
+    },
+    {
+      "ip": "15.204.94.71",
+      "port": 53,
+      "protocol": "udp",
+      "zone": "oaix.cc",
+      "serial": 960,
+      "nameserver": "ns1.dns.fugue.pro."
+    },
+    {
+      "ip": "15.204.94.71",
+      "port": 53,
+      "protocol": "tcp",
+      "zone": "fugue.pro",
+      "serial": 960,
+      "nameserver": "ns1.dns.fugue.pro."
+    },
+    {
+      "ip": "15.204.94.71",
+      "port": 53,
+      "protocol": "tcp",
+      "zone": "i00.pro",
+      "serial": 960,
+      "nameserver": "ns1.dns.fugue.pro."
+    },
+    {
+      "ip": "15.204.94.71",
+      "port": 53,
+      "protocol": "tcp",
+      "zone": "oaix.cc",
+      "serial": 960,
+      "nameserver": "ns1.dns.fugue.pro."
+    },
+    {
+      "ip": "15.204.94.71",
+      "port": 15353,
+      "protocol": "udp",
+      "zone": "fugue.pro",
+      "serial": 960,
+      "nameserver": "ns1.dns.fugue.pro."
+    },
+    {
+      "ip": "15.204.94.71",
+      "port": 15353,
+      "protocol": "udp",
+      "zone": "i00.pro",
+      "serial": 960,
+      "nameserver": "ns1.dns.fugue.pro."
+    },
+    {
+      "ip": "15.204.94.71",
+      "port": 15353,
+      "protocol": "udp",
+      "zone": "oaix.cc",
+      "serial": 960,
+      "nameserver": "ns1.dns.fugue.pro."
+    },
+    {
+      "ip": "15.204.94.71",
+      "port": 15353,
+      "protocol": "tcp",
+      "zone": "fugue.pro",
+      "serial": 960,
+      "nameserver": "ns1.dns.fugue.pro."
+    },
+    {
+      "ip": "15.204.94.71",
+      "port": 15353,
+      "protocol": "tcp",
+      "zone": "i00.pro",
+      "serial": 960,
+      "nameserver": "ns1.dns.fugue.pro."
+    },
+    {
+      "ip": "15.204.94.71",
+      "port": 15353,
+      "protocol": "tcp",
+      "zone": "oaix.cc",
+      "serial": 960,
+      "nameserver": "ns1.dns.fugue.pro."
+    },
+    {
+      "ip": "51.38.126.103",
+      "port": 53,
+      "protocol": "udp",
+      "zone": "fugue.pro",
+      "serial": 960,
+      "nameserver": "ns1.dns.fugue.pro."
+    },
+    {
+      "ip": "51.38.126.103",
+      "port": 53,
+      "protocol": "udp",
+      "zone": "i00.pro",
+      "serial": 960,
+      "nameserver": "ns1.dns.fugue.pro."
+    },
+    {
+      "ip": "51.38.126.103",
+      "port": 53,
+      "protocol": "udp",
+      "zone": "oaix.cc",
+      "serial": 960,
+      "nameserver": "ns1.dns.fugue.pro."
+    },
+    {
+      "ip": "51.38.126.103",
+      "port": 53,
+      "protocol": "tcp",
+      "zone": "fugue.pro",
+      "serial": 960,
+      "nameserver": "ns1.dns.fugue.pro."
+    },
+    {
+      "ip": "51.38.126.103",
+      "port": 53,
+      "protocol": "tcp",
+      "zone": "i00.pro",
+      "serial": 960,
+      "nameserver": "ns1.dns.fugue.pro."
+    },
+    {
+      "ip": "51.38.126.103",
+      "port": 53,
+      "protocol": "tcp",
+      "zone": "oaix.cc",
+      "serial": 960,
+      "nameserver": "ns1.dns.fugue.pro."
+    },
+    {
+      "ip": "51.38.126.103",
+      "port": 15353,
+      "protocol": "udp",
+      "zone": "fugue.pro",
+      "serial": 960,
+      "nameserver": "ns1.dns.fugue.pro."
+    },
+    {
+      "ip": "51.38.126.103",
+      "port": 15353,
+      "protocol": "udp",
+      "zone": "i00.pro",
+      "serial": 960,
+      "nameserver": "ns1.dns.fugue.pro."
+    },
+    {
+      "ip": "51.38.126.103",
+      "port": 15353,
+      "protocol": "udp",
+      "zone": "oaix.cc",
+      "serial": 960,
+      "nameserver": "ns1.dns.fugue.pro."
+    },
+    {
+      "ip": "51.38.126.103",
+      "port": 15353,
+      "protocol": "tcp",
+      "zone": "fugue.pro",
+      "serial": 960,
+      "nameserver": "ns1.dns.fugue.pro."
+    },
+    {
+      "ip": "51.38.126.103",
+      "port": 15353,
+      "protocol": "tcp",
+      "zone": "i00.pro",
+      "serial": 960,
+      "nameserver": "ns1.dns.fugue.pro."
+    },
+    {
+      "ip": "51.38.126.103",
+      "port": 15353,
+      "protocol": "tcp",
+      "zone": "oaix.cc",
+      "serial": 960,
+      "nameserver": "ns1.dns.fugue.pro."
+    }
+  ],
+  "client_source": [
+    {
+      "node": "vps-591f4447",
+      "pod": "fugue-fugue-dns-jlbl9",
+      "source_preserved": true,
+      "client_digest": "sha256:fc79d2b41d86bc4c0771be9792fb15fa5594a8b616de4a39f3ce1a9a4b16ad30"
+    },
+    {
+      "node": "vps-84c8f0a9",
+      "pod": "fugue-fugue-dns-country-de-h264p",
+      "source_preserved": true,
+      "client_digest": "sha256:fc79d2b41d86bc4c0771be9792fb15fa5594a8b616de4a39f3ce1a9a4b16ad30"
+    }
+  ],
+  "http_samples": 48,
+  "http_failures": [],
+  "prepush": {
+    "apiVersion": "prepush.fugue.dev/v1",
+    "baseCommit": "b6cdad45b8434d5ae68a0c20e7910d0ed4ab3bb9",
+    "changedFilesDigest": "sha256:255e5c6a6b42f92b6e6888f8a52b003221994e92e9fcf07b9b138cc814deb5db",
+    "checks": {
+      "affected-tests": {
+        "durationMs": 0,
+        "status": "skipped"
+      },
+      "affected-vet": {
+        "durationMs": 20579,
+        "status": "pass"
+      },
+      "compile-all": {
+        "durationMs": 20264,
+        "status": "pass"
+      },
+      "declarative-release-tests": {
+        "durationMs": 44266,
+        "status": "pass"
+      },
+      "diff-check": {
+        "durationMs": 134,
+        "status": "pass"
+      },
+      "dns-transport-tests": {
+        "durationMs": 20266,
+        "status": "pass"
+      },
+      "gofmt": {
+        "durationMs": 17,
+        "status": "pass"
+      },
+      "helm-lint-render": {
+        "durationMs": 0,
+        "status": "skipped"
+      },
+      "openapi-generated": {
+        "durationMs": 1409,
+        "status": "pass"
+      },
+      "prepush-receipt-tests": {
+        "durationMs": 20265,
+        "status": "pass"
+      },
+      "shell-syntax": {
+        "durationMs": 0,
+        "status": "pass"
+      }
+    },
+    "elapsedMs": 44544,
+    "kind": "PrepushReceipt",
+    "sourceCommit": "fc6f11182c9429abe971ebc1426efad81bc08354",
+    "status": "pass"
+  },
+  "limits": [
+    "Validation listeners use port 15353. Port 53 is still owned by the old hostPort path; seamless replacement remains unfinished.",
+    "No Pods were replaced and no serving artifact or policy was written."
+  ],
+  "ci": "https://github.com/yym68686/fugue/actions/runs/35856927307",
+  "idempotent_live_spec_validation": "pass",
+  "nat_order": [
+    {
+      "group": "de",
+      "prerouting": [
+        "-A PREROUTING -m comment --comment \"kubernetes service portals\" -j KUBE-SERVICES",
+        "-A PREROUTING -m addrtype --dst-type LOCAL -j CNI-HOSTPORT-DNAT",
+        "-A PREROUTING -m addrtype --dst-type LOCAL -j CNI-HOSTPORT-DNAT",
+        "-A PREROUTING -m addrtype --dst-type LOCAL -j CNI-HOSTPORT-DNAT"
+      ]
+    },
+    {
+      "group": "us",
+      "prerouting": [
+        "-A PREROUTING -m comment --comment \"kubernetes service portals\" -j KUBE-SERVICES",
+        "-A PREROUTING -m addrtype --dst-type LOCAL -j CNI-HOSTPORT-DNAT"
+      ]
+    }
+  ]
+}

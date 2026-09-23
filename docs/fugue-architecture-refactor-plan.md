@@ -4159,3 +4159,15 @@ P0-EP-X 生产取证确认 canonical Service selector 仅有 app 标签，会同
 - [ ] 连续性修复后，为控制面建立绑定真实 Pod/节点身份和当前 assignment 的事实读取；将 DNS 实际 eligibility、内部 robustness/traffic-safety 和阈值来源迁到 artifact/facts，再删除旧 builder。节点 JSON 未独立签名，必须通过可信节点传输取得并复核，不能直接把任意 HTTP 响应当授权。
 
 本步功能已部署，更新连续性故障未解决，Y42 不能整体关闭。证据：[dns-serving-runtime-facts-2026-09-23.json](verification/dns-serving-runtime-facts-2026-09-23.json)。
+
+### P0-EP-Y43：DNS 稳定网络入口准备
+
+- [x] 删除未发布的普通 DNS front 原型：它会丢失客户端源地址，且单后端替换仍然 SERVFAIL。现有 NodeLocal DNS 仅负责集群 link-local 缓存，不能作为公网入口。改为复用 Kubernetes Service 的 node-local 网络转发，避免另建 serving 配置层。
+- [x] 新增版本化 `DNSLocalTransport` 与独立 CI 配置协调器，只管理声明的 Service，不改 Pod、DNS artifact、policy 或 LKG。检查监听冲突、节点地址/Ready 后端、所有权、generation/digest 和 live spec 漂移；所有服务先 dry-run 再写入，更新使用 resourceVersion，不能覆盖其他 owner。
+- [x] `fc6f1118` 的 [CI 35856927307](https://github.com/yym68686/fugue/actions/runs/35856927307) 成功部署 DE/US `15353 → Pod:53` 验证入口，external/internal traffic policy 均 Local、不发布未就绪后端。声明式发布计划没有组件更新，两个 DNS Pod 与镜像保持原样；全量测试、Python 正反回归与干净 prepush 通过。
+- [x] 24 条真实 UDP/TCP SOA 查询覆盖两地、原 53/新 15353 和三个 zone，权威响应与 serial 一致。持久 TCP 查询配合 Pod IPv4/IPv6 socket 表，确认新旧路径看到同一原客户端地址；48 次跨 Edge HTTP 全部 200。现有 Service 的生成摘要和幂等读取复核通过。
+- [x] 两台节点只读 iptables 取证确认 KUBE-SERVICES 排在 CNI-HOSTPORT-DNAT 前，可先让稳定 Service 接管公网新连接而保留旧连接和 Pod。没有手工修改节点规则。
+- [ ] 将公网 53 迁到显式 node-local Service，验证迁移期间持久 TCP、UDP/TCP 连续查询与源地址保留；保留旧 hostPort 作为该原子步骤的兼容后端。
+- [ ] 解除 consumer 对 hostPort 的排他占用，建立候选就绪后切换和安全排空，隔离重叠实例 cache/回执；验证坏候选保留旧服务、配置变化与终止期间证明刷新、旧连接完成后退役。高端口准备不等于 DNS 无中断更新完成。
+
+证据：[dns-local-transport-2026-09-23.json](verification/dns-local-transport-2026-09-23.json)。
