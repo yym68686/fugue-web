@@ -560,7 +560,7 @@ export interface paths {
   "/v1/dns/nodes": {
     /**
      * List DNS Nodes
-     * @description Registered Kubernetes artifact consumers obtain serving health and generations from the current identity-bound public backend observation. Unavailable observations return unknown health and retain node membership; they never reuse legacy inventory health. Counters and endpoint metadata remain historical inventory values, identified by serving_observation.
+     * @description Registered Kubernetes artifact consumers obtain serving health and generations from the current identity-bound public backend observation. Unavailable observations return unknown health and retain node membership; they never reuse legacy inventory health. Counters and endpoint metadata remain historical inventory values, identified by serving_observation. Historical zone aliases of an enrolled physical node are omitted when its canonical inventory row exists; aliases are not separate consumers.
      */
     get: operations["listDNSNodes"];
   };
@@ -615,7 +615,7 @@ export interface paths {
   "/v1/dns/nodes/{dns_node_id}": {
     /**
      * Get DNS Node
-     * @description Kubernetes artifact-consumer serving health uses the selected backend's verified runtime facts. Unavailable or mismatched facts yield unknown health. Legacy counters remain historical and are not current-backend readiness evidence; see serving_observation.inventory_observed_at.
+     * @description Kubernetes artifact-consumer serving health uses the selected backend's verified runtime facts. Unavailable or mismatched facts yield unknown health. Legacy counters remain historical and are not current-backend readiness evidence; see serving_observation.inventory_observed_at. A historical zone-alias detail remains readable but reports unknown serving health rather than inheriting its physical node's authorization.
      */
     get: operations["getDNSNode"];
   };
@@ -14665,7 +14665,7 @@ export interface operations {
   };
   /**
    * List DNS Nodes
-   * @description Registered Kubernetes artifact consumers obtain serving health and generations from the current identity-bound public backend observation. Unavailable observations return unknown health and retain node membership; they never reuse legacy inventory health. Counters and endpoint metadata remain historical inventory values, identified by serving_observation.
+   * @description Registered Kubernetes artifact consumers obtain serving health and generations from the current identity-bound public backend observation. Unavailable observations return unknown health and retain node membership; they never reuse legacy inventory health. Counters and endpoint metadata remain historical inventory values, identified by serving_observation. Historical zone aliases of an enrolled physical node are omitted when its canonical inventory row exists; aliases are not separate consumers.
    */
   listDNSNodes: {
     parameters: {
@@ -14926,7 +14926,7 @@ export interface operations {
   };
   /**
    * Get DNS Node
-   * @description Kubernetes artifact-consumer serving health uses the selected backend's verified runtime facts. Unavailable or mismatched facts yield unknown health. Legacy counters remain historical and are not current-backend readiness evidence; see serving_observation.inventory_observed_at.
+   * @description Kubernetes artifact-consumer serving health uses the selected backend's verified runtime facts. Unavailable or mismatched facts yield unknown health. Legacy counters remain historical and are not current-backend readiness evidence; see serving_observation.inventory_observed_at. A historical zone-alias detail remains readable but reports unknown serving health rather than inheriting its physical node's authorization.
    */
   getDNSNode: {
     parameters: {
