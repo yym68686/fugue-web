@@ -4167,7 +4167,19 @@ P0-EP-X 生产取证确认 canonical Service selector 仅有 app 标签，会同
 - [x] `fc6f1118` 的 [CI 35856927307](https://github.com/yym68686/fugue/actions/runs/35856927307) 成功部署 DE/US `15353 → Pod:53` 验证入口，external/internal traffic policy 均 Local、不发布未就绪后端。声明式发布计划没有组件更新，两个 DNS Pod 与镜像保持原样；全量测试、Python 正反回归与干净 prepush 通过。
 - [x] 24 条真实 UDP/TCP SOA 查询覆盖两地、原 53/新 15353 和三个 zone，权威响应与 serial 一致。持久 TCP 查询配合 Pod IPv4/IPv6 socket 表，确认新旧路径看到同一原客户端地址；48 次跨 Edge HTTP 全部 200。现有 Service 的生成摘要和幂等读取复核通过。
 - [x] 两台节点只读 iptables 取证确认 KUBE-SERVICES 排在 CNI-HOSTPORT-DNAT 前，可先让稳定 Service 接管公网新连接而保留旧连接和 Pod。没有手工修改节点规则。
-- [ ] 将公网 53 迁到显式 node-local Service，验证迁移期间持久 TCP、UDP/TCP 连续查询与源地址保留；保留旧 hostPort 作为该原子步骤的兼容后端。
+- [x] Y44 已将公网 53 迁到显式 node-local Service，验证迁移期间持久 TCP、UDP/TCP 连续查询与源地址保留；旧 hostPort 仍是该原子步骤的兼容声明。
 - [ ] 解除 consumer 对 hostPort 的排他占用，建立候选就绪后切换和安全排空，隔离重叠实例 cache/回执；验证坏候选保留旧服务、配置变化与终止期间证明刷新、旧连接完成后退役。高端口准备不等于 DNS 无中断更新完成。
 
 证据：[dns-local-transport-2026-09-23.json](verification/dns-local-transport-2026-09-23.json)。
+
+### P0-EP-Y44：公网 DNS 网络入口迁到 node-local Service
+
+- [x] 将声明推进到 generation=2，新增 DE/US 公网 53 的 UDP/TCP Service，external/internal traffic policy 均 Local，selector 仍指向当前 DNS Pod。网络入口配置独立于 consumer image，未新增 DNS 代理进程或第二套 serving 配置。
+- [x] 首次 `473aab8e` 的 CI 35857836953 在 dry-run 拒绝：首次 create 的 Update manager 与后续 SSA Apply manager 冲突在 generation 注解。全部预检先于写入，失败没有创建公网 Service、替换 Pod 或中断 DNS；失败历史保留。
+- [x] `d3525ac9` 改为精确 JSON Patch：先校验自有 label、旧 spec 摘要和字段 manager，原子测试 UID、resourceVersion、完整旧 spec/annotations/labels，只更新声明字段，保留分配的 ClusterIP 与无关元数据；外部 owner、漂移与 replay 仍拒绝，无 force-conflicts。正反回归、真实现网快照重放和干净 prepush 通过。
+- [x] [CI 35858416294](https://github.com/yym68686/fugue/actions/runs/35858416294) 成功部署；两台原 DNS Pod/镜像保持，EndpointSlice 指向各自 node-local Ready Pod。只读节点 iptables packet counters 证明公网 53 新请求进入 KUBE-SERVICES 中本次声明的 UDP/TCP 规则，位于旧 hostPort 规则之前。
+- [x] 24 条端口/协议/zone 对比查询继续一致，Pod socket 表确认原始客户端 IP 保留；两条发布前建立的 TCP 会话跨过 Service 创建时间，分别约 130/147 秒、各 110 次 SOA 查询无断连。连续 708 次公网 DNS UDP/TCP 与 177 次跨 Edge HTTP 全部通过。
+- [ ] 解除 backend hostPort 排他占用并实现候选/旧实例并存；为其独立 cache、可信回执身份与安全退役建立规则。当前验证只覆盖网络入口切换，尚未覆盖 DNS Pod 再次更新。
+- [ ] 完成配置变化期间的旧连接处理、坏候选保留旧服务、UDP conntrack 与长 TCP 排空，再进行真实 backend 版本替换演练。Y42 的完整连续性故障继续未关闭，暂不恢复普通 DNS 代码发布。
+
+证据：[dns-public-service-2026-09-23.json](verification/dns-public-service-2026-09-23.json)。

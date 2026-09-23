@@ -1,0 +1,452 @@
+{
+  "at": "2026-09-23T12:09:47.348449+00:00",
+  "commit": "d3525ac98b987515b218cc127921d9c17b4dcf33",
+  "services": [
+    {
+      "service": "fugue-dns-public-de",
+      "uid": "be149bb0-24a0-4835-9f82-40aae5645323",
+      "created_at": "2026-09-23T12:07:01Z",
+      "spec": {
+        "clusterIP": "10.43.41.96",
+        "clusterIPs": [
+          "10.43.41.96"
+        ],
+        "externalIPs": [
+          "51.38.126.103"
+        ],
+        "externalTrafficPolicy": "Local",
+        "internalTrafficPolicy": "Local",
+        "ipFamilies": [
+          "IPv4"
+        ],
+        "ipFamilyPolicy": "SingleStack",
+        "ports": [
+          {
+            "name": "dns-udp",
+            "port": 53,
+            "protocol": "UDP",
+            "targetPort": 53
+          },
+          {
+            "name": "dns-tcp",
+            "port": 53,
+            "protocol": "TCP",
+            "targetPort": 53
+          }
+        ],
+        "selector": {
+          "app.kubernetes.io/component": "dns-country-de",
+          "app.kubernetes.io/instance": "fugue",
+          "app.kubernetes.io/name": "fugue"
+        },
+        "sessionAffinity": "None",
+        "type": "ClusterIP"
+      },
+      "endpoints": [
+        {
+          "addresses": [
+            "10.42.1.25"
+          ],
+          "conditions": {
+            "ready": true,
+            "serving": true,
+            "terminating": false
+          },
+          "nodeName": "vps-84c8f0a9",
+          "targetRef": {
+            "kind": "Pod",
+            "name": "fugue-fugue-dns-country-de-h264p",
+            "namespace": "fugue-system",
+            "uid": "1430db17-c77e-4cc6-9c64-fd8da7b13a8a"
+          }
+        }
+      ],
+      "public_service_rules": [
+        "[10:600] -A KUBE-SERVICES -d 51.38.126.103/32 -p tcp -m comment --comment \"fugue-system/fugue-dns-public-de:dns-tcp external IP\" -m tcp --dport 53 -j KUBE-EXT-OKMLO4O4JRUN73OU",
+        "[17:1178] -A KUBE-SERVICES -d 51.38.126.103/32 -p udp -m comment --comment \"fugue-system/fugue-dns-public-de:dns-udp external IP\" -m udp --dport 53 -j KUBE-EXT-FNSVFC3Z2L47MZAT"
+      ]
+    },
+    {
+      "service": "fugue-dns-public-us",
+      "uid": "182da187-4dbc-4a7b-a42b-5725d72e0ca1",
+      "created_at": "2026-09-23T12:07:02Z",
+      "spec": {
+        "clusterIP": "10.43.65.46",
+        "clusterIPs": [
+          "10.43.65.46"
+        ],
+        "externalIPs": [
+          "15.204.94.71"
+        ],
+        "externalTrafficPolicy": "Local",
+        "internalTrafficPolicy": "Local",
+        "ipFamilies": [
+          "IPv4"
+        ],
+        "ipFamilyPolicy": "SingleStack",
+        "ports": [
+          {
+            "name": "dns-udp",
+            "port": 53,
+            "protocol": "UDP",
+            "targetPort": 53
+          },
+          {
+            "name": "dns-tcp",
+            "port": 53,
+            "protocol": "TCP",
+            "targetPort": 53
+          }
+        ],
+        "selector": {
+          "app.kubernetes.io/component": "dns",
+          "app.kubernetes.io/instance": "fugue",
+          "app.kubernetes.io/name": "fugue"
+        },
+        "sessionAffinity": "None",
+        "type": "ClusterIP"
+      },
+      "endpoints": [
+        {
+          "addresses": [
+            "10.42.2.179"
+          ],
+          "conditions": {
+            "ready": true,
+            "serving": true,
+            "terminating": false
+          },
+          "nodeName": "vps-591f4447",
+          "targetRef": {
+            "kind": "Pod",
+            "name": "fugue-fugue-dns-jlbl9",
+            "namespace": "fugue-system",
+            "uid": "bd7b5281-e6c4-45e1-b17d-fb17fca5eaac"
+          }
+        }
+      ],
+      "public_service_rules": [
+        "[16:1092] -A KUBE-SERVICES -d 15.204.94.71/32 -p udp -m comment --comment \"fugue-system/fugue-dns-public-us:dns-udp external IP\" -m udp --dport 53 -j KUBE-EXT-HMWKDVVMNNYYLMOO",
+        "[10:600] -A KUBE-SERVICES -d 15.204.94.71/32 -p tcp -m comment --comment \"fugue-system/fugue-dns-public-us:dns-tcp external IP\" -m tcp --dport 53 -j KUBE-EXT-VXPQSGWUEAT7XYQ3"
+      ]
+    }
+  ],
+  "client_source": [
+    {
+      "node": "vps-591f4447",
+      "pod": "fugue-fugue-dns-jlbl9",
+      "source_preserved": true,
+      "client_digest": "sha256:fc79d2b41d86bc4c0771be9792fb15fa5594a8b616de4a39f3ce1a9a4b16ad30"
+    },
+    {
+      "node": "vps-84c8f0a9",
+      "pod": "fugue-fugue-dns-country-de-h264p",
+      "source_preserved": true,
+      "client_digest": "sha256:fc79d2b41d86bc4c0771be9792fb15fa5594a8b616de4a39f3ce1a9a4b16ad30"
+    }
+  ],
+  "query_parity": [
+    {
+      "ip": "15.204.94.71",
+      "port": 53,
+      "protocol": "udp",
+      "zone": "fugue.pro",
+      "serial": 962,
+      "nameserver": "ns1.dns.fugue.pro."
+    },
+    {
+      "ip": "15.204.94.71",
+      "port": 53,
+      "protocol": "udp",
+      "zone": "i00.pro",
+      "serial": 962,
+      "nameserver": "ns1.dns.fugue.pro."
+    },
+    {
+      "ip": "15.204.94.71",
+      "port": 53,
+      "protocol": "udp",
+      "zone": "oaix.cc",
+      "serial": 962,
+      "nameserver": "ns1.dns.fugue.pro."
+    },
+    {
+      "ip": "15.204.94.71",
+      "port": 53,
+      "protocol": "tcp",
+      "zone": "fugue.pro",
+      "serial": 962,
+      "nameserver": "ns1.dns.fugue.pro."
+    },
+    {
+      "ip": "15.204.94.71",
+      "port": 53,
+      "protocol": "tcp",
+      "zone": "i00.pro",
+      "serial": 962,
+      "nameserver": "ns1.dns.fugue.pro."
+    },
+    {
+      "ip": "15.204.94.71",
+      "port": 53,
+      "protocol": "tcp",
+      "zone": "oaix.cc",
+      "serial": 962,
+      "nameserver": "ns1.dns.fugue.pro."
+    },
+    {
+      "ip": "15.204.94.71",
+      "port": 15353,
+      "protocol": "udp",
+      "zone": "fugue.pro",
+      "serial": 962,
+      "nameserver": "ns1.dns.fugue.pro."
+    },
+    {
+      "ip": "15.204.94.71",
+      "port": 15353,
+      "protocol": "udp",
+      "zone": "i00.pro",
+      "serial": 962,
+      "nameserver": "ns1.dns.fugue.pro."
+    },
+    {
+      "ip": "15.204.94.71",
+      "port": 15353,
+      "protocol": "udp",
+      "zone": "oaix.cc",
+      "serial": 962,
+      "nameserver": "ns1.dns.fugue.pro."
+    },
+    {
+      "ip": "15.204.94.71",
+      "port": 15353,
+      "protocol": "tcp",
+      "zone": "fugue.pro",
+      "serial": 962,
+      "nameserver": "ns1.dns.fugue.pro."
+    },
+    {
+      "ip": "15.204.94.71",
+      "port": 15353,
+      "protocol": "tcp",
+      "zone": "i00.pro",
+      "serial": 962,
+      "nameserver": "ns1.dns.fugue.pro."
+    },
+    {
+      "ip": "15.204.94.71",
+      "port": 15353,
+      "protocol": "tcp",
+      "zone": "oaix.cc",
+      "serial": 962,
+      "nameserver": "ns1.dns.fugue.pro."
+    },
+    {
+      "ip": "51.38.126.103",
+      "port": 53,
+      "protocol": "udp",
+      "zone": "fugue.pro",
+      "serial": 962,
+      "nameserver": "ns1.dns.fugue.pro."
+    },
+    {
+      "ip": "51.38.126.103",
+      "port": 53,
+      "protocol": "udp",
+      "zone": "i00.pro",
+      "serial": 962,
+      "nameserver": "ns1.dns.fugue.pro."
+    },
+    {
+      "ip": "51.38.126.103",
+      "port": 53,
+      "protocol": "udp",
+      "zone": "oaix.cc",
+      "serial": 962,
+      "nameserver": "ns1.dns.fugue.pro."
+    },
+    {
+      "ip": "51.38.126.103",
+      "port": 53,
+      "protocol": "tcp",
+      "zone": "fugue.pro",
+      "serial": 962,
+      "nameserver": "ns1.dns.fugue.pro."
+    },
+    {
+      "ip": "51.38.126.103",
+      "port": 53,
+      "protocol": "tcp",
+      "zone": "i00.pro",
+      "serial": 962,
+      "nameserver": "ns1.dns.fugue.pro."
+    },
+    {
+      "ip": "51.38.126.103",
+      "port": 53,
+      "protocol": "tcp",
+      "zone": "oaix.cc",
+      "serial": 962,
+      "nameserver": "ns1.dns.fugue.pro."
+    },
+    {
+      "ip": "51.38.126.103",
+      "port": 15353,
+      "protocol": "udp",
+      "zone": "fugue.pro",
+      "serial": 962,
+      "nameserver": "ns1.dns.fugue.pro."
+    },
+    {
+      "ip": "51.38.126.103",
+      "port": 15353,
+      "protocol": "udp",
+      "zone": "i00.pro",
+      "serial": 962,
+      "nameserver": "ns1.dns.fugue.pro."
+    },
+    {
+      "ip": "51.38.126.103",
+      "port": 15353,
+      "protocol": "udp",
+      "zone": "oaix.cc",
+      "serial": 962,
+      "nameserver": "ns1.dns.fugue.pro."
+    },
+    {
+      "ip": "51.38.126.103",
+      "port": 15353,
+      "protocol": "tcp",
+      "zone": "fugue.pro",
+      "serial": 962,
+      "nameserver": "ns1.dns.fugue.pro."
+    },
+    {
+      "ip": "51.38.126.103",
+      "port": 15353,
+      "protocol": "tcp",
+      "zone": "i00.pro",
+      "serial": 962,
+      "nameserver": "ns1.dns.fugue.pro."
+    },
+    {
+      "ip": "51.38.126.103",
+      "port": 15353,
+      "protocol": "tcp",
+      "zone": "oaix.cc",
+      "serial": 962,
+      "nameserver": "ns1.dns.fugue.pro."
+    }
+  ],
+  "unchanged_pods": [
+    {
+      "name": "fugue-fugue-dns-jlbl9",
+      "node": "vps-591f4447",
+      "containers": [
+        {
+          "name": "dns",
+          "image": "ghcr.io/yym68686/fugue-edge@sha256:68ed005b1106eb74a82f39d2fa44504b05c57704cc792136eadd0bb2a0c803ef",
+          "image_id": "ghcr.io/yym68686/fugue-edge@sha256:68ed005b1106eb74a82f39d2fa44504b05c57704cc792136eadd0bb2a0c803ef",
+          "ready": true,
+          "restart_count": 0,
+          "state": "running"
+        }
+      ]
+    },
+    {
+      "name": "fugue-fugue-dns-country-de-h264p",
+      "node": "vps-84c8f0a9",
+      "containers": [
+        {
+          "name": "dns",
+          "image": "ghcr.io/yym68686/fugue-edge@sha256:7f608a13eaf821d5d9cc1a7d0257bc64c0f47530515435f463c50b47a9ebd7a1",
+          "image_id": "ghcr.io/yym68686/fugue-edge@sha256:7f608a13eaf821d5d9cc1a7d0257bc64c0f47530515435f463c50b47a9ebd7a1",
+          "ready": true,
+          "restart_count": 0,
+          "state": "running"
+        }
+      ]
+    }
+  ],
+  "persistent_tcp": [
+    {
+      "ip": "15.204.94.71",
+      "started_at": "2026-09-23T12:06:09.644685+00:00",
+      "queries": 110,
+      "failures": [],
+      "ended_at": "2026-09-23T12:08:19.582448+00:00"
+    },
+    {
+      "ip": "51.38.126.103",
+      "started_at": "2026-09-23T12:06:09.644985+00:00",
+      "queries": 110,
+      "failures": [],
+      "ended_at": "2026-09-23T12:08:36.506304+00:00"
+    }
+  ],
+  "sampling": {
+    "http": 177,
+    "dns_udp_tcp": 708,
+    "first_at": "2026-09-23T12:00:26.801743+00:00",
+    "last_at": "2026-09-23T12:09:36.462726+00:00",
+    "failures": []
+  },
+  "prepush": {
+    "apiVersion": "prepush.fugue.dev/v1",
+    "baseCommit": "473aab8e486e462048c08559634ef3ebfbc58d29",
+    "changedFilesDigest": "sha256:a4a14175d3ad48fe3f9504269dcb1f1ddecc6748345bb363d204efb0904d8eb2",
+    "checks": {
+      "affected-tests": {
+        "durationMs": 0,
+        "status": "skipped"
+      },
+      "affected-vet": {
+        "durationMs": 0,
+        "status": "skipped"
+      },
+      "compile-all": {
+        "durationMs": 18133,
+        "status": "pass"
+      },
+      "diff-check": {
+        "durationMs": 163,
+        "status": "pass"
+      },
+      "dns-transport-tests": {
+        "durationMs": 18134,
+        "status": "pass"
+      },
+      "gofmt": {
+        "durationMs": 0,
+        "status": "pass"
+      },
+      "helm-lint-render": {
+        "durationMs": 0,
+        "status": "skipped"
+      },
+      "openapi-generated": {
+        "durationMs": 1532,
+        "status": "pass"
+      },
+      "shell-syntax": {
+        "durationMs": 0,
+        "status": "pass"
+      }
+    },
+    "elapsedMs": 19980,
+    "kind": "PrepushReceipt",
+    "sourceCommit": "d3525ac98b987515b218cc127921d9c17b4dcf33",
+    "status": "pass"
+  },
+  "previous_attempt": {
+    "commit": "473aab8e486e462048c08559634ef3ebfbc58d29",
+    "ci": "https://github.com/yym68686/fugue/actions/runs/35857836953",
+    "result": "prewrite rejection: create/SSA manager operation conflict on generation annotation; no Services written"
+  },
+  "limits": [
+    "Port 53 transport was migrated without replacing a Pod; consumer replacement, overlap identity/cache and draining are not yet verified.",
+    "Old hostPort remains as a compatibility declaration until the backend migration. Kernel counters prove new traffic uses the Service first."
+  ],
+  "ci": "https://github.com/yym68686/fugue/actions/runs/35858416294"
+}
