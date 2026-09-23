@@ -1,0 +1,1287 @@
+{
+  "at": "2026-09-23T14:51:37.587704+00:00",
+  "commit": "4f8d95804b97670643cc822de082a1c6badb80f5",
+  "api": {
+    "component": "api",
+    "image_tag": "4f8d95804b97670643cc822de082a1c6badb80f5",
+    "ready_replicas": 2,
+    "updated_replicas": 2,
+    "desired_replicas": 2
+  },
+  "receipt": {
+    "apiVersion": "release.fugue.dev/v2",
+    "component": "api",
+    "configDigest": "sha256:5cfbbbb8ce1122fb35be7abebb0f417e64710b0a49bf73166ed91a9284954028",
+    "configSha": "4f8d95804b97670643cc822de082a1c6badb80f5",
+    "immutableRef": "ghcr.io/yym68686/fugue-api@sha256:cc02897fc5a75284479e3d5ccc5284e3abf5d2252c4588acd04fa6c39b701507",
+    "intentDigest": "sha256:bb4acd48025e3b1d4556352fae5d37bdde704eaf00cf9b8fd748416bfb062e0f",
+    "kind": "ImmutableComponentArtifactReceipt",
+    "ociRevision": "4f8d95804b97670643cc822de082a1c6badb80f5",
+    "planDigest": "sha256:2ff6c5255376386a941986324a8347f5b44d1127072c86f3fbb454fa1c73ca1b",
+    "platform": "linux/amd64",
+    "platformManifestDigest": "sha256:2a76a54465f3b0be79c0326d5b986bd3735f548a61d06bb4b080311b3e0628e7",
+    "receiptDigest": "sha256:da9749164b426009029d64f7c34c9250991b33d3ca70ea5af0216e8b01bf7552",
+    "repository": "ghcr.io/yym68686/fugue-api",
+    "sourceSha": "4f8d95804b97670643cc822de082a1c6badb80f5",
+    "sourceTag": "4f8d95804b97670643cc822de082a1c6badb80f5",
+    "topDigest": "sha256:cc02897fc5a75284479e3d5ccc5284e3abf5d2252c4588acd04fa6c39b701507",
+    "verification": "registry_manifest_config_and_layer_get"
+  },
+  "ready_at": "2026-09-23T14:44:01Z",
+  "producer_logs": [
+    {
+      "pod": "fugue-fugue-api-59cb6d7795-x882f",
+      "line": "2026/09/23 14:46:10 platform configuration producer published policy_release=artifactrel_1790092847_08f7311e4c4e release=artifactrel_1790174770_1e4b7b2d4f0e artifact=artifact_1790174770_82c57aef2c61 source_digest=sha256:05aee696cd6f75ee58ab189285e88a3804827450f0ab3da68355e337a6ef3a48 business_revision=postgres:53854895:53854895:"
+    }
+  ],
+  "release": {
+    "id": "artifactrel_1790174893_bdc5866c0b1a",
+    "artifact_id": "artifact_1790174770_82c57aef2c61",
+    "artifact_kind": "release_set",
+    "scope": {
+      "scope_type": "global",
+      "key": "global"
+    },
+    "scope_key": "global",
+    "generation": "release-41583153f25ef8cab694ebb7797d1a92c54c3d29099f3ab392ad8dc2906562c9",
+    "release_channel": "full",
+    "status": "active",
+    "lane_key": "release_set|global|full",
+    "fencing_token": 189,
+    "version": 2,
+    "idempotency_key": "producer/artifactrel_1790092847_08f7311e4c4e/full/artifact_1790174770_82c57aef2c61",
+    "candidate_generation": "release-41583153f25ef8cab694ebb7797d1a92c54c3d29099f3ab392ad8dc2906562c9",
+    "verified_lkg_generation": "release-41583153f25ef8cab694ebb7797d1a92c54c3d29099f3ab392ad8dc2906562c9",
+    "pinned_rollback_generation": "release-1490bee56a84f613d1283ae0bff33d1c370af09663ad53abc7c0a9435ccc0ab5",
+    "verification_state": "verified",
+    "verification_evidence": {
+      "baseline_monotonic": "true",
+      "consumer_convergence": "true",
+      "database_rollback_compatible": "true",
+      "evidence_refs": "artifact_1790174770_82c57aef2c61,artifactrel_1790174893_bdc5866c0b1a",
+      "expected_consumer_set_id": "",
+      "local_probe": "true",
+      "platform_evidence": "true",
+      "reason": "producer full publication verified by fresh actual consumer evidence",
+      "watch_window": "true"
+    },
+    "verified_at": "2026-09-23T14:50:15.919312Z",
+    "rollback_target_generation": "release-1490bee56a84f613d1283ae0bff33d1c370af09663ad53abc7c0a9435ccc0ab5",
+    "reason": "versioned platform configuration serving producer",
+    "released_by_type": "bootstrap",
+    "released_by_id": "platform-config-producer",
+    "released_at": "2026-09-23T14:48:13.65307Z",
+    "created_at": "2026-09-23T14:48:13.65307Z",
+    "updated_at": "2026-09-23T14:50:15.919312Z"
+  },
+  "parent_id": "artifact_1790174770_82c57aef2c61",
+  "parent_created_at": "2026-09-23T14:46:10.384107Z",
+  "lkg": {
+    "artifact_id": "artifact_1790174770_82c57aef2c61",
+    "verified_by_release_id": "artifactrel_1790174893_bdc5866c0b1a",
+    "created_at": "2026-09-23T14:50:15.919312Z",
+    "content_hash": "sha256:0391ee9b062cbed98cd8f0571c9d37c9bc89b9f8f615c4be4efa5c918b9bf41a"
+  },
+  "convergence": [
+    {
+      "expected_consumer_set_id": "expectedconsumerset_401e1b2199b5bf06",
+      "artifact_kind": "caddy_route_config",
+      "scope_key": "global",
+      "expected_generation": "tls-41583153f25ef8cab694ebb7797d1a92c54c3d29099f3ab392ad8dc2906562c9",
+      "state": "pass",
+      "pass": true,
+      "required_expected": 3,
+      "required_observed": 3,
+      "required_passing": 3,
+      "optional_expected": 0,
+      "assessments": [
+        {
+          "consumer_id": "edge-worker:bwg",
+          "component": "edge-worker",
+          "node_id": "bwg",
+          "required": true,
+          "state": "pass",
+          "expected": {
+            "consumer_id": "edge-worker:bwg",
+            "component": "edge-worker",
+            "node_id": "bwg",
+            "artifact_kind": "caddy_route_config",
+            "scope_key": "global",
+            "failure_domain": "edge-group:edge-group-country-us",
+            "cohort": "edge-group-country-us",
+            "required": true,
+            "expected_protocol_version": "v1",
+            "accepted_protocol_versions": [
+              "v1"
+            ],
+            "expected_schema_version": "v1",
+            "accepted_schema_versions": [
+              "v1"
+            ],
+            "expected_generation": "tls-41583153f25ef8cab694ebb7797d1a92c54c3d29099f3ab392ad8dc2906562c9",
+            "heartbeat_freshness_seconds": 90,
+            "heartbeat_deadline": "2026-09-23T14:49:44.09639484Z",
+            "convergence_deadline": "2026-09-23T14:53:14.09639484Z"
+          },
+          "observed": {
+            "id": "artifactconsumer_a7df0157aa3cffff",
+            "consumer_id": "edge-worker:bwg",
+            "credential_id": "kubernetes:fugue-system:edge-worker-us:6ef6feaf-6d5c-4423-80db-803c40323fda",
+            "token_id": "xhZk2vDYNo0oYeby8nVUag",
+            "component": "edge-worker",
+            "node_id": "bwg",
+            "artifact_kind": "caddy_route_config",
+            "scope_key": "global",
+            "release_set_id": "artifact_1790174770_82c57aef2c61",
+            "expected_consumer_set_id": "expectedconsumerset_401e1b2199b5bf06",
+            "fencing_token": 189,
+            "supported_artifact_kinds": [
+              "caddy_route_config",
+              "edge_route_bundle"
+            ],
+            "protocol_version": "v1",
+            "schema_version": "v1",
+            "compatibility_capabilities": [
+              "caddy_apply_probe",
+              "traffic_release_v1"
+            ],
+            "sequence": 1790175061521419519,
+            "issued_at": "2026-09-23T14:51:04.020865Z",
+            "nonce": "eb9e650a150157a3a94b0a0ebafa1609",
+            "generation_sequence": 986,
+            "evidence_hash": "sha256:07f3f3d5fde6afc2afa3836efdf4be445ce4e09914fc812342284aaa237d4d19",
+            "identity_verified": true,
+            "desired_generation": "tls-41583153f25ef8cab694ebb7797d1a92c54c3d29099f3ab392ad8dc2906562c9",
+            "actual_generation": "tls-41583153f25ef8cab694ebb7797d1a92c54c3d29099f3ab392ad8dc2906562c9",
+            "lkg_generation": "edgegroupbundle_7c911369ba368552d557b1afba8f03b2d5d64c9afb0bf1a94cacb53c19deaaea",
+            "apply_status": "applied",
+            "probe_status": "passed",
+            "last_heartbeat_at": "2026-09-23T14:51:04.170838Z",
+            "updated_at": "2026-09-23T14:51:04.170838Z"
+          },
+          "observed_at": "2026-09-23T14:51:04.170838Z",
+          "fresh_until": "2026-09-23T14:52:34.170838Z",
+          "evaluated_at": "2026-09-23T14:51:25.834985589Z"
+        },
+        {
+          "consumer_id": "edge-worker:vps-591f4447",
+          "component": "edge-worker",
+          "node_id": "vps-591f4447",
+          "required": true,
+          "state": "pass",
+          "expected": {
+            "consumer_id": "edge-worker:vps-591f4447",
+            "component": "edge-worker",
+            "node_id": "vps-591f4447",
+            "artifact_kind": "caddy_route_config",
+            "scope_key": "global",
+            "failure_domain": "edge-group:edge-group-country-us",
+            "cohort": "edge-group-country-us",
+            "required": true,
+            "expected_protocol_version": "v1",
+            "accepted_protocol_versions": [
+              "v1"
+            ],
+            "expected_schema_version": "v1",
+            "accepted_schema_versions": [
+              "v1"
+            ],
+            "expected_generation": "tls-41583153f25ef8cab694ebb7797d1a92c54c3d29099f3ab392ad8dc2906562c9",
+            "heartbeat_freshness_seconds": 90,
+            "heartbeat_deadline": "2026-09-23T14:49:44.09639484Z",
+            "convergence_deadline": "2026-09-23T14:53:14.09639484Z"
+          },
+          "observed": {
+            "id": "artifactconsumer_2bb4852cef7eaefe",
+            "consumer_id": "edge-worker:vps-591f4447",
+            "credential_id": "kubernetes:fugue-system:edge-worker-us:a7a871c5-8337-4517-ae11-1abcd4a2a516",
+            "token_id": "LtVIhJd1prCIFml-qdTdzg",
+            "component": "edge-worker",
+            "node_id": "vps-591f4447",
+            "artifact_kind": "caddy_route_config",
+            "scope_key": "global",
+            "release_set_id": "artifact_1790174770_82c57aef2c61",
+            "expected_consumer_set_id": "expectedconsumerset_401e1b2199b5bf06",
+            "fencing_token": 189,
+            "supported_artifact_kinds": [
+              "caddy_route_config",
+              "edge_route_bundle"
+            ],
+            "protocol_version": "v1",
+            "schema_version": "v1",
+            "compatibility_capabilities": [
+              "caddy_apply_probe",
+              "traffic_release_v1"
+            ],
+            "sequence": 1790175071596794408,
+            "issued_at": "2026-09-23T14:51:13.628366Z",
+            "nonce": "8a744aede36e1d5b1f1a1c7feaf7c043",
+            "generation_sequence": 986,
+            "evidence_hash": "sha256:81e4ac0b7929b6eb01e59bd4d91ca9abd96b396cc22ca18657d37d6d20f5df05",
+            "identity_verified": true,
+            "desired_generation": "tls-41583153f25ef8cab694ebb7797d1a92c54c3d29099f3ab392ad8dc2906562c9",
+            "actual_generation": "tls-41583153f25ef8cab694ebb7797d1a92c54c3d29099f3ab392ad8dc2906562c9",
+            "lkg_generation": "edgegroupbundle_7c911369ba368552d557b1afba8f03b2d5d64c9afb0bf1a94cacb53c19deaaea",
+            "apply_status": "applied",
+            "probe_status": "passed",
+            "last_heartbeat_at": "2026-09-23T14:51:13.767961Z",
+            "updated_at": "2026-09-23T14:51:13.767961Z"
+          },
+          "observed_at": "2026-09-23T14:51:13.767961Z",
+          "fresh_until": "2026-09-23T14:52:43.767961Z",
+          "evaluated_at": "2026-09-23T14:51:25.834985589Z"
+        },
+        {
+          "consumer_id": "edge-worker:vps-84c8f0a9",
+          "component": "edge-worker",
+          "node_id": "vps-84c8f0a9",
+          "required": true,
+          "state": "pass",
+          "expected": {
+            "consumer_id": "edge-worker:vps-84c8f0a9",
+            "component": "edge-worker",
+            "node_id": "vps-84c8f0a9",
+            "artifact_kind": "caddy_route_config",
+            "scope_key": "global",
+            "failure_domain": "edge-group:edge-group-country-de",
+            "cohort": "edge-group-country-de",
+            "required": true,
+            "expected_protocol_version": "v1",
+            "accepted_protocol_versions": [
+              "v1"
+            ],
+            "expected_schema_version": "v1",
+            "accepted_schema_versions": [
+              "v1"
+            ],
+            "expected_generation": "tls-41583153f25ef8cab694ebb7797d1a92c54c3d29099f3ab392ad8dc2906562c9",
+            "heartbeat_freshness_seconds": 90,
+            "heartbeat_deadline": "2026-09-23T14:49:44.09639484Z",
+            "convergence_deadline": "2026-09-23T14:53:14.09639484Z"
+          },
+          "observed": {
+            "id": "artifactconsumer_f2a0be7c1ec89b7d",
+            "consumer_id": "edge-worker:vps-84c8f0a9",
+            "credential_id": "kubernetes:fugue-system:edge-worker-de:b7ea6740-bba7-469d-9868-02ce2115f594",
+            "token_id": "LG3P6_IwCNqJ5IWAZ_7ang",
+            "component": "edge-worker",
+            "node_id": "vps-84c8f0a9",
+            "artifact_kind": "caddy_route_config",
+            "scope_key": "global",
+            "release_set_id": "artifact_1790174770_82c57aef2c61",
+            "expected_consumer_set_id": "expectedconsumerset_401e1b2199b5bf06",
+            "fencing_token": 189,
+            "supported_artifact_kinds": [
+              "caddy_route_config",
+              "edge_route_bundle"
+            ],
+            "protocol_version": "v1",
+            "schema_version": "v1",
+            "compatibility_capabilities": [
+              "caddy_apply_probe",
+              "traffic_release_v1"
+            ],
+            "sequence": 1790175080014538619,
+            "issued_at": "2026-09-23T14:51:22.560469Z",
+            "nonce": "d6916ffe25f2a7efda314e1f559435b8",
+            "generation_sequence": 986,
+            "evidence_hash": "sha256:d643a26e896083b8e97e42779c5de9a6825f6446424e7dbbcc79e6285d81eb61",
+            "identity_verified": true,
+            "desired_generation": "tls-41583153f25ef8cab694ebb7797d1a92c54c3d29099f3ab392ad8dc2906562c9",
+            "actual_generation": "tls-41583153f25ef8cab694ebb7797d1a92c54c3d29099f3ab392ad8dc2906562c9",
+            "lkg_generation": "edgegroupbundle_50fea6950140fe261bbcef73acfeb6f79adf4b07b7ff53154e9b0885d8d786b8",
+            "apply_status": "applied",
+            "probe_status": "passed",
+            "last_heartbeat_at": "2026-09-23T14:51:22.779585Z",
+            "updated_at": "2026-09-23T14:51:22.779585Z"
+          },
+          "observed_at": "2026-09-23T14:51:22.779585Z",
+          "fresh_until": "2026-09-23T14:52:52.779585Z",
+          "evaluated_at": "2026-09-23T14:51:25.834985589Z"
+        }
+      ],
+      "evaluated_at": "2026-09-23T14:51:25.834985589Z"
+    },
+    {
+      "expected_consumer_set_id": "expectedconsumerset_c1555290d5dee2e4",
+      "artifact_kind": "dns_answer_bundle",
+      "scope_key": "global",
+      "expected_generation": "dns-41583153f25ef8cab694ebb7797d1a92c54c3d29099f3ab392ad8dc2906562c9",
+      "state": "pass",
+      "pass": true,
+      "required_expected": 2,
+      "required_observed": 2,
+      "required_passing": 2,
+      "optional_expected": 0,
+      "assessments": [
+        {
+          "consumer_id": "dns-server:vps-591f4447",
+          "component": "dns-server",
+          "node_id": "vps-591f4447",
+          "required": true,
+          "state": "pass",
+          "expected": {
+            "consumer_id": "dns-server:vps-591f4447",
+            "component": "dns-server",
+            "node_id": "vps-591f4447",
+            "artifact_kind": "dns_answer_bundle",
+            "scope_key": "global",
+            "failure_domain": "edge-group:edge-group-country-us",
+            "cohort": "edge-group-country-us",
+            "required": true,
+            "expected_protocol_version": "v1",
+            "accepted_protocol_versions": [
+              "v1"
+            ],
+            "expected_schema_version": "v1",
+            "accepted_schema_versions": [
+              "v1"
+            ],
+            "expected_generation": "dns-41583153f25ef8cab694ebb7797d1a92c54c3d29099f3ab392ad8dc2906562c9",
+            "heartbeat_freshness_seconds": 90,
+            "heartbeat_deadline": "2026-09-23T14:49:44.087525332Z",
+            "convergence_deadline": "2026-09-23T14:53:14.087525332Z"
+          },
+          "observed": {
+            "id": "artifactconsumer_d988d3a8439b9350",
+            "consumer_id": "dns-server:vps-591f4447",
+            "credential_id": "kubernetes:fugue-system:fugue-dns-consumer-us:bd7b5281-e6c4-45e1-b17d-fb17fca5eaac",
+            "token_id": "IfLvHxDsB79qaDWIXhnohQ",
+            "component": "dns-server",
+            "node_id": "vps-591f4447",
+            "artifact_kind": "dns_answer_bundle",
+            "scope_key": "global",
+            "release_set_id": "artifact_1790174770_82c57aef2c61",
+            "expected_consumer_set_id": "expectedconsumerset_c1555290d5dee2e4",
+            "fencing_token": 189,
+            "supported_artifact_kinds": [
+              "dns_answer_bundle"
+            ],
+            "protocol_version": "v1",
+            "schema_version": "v1",
+            "compatibility_capabilities": [
+              "traffic_release_v1"
+            ],
+            "sequence": 1790175050813604030,
+            "issued_at": "2026-09-23T14:50:50.815648Z",
+            "nonce": "34283805ea6bc32a105096b29c93ba41",
+            "generation_sequence": 987,
+            "evidence_hash": "sha256:0c44c8078469ae3a67eb442e1feb8ab57c45cd169eb49d412ce81e06355d667d",
+            "identity_verified": true,
+            "desired_generation": "dns-41583153f25ef8cab694ebb7797d1a92c54c3d29099f3ab392ad8dc2906562c9",
+            "actual_generation": "dns-41583153f25ef8cab694ebb7797d1a92c54c3d29099f3ab392ad8dc2906562c9",
+            "lkg_generation": "dns-41583153f25ef8cab694ebb7797d1a92c54c3d29099f3ab392ad8dc2906562c9",
+            "apply_status": "applied",
+            "probe_status": "passed",
+            "last_heartbeat_at": "2026-09-23T14:50:50.992842Z",
+            "updated_at": "2026-09-23T14:50:50.992842Z"
+          },
+          "observed_at": "2026-09-23T14:50:50.992842Z",
+          "fresh_until": "2026-09-23T14:52:20.992842Z",
+          "evaluated_at": "2026-09-23T14:51:26.029308172Z"
+        },
+        {
+          "consumer_id": "dns-server:vps-84c8f0a9",
+          "component": "dns-server",
+          "node_id": "vps-84c8f0a9",
+          "required": true,
+          "state": "pass",
+          "expected": {
+            "consumer_id": "dns-server:vps-84c8f0a9",
+            "component": "dns-server",
+            "node_id": "vps-84c8f0a9",
+            "artifact_kind": "dns_answer_bundle",
+            "scope_key": "global",
+            "failure_domain": "edge-group:edge-group-country-de",
+            "cohort": "edge-group-country-de",
+            "required": true,
+            "expected_protocol_version": "v1",
+            "accepted_protocol_versions": [
+              "v1"
+            ],
+            "expected_schema_version": "v1",
+            "accepted_schema_versions": [
+              "v1"
+            ],
+            "expected_generation": "dns-41583153f25ef8cab694ebb7797d1a92c54c3d29099f3ab392ad8dc2906562c9",
+            "heartbeat_freshness_seconds": 90,
+            "heartbeat_deadline": "2026-09-23T14:49:44.087525332Z",
+            "convergence_deadline": "2026-09-23T14:53:14.087525332Z"
+          },
+          "observed": {
+            "id": "artifactconsumer_038d69486623a19d",
+            "consumer_id": "dns-server:vps-84c8f0a9",
+            "credential_id": "kubernetes:fugue-system:fugue-dns-consumer-de:1430db17-c77e-4cc6-9c64-fd8da7b13a8a",
+            "token_id": "MFvD7AHTw3_Aj2FCKn1pfg",
+            "component": "dns-server",
+            "node_id": "vps-84c8f0a9",
+            "artifact_kind": "dns_answer_bundle",
+            "scope_key": "global",
+            "release_set_id": "artifact_1790174770_82c57aef2c61",
+            "expected_consumer_set_id": "expectedconsumerset_c1555290d5dee2e4",
+            "fencing_token": 189,
+            "supported_artifact_kinds": [
+              "dns_answer_bundle"
+            ],
+            "protocol_version": "v1",
+            "schema_version": "v1",
+            "compatibility_capabilities": [
+              "traffic_release_v1"
+            ],
+            "sequence": 1790175068605140276,
+            "issued_at": "2026-09-23T14:51:08.608002Z",
+            "nonce": "ac4193916499348d26f47ffaf64e5eed",
+            "generation_sequence": 987,
+            "evidence_hash": "sha256:d31918306cb6dfe34ba47e97f59e72e16d8395efd5a16bf910786be5c15e218c",
+            "identity_verified": true,
+            "desired_generation": "dns-41583153f25ef8cab694ebb7797d1a92c54c3d29099f3ab392ad8dc2906562c9",
+            "actual_generation": "dns-41583153f25ef8cab694ebb7797d1a92c54c3d29099f3ab392ad8dc2906562c9",
+            "lkg_generation": "dns-41583153f25ef8cab694ebb7797d1a92c54c3d29099f3ab392ad8dc2906562c9",
+            "apply_status": "applied",
+            "probe_status": "passed",
+            "last_heartbeat_at": "2026-09-23T14:51:09.024218Z",
+            "updated_at": "2026-09-23T14:51:09.024218Z"
+          },
+          "observed_at": "2026-09-23T14:51:09.024218Z",
+          "fresh_until": "2026-09-23T14:52:39.024218Z",
+          "evaluated_at": "2026-09-23T14:51:26.029308172Z"
+        }
+      ],
+      "evaluated_at": "2026-09-23T14:51:26.029308172Z"
+    },
+    {
+      "expected_consumer_set_id": "expectedconsumerset_c4301f1cf67c5e68",
+      "artifact_kind": "edge_route_bundle",
+      "scope_key": "global",
+      "expected_generation": "route-41583153f25ef8cab694ebb7797d1a92c54c3d29099f3ab392ad8dc2906562c9",
+      "state": "pass",
+      "pass": true,
+      "required_expected": 3,
+      "required_observed": 3,
+      "required_passing": 3,
+      "optional_expected": 0,
+      "assessments": [
+        {
+          "consumer_id": "edge-worker:bwg",
+          "component": "edge-worker",
+          "node_id": "bwg",
+          "required": true,
+          "state": "pass",
+          "expected": {
+            "consumer_id": "edge-worker:bwg",
+            "component": "edge-worker",
+            "node_id": "bwg",
+            "artifact_kind": "edge_route_bundle",
+            "scope_key": "global",
+            "failure_domain": "edge-group:edge-group-country-us",
+            "cohort": "edge-group-country-us",
+            "required": true,
+            "expected_protocol_version": "v1",
+            "accepted_protocol_versions": [
+              "v1"
+            ],
+            "expected_schema_version": "v1",
+            "accepted_schema_versions": [
+              "v1"
+            ],
+            "compatibility_capabilities": [
+              "caddy_apply_probe"
+            ],
+            "expected_generation": "route-41583153f25ef8cab694ebb7797d1a92c54c3d29099f3ab392ad8dc2906562c9",
+            "heartbeat_freshness_seconds": 90,
+            "heartbeat_deadline": "2026-09-23T14:49:44.036616612Z",
+            "convergence_deadline": "2026-09-23T14:53:14.036616612Z"
+          },
+          "observed": {
+            "id": "artifactconsumer_c19d3459cf5f4962",
+            "consumer_id": "edge-worker:bwg",
+            "credential_id": "kubernetes:fugue-system:edge-worker-us:6ef6feaf-6d5c-4423-80db-803c40323fda",
+            "token_id": "xhZk2vDYNo0oYeby8nVUag",
+            "component": "edge-worker",
+            "node_id": "bwg",
+            "artifact_kind": "edge_route_bundle",
+            "scope_key": "global",
+            "release_set_id": "artifact_1790174770_82c57aef2c61",
+            "expected_consumer_set_id": "expectedconsumerset_c4301f1cf67c5e68",
+            "fencing_token": 189,
+            "supported_artifact_kinds": [
+              "caddy_route_config",
+              "edge_route_bundle"
+            ],
+            "protocol_version": "v1",
+            "schema_version": "v1",
+            "compatibility_capabilities": [
+              "caddy_apply_probe",
+              "traffic_release_v1"
+            ],
+            "sequence": 1790175061521419519,
+            "issued_at": "2026-09-23T14:51:02.920719Z",
+            "nonce": "7aa3036c693e4585e47ce6c7ee3133d1",
+            "generation_sequence": 987,
+            "evidence_hash": "sha256:4e154ff16d9a840ae7d2cb072051fa05df5a487152e1c203f0f45fedda05f4f3",
+            "identity_verified": true,
+            "desired_generation": "route-41583153f25ef8cab694ebb7797d1a92c54c3d29099f3ab392ad8dc2906562c9",
+            "actual_generation": "route-41583153f25ef8cab694ebb7797d1a92c54c3d29099f3ab392ad8dc2906562c9",
+            "lkg_generation": "edgegroupbundle_7c911369ba368552d557b1afba8f03b2d5d64c9afb0bf1a94cacb53c19deaaea",
+            "apply_status": "applied",
+            "probe_status": "passed",
+            "last_heartbeat_at": "2026-09-23T14:51:03.055456Z",
+            "updated_at": "2026-09-23T14:51:03.055456Z"
+          },
+          "observed_at": "2026-09-23T14:51:03.055456Z",
+          "fresh_until": "2026-09-23T14:52:33.055456Z",
+          "evaluated_at": "2026-09-23T14:51:26.125163267Z"
+        },
+        {
+          "consumer_id": "edge-worker:vps-591f4447",
+          "component": "edge-worker",
+          "node_id": "vps-591f4447",
+          "required": true,
+          "state": "pass",
+          "expected": {
+            "consumer_id": "edge-worker:vps-591f4447",
+            "component": "edge-worker",
+            "node_id": "vps-591f4447",
+            "artifact_kind": "edge_route_bundle",
+            "scope_key": "global",
+            "failure_domain": "edge-group:edge-group-country-us",
+            "cohort": "edge-group-country-us",
+            "required": true,
+            "expected_protocol_version": "v1",
+            "accepted_protocol_versions": [
+              "v1"
+            ],
+            "expected_schema_version": "v1",
+            "accepted_schema_versions": [
+              "v1"
+            ],
+            "compatibility_capabilities": [
+              "caddy_apply_probe"
+            ],
+            "expected_generation": "route-41583153f25ef8cab694ebb7797d1a92c54c3d29099f3ab392ad8dc2906562c9",
+            "heartbeat_freshness_seconds": 90,
+            "heartbeat_deadline": "2026-09-23T14:49:44.036616612Z",
+            "convergence_deadline": "2026-09-23T14:53:14.036616612Z"
+          },
+          "observed": {
+            "id": "artifactconsumer_3a410bb8a1015190",
+            "consumer_id": "edge-worker:vps-591f4447",
+            "credential_id": "kubernetes:fugue-system:edge-worker-us:a7a871c5-8337-4517-ae11-1abcd4a2a516",
+            "token_id": "LtVIhJd1prCIFml-qdTdzg",
+            "component": "edge-worker",
+            "node_id": "vps-591f4447",
+            "artifact_kind": "edge_route_bundle",
+            "scope_key": "global",
+            "release_set_id": "artifact_1790174770_82c57aef2c61",
+            "expected_consumer_set_id": "expectedconsumerset_c4301f1cf67c5e68",
+            "fencing_token": 189,
+            "supported_artifact_kinds": [
+              "caddy_route_config",
+              "edge_route_bundle"
+            ],
+            "protocol_version": "v1",
+            "schema_version": "v1",
+            "compatibility_capabilities": [
+              "caddy_apply_probe",
+              "traffic_release_v1"
+            ],
+            "sequence": 1790175071596794408,
+            "issued_at": "2026-09-23T14:51:12.542378Z",
+            "nonce": "130b73579f07190a19418047ca68bd93",
+            "generation_sequence": 987,
+            "evidence_hash": "sha256:50d030d221b0293c5eef907b09865473895856e4a00b8dad60eb93cf9e9dec06",
+            "identity_verified": true,
+            "desired_generation": "route-41583153f25ef8cab694ebb7797d1a92c54c3d29099f3ab392ad8dc2906562c9",
+            "actual_generation": "route-41583153f25ef8cab694ebb7797d1a92c54c3d29099f3ab392ad8dc2906562c9",
+            "lkg_generation": "edgegroupbundle_7c911369ba368552d557b1afba8f03b2d5d64c9afb0bf1a94cacb53c19deaaea",
+            "apply_status": "applied",
+            "probe_status": "passed",
+            "last_heartbeat_at": "2026-09-23T14:51:12.651945Z",
+            "updated_at": "2026-09-23T14:51:12.651945Z"
+          },
+          "observed_at": "2026-09-23T14:51:12.651945Z",
+          "fresh_until": "2026-09-23T14:52:42.651945Z",
+          "evaluated_at": "2026-09-23T14:51:26.125163267Z"
+        },
+        {
+          "consumer_id": "edge-worker:vps-84c8f0a9",
+          "component": "edge-worker",
+          "node_id": "vps-84c8f0a9",
+          "required": true,
+          "state": "pass",
+          "expected": {
+            "consumer_id": "edge-worker:vps-84c8f0a9",
+            "component": "edge-worker",
+            "node_id": "vps-84c8f0a9",
+            "artifact_kind": "edge_route_bundle",
+            "scope_key": "global",
+            "failure_domain": "edge-group:edge-group-country-de",
+            "cohort": "edge-group-country-de",
+            "required": true,
+            "expected_protocol_version": "v1",
+            "accepted_protocol_versions": [
+              "v1"
+            ],
+            "expected_schema_version": "v1",
+            "accepted_schema_versions": [
+              "v1"
+            ],
+            "compatibility_capabilities": [
+              "caddy_apply_probe"
+            ],
+            "expected_generation": "route-41583153f25ef8cab694ebb7797d1a92c54c3d29099f3ab392ad8dc2906562c9",
+            "heartbeat_freshness_seconds": 90,
+            "heartbeat_deadline": "2026-09-23T14:49:44.036616612Z",
+            "convergence_deadline": "2026-09-23T14:53:14.036616612Z"
+          },
+          "observed": {
+            "id": "artifactconsumer_eba1f752e445ba85",
+            "consumer_id": "edge-worker:vps-84c8f0a9",
+            "credential_id": "kubernetes:fugue-system:edge-worker-de:b7ea6740-bba7-469d-9868-02ce2115f594",
+            "token_id": "LG3P6_IwCNqJ5IWAZ_7ang",
+            "component": "edge-worker",
+            "node_id": "vps-84c8f0a9",
+            "artifact_kind": "edge_route_bundle",
+            "scope_key": "global",
+            "release_set_id": "artifact_1790174770_82c57aef2c61",
+            "expected_consumer_set_id": "expectedconsumerset_c4301f1cf67c5e68",
+            "fencing_token": 189,
+            "supported_artifact_kinds": [
+              "caddy_route_config",
+              "edge_route_bundle"
+            ],
+            "protocol_version": "v1",
+            "schema_version": "v1",
+            "compatibility_capabilities": [
+              "caddy_apply_probe",
+              "traffic_release_v1"
+            ],
+            "sequence": 1790175080014538619,
+            "issued_at": "2026-09-23T14:51:21.162348Z",
+            "nonce": "b22d33b56ccc9e7ca1b055118ba11eca",
+            "generation_sequence": 987,
+            "evidence_hash": "sha256:186bf694cfa3611bc975d9286b567babb0c020689bbf9b730275343b8e381487",
+            "identity_verified": true,
+            "desired_generation": "route-41583153f25ef8cab694ebb7797d1a92c54c3d29099f3ab392ad8dc2906562c9",
+            "actual_generation": "route-41583153f25ef8cab694ebb7797d1a92c54c3d29099f3ab392ad8dc2906562c9",
+            "lkg_generation": "edgegroupbundle_50fea6950140fe261bbcef73acfeb6f79adf4b07b7ff53154e9b0885d8d786b8",
+            "apply_status": "applied",
+            "probe_status": "passed",
+            "last_heartbeat_at": "2026-09-23T14:51:21.359019Z",
+            "updated_at": "2026-09-23T14:51:21.359019Z"
+          },
+          "observed_at": "2026-09-23T14:51:21.359019Z",
+          "fresh_until": "2026-09-23T14:52:51.359019Z",
+          "evaluated_at": "2026-09-23T14:51:26.125163267Z"
+        }
+      ],
+      "evaluated_at": "2026-09-23T14:51:26.125163267Z"
+    }
+  ],
+  "convergence_elapsed_seconds": 1.0430734169203788,
+  "backends": [
+    {
+      "pod": "fugue-fugue-dns-jlbl9",
+      "uid": "bd7b5281-e6c4-45e1-b17d-fb17fca5eaac",
+      "service": "fugue-dns-public-us",
+      "credential_id": "kubernetes:fugue-system:fugue-dns-consumer-us:bd7b5281-e6c4-45e1-b17d-fb17fca5eaac",
+      "assessment_state": "pass",
+      "last_heartbeat_at": "2026-09-23T14:50:50.992842Z",
+      "assignment": {
+        "expected_consumer_set_id": "expectedconsumerset_c1555290d5dee2e4",
+        "release_set_id": "artifact_1790174770_82c57aef2c61",
+        "artifact_release_id": "artifactrel_1790174893_bdc5866c0b1a",
+        "artifact_kind": "dns_answer_bundle",
+        "scope_key": "global",
+        "expected_generation": "dns-41583153f25ef8cab694ebb7797d1a92c54c3d29099f3ab392ad8dc2906562c9",
+        "revision": 8,
+        "artifact_id": "artifact_1790174769_30cc85345abc",
+        "content_hash": "sha256:3132dc4ed3812165b7a6e692e7ead46d6e7e58270a7eec8379d6c84ad29dd763",
+        "generation_sequence": 987,
+        "release_channel": "full",
+        "fencing_token": 189,
+        "expected_protocol_version": "v1",
+        "expected_schema_version": "v1",
+        "heartbeat_deadline": "2026-09-23T14:49:44.087525332Z",
+        "convergence_deadline": "2026-09-23T14:53:14.087525332Z"
+      },
+      "ready": true
+    },
+    {
+      "pod": "fugue-fugue-dns-country-de-h264p",
+      "uid": "1430db17-c77e-4cc6-9c64-fd8da7b13a8a",
+      "service": "fugue-dns-public-de",
+      "credential_id": "kubernetes:fugue-system:fugue-dns-consumer-de:1430db17-c77e-4cc6-9c64-fd8da7b13a8a",
+      "assessment_state": "pass",
+      "last_heartbeat_at": "2026-09-23T14:51:09.024218Z",
+      "assignment": {
+        "expected_consumer_set_id": "expectedconsumerset_c1555290d5dee2e4",
+        "release_set_id": "artifact_1790174770_82c57aef2c61",
+        "artifact_release_id": "artifactrel_1790174893_bdc5866c0b1a",
+        "artifact_kind": "dns_answer_bundle",
+        "scope_key": "global",
+        "expected_generation": "dns-41583153f25ef8cab694ebb7797d1a92c54c3d29099f3ab392ad8dc2906562c9",
+        "revision": 8,
+        "artifact_id": "artifact_1790174769_30cc85345abc",
+        "content_hash": "sha256:3132dc4ed3812165b7a6e692e7ead46d6e7e58270a7eec8379d6c84ad29dd763",
+        "generation_sequence": 987,
+        "release_channel": "full",
+        "fencing_token": 189,
+        "expected_protocol_version": "v1",
+        "expected_schema_version": "v1",
+        "heartbeat_deadline": "2026-09-23T14:49:44.087525332Z",
+        "convergence_deadline": "2026-09-23T14:53:14.087525332Z"
+      },
+      "ready": true
+    }
+  ],
+  "diagnostics": [
+    {
+      "group": "edge-group-country-de",
+      "release_id": "artifactrel_1790174893_bdc5866c0b1a",
+      "healthy": true,
+      "route_count": 162,
+      "elapsed_seconds": 1.1800706660142168
+    },
+    {
+      "group": "edge-group-country-us",
+      "release_id": "artifactrel_1790174893_bdc5866c0b1a",
+      "healthy": true,
+      "route_count": 162,
+      "elapsed_seconds": 0.9507503330241889
+    }
+  ],
+  "sampling": {
+    "first_at": "2026-09-23T13:58:20.224682+00:00",
+    "last_at": "2026-09-23T14:52:21.212245+00:00",
+    "dns_udp_tcp": 4092,
+    "http": 1023,
+    "failures": [
+      {
+        "at": "2026-09-23T13:59:07.889134+00:00",
+        "kind": "dns",
+        "server": "15.204.94.71",
+        "zone": "fugue.pro",
+        "protocol": "udp",
+        "pass": false,
+        "sequence": null,
+        "exit": 9,
+        "error": "\n; <<>> DiG 9.10.6 <<>> +notcp +time=2 +tries=1 @15.204.94.71 fugue.pro SOA +noall +comments +answer\n; (1 server found)\n;; global options: +cmd\n;; connection timed out; no servers could be reached\n"
+      },
+      {
+        "at": "2026-09-23T14:14:04.296309+00:00",
+        "kind": "dns",
+        "server": "15.204.94.71",
+        "zone": "fugue.pro",
+        "protocol": "tcp",
+        "pass": false,
+        "sequence": null,
+        "exit": 9,
+        "error": "\n; <<>> DiG 9.10.6 <<>> +tcp +time=2 +tries=1 @15.204.94.71 fugue.pro SOA +noall +comments +answer\n; (1 server found)\n;; global options: +cmd\n;; connection timed out; no servers could be reached\n"
+      },
+      {
+        "at": "2026-09-23T14:21:33.225552+00:00",
+        "kind": "dns",
+        "server": "51.38.126.103",
+        "zone": "fugue.pro",
+        "protocol": "tcp",
+        "pass": false,
+        "sequence": null,
+        "exit": 9,
+        "error": "\n; <<>> DiG 9.10.6 <<>> +tcp +time=2 +tries=1 @51.38.126.103 fugue.pro SOA +noall +comments +answer\n; (1 server found)\n;; global options: +cmd\n;; connection timed out; no servers could be reached\n"
+      }
+    ]
+  },
+  "limits": [
+    "Live Kubernetes check is a bounded API preflight, not an atomic transaction with Kubernetes and the publication store.",
+    "Production verification is read-only. Replacement, unready, outage, cancellation, freshness expiry and non-mutation scenarios were exercised locally.",
+    "DNS backend Pods were not replaced; cache isolation, backend switching and connection draining remain open."
+  ],
+  "ci": "https://github.com/yym68686/fugue/actions/runs/35875281428",
+  "frontend_ci": "https://github.com/yym68686/fugue-web/actions/runs/35875321148",
+  "prepush": {
+    "apiVersion": "prepush.fugue.dev/v1",
+    "baseCommit": "f708d17a34b26e7eaf3a1d4b08c6488f8bcfb4f0",
+    "changedFilesDigest": "sha256:7d51d5c9368b070d2dfe93fdeb70b6f42c39c9499603f8833dee900bc1cfa63f",
+    "checks": {
+      "affected-tests": {
+        "durationMs": 115063,
+        "status": "pass"
+      },
+      "affected-vet": {
+        "durationMs": 4308,
+        "status": "pass"
+      },
+      "compile-all": {
+        "durationMs": 15150,
+        "status": "pass"
+      },
+      "declarative-release-tests": {
+        "durationMs": 16678,
+        "status": "pass"
+      },
+      "diff-check": {
+        "durationMs": 445,
+        "status": "pass"
+      },
+      "gofmt": {
+        "durationMs": 49,
+        "status": "pass"
+      },
+      "helm-lint-render": {
+        "durationMs": 0,
+        "status": "skipped"
+      },
+      "openapi-generated": {
+        "durationMs": 1351,
+        "status": "pass"
+      },
+      "shell-syntax": {
+        "durationMs": 0,
+        "status": "pass"
+      }
+    },
+    "elapsedMs": 135156,
+    "kind": "PrepushReceipt",
+    "sourceCommit": "4f8d95804b97670643cc822de082a1c6badb80f5",
+    "status": "pass"
+  },
+  "local_validation": {
+    "make_test": "passed",
+    "api_race": "passed",
+    "frontend_contract_check": "passed",
+    "cold_prepush_seconds": 135.156,
+    "initial_test_fixture_failures": [
+      "missing LKG generation",
+      "reverification of already verified gray rejected",
+      "unrelated file-store topology default initialization"
+    ]
+  },
+  "release_plan": {
+    "apiVersion": "release.fugue.dev/v2",
+    "baseSha": "f708d17a34b26e7eaf3a1d4b08c6488f8bcfb4f0",
+    "headSha": "4f8d95804b97670643cc822de082a1c6badb80f5",
+    "kind": "ProductionReleasePlan",
+    "planDigest": "sha256:2ff6c5255376386a941986324a8347f5b44d1127072c86f3fbb454fa1c73ca1b",
+    "releases": [
+      {
+        "artifact": {
+          "buildPackage": "./cmd/fugue-api",
+          "context": ".",
+          "dockerfile": "Dockerfile.api",
+          "repository": "ghcr.io/yym68686/fugue-api"
+        },
+        "changedPaths": [
+          "internal/api/platform_live_convergence.go",
+          "internal/api/platform_producer_serving.go",
+          "internal/api/platform_state.go",
+          "internal/api/published_route_diagnostics.go",
+          "internal/api/traffic_artifact_diagnostics.go",
+          "internal/apispec/spec_gen.go"
+        ],
+        "component": "api",
+        "concurrency": "fugue-production-api",
+        "delivery": {
+          "dependencyService": "fugue-fugue",
+          "group": "global",
+          "writer": "guardian"
+        },
+        "expectedPreviousConfigSha": "f708d17a34b26e7eaf3a1d4b08c6488f8bcfb4f0",
+        "expectedPreviousImageDigest": "sha256:f124ee9b55c1eadc8ef0a15aa537eb9dcee9731ba1d213e096b23b356f93f077",
+        "expectedPreviousManifestSha": "f708d17a34b26e7eaf3a1d4b08c6488f8bcfb4f0",
+        "expectedPreviousOciRevision": "f708d17a34b26e7eaf3a1d4b08c6488f8bcfb4f0",
+        "expectedPreviousPresent": true,
+        "health": [
+          {
+            "name": "fugue-fugue-api",
+            "type": "deployment"
+          },
+          {
+            "expected": "ok",
+            "name": "fugue-fugue-api",
+            "path": "/healthz",
+            "port": "http",
+            "type": "pod-http"
+          },
+          {
+            "address": "51.38.126.103:443",
+            "expected": "\"status\":\"ok\"",
+            "host": "api.fugue.pro",
+            "name": "api-via-edge-group-country-de",
+            "path": "/healthz",
+            "type": "public-route-http"
+          },
+          {
+            "address": "15.204.94.71:443",
+            "expected": "\"status\":\"ok\"",
+            "host": "api.fugue.pro",
+            "name": "api-via-edge-group-country-us",
+            "path": "/healthz",
+            "type": "public-route-http"
+          }
+        ],
+        "intentDigest": "sha256:bb4acd48025e3b1d4556352fae5d37bdde704eaf00cf9b8fd748416bfb062e0f",
+        "intentGeneration": 594,
+        "intentPath": "deploy/releases/api/intent.json",
+        "manifestPath": "deploy/releases/api/deployment.json",
+        "workload": {
+          "apiVersion": "apps/v1",
+          "container": "api",
+          "fieldManager": "fugue-api-declarative",
+          "kind": "Deployment",
+          "name": "fugue-fugue-api",
+          "namespace": "fugue-system",
+          "replicas": 2,
+          "rolloutMode": "rolling"
+        }
+      }
+    ]
+  },
+  "producer_cycle": [
+    {
+      "at": "2026-09-23T14:44:54.768772+00:00",
+      "gray": {
+        "artifact_id": "artifact_1790174425_1856ff2f8290",
+        "artifact_created": "2026-09-23T14:40:25.320907Z",
+        "release_id": "artifactrel_1790174426_2d3809cc4485",
+        "released_at": "2026-09-23T14:40:26.027676Z",
+        "verification_state": "serving_unverified",
+        "verified_at": null,
+        "lkg_artifact_id": "artifact_1790174114_0922a0b0d09e"
+      },
+      "full": {
+        "artifact_id": "artifact_1790174425_1856ff2f8290",
+        "artifact_created": "2026-09-23T14:40:25.320907Z",
+        "release_id": "artifactrel_1790174548_0585b08de5b8",
+        "released_at": "2026-09-23T14:42:28.793973Z",
+        "verification_state": "serving_unverified",
+        "verified_at": null,
+        "lkg_artifact_id": "artifact_1790174114_0922a0b0d09e"
+      }
+    },
+    {
+      "at": "2026-09-23T14:45:26.313625+00:00",
+      "gray": {
+        "artifact_id": "artifact_1790174425_1856ff2f8290",
+        "artifact_created": "2026-09-23T14:40:25.320907Z",
+        "release_id": "artifactrel_1790174426_2d3809cc4485",
+        "released_at": "2026-09-23T14:40:26.027676Z",
+        "verification_state": "serving_unverified",
+        "verified_at": null,
+        "lkg_artifact_id": "artifact_1790174425_1856ff2f8290"
+      },
+      "full": {
+        "artifact_id": "artifact_1790174425_1856ff2f8290",
+        "artifact_created": "2026-09-23T14:40:25.320907Z",
+        "release_id": "artifactrel_1790174548_0585b08de5b8",
+        "released_at": "2026-09-23T14:42:28.793973Z",
+        "verification_state": "verified",
+        "verified_at": "2026-09-23T14:45:05.116365Z",
+        "lkg_artifact_id": "artifact_1790174425_1856ff2f8290"
+      }
+    },
+    {
+      "at": "2026-09-23T14:45:57.749220+00:00",
+      "gray": {
+        "artifact_id": "artifact_1790174425_1856ff2f8290",
+        "artifact_created": "2026-09-23T14:40:25.320907Z",
+        "release_id": "artifactrel_1790174426_2d3809cc4485",
+        "released_at": "2026-09-23T14:40:26.027676Z",
+        "verification_state": "serving_unverified",
+        "verified_at": null,
+        "lkg_artifact_id": "artifact_1790174425_1856ff2f8290"
+      },
+      "full": {
+        "artifact_id": "artifact_1790174425_1856ff2f8290",
+        "artifact_created": "2026-09-23T14:40:25.320907Z",
+        "release_id": "artifactrel_1790174548_0585b08de5b8",
+        "released_at": "2026-09-23T14:42:28.793973Z",
+        "verification_state": "verified",
+        "verified_at": "2026-09-23T14:45:05.116365Z",
+        "lkg_artifact_id": "artifact_1790174425_1856ff2f8290"
+      }
+    },
+    {
+      "at": "2026-09-23T14:46:29.219390+00:00",
+      "gray": {
+        "artifact_id": "artifact_1790174770_82c57aef2c61",
+        "artifact_created": "2026-09-23T14:46:10.384107Z",
+        "release_id": "artifactrel_1790174771_e2b146a76963",
+        "released_at": "2026-09-23T14:46:10.833396Z",
+        "verification_state": "serving_unverified",
+        "verified_at": null,
+        "lkg_artifact_id": "artifact_1790174425_1856ff2f8290"
+      },
+      "full": {
+        "artifact_id": "artifact_1790174425_1856ff2f8290",
+        "artifact_created": "2026-09-23T14:40:25.320907Z",
+        "release_id": "artifactrel_1790174548_0585b08de5b8",
+        "released_at": "2026-09-23T14:42:28.793973Z",
+        "verification_state": "verified",
+        "verified_at": "2026-09-23T14:45:05.116365Z",
+        "lkg_artifact_id": "artifact_1790174425_1856ff2f8290"
+      }
+    },
+    {
+      "at": "2026-09-23T14:47:00.502336+00:00",
+      "gray": {
+        "artifact_id": "artifact_1790174770_82c57aef2c61",
+        "artifact_created": "2026-09-23T14:46:10.384107Z",
+        "release_id": "artifactrel_1790174771_e2b146a76963",
+        "released_at": "2026-09-23T14:46:10.833396Z",
+        "verification_state": "serving_unverified",
+        "verified_at": null,
+        "lkg_artifact_id": "artifact_1790174425_1856ff2f8290"
+      },
+      "full": {
+        "artifact_id": "artifact_1790174425_1856ff2f8290",
+        "artifact_created": "2026-09-23T14:40:25.320907Z",
+        "release_id": "artifactrel_1790174548_0585b08de5b8",
+        "released_at": "2026-09-23T14:42:28.793973Z",
+        "verification_state": "verified",
+        "verified_at": "2026-09-23T14:45:05.116365Z",
+        "lkg_artifact_id": "artifact_1790174425_1856ff2f8290"
+      }
+    },
+    {
+      "at": "2026-09-23T14:47:32.009003+00:00",
+      "gray": {
+        "artifact_id": "artifact_1790174770_82c57aef2c61",
+        "artifact_created": "2026-09-23T14:46:10.384107Z",
+        "release_id": "artifactrel_1790174771_e2b146a76963",
+        "released_at": "2026-09-23T14:46:10.833396Z",
+        "verification_state": "serving_unverified",
+        "verified_at": null,
+        "lkg_artifact_id": "artifact_1790174425_1856ff2f8290"
+      },
+      "full": {
+        "artifact_id": "artifact_1790174425_1856ff2f8290",
+        "artifact_created": "2026-09-23T14:40:25.320907Z",
+        "release_id": "artifactrel_1790174548_0585b08de5b8",
+        "released_at": "2026-09-23T14:42:28.793973Z",
+        "verification_state": "verified",
+        "verified_at": "2026-09-23T14:45:05.116365Z",
+        "lkg_artifact_id": "artifact_1790174425_1856ff2f8290"
+      }
+    },
+    {
+      "at": "2026-09-23T14:48:03.388277+00:00",
+      "gray": {
+        "artifact_id": "artifact_1790174770_82c57aef2c61",
+        "artifact_created": "2026-09-23T14:46:10.384107Z",
+        "release_id": "artifactrel_1790174771_e2b146a76963",
+        "released_at": "2026-09-23T14:46:10.833396Z",
+        "verification_state": "serving_unverified",
+        "verified_at": null,
+        "lkg_artifact_id": "artifact_1790174425_1856ff2f8290"
+      },
+      "full": {
+        "artifact_id": "artifact_1790174425_1856ff2f8290",
+        "artifact_created": "2026-09-23T14:40:25.320907Z",
+        "release_id": "artifactrel_1790174548_0585b08de5b8",
+        "released_at": "2026-09-23T14:42:28.793973Z",
+        "verification_state": "verified",
+        "verified_at": "2026-09-23T14:45:05.116365Z",
+        "lkg_artifact_id": "artifact_1790174425_1856ff2f8290"
+      }
+    },
+    {
+      "at": "2026-09-23T14:48:35.052394+00:00",
+      "gray": {
+        "artifact_id": "artifact_1790174770_82c57aef2c61",
+        "artifact_created": "2026-09-23T14:46:10.384107Z",
+        "release_id": "artifactrel_1790174771_e2b146a76963",
+        "released_at": "2026-09-23T14:46:10.833396Z",
+        "verification_state": "serving_unverified",
+        "verified_at": null,
+        "lkg_artifact_id": "artifact_1790174425_1856ff2f8290"
+      },
+      "full": {
+        "artifact_id": "artifact_1790174770_82c57aef2c61",
+        "artifact_created": "2026-09-23T14:46:10.384107Z",
+        "release_id": "artifactrel_1790174893_bdc5866c0b1a",
+        "released_at": "2026-09-23T14:48:13.65307Z",
+        "verification_state": "serving_unverified",
+        "verified_at": null,
+        "lkg_artifact_id": "artifact_1790174425_1856ff2f8290"
+      }
+    },
+    {
+      "at": "2026-09-23T14:49:06.427409+00:00",
+      "gray": {
+        "artifact_id": "artifact_1790174770_82c57aef2c61",
+        "artifact_created": "2026-09-23T14:46:10.384107Z",
+        "release_id": "artifactrel_1790174771_e2b146a76963",
+        "released_at": "2026-09-23T14:46:10.833396Z",
+        "verification_state": "serving_unverified",
+        "verified_at": null,
+        "lkg_artifact_id": "artifact_1790174425_1856ff2f8290"
+      },
+      "full": {
+        "artifact_id": "artifact_1790174770_82c57aef2c61",
+        "artifact_created": "2026-09-23T14:46:10.384107Z",
+        "release_id": "artifactrel_1790174893_bdc5866c0b1a",
+        "released_at": "2026-09-23T14:48:13.65307Z",
+        "verification_state": "serving_unverified",
+        "verified_at": null,
+        "lkg_artifact_id": "artifact_1790174425_1856ff2f8290"
+      }
+    },
+    {
+      "at": "2026-09-23T14:49:37.785762+00:00",
+      "gray": {
+        "artifact_id": "artifact_1790174770_82c57aef2c61",
+        "artifact_created": "2026-09-23T14:46:10.384107Z",
+        "release_id": "artifactrel_1790174771_e2b146a76963",
+        "released_at": "2026-09-23T14:46:10.833396Z",
+        "verification_state": "serving_unverified",
+        "verified_at": null,
+        "lkg_artifact_id": "artifact_1790174425_1856ff2f8290"
+      },
+      "full": {
+        "artifact_id": "artifact_1790174770_82c57aef2c61",
+        "artifact_created": "2026-09-23T14:46:10.384107Z",
+        "release_id": "artifactrel_1790174893_bdc5866c0b1a",
+        "released_at": "2026-09-23T14:48:13.65307Z",
+        "verification_state": "serving_unverified",
+        "verified_at": null,
+        "lkg_artifact_id": "artifact_1790174425_1856ff2f8290"
+      }
+    },
+    {
+      "at": "2026-09-23T14:50:09.215591+00:00",
+      "gray": {
+        "artifact_id": "artifact_1790174770_82c57aef2c61",
+        "artifact_created": "2026-09-23T14:46:10.384107Z",
+        "release_id": "artifactrel_1790174771_e2b146a76963",
+        "released_at": "2026-09-23T14:46:10.833396Z",
+        "verification_state": "serving_unverified",
+        "verified_at": null,
+        "lkg_artifact_id": "artifact_1790174425_1856ff2f8290"
+      },
+      "full": {
+        "artifact_id": "artifact_1790174770_82c57aef2c61",
+        "artifact_created": "2026-09-23T14:46:10.384107Z",
+        "release_id": "artifactrel_1790174893_bdc5866c0b1a",
+        "released_at": "2026-09-23T14:48:13.65307Z",
+        "verification_state": "serving_unverified",
+        "verified_at": null,
+        "lkg_artifact_id": "artifact_1790174425_1856ff2f8290"
+      }
+    },
+    {
+      "at": "2026-09-23T14:50:40.673943+00:00",
+      "gray": {
+        "artifact_id": "artifact_1790174770_82c57aef2c61",
+        "artifact_created": "2026-09-23T14:46:10.384107Z",
+        "release_id": "artifactrel_1790174771_e2b146a76963",
+        "released_at": "2026-09-23T14:46:10.833396Z",
+        "verification_state": "serving_unverified",
+        "verified_at": null,
+        "lkg_artifact_id": "artifact_1790174770_82c57aef2c61"
+      },
+      "full": {
+        "artifact_id": "artifact_1790174770_82c57aef2c61",
+        "artifact_created": "2026-09-23T14:46:10.384107Z",
+        "release_id": "artifactrel_1790174893_bdc5866c0b1a",
+        "released_at": "2026-09-23T14:48:13.65307Z",
+        "verification_state": "verified",
+        "verified_at": "2026-09-23T14:50:15.919312Z",
+        "lkg_artifact_id": "artifact_1790174770_82c57aef2c61"
+      }
+    }
+  ],
+  "post_update_sampling": {
+    "first_at": "2026-09-23T14:44:05.594466+00:00",
+    "last_at": "2026-09-23T14:52:21.212245+00:00",
+    "dns_udp_tcp": 636,
+    "http": 159,
+    "failures": []
+  },
+  "independent_dns": {
+    "source": "US DNS node, read-only Python socket queries over SSH",
+    "first_at": "2026-09-23T14:47:46.839230+00:00",
+    "last_at": "2026-09-23T14:50:52.558357+00:00",
+    "queries": 432,
+    "failures": [],
+    "targets": [
+      {
+        "address": "15.204.94.71",
+        "zone": "fugue.pro",
+        "protocol": "udp",
+        "pass": true
+      },
+      {
+        "address": "15.204.94.71",
+        "zone": "fugue.pro",
+        "protocol": "tcp",
+        "pass": true
+      },
+      {
+        "address": "15.204.94.71",
+        "zone": "i00.pro",
+        "protocol": "udp",
+        "pass": true
+      },
+      {
+        "address": "15.204.94.71",
+        "zone": "i00.pro",
+        "protocol": "tcp",
+        "pass": true
+      },
+      {
+        "address": "15.204.94.71",
+        "zone": "oaix.cc",
+        "protocol": "udp",
+        "pass": true
+      },
+      {
+        "address": "15.204.94.71",
+        "zone": "oaix.cc",
+        "protocol": "tcp",
+        "pass": true
+      },
+      {
+        "address": "51.38.126.103",
+        "zone": "fugue.pro",
+        "protocol": "udp",
+        "pass": true
+      },
+      {
+        "address": "51.38.126.103",
+        "zone": "fugue.pro",
+        "protocol": "tcp",
+        "pass": true
+      },
+      {
+        "address": "51.38.126.103",
+        "zone": "i00.pro",
+        "protocol": "udp",
+        "pass": true
+      },
+      {
+        "address": "51.38.126.103",
+        "zone": "i00.pro",
+        "protocol": "tcp",
+        "pass": true
+      },
+      {
+        "address": "51.38.126.103",
+        "zone": "oaix.cc",
+        "protocol": "udp",
+        "pass": true
+      },
+      {
+        "address": "51.38.126.103",
+        "zone": "oaix.cc",
+        "protocol": "tcp",
+        "pass": true
+      }
+    ]
+  },
+  "sampling_notes": [
+    "Three laptop DNS timeouts preceded this release; root cause unconfirmed. Later independent node sample passed 432/432.",
+    "Initial independent dig command failed because dig was not installed. No package was installed; Python socket queries were used.",
+    "One authenticated Pod exec attempt failed and was re-read; both original Pods were healthy with 465/465 fresh proofs."
+  ]
+}

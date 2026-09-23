@@ -4192,6 +4192,21 @@ P0-EP-X 生产取证确认 canonical Service selector 仅有 app 标签，会同
 - [x] 干净 prepush 首次因 API 全量测试超过 55 秒超时，保留失败回执；同一目录完整 API 测试 82 秒通过后，完整 prepush 重跑 17.4 秒通过，没有跳过检查。后端 `f708d17a34b26e7eaf3a1d4b08c6488f8bcfb4f0` 经 [CI 35867389145](https://github.com/yym68686/fugue/actions/runs/35867389145) 仅发布 API；前端契约 `587883c4` 的 [CI 35867405847](https://github.com/yym68686/fugue-web/actions/runs/35867405847) 成功。
 - [x] API 2/2 Ready，两个实际 Pod 镜像与 Guardian immutable receipt、计划 digest 和准确源码提交一致。两个原 DNS Pod UID、镜像/容器状态与公网 Service 保持；发布后心跳 sequence 持续推进，credential ID 与现行 Service EndpointSlice 的 Pod UID 一致，runtime facts 的 assignment/fence/generation 匹配，未见心跳错误。当前 route/TLS/DNS 收敛分别 3/3、3/3、2/2。
 - [x] 13:23:07–13:42:00 UTC 连续 1,452 次公网 UDP/TCP DNS 查询与 363 次跨 Edge HTTP 全部通过。生产验证只读；伪造/移除/重复身份与故障场景由本地测试覆盖，没有向生产注入失败。
-- [ ] 本步仅约束新 Kubernetes DNS 心跳写入；历史 convergence 事实仍按 freshness 失效，独立签发的非 Kubernetes identity 保持既有认证路径。继续把运行事实读取及 convergence 绑定当前实际后端，完成候选/旧实例独立 cache 和回执、单一选中后端切换、配置变化时旧连接处理、UDP/TCP 排空及真实版本替换演练。Y42/Y44 的无中断更新任务仍未完成，不能据此恢复普通 DNS Pod 替换。
+- [x] Y46 已为收敛查询、诊断、人工 full/LKG 与自动推进增加当前后端预检，旧 Pod 的新鲜回执不能单独继续授权通过；该外部观察不是 Kubernetes 与数据库的跨系统事务。
+- [ ] 独立签发的非 Kubernetes identity 保持既有认证路径。继续完成绑定身份的运行事实读取、候选/旧实例独立 cache 和回执、单一选中后端切换、配置变化时旧连接处理、UDP/TCP 排空及真实版本替换演练。Y42/Y44 的无中断更新任务仍未完成，不能据此恢复普通 DNS Pod 替换。
 
 证据：[dns-public-backend-identity-2026-09-23.json](verification/dns-public-backend-identity-2026-09-23.json)。
+
+### P0-EP-Y46：收敛与发布门槛复核当前 DNS 后端
+
+- [x] 统一 API 层 live convergence evaluator：已签名且原本通过的 Kubernetes DNS 回执，在评估时重新核对 live authorized Pod 和唯一 Ready 公网 Service 后端。替换/未就绪显示 `dns_public_backend_mismatch`，查询不可用显示 unknown / `dns_public_backend_unavailable`；原始 observed heartbeat、时间、cursor 和 audit 均不改写。
+- [x] 收敛 API、published route diagnostics、traffic artifact diagnostics、人工 full promotion、人工 ReleaseSet verify-LKG 与 producer 自动 full/LKG 推进使用同一预检。metadata 读取总预算五秒，读取后重算 heartbeat freshness，不跨评估缓存；非通过事实不被探测改为通过，required membership 不因后端缺失而缩小。
+- [x] 保留 store 事务内的签名、lineage、release/fence、expected set 和 freshness 验证。Kubernetes 外部预检不具备跨系统原子性，也不是 serving lease；未将其宣称为 Pod 与数据库同步切换协议。旧 serving artifact/LKG 不因预检失败而删除或重编译。
+- [x] 本地回归覆盖新鲜旧回执遇到 replacement/unready/unavailable/cancel、读取时过期、不变的原始事实与审计、恢复后可重新通过；实际 producer 状态机分别验证 gray→full 与 full→verified 被旧后端阻止。恢复后的人工 full 与 fresh full receipts 的 verify-LKG 均通过。
+- [x] 修正测试夹具缺 LKG generation、重复验证已完成 gray 的预期错误；文件存储 topology 初始化机器/备份默认值与发布事实分开核验，没有放宽 artifact/release/LKG/consumer/audit 不变断言。最终全量 make test、专项 race、前端 contract:check、干净 prepush 均通过；冷目录 prepush 用时 135 秒，在与 CI 相同的 240 秒预算内完成。
+- [x] 后端 `4f8d95804b97670643cc822de082a1c6badb80f5` 经 [CI 35875281428](https://github.com/yym68686/fugue/actions/runs/35875281428) 仅发布 API，2/2 Ready，两个 Pod 镜像与 immutable receipt/plan digest 匹配；前端契约 `228ad8b7` 的 [CI 35875321148](https://github.com/yym68686/fugue-web/actions/runs/35875321148) 成功。
+- [x] 新 API Pod 日志确认 14:46:10 UTC 创建 `artifact_1790174770_82c57aef2c61`，14:48:13 自动进入 full `artifactrel_1790174893_bdc5866c0b1a`，14:50:15 验证为 LKG。期间旧 verified LKG 保留，配置推进无人工写入；route/TLS/DNS 分别 3/3、3/3、2/2 收敛。实际 Pod UID、Service EndpointSlice、credential ID、runtime assignment/fence 逐一匹配。
+- [x] 生产 convergence 约 1.04 秒，两地 routes 查询约 1.18/0.95 秒，均 162 条且组健康。全窗口 4,092 次 DNS 与 1,023 次 HTTP，保留发布前的三次单条 DNS timeout；更新完成后的 636 次 DNS、159 次 HTTP 全部通过，独立美国节点连续 432 次 UDP/TCP 查询全部通过。初次远端缺 dig 和一次 exec 失败由只读重试复核；没有把三次 timeout 的根因断言为已定位或已修复。
+- [ ] 继续定位尚未确认原因的发布前 DNS timeout，并完成绑定真实后端身份的 runtime-facts 读取、缓存/回执隔离、单后端切换与安全排空。当前结果只证明 API 发布及正常配置恢复周期，DNS Pod 未替换，Y42/Y44 的连接连续性验收仍待完成。
+
+证据：[dns-current-backend-convergence-2026-09-23.json](verification/dns-current-backend-convergence-2026-09-23.json)。
