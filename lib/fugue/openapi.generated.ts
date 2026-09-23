@@ -558,7 +558,10 @@ export interface paths {
     get: operations["edgeDNSBundle"];
   };
   "/v1/dns/nodes": {
-    /** List DNS Nodes */
+    /**
+     * List DNS Nodes
+     * @description Registered Kubernetes artifact consumers obtain serving health and generations from the current identity-bound public backend observation. Unavailable observations return unknown health and retain node membership; they never reuse legacy inventory health. Counters and endpoint metadata remain historical inventory values, identified by serving_observation.
+     */
     get: operations["listDNSNodes"];
   };
   "/v1/dns/traffic-overrides": {
@@ -610,7 +613,10 @@ export interface paths {
     patch: operations["patchHostedDNSRecord"];
   };
   "/v1/dns/nodes/{dns_node_id}": {
-    /** Get DNS Node */
+    /**
+     * Get DNS Node
+     * @description Kubernetes artifact-consumer serving health uses the selected backend's verified runtime facts. Unavailable or mismatched facts yield unknown health. Legacy counters remain historical and are not current-backend readiness evidence; see serving_observation.inventory_observed_at.
+     */
     get: operations["getDNSNode"];
   };
   "/v1/dns/heartbeat": {
@@ -4800,6 +4806,7 @@ export interface components {
       deleted: boolean;
       challenge: components["schemas"]["DNSACMEChallenge"];
     };
+    /** @description Node inventory with an optional authoritative serving observation. When serving_observation is present, status, healthy and serving generations reflect that observation. Numeric counters, listener addresses, record_count and inventory timestamps remain historical legacy inventory values and do not authorize current serving readiness. */
     DNSNode: {
       id: string;
       physical_node_id?: string;
@@ -4848,6 +4855,23 @@ export interface components {
       created_at: string;
       /** Format: date-time */
       updated_at: string;
+      serving_observation?: components["schemas"]["DNSNodeServingObservation"];
+    };
+    DNSNodeServingObservation: {
+      /** @enum {string} */
+      source: "selected_artifact_consumer";
+      /** @enum {string} */
+      state: "ready" | "not_ready" | "unknown";
+      /** Format: date-time */
+      evaluated_at: string;
+      /** Format: date-time */
+      observed_at?: string;
+      /** Format: date-time */
+      inventory_observed_at?: string;
+      backend_pod_uid?: string;
+      artifact_id?: string;
+      release_set_id?: string;
+      artifact_release_id?: string;
     };
     DNSNodeListResponse: {
       nodes: components["schemas"]["DNSNode"][];
@@ -4920,8 +4944,10 @@ export interface components {
       pass: boolean;
       message?: string;
     };
+    /** @description For enrolled Kubernetes consumers, serving_observation supplies current serving health. Legacy counters remain historical and cannot independently pass or fail the selected backend cache/readiness gate. */
     DNSDelegationNodeCheck: {
       dns_node_id: string;
+      serving_observation?: components["schemas"]["DNSNodeServingObservation"];
       physical_node_id?: string;
       edge_group_id?: string;
       public_ip?: string;
@@ -14637,7 +14663,10 @@ export interface operations {
       default: components["responses"]["ErrorResponse"];
     };
   };
-  /** List DNS Nodes */
+  /**
+   * List DNS Nodes
+   * @description Registered Kubernetes artifact consumers obtain serving health and generations from the current identity-bound public backend observation. Unavailable observations return unknown health and retain node membership; they never reuse legacy inventory health. Counters and endpoint metadata remain historical inventory values, identified by serving_observation.
+   */
   listDNSNodes: {
     parameters: {
       query?: {
@@ -14895,7 +14924,10 @@ export interface operations {
       default: components["responses"]["ErrorResponse"];
     };
   };
-  /** Get DNS Node */
+  /**
+   * Get DNS Node
+   * @description Kubernetes artifact-consumer serving health uses the selected backend's verified runtime facts. Unavailable or mismatched facts yield unknown health. Legacy counters remain historical and are not current-backend readiness evidence; see serving_observation.inventory_observed_at.
+   */
   getDNSNode: {
     parameters: {
       path: {
