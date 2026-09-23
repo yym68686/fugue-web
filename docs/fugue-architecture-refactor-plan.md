@@ -38,7 +38,7 @@ Runtime Facts / ACK / LKG
 
 签名 producer policy 已启用自动 serving：固定基础 intent 与输入 policy，捕获业务投影后编译、gray、full，并在观察窗口与消费者收敛通过后更新 LKG。gray/full 各至少观察 120 秒，600 秒未完成则恢复 verified 基线。policy 授权版本变化的生产演练已验证：5.321 秒内发布恢复版本，八个消费者随后收敛，原五份 positive LKG 保留。超时专用演练、重启恢复与连接连续性仍待补齐。
 
-当前已验收代码：API `b93e69a8`、schema migrator `43e0052d`、两地 DNS client `56749f65`、release guardian `7faf072a`、Controller `df46c017`、两地 Edge worker `7cff4f63`。Y26 已删除 Edge route-intents HTTP serving 路径中的业务表即时生成及 standalone LKG 回退，只返回适用的已发布 TrafficReleaseSet；缺少/损坏发布时返回 503，consumer 保留当前 artifact。业务投影仍由配置 producer 独立完成。
+当前生产代码：API 与两地 DNS client `b6cdad45`、schema migrator `43e0052d`、release guardian `7faf072a`、Controller `df46c017`、两地 Edge worker `7cff4f63`。Y42 的 DNS runtime facts 功能已核对；发布期间再次确认单 Pod 独占 hostPort 的 UDP/TCP 中断，连续性修复优先于下一次普通功能迁移，不能将 CI 成功视为该故障已解决。Y26 已删除 Edge route-intents HTTP serving 路径中的业务表即时生成及 standalone LKG 回退，只返回适用的已发布 TrafficReleaseSet；缺少/损坏发布时返回 503，consumer 保留当前 artifact。业务投影仍由配置 producer 独立完成。
 
 历史 revision 资源回收、不可变执行快照保护、排除路由负向证明和 DNS 通配监听恢复均已完成相应生产验收，详见 Y10–Y26。发布监控保留了 SSH 采集失败与一次 US A/B 期间 TLS EOF；后续独立复查正常，不能据此声称所有发布均零中断。
 
@@ -4146,3 +4146,16 @@ P0-EP-X 生产取证确认 canonical Service selector 仅有 app 标签，会同
 - [ ] 下一步迁移 `explainRouteForRobustness`、`robustnessTrafficSafetyChecks` 和 `trafficSafetyEligibleEdgeNodeCount` 的业务表/环境/default 来源；完成后再移除对应 legacy projection wrapper。剩余故障恢复演练、环境退役和最终简化清单继续保持未完成。
 
 证据：[published-route-diagnostics-2026-09-23.json](verification/published-route-diagnostics-2026-09-23.json)。
+
+### P0-EP-Y42：DNS serving 运行事实导出与更新中断取证
+
+- [x] 审计确认旧 traffic-safety 的 DNS-eligible 计数仅使用通用 Edge inventory 和业务 route policy，控制面未持有 DNS 实际使用的逐目标证明。保留原迁移目标，先补齐实际运行事实，不能仅改口径为节点健康数后声称迁移完成。
+- [x] DNS 节点 HTTP 新增只读 `/runtime-facts` 与强类型 `dnsfacts.Snapshot`，仅从当前内存 serving snapshot 读取。响应绑定 node/group、exact assignment、parent digest、route artifact 和 plan digest；证明保留原始 checked_at/valid_until，不返回域名、origin、token 或原始错误。
+- [x] 每次读取复核父/成员签名、当前 trust key、signed plan/policy 与 serving snapshot；失效、错误 fence/digest、重复或负向证明不能成为 ready。过期 checkpoint、监听故障不报整体 ready。缺 serving state、撤销 key 或读取中 snapshot 替换返回 503，不读取 staged candidate/legacy cache，也不触发探测、续期、heartbeat 或配置写入。
+- [x] 过期、错误发布、错误 digest、重复、负向、撤销 key、无当前状态、独立 liveness 与不写 cache/不访问控制面的回归通过；全量 make test、专项 race、干净 prepush 和前端 contract:check 通过。
+- [x] `b6cdad45` 经 [CI 35851442362](https://github.com/yym68686/fugue/actions/runs/35851442362) 发布 API 与两地 client；三份精确镜像回执匹配，API 2/2、两个替换后 DNS Pod Ready。通过授权 cluster exec 绑定 Pod/node 读取，两地各 465 条 proof 与当前 artifact 的 plan、release、fence、lineage 逐项一致，全部 ready；连续读取的 465 条原始证明均未续期。plan digest 使用仓库 Go 类型序列化验证，未用不同 JSON 对象排序代替。
+- [x] 证据窗口记录 282 次 HTTP 全部 200，1128 次 DNS UDP/TCP 查询中 12 次失败：德国 11:01:28 UTC、美国 11:02:45 UTC 各一轮，三个 zone 均出现 UDP timeout/TCP EOF。后续连续采样与实际节点健康恢复；失败完整保留，不能计为无中断发布。
+- [ ] 修复现有单 Pod 独占 `hostPort:53`、`RollingUpdate/maxUnavailable=1` 的节点级监听空窗，并验证长 TCP 会话、连续 UDP/TCP、候选失败保留旧服务及恢复。当前 DNS 进程直接持有监听，不能靠延长 readiness/termination delay 或改为 surge=1 就宣称解决端口冲突和连接中断。
+- [ ] 连续性修复后，为控制面建立绑定真实 Pod/节点身份和当前 assignment 的事实读取；将 DNS 实际 eligibility、内部 robustness/traffic-safety 和阈值来源迁到 artifact/facts，再删除旧 builder。节点 JSON 未独立签名，必须通过可信节点传输取得并复核，不能直接把任意 HTTP 响应当授权。
+
+本步功能已部署，更新连续性故障未解决，Y42 不能整体关闭。证据：[dns-serving-runtime-facts-2026-09-23.json](verification/dns-serving-runtime-facts-2026-09-23.json)。

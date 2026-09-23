@@ -11852,6 +11852,40 @@ export interface components {
       scope_key: string;
       artifact_kinds: string[];
     };
+    DNSServingRuntimeFacts: {
+      /** @enum {string} */
+      schema: "fugue.dns.runtime-facts/v1";
+      node_id: string;
+      edge_group_id: string;
+      assignment: components["schemas"]["PlatformConsumerAssignment"];
+      parent_digest: string;
+      route_artifact_id: string;
+      plan_digest: string;
+      /** Format: date-time */
+      observed_at: string;
+      /** Format: date-time */
+      evaluated_at: string;
+      /** Format: date-time */
+      checkpoint_valid_until: string;
+      ready: boolean;
+      facts: {
+          probe_id: string;
+          ready: boolean;
+          proof: {
+            digest: string;
+            version: string;
+            edge_id: string;
+            group_id: string;
+            state?: string;
+            app_traffic_digest?: string;
+            traffic_release?: components["schemas"]["TrafficReleaseBinding"];
+            /** Format: date-time */
+            valid_until: string;
+            /** Format: date-time */
+            checked_at: string;
+          };
+        }[];
+    };
     PlatformConsumerAssignment: {
       expected_consumer_set_id: string;
       release_set_id: string;
