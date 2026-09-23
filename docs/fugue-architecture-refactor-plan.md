@@ -4210,3 +4210,16 @@ P0-EP-X 生产取证确认 canonical Service selector 仅有 app 标签，会同
 - [ ] 继续定位尚未确认原因的发布前 DNS timeout，并完成绑定真实后端身份的 runtime-facts 读取、缓存/回执隔离、单后端切换与安全排空。当前结果只证明 API 发布及正常配置恢复周期，DNS Pod 未替换，Y42/Y44 的连接连续性验收仍待完成。
 
 证据：[dns-current-backend-convergence-2026-09-23.json](verification/dns-current-backend-convergence-2026-09-23.json)。
+
+### P0-EP-Y47：控制面读取绑定真实 DNS 后端的 Runtime Facts
+
+- [x] 新增管理员只读 `GET /v1/admin/platform-state/dns-runtime-facts/{node_id}`。读取先解析当前签名 DNS consumer assignment 和 identity-bound heartbeat，再核对当前 Pod UID、ServiceAccount、节点、受管理公网 Service、EndpointSlice 和唯一 Ready backend；使用 Kubernetes Pod proxy 读取声明的 HTTP readiness port，禁用重定向，不转发凭证到目标端口，响应限制 8 MiB。
+- [x] 读取结束重新核对 Pod/Service/EndpointSlice、当前发布、expected set、artifact lineage 和 route projection。Pod proxy 返回的 snapshot 必须与 signed parent/child、route artifact、assignment、plan digest、traffic binding 和原始 proof 时间一致；未知节点、切换中、身份不匹配、查询失败、伪造/过期/重复 proof 返回 503，不回退业务表、legacy cache 或其他节点事实。
+- [x] 保留原始 `observed_at`、`checked_at`、`valid_until` 和 proof 内容；`ready_probe_ids` 与 `ready` 只在当前 evaluated_at 下重新计算，不续期证明。负向/过期事实可作为诊断返回但不会变成 ready；读取不会 probe、heartbeat、写 cache、修改 artifact、release 或 LKG。响应包含 Pod/Service UID，便于审计实际数据面归属。
+- [x] OpenAPI、生成路由和前端类型已同步。回归覆盖重定向、未知字段、超大响应、无 HTTP port、重复 container、Pod/Service/EndpointSlice 变化、错误 assignment、错误 digest、过期/负向/未来 proof、取消和不变持久状态；两台现网 Pod proxy 均返回 465 条 facts，直接 proxy 与控制面响应逐字段一致。
+- [x] 干净 prepush 用时 131 秒，在 240 秒 CI 预算内通过；全量 make test、专项 race、前端 contract:check 均通过。后端 `003d167da801c2286997de013ed0bac8f73be0c9` 经 [CI 35883795851](https://github.com/yym68686/fugue/actions/runs/35883795851) 成功发布 API 2/2；前端契约 `f24bf129` 经 [CI 35883814618](https://github.com/yym68686/fugue-web/actions/runs/35883814618) 成功。
+- [x] 生产验收最终在稳定 full assignment 下通过：DE/US 两个实际 Pod UID 与公网 Service EndpointSlice 匹配；每节点 `fact_count=465`、`ready_fact_count=465`，两次控制面读取和直接 Pod proxy 各保留 465 条未变化 proof；assignment、parent/route/plan digest、fence、generation、traffic binding 逐项一致。控制面读取约 2.8–3.9 秒，未知 node=503、非法 node=400、未认证=401。发布切换期间的 503 记录了旧 heartbeat/expected-set 与当前 full/gray 不一致时的 fail-closed 行为。
+- [x] 发布窗口的中间 503 全部保留为一致性保护证据：DNS 正在 gray/full 或 expected-set 切换、旧 heartbeat 尚未跟上时，接口拒绝混合快照；DNS 自身日志显示后续 heartbeat、serving 和 465/465 readiness 恢复。该行为符合“读取必须绑定当前发布”的语义，不声称切换期间持续返回旧事实。
+- [ ] 继续分析已经保留的公网 UDP timeout（本窗口监控共 3,492 次 DNS、873 次 HTTP，失败样本独立保留；定向 Python 查询 54/54、独立连续查询 432/432 全通过；另一次 600 次并发 `dig` 中 595 成功、5 超时。按节点抓包覆盖开始后的 588 次查询，583 个成功在服务端看到请求和应答，5 个超时 ID 在两端服务节点均没有匹配 ingress 包；这提示丢包可能发生在服务节点之前，但没有客户端抓包，根因仍未确认），并完成候选/旧实例独立 cache、回执隔离、单后端切换、UDP/TCP 排空和真实 DNS Pod 替换演练。Y42/Y44 无中断更新仍未完成。
+
+证据：[dns-backend-runtime-facts-2026-09-23.json](verification/dns-backend-runtime-facts-2026-09-23.json)。

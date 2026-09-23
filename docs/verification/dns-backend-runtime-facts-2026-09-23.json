@@ -1,0 +1,711 @@
+{
+  "at": "2026-09-23T16:38:48.818024+00:00",
+  "commit": "003d167da801c2286997de013ed0bac8f73be0c9",
+  "ci": "https://github.com/yym68686/fugue/actions/runs/35883795851",
+  "frontend_ci": "https://github.com/yym68686/fugue-web/actions/runs/35883814618",
+  "api": {
+    "component": "api",
+    "image_tag": "003d167da801c2286997de013ed0bac8f73be0c9",
+    "ready_replicas": 2,
+    "updated_replicas": 2,
+    "desired_replicas": 2
+  },
+  "api_pods": [
+    "fugue-fugue-api-cbb79769d-4c25l",
+    "fugue-fugue-api-cbb79769d-w2mvv"
+  ],
+  "receipt": {
+    "apiVersion": "release.fugue.dev/v2",
+    "component": "api",
+    "configDigest": "sha256:240759f6e4b207c04c39df33eec3f41d4f06c2f461b94cb1e9bc3615e926f3a5",
+    "configSha": "003d167da801c2286997de013ed0bac8f73be0c9",
+    "immutableRef": "ghcr.io/yym68686/fugue-api@sha256:15f6ccc38f390097c53055003d24870f9e14f5ba6c5d883162a13dd82d7bc826",
+    "intentDigest": "sha256:8593e9bb4291f68c3f9a585c12f2a95a80aff759d656c1bc1390d85f0ef9ae23",
+    "kind": "ImmutableComponentArtifactReceipt",
+    "ociRevision": "003d167da801c2286997de013ed0bac8f73be0c9",
+    "planDigest": "sha256:47de623bd192024018a95e7ba878f5e0790b1428019e9d27e26c259fcc31aa21",
+    "platform": "linux/amd64",
+    "platformManifestDigest": "sha256:a2caea686a0d1620a9eaffb0016330846eeb208cef76ec1f2dd8875d4ba8d81e",
+    "receiptDigest": "sha256:2e128f60280f8b9548b55dea3cfd6554f6e1e9597b9c2743bb9004e740ab837c",
+    "repository": "ghcr.io/yym68686/fugue-api",
+    "sourceSha": "003d167da801c2286997de013ed0bac8f73be0c9",
+    "sourceTag": "003d167da801c2286997de013ed0bac8f73be0c9",
+    "topDigest": "sha256:15f6ccc38f390097c53055003d24870f9e14f5ba6c5d883162a13dd82d7bc826",
+    "verification": "registry_manifest_config_and_layer_get"
+  },
+  "release_plan": {
+    "apiVersion": "release.fugue.dev/v2",
+    "baseSha": "4f8d95804b97670643cc822de082a1c6badb80f5",
+    "headSha": "003d167da801c2286997de013ed0bac8f73be0c9",
+    "kind": "ProductionReleasePlan",
+    "planDigest": "sha256:47de623bd192024018a95e7ba878f5e0790b1428019e9d27e26c259fcc31aa21",
+    "releases": [
+      {
+        "artifact": {
+          "buildPackage": "./cmd/fugue-api",
+          "context": ".",
+          "dockerfile": "Dockerfile.api",
+          "repository": "ghcr.io/yym68686/fugue-api"
+        },
+        "changedPaths": [
+          "internal/api/platform_dns_artifact_view.go",
+          "internal/api/platform_dns_backend.go",
+          "internal/api/platform_dns_runtime_facts.go",
+          "internal/api/routes_gen.go",
+          "internal/apispec/spec_gen.go"
+        ],
+        "component": "api",
+        "concurrency": "fugue-production-api",
+        "delivery": {
+          "dependencyService": "fugue-fugue",
+          "group": "global",
+          "writer": "guardian"
+        },
+        "expectedPreviousConfigSha": "4f8d95804b97670643cc822de082a1c6badb80f5",
+        "expectedPreviousImageDigest": "sha256:cc02897fc5a75284479e3d5ccc5284e3abf5d2252c4588acd04fa6c39b701507",
+        "expectedPreviousManifestSha": "4f8d95804b97670643cc822de082a1c6badb80f5",
+        "expectedPreviousOciRevision": "4f8d95804b97670643cc822de082a1c6badb80f5",
+        "expectedPreviousPresent": true,
+        "health": [
+          {
+            "name": "fugue-fugue-api",
+            "type": "deployment"
+          },
+          {
+            "expected": "ok",
+            "name": "fugue-fugue-api",
+            "path": "/healthz",
+            "port": "http",
+            "type": "pod-http"
+          },
+          {
+            "address": "51.38.126.103:443",
+            "expected": "\"status\":\"ok\"",
+            "host": "api.fugue.pro",
+            "name": "api-via-edge-group-country-de",
+            "path": "/healthz",
+            "type": "public-route-http"
+          },
+          {
+            "address": "15.204.94.71:443",
+            "expected": "\"status\":\"ok\"",
+            "host": "api.fugue.pro",
+            "name": "api-via-edge-group-country-us",
+            "path": "/healthz",
+            "type": "public-route-http"
+          }
+        ],
+        "intentDigest": "sha256:8593e9bb4291f68c3f9a585c12f2a95a80aff759d656c1bc1390d85f0ef9ae23",
+        "intentGeneration": 595,
+        "intentPath": "deploy/releases/api/intent.json",
+        "manifestPath": "deploy/releases/api/deployment.json",
+        "workload": {
+          "apiVersion": "apps/v1",
+          "container": "api",
+          "fieldManager": "fugue-api-declarative",
+          "kind": "Deployment",
+          "name": "fugue-fugue-api",
+          "namespace": "fugue-system",
+          "replicas": 2,
+          "rolloutMode": "rolling"
+        }
+      }
+    ]
+  },
+  "observations": [
+    {
+      "backend": {
+        "namespace": "fugue-system",
+        "pod_name": "fugue-fugue-dns-country-de-h264p",
+        "pod_uid": "1430db17-c77e-4cc6-9c64-fd8da7b13a8a",
+        "service_name": "fugue-dns-public-de",
+        "service_uid": "be149bb0-24a0-4835-9f82-40aae5645323"
+      },
+      "node": "vps-84c8f0a9",
+      "assignment": {
+        "expected_consumer_set_id": "expectedconsumerset_feeb7082b5244797",
+        "release_set_id": "artifact_1790180925_dd98723515e2",
+        "artifact_release_id": "artifactrel_1790181048_1cf402808578",
+        "artifact_kind": "dns_answer_bundle",
+        "scope_key": "global",
+        "expected_generation": "dns-905bd71738b86d40419c60e3c7c552e0de7e6554147b25a1eb6d6663308f888f",
+        "revision": 8,
+        "artifact_id": "artifact_1790180924_dfdc05c80c65",
+        "content_hash": "sha256:fd93329c2afdcaa478764852cc003db80b6458c71570e7ce31b105210e7af5e6",
+        "generation_sequence": 1003,
+        "release_channel": "full",
+        "fencing_token": 205,
+        "expected_protocol_version": "v1",
+        "expected_schema_version": "v1",
+        "heartbeat_deadline": "2026-09-23T16:32:19.016992338Z",
+        "convergence_deadline": "2026-09-23T16:35:49.016992338Z"
+      },
+      "parent_digest": "sha256:d64283beb2cb99ffc23d43bc17554fba0d47421af89d3cd0f6cd449c6d9d7a04",
+      "plan_digest": "sha256:23ad7d8378173f657e733fa48eac8b5dae0d63c6d04e4192e439fae8173bc809",
+      "fact_count": 465,
+      "ready_fact_count": 465,
+      "direct_unchanged_proofs": 465,
+      "repeat_unchanged_proofs": 465,
+      "elapsed_seconds": 3.912758457940072,
+      "snapshot_observed_at": "2026-09-23T16:38:26.769846589Z",
+      "snapshot_evaluated_at": "2026-09-23T16:38:28.32824094Z",
+      "evaluated_at": "2026-09-23T16:38:29.852693081Z",
+      "ready": true,
+      "checkpoint_valid_until": "2026-09-24T16:38:26.769846589Z"
+    },
+    {
+      "backend": {
+        "namespace": "fugue-system",
+        "pod_name": "fugue-fugue-dns-jlbl9",
+        "pod_uid": "bd7b5281-e6c4-45e1-b17d-fb17fca5eaac",
+        "service_name": "fugue-dns-public-us",
+        "service_uid": "182da187-4dbc-4a7b-a42b-5725d72e0ca1"
+      },
+      "node": "vps-591f4447",
+      "assignment": {
+        "expected_consumer_set_id": "expectedconsumerset_feeb7082b5244797",
+        "release_set_id": "artifact_1790180925_dd98723515e2",
+        "artifact_release_id": "artifactrel_1790181048_1cf402808578",
+        "artifact_kind": "dns_answer_bundle",
+        "scope_key": "global",
+        "expected_generation": "dns-905bd71738b86d40419c60e3c7c552e0de7e6554147b25a1eb6d6663308f888f",
+        "revision": 8,
+        "artifact_id": "artifact_1790180924_dfdc05c80c65",
+        "content_hash": "sha256:fd93329c2afdcaa478764852cc003db80b6458c71570e7ce31b105210e7af5e6",
+        "generation_sequence": 1003,
+        "release_channel": "full",
+        "fencing_token": 205,
+        "expected_protocol_version": "v1",
+        "expected_schema_version": "v1",
+        "heartbeat_deadline": "2026-09-23T16:32:19.016992338Z",
+        "convergence_deadline": "2026-09-23T16:35:49.016992338Z"
+      },
+      "parent_digest": "sha256:d64283beb2cb99ffc23d43bc17554fba0d47421af89d3cd0f6cd449c6d9d7a04",
+      "plan_digest": "sha256:23ad7d8378173f657e733fa48eac8b5dae0d63c6d04e4192e439fae8173bc809",
+      "fact_count": 465,
+      "ready_fact_count": 465,
+      "direct_unchanged_proofs": 465,
+      "repeat_unchanged_proofs": 465,
+      "elapsed_seconds": 2.8063241250347346,
+      "snapshot_observed_at": "2026-09-23T16:38:00.699569299Z",
+      "snapshot_evaluated_at": "2026-09-23T16:38:28.193897769Z",
+      "evaluated_at": "2026-09-23T16:38:28.757334766Z",
+      "ready": true,
+      "checkpoint_valid_until": "2026-09-24T16:38:00.699569299Z"
+    }
+  ],
+  "status_codes": {
+    "INVALID": 400,
+    "unknown-node-for-readonly-verification": 503,
+    "unauthenticated": 401
+  },
+  "prepush": {
+    "apiVersion": "prepush.fugue.dev/v1",
+    "baseCommit": "4f8d95804b97670643cc822de082a1c6badb80f5",
+    "changedFilesDigest": "sha256:103a53bea1d088eb4e1ebf696292c09370bf7dfd59b6598b599724bd5412f9d0",
+    "checks": {
+      "affected-tests": {
+        "durationMs": 110294,
+        "status": "pass"
+      },
+      "affected-vet": {
+        "durationMs": 3241,
+        "status": "pass"
+      },
+      "compile-all": {
+        "durationMs": 17008,
+        "status": "pass"
+      },
+      "declarative-release-tests": {
+        "durationMs": 18144,
+        "status": "pass"
+      },
+      "diff-check": {
+        "durationMs": 481,
+        "status": "pass"
+      },
+      "gofmt": {
+        "durationMs": 50,
+        "status": "pass"
+      },
+      "helm-lint-render": {
+        "durationMs": 0,
+        "status": "skipped"
+      },
+      "openapi-generated": {
+        "durationMs": 987,
+        "status": "pass"
+      },
+      "shell-syntax": {
+        "durationMs": 0,
+        "status": "pass"
+      }
+    },
+    "elapsedMs": 130898,
+    "kind": "PrepushReceipt",
+    "sourceCommit": "003d167da801c2286997de013ed0bac8f73be0c9",
+    "status": "pass"
+  },
+  "initial_reads": [
+    {
+      "at": "2026-09-23T15:53:01.881255+00:00",
+      "node": "vps-84c8f0a9",
+      "code": 200,
+      "duration": 3.822101084049791,
+      "ready": true,
+      "snapshot_assignment": {
+        "expected_consumer_set_id": "expectedconsumerset_19e33263bdf150d8",
+        "release_set_id": "artifact_1790178648_a1a439851d98",
+        "artifact_release_id": "artifactrel_1790178649_5dc7d24442f6",
+        "artifact_kind": "dns_answer_bundle",
+        "scope_key": "global",
+        "expected_generation": "dns-1ec89d7c214316d96775b201207293bd688e2e14db2dfcdc3fa1f090eb280f36",
+        "revision": 5,
+        "artifact_id": "artifact_1790178648_5ccad077251d",
+        "content_hash": "sha256:4c64dd896151cf02f3905a5cdf2fb26166001a95334df273c109784598f4c73d",
+        "generation_sequence": 997,
+        "release_channel": "gray",
+        "fencing_token": 199,
+        "expected_protocol_version": "v1",
+        "expected_schema_version": "v1",
+        "heartbeat_deadline": "2026-09-23T15:52:19.990024367Z",
+        "convergence_deadline": "2026-09-23T15:55:49.990024367Z"
+      },
+      "error": null
+    },
+    {
+      "at": "2026-09-23T15:53:05.313640+00:00",
+      "node": "vps-84c8f0a9",
+      "code": 200,
+      "duration": 3.428154416033067,
+      "ready": true,
+      "snapshot_assignment": {
+        "expected_consumer_set_id": "expectedconsumerset_19e33263bdf150d8",
+        "release_set_id": "artifact_1790178648_a1a439851d98",
+        "artifact_release_id": "artifactrel_1790178649_5dc7d24442f6",
+        "artifact_kind": "dns_answer_bundle",
+        "scope_key": "global",
+        "expected_generation": "dns-1ec89d7c214316d96775b201207293bd688e2e14db2dfcdc3fa1f090eb280f36",
+        "revision": 5,
+        "artifact_id": "artifact_1790178648_5ccad077251d",
+        "content_hash": "sha256:4c64dd896151cf02f3905a5cdf2fb26166001a95334df273c109784598f4c73d",
+        "generation_sequence": 997,
+        "release_channel": "gray",
+        "fencing_token": 199,
+        "expected_protocol_version": "v1",
+        "expected_schema_version": "v1",
+        "heartbeat_deadline": "2026-09-23T15:52:19.990024367Z",
+        "convergence_deadline": "2026-09-23T15:55:49.990024367Z"
+      },
+      "error": null
+    },
+    {
+      "at": "2026-09-23T15:53:08.131831+00:00",
+      "node": "vps-591f4447",
+      "code": 200,
+      "duration": 2.814178208936937,
+      "ready": true,
+      "snapshot_assignment": {
+        "expected_consumer_set_id": "expectedconsumerset_19e33263bdf150d8",
+        "release_set_id": "artifact_1790178648_a1a439851d98",
+        "artifact_release_id": "artifactrel_1790178649_5dc7d24442f6",
+        "artifact_kind": "dns_answer_bundle",
+        "scope_key": "global",
+        "expected_generation": "dns-1ec89d7c214316d96775b201207293bd688e2e14db2dfcdc3fa1f090eb280f36",
+        "revision": 5,
+        "artifact_id": "artifact_1790178648_5ccad077251d",
+        "content_hash": "sha256:4c64dd896151cf02f3905a5cdf2fb26166001a95334df273c109784598f4c73d",
+        "generation_sequence": 997,
+        "release_channel": "gray",
+        "fencing_token": 199,
+        "expected_protocol_version": "v1",
+        "expected_schema_version": "v1",
+        "heartbeat_deadline": "2026-09-23T15:52:19.990024367Z",
+        "convergence_deadline": "2026-09-23T15:55:49.990024367Z"
+      },
+      "error": null
+    },
+    {
+      "at": "2026-09-23T15:53:10.810826+00:00",
+      "node": "vps-591f4447",
+      "code": 200,
+      "duration": 2.6723844170337543,
+      "ready": true,
+      "snapshot_assignment": {
+        "expected_consumer_set_id": "expectedconsumerset_19e33263bdf150d8",
+        "release_set_id": "artifact_1790178648_a1a439851d98",
+        "artifact_release_id": "artifactrel_1790178649_5dc7d24442f6",
+        "artifact_kind": "dns_answer_bundle",
+        "scope_key": "global",
+        "expected_generation": "dns-1ec89d7c214316d96775b201207293bd688e2e14db2dfcdc3fa1f090eb280f36",
+        "revision": 5,
+        "artifact_id": "artifact_1790178648_5ccad077251d",
+        "content_hash": "sha256:4c64dd896151cf02f3905a5cdf2fb26166001a95334df273c109784598f4c73d",
+        "generation_sequence": 997,
+        "release_channel": "gray",
+        "fencing_token": 199,
+        "expected_protocol_version": "v1",
+        "expected_schema_version": "v1",
+        "heartbeat_deadline": "2026-09-23T15:52:19.990024367Z",
+        "convergence_deadline": "2026-09-23T15:55:49.990024367Z"
+      },
+      "error": null
+    }
+  ],
+  "sampling": {
+    "first_at": "2026-09-23T15:52:16.235127+00:00",
+    "last_at": "2026-09-23T16:38:40.723938+00:00",
+    "dns_udp_tcp": 3492,
+    "http": 873,
+    "failures": [
+      {
+        "at": "2026-09-23T15:59:52.783939+00:00",
+        "kind": "dns",
+        "server": "15.204.94.71",
+        "zone": "i00.pro",
+        "protocol": "udp",
+        "pass": false,
+        "sequence": null,
+        "exit": 9,
+        "error": "\n; <<>> DiG 9.10.6 <<>> +notcp +time=2 +tries=1 @15.204.94.71 i00.pro SOA +noall +comments +answer\n; (1 server found)\n;; global options: +cmd\n;; connection timed out; no servers could be reached\n"
+      },
+      {
+        "at": "2026-09-23T16:00:21.655190+00:00",
+        "kind": "dns",
+        "server": "15.204.94.71",
+        "zone": "fugue.pro",
+        "protocol": "udp",
+        "pass": false,
+        "sequence": null,
+        "exit": 9,
+        "error": "\n; <<>> DiG 9.10.6 <<>> +notcp +time=2 +tries=1 @15.204.94.71 fugue.pro SOA +noall +comments +answer\n; (1 server found)\n;; global options: +cmd\n;; connection timed out; no servers could be reached\n"
+      },
+      {
+        "at": "2026-09-23T16:00:32.454799+00:00",
+        "kind": "dns",
+        "server": "15.204.94.71",
+        "zone": "oaix.cc",
+        "protocol": "udp",
+        "pass": false,
+        "sequence": null,
+        "exit": 9,
+        "error": "\n; <<>> DiG 9.10.6 <<>> +notcp +time=2 +tries=1 @15.204.94.71 oaix.cc SOA +noall +comments +answer\n; (1 server found)\n;; global options: +cmd\n;; connection timed out; no servers could be reached\n"
+      },
+      {
+        "at": "2026-09-23T16:01:20.852563+00:00",
+        "kind": "dns",
+        "server": "15.204.94.71",
+        "zone": "oaix.cc",
+        "protocol": "udp",
+        "pass": false,
+        "sequence": null,
+        "exit": 9,
+        "error": "\n; <<>> DiG 9.10.6 <<>> +notcp +time=2 +tries=1 @15.204.94.71 oaix.cc SOA +noall +comments +answer\n; (1 server found)\n;; global options: +cmd\n;; connection timed out; no servers could be reached\n"
+      },
+      {
+        "at": "2026-09-23T16:01:30.878155+00:00",
+        "kind": "dns",
+        "server": "15.204.94.71",
+        "zone": "fugue.pro",
+        "protocol": "udp",
+        "pass": false,
+        "sequence": null,
+        "exit": 9,
+        "error": "\n; <<>> DiG 9.10.6 <<>> +notcp +time=2 +tries=1 @15.204.94.71 fugue.pro SOA +noall +comments +answer\n; (1 server found)\n;; global options: +cmd\n;; connection timed out; no servers could be reached\n"
+      },
+      {
+        "at": "2026-09-23T16:06:17.534693+00:00",
+        "kind": "dns",
+        "server": "51.38.126.103",
+        "zone": "i00.pro",
+        "protocol": "udp",
+        "pass": false,
+        "sequence": null,
+        "exit": 9,
+        "error": "\n; <<>> DiG 9.10.6 <<>> +notcp +time=2 +tries=1 @51.38.126.103 i00.pro SOA +noall +comments +answer\n; (1 server found)\n;; global options: +cmd\n;; connection timed out; no servers could be reached\n"
+      },
+      {
+        "at": "2026-09-23T16:10:19.362813+00:00",
+        "kind": "dns",
+        "server": "51.38.126.103",
+        "zone": "i00.pro",
+        "protocol": "udp",
+        "pass": false,
+        "sequence": null,
+        "exit": 9,
+        "error": "\n; <<>> DiG 9.10.6 <<>> +notcp +time=2 +tries=1 @51.38.126.103 i00.pro SOA +noall +comments +answer\n; (1 server found)\n;; global options: +cmd\n;; connection timed out; no servers could be reached\n"
+      },
+      {
+        "at": "2026-09-23T16:17:16.718968+00:00",
+        "kind": "dns",
+        "server": "15.204.94.71",
+        "zone": "oaix.cc",
+        "protocol": "udp",
+        "pass": false,
+        "sequence": null,
+        "exit": 9,
+        "error": "\n; <<>> DiG 9.10.6 <<>> +notcp +time=2 +tries=1 @15.204.94.71 oaix.cc SOA +noall +comments +answer\n; (1 server found)\n;; global options: +cmd\n;; connection timed out; no servers could be reached\n"
+      },
+      {
+        "at": "2026-09-23T16:18:17.525168+00:00",
+        "kind": "dns",
+        "server": "15.204.94.71",
+        "zone": "oaix.cc",
+        "protocol": "udp",
+        "pass": false,
+        "sequence": null,
+        "exit": 9,
+        "error": "\n; <<>> DiG 9.10.6 <<>> +notcp +time=2 +tries=1 @15.204.94.71 oaix.cc SOA +noall +comments +answer\n; (1 server found)\n;; global options: +cmd\n;; connection timed out; no servers could be reached\n"
+      },
+      {
+        "at": "2026-09-23T16:18:37.122301+00:00",
+        "kind": "dns",
+        "server": "15.204.94.71",
+        "zone": "i00.pro",
+        "protocol": "udp",
+        "pass": false,
+        "sequence": null,
+        "exit": 9,
+        "error": "\n; <<>> DiG 9.10.6 <<>> +notcp +time=2 +tries=1 @15.204.94.71 i00.pro SOA +noall +comments +answer\n; (1 server found)\n;; global options: +cmd\n;; connection timed out; no servers could be reached\n"
+      },
+      {
+        "at": "2026-09-23T16:21:12.038702+00:00",
+        "kind": "dns",
+        "server": "15.204.94.71",
+        "zone": "oaix.cc",
+        "protocol": "udp",
+        "pass": false,
+        "sequence": null,
+        "exit": 9,
+        "error": "\n; <<>> DiG 9.10.6 <<>> +notcp +time=2 +tries=1 @15.204.94.71 oaix.cc SOA +noall +comments +answer\n; (1 server found)\n;; global options: +cmd\n;; connection timed out; no servers could be reached\n"
+      },
+      {
+        "at": "2026-09-23T16:23:16.797669+00:00",
+        "kind": "dns",
+        "server": "51.38.126.103",
+        "zone": "oaix.cc",
+        "protocol": "udp",
+        "pass": false,
+        "sequence": null,
+        "exit": 9,
+        "error": "\n; <<>> DiG 9.10.6 <<>> +notcp +time=2 +tries=1 @51.38.126.103 oaix.cc SOA +noall +comments +answer\n; (1 server found)\n;; global options: +cmd\n;; connection timed out; no servers could be reached\n"
+      },
+      {
+        "at": "2026-09-23T16:24:33.894414+00:00",
+        "kind": "dns",
+        "server": "51.38.126.103",
+        "zone": "i00.pro",
+        "protocol": "udp",
+        "pass": false,
+        "sequence": null,
+        "exit": 9,
+        "error": "\n; <<>> DiG 9.10.6 <<>> +notcp +time=2 +tries=1 @51.38.126.103 i00.pro SOA +noall +comments +answer\n; (1 server found)\n;; global options: +cmd\n;; connection timed out; no servers could be reached\n"
+      },
+      {
+        "at": "2026-09-23T16:26:48.502255+00:00",
+        "kind": "dns",
+        "server": "51.38.126.103",
+        "zone": "fugue.pro",
+        "protocol": "udp",
+        "pass": false,
+        "sequence": null,
+        "exit": 9,
+        "error": "\n; <<>> DiG 9.10.6 <<>> +notcp +time=2 +tries=1 @51.38.126.103 fugue.pro SOA +noall +comments +answer\n; (1 server found)\n;; global options: +cmd\n;; connection timed out; no servers could be reached\n"
+      },
+      {
+        "at": "2026-09-23T16:27:17.539278+00:00",
+        "kind": "dns",
+        "server": "51.38.126.103",
+        "zone": "i00.pro",
+        "protocol": "udp",
+        "pass": false,
+        "sequence": null,
+        "exit": 9,
+        "error": "\n; <<>> DiG 9.10.6 <<>> +notcp +time=2 +tries=1 @51.38.126.103 i00.pro SOA +noall +comments +answer\n; (1 server found)\n;; global options: +cmd\n;; connection timed out; no servers could be reached\n"
+      },
+      {
+        "at": "2026-09-23T16:28:34.418571+00:00",
+        "kind": "dns",
+        "server": "15.204.94.71",
+        "zone": "i00.pro",
+        "protocol": "udp",
+        "pass": false,
+        "sequence": null,
+        "exit": 9,
+        "error": "\n; <<>> DiG 9.10.6 <<>> +notcp +time=2 +tries=1 @15.204.94.71 i00.pro SOA +noall +comments +answer\n; (1 server found)\n;; global options: +cmd\n;; connection timed out; no servers could be reached\n"
+      },
+      {
+        "at": "2026-09-23T16:34:11.943971+00:00",
+        "kind": "dns",
+        "server": "51.38.126.103",
+        "zone": "i00.pro",
+        "protocol": "udp",
+        "pass": false,
+        "sequence": null,
+        "exit": 9,
+        "error": "\n; <<>> DiG 9.10.6 <<>> +notcp +time=2 +tries=1 @51.38.126.103 i00.pro SOA +noall +comments +answer\n; (1 server found)\n;; global options: +cmd\n;; connection timed out; no servers could be reached\n"
+      },
+      {
+        "at": "2026-09-23T16:35:28.252047+00:00",
+        "kind": "dns",
+        "server": "51.38.126.103",
+        "zone": "oaix.cc",
+        "protocol": "udp",
+        "pass": false,
+        "sequence": null,
+        "exit": 9,
+        "error": "\n; <<>> DiG 9.10.6 <<>> +notcp +time=2 +tries=1 @51.38.126.103 oaix.cc SOA +noall +comments +answer\n; (1 server found)\n;; global options: +cmd\n;; connection timed out; no servers could be reached\n"
+      },
+      {
+        "at": "2026-09-23T16:36:06.501524+00:00",
+        "kind": "dns",
+        "server": "15.204.94.71",
+        "zone": "fugue.pro",
+        "protocol": "udp",
+        "pass": false,
+        "sequence": null,
+        "exit": 9,
+        "error": "\n; <<>> DiG 9.10.6 <<>> +notcp +time=2 +tries=1 @15.204.94.71 fugue.pro SOA +noall +comments +answer\n; (1 server found)\n;; global options: +cmd\n;; connection timed out; no servers could be reached\n"
+      },
+      {
+        "at": "2026-09-23T16:37:24.149896+00:00",
+        "kind": "dns",
+        "server": "51.38.126.103",
+        "zone": "i00.pro",
+        "protocol": "udp",
+        "pass": false,
+        "sequence": null,
+        "exit": 9,
+        "error": "\n; <<>> DiG 9.10.6 <<>> +notcp +time=2 +tries=1 @51.38.126.103 i00.pro SOA +noall +comments +answer\n; (1 server found)\n;; global options: +cmd\n;; connection timed out; no servers could be reached\n"
+      },
+      {
+        "at": "2026-09-23T16:37:24.149896+00:00",
+        "kind": "dns",
+        "server": "51.38.126.103",
+        "zone": "oaix.cc",
+        "protocol": "udp",
+        "pass": false,
+        "sequence": null,
+        "exit": 9,
+        "error": "\n; <<>> DiG 9.10.6 <<>> +notcp +time=2 +tries=1 @51.38.126.103 oaix.cc SOA +noall +comments +answer\n; (1 server found)\n;; global options: +cmd\n;; connection timed out; no servers could be reached\n"
+      }
+    ]
+  },
+  "limits": [
+    "Initial DE request returned 503 before the recorded successful repeated reads; its precise cause was not captured. No fallback was used.",
+    "Continuous sampling started during deployment; it does not cover the entire build or pre-deploy interval.",
+    "Production reads were read-only. Malformed/foreign/expired/replaced observations and refusal without mutation were tested locally.",
+    "The response is an observation, not independent signed serving authorization. Backend and publication rereads are not a cross-system atomic transaction.",
+    "DNS Pods were not replaced. Cache isolation, switching, drain and migration of robustness traffic-safety readers remain open.",
+    "Production producer creates and applies new gray/full assignments during the observation window; the endpoint intentionally returns 503 until Pod heartbeat and expected-set identities converge. Those transient rejections are recorded in capture_attempts.",
+    "Extended client-side dig query IDs were compared against node tcpdump: after each node capture began, 583 successful replies were observed at the server with maximum server response time 10.8 ms; five timed-out query IDs had no matching ingress packet in either server capture. Six additional successful queries preceded capture start and were excluded from correlation."
+  ],
+  "packet_correlation": {
+    "at": "2026-09-23T17:00:05.090211+00:00",
+    "first_at": "2026-09-23T16:42:39.607629+00:00",
+    "last_at": "2026-09-23T16:47:08.550506+00:00",
+    "requests": 600,
+    "successes": 595,
+    "failures": [
+      {
+        "at": "2026-09-23T16:43:53.159383+00:00",
+        "ip": "51.38.126.103",
+        "zone": "fugue.pro",
+        "dns_id": 27362,
+        "duration": 2.021544933319092,
+        "matching_ingress_packets": 0,
+        "matching_egress_packets": 0,
+        "matching_any_packets": 0
+      },
+      {
+        "at": "2026-09-23T16:44:28.289637+00:00",
+        "ip": "51.38.126.103",
+        "zone": "fugue.pro",
+        "dns_id": 39046,
+        "duration": 2.015871047973633,
+        "matching_ingress_packets": 0,
+        "matching_egress_packets": 0,
+        "matching_any_packets": 0
+      },
+      {
+        "at": "2026-09-23T16:46:16.897820+00:00",
+        "ip": "15.204.94.71",
+        "zone": "fugue.pro",
+        "dns_id": 4520,
+        "duration": 2.0168988704681396,
+        "matching_ingress_packets": 0,
+        "matching_egress_packets": 0,
+        "matching_any_packets": 0
+      },
+      {
+        "at": "2026-09-23T16:46:49.844885+00:00",
+        "ip": "51.38.126.103",
+        "zone": "oaix.cc",
+        "dns_id": 54126,
+        "duration": 2.012270212173462,
+        "matching_ingress_packets": 0,
+        "matching_egress_packets": 0,
+        "matching_any_packets": 0
+      },
+      {
+        "at": "2026-09-23T16:47:04.522730+00:00",
+        "ip": "15.204.94.71",
+        "zone": "oaix.cc",
+        "dns_id": 32110,
+        "duration": 2.015387773513794,
+        "matching_ingress_packets": 0,
+        "matching_egress_packets": 0,
+        "matching_any_packets": 0
+      }
+    ],
+    "matched_successes": 583,
+    "unmatched_successes": [],
+    "max_node_response_seconds": 0.01076197624206543,
+    "captures": {
+      "us": {
+        "first_packet_at": 1790181762.322272,
+        "last_packet_at": 1790182114.571054,
+        "packet_count": 2424,
+        "capture_diagnostics": "bash: warning: setlocale: LC_ALL: cannot change locale (en_US.UTF-8): No such file or directory\ntcpdump: WARNING: any: That device doesn't support promiscuous mode\n(Promiscuous mode not supported on the \"any\" device)\ntcpdump: verbose output suppressed, use -v[v]... for full protocol decode\nlistening on any, link-type LINUX_SLL2 (Linux cooked v2), snapshot length 262144 bytes\n2424 packets captured\n2425 packets received by filter\n0 packets dropped by kernel\n"
+      },
+      "de": {
+        "first_packet_at": 1790181762.634837,
+        "last_packet_at": 1790182114.650362,
+        "packet_count": 2424,
+        "capture_diagnostics": "bash: warning: setlocale: LC_ALL: cannot change locale (en_US.UTF-8): No such file or directory\ntcpdump: WARNING: any: That device doesn't support promiscuous mode\n(Promiscuous mode not supported on the \"any\" device)\ntcpdump: verbose output suppressed, use -v[v]... for full protocol decode\nlistening on any, link-type LINUX_SLL2 (Linux cooked v2), snapshot length 262144 bytes\n2424 packets captured\n2424 packets received by filter\n0 packets dropped by kernel\n"
+      }
+    },
+    "limits": [
+      "Server capture filtered UDP/53 by the known public egress address of this client; no client-side packet capture was collected.",
+      "Failed IDs absent from this capture do not locate an individual upstream router or prove the client actually sent a packet.",
+      "This evidence does not cover arbitrary DNS traffic, Pod replacement, or TCP connection draining."
+    ]
+  },
+  "capture_attempts": [
+    {
+      "at": "2026-09-23T16:38:29.495865+00:00",
+      "node": "vps-591f4447",
+      "status": 200,
+      "elapsed_seconds": 2.8063241250347346,
+      "repeat_status": 200,
+      "direct_same_proofs": 465,
+      "repeat_same_proofs": 465,
+      "consistent_sample": true
+    },
+    {
+      "at": "2026-09-23T16:38:30.601981+00:00",
+      "node": "vps-84c8f0a9",
+      "status": 200,
+      "elapsed_seconds": 3.912758457940072,
+      "repeat_status": 200,
+      "direct_same_proofs": 465,
+      "repeat_same_proofs": 465,
+      "consistent_sample": true
+    }
+  ],
+  "verification_attempt_logs": [
+    "/tmp/fugue-dns-reader-verify-first-attempt.log",
+    "/tmp/fugue-dns-reader-verify-second-attempt.log",
+    "/tmp/fugue-dns-reader-verify-third-attempt.log"
+  ]
+}
