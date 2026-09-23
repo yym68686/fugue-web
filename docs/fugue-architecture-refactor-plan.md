@@ -32,11 +32,13 @@ Runtime Facts / ACK / LKG
 
 ## 当前状态判断
 
-截至 Y39，route、DNS、TLS 已完成统一 TrafficReleaseSet 的生产 full 接管。三台 active Edge 和两台 DNS 按当前 release、artifact、expected consumer set 与 fence 提供真实 serving 回执；全局 ReleaseSet、route、DNS、TLS、policy 五份 verified LKG 绑定同一验证 release 和 evidence hash。
+截至 Y40，Y39 复审发现的公开摘要范围、签名校验与静态输入保真缺口已修复并完成生产验收。Discovery 仅公开 verified 基础 intent 声明的两个平台入口；route、DNS、TLS 的 serving 状态仍以实时证据为准。
+
+截至 Y38，route、DNS、TLS 已完成统一 TrafficReleaseSet 的生产 full 接管。三台 active Edge 和两台 DNS 按当前 release、artifact、expected consumer set 与 fence 提供真实 serving 回执；全局 ReleaseSet、route、DNS、TLS、policy 五份 verified LKG 绑定同一验证 release 和 evidence hash。
 
 签名 producer policy 已启用自动 serving：固定基础 intent 与输入 policy，捕获业务投影后编译、gray、full，并在观察窗口与消费者收敛通过后更新 LKG。gray/full 各至少观察 120 秒，600 秒未完成则恢复 verified 基线。policy 授权版本变化的生产演练已验证：5.321 秒内发布恢复版本，八个消费者随后收敛，原五份 positive LKG 保留。超时专用演练、重启恢复与连接连续性仍待补齐。
 
-当前已验收代码：API `8f6d69a0`、schema migrator `43e0052d`、两地 DNS client `56749f65`、release guardian `7faf072a`、Controller `edc72b9b`、两地 Edge worker `7cff4f63`。Y26 已删除 Edge route-intents HTTP serving 路径中的业务表即时生成及 standalone LKG 回退，只返回适用的已发布 TrafficReleaseSet；缺少/损坏发布时返回 503，consumer 保留当前 artifact。业务投影仍由配置 producer 独立完成。
+当前已验收代码：API `e2f6283a`、schema migrator `43e0052d`、两地 DNS client `56749f65`、release guardian `7faf072a`、Controller `df46c017`、两地 Edge worker `7cff4f63`。Y26 已删除 Edge route-intents HTTP serving 路径中的业务表即时生成及 standalone LKG 回退，只返回适用的已发布 TrafficReleaseSet；缺少/损坏发布时返回 503，consumer 保留当前 artifact。业务投影仍由配置 producer 独立完成。
 
 历史 revision 资源回收、不可变执行快照保护、排除路由负向证明和 DNS 通配监听恢复均已完成相应生产验收，详见 Y10–Y26。发布监控保留了 SSH 采集失败与一次 US A/B 期间 TLS EOF；后续独立复查正常，不能据此声称所有发布均零中断。
 
@@ -4110,13 +4112,25 @@ P0-EP-X 生产取证确认 canonical Service selector 仅有 app 标签，会同
 证据：[retired-legacy-comparisons-2026-09-22.json](verification/retired-legacy-comparisons-2026-09-22.json)。
 
 
-### P0-EP-Y39：Discovery route 摘要绑定 verified route artifact
+### P0-EP-Y39：Discovery 初版迁移与复审纠正
 
-- [x] Discovery bundle 的 `platform_routes` 改为从 verified global TrafficReleaseSet 的 route child artifact 投影；不再读取 `FUGUE_PLATFORM_ROUTES_JSON` 解析结果或 Server ambient routes。
-- [x] 缺少 verified ReleaseSet 时 Discovery 仍返回 bootstrap topology，但 `platform_routes=[]`，不将旧环境 routes 作为 serving fallback。route child 损坏、签名/lineage 无效时 fail closed。
-- [x] route artifact projection 保留 hostname、kind、upstream、TLS、route policy、group 和 status 摘要；结果数量和生成身份可与当前 full artifact 对照。新增 no-artifact ambient isolation 回归。
-- [x] backend `8f6d69a09c0a1ef5fbaac8f8272abd00b2841c00` 的首次 CI 因 declarative release 缺同提交 API intent 被拒绝；在远端 main 上补 `1a33d5911a8d5210d32ff89a0f8de378df84f82e` intent-only 提交后，[CI 35801237504](https://github.com/yym68686/fugue/actions/runs/35801237504) 成功并部署 API。拒绝过程和补偿提交保留。
-- [x] Discovery route count=162，与 verified full route artifact 的 162 条一致；API 2/2、route/TLS/DNS 3/3/2/2 收敛，两个域预检使用真实发布 artifact。独立六条 SOA sequence 保留在证据中；短窗口跨 Edge HTTP 监控无失败。
-- [ ] 继续删除其他 API/default reader 和 serving 环境变量；Discovery 的其他非 serving bootstrap 字段仍待逐项迁移，DNS rolling 无中断和其余恢复演练仍未完成。
+- [x] Discovery 的初版迁移不再直接返回 Server ambient platform routes，缺初始 LKG 时保留 bootstrap topology 并省略 routes。
+- [x] 初版代码 `8f6d69a0` 因缺 production intent 被 CI 拒绝；追加 `1a33d591` 后 CI 35801237504 成功。随后 identity cleanup 与 intent 分成两个提交，CI 35802627915 拒绝非直接子原子步骤；两次改写 main 导致后续 CI 读取不到 push 事件的 BASE_SHA。失败历史保留，今后只追加已通过本地发布计划校验的单提交原子步骤。
+- [x] 已纠正初版验收结论：初版把完整 162 条应用路由放入匿名 discovery，而 pinned base 只声明了 2 条平台入口；group mode/TTL 被有损投影，weighted route 取首项，route child 未完整验签。此前“数量相同即完全一致”和“坏签名 fail closed”的表述证据不足，已撤回；修复验收见 Y40。
+- [x] 初版仅确认 discovery 200、route 数量 162、health/ready 200 和六条 SOA sequence 872。该证据不证明逐字段语义、成员验签、consumer convergence 或完整滚动发布监控。
+- [x] Y40 已限定为 verified base 明确声明的 static platform entry，逐层验签和 lineage，恢复 TTL/group mode/disabled 语义，拒绝 weighted 摘要；本地损坏输入回归与生产匿名响应逐字段比对均通过。
 
-证据：[discovery-route-artifact-2026-09-23.json](verification/discovery-route-artifact-2026-09-23.json)。
+初版局限证据：[discovery-route-artifact-2026-09-23.json](verification/discovery-route-artifact-2026-09-23.json)。
+
+
+### P0-EP-Y40：Discovery 公开范围与输入保真修复
+
+- [x] 已完成本地实现和回归：summary 仅允许 verified parent 绑定的 signed static base 平台入口；父 LKG、route/DNS/TLS 成员签名、完整 lineage、基础 intent ID/digest 逐层验证。无初始 LKG 保留 bootstrap topology，损坏输入返回 503，禁止签出坏 bundle。
+- [x] API `e2aa1076` 经 CI 35840037788 上线，匿名 discovery 从 162 条缩为 2 条平台入口；初次逐字段生产验收揭示 producer 将 pinned `region_aware`/TTL=60 丢为 `all_healthy`/无 TTL，因此未在首次上线时关闭本步。
+- [x] 上游投影已修复并补定向回归：静态入口恢复 pinned group mode/TTL，应用归属路由不继承同名静态配置；两次固定输入编译的内容摘要一致。
+- [x] 上游修复 `e2f6283a` 经全量 make test、API race、干净 prepush 和前端 contract:check 验证；[CI 35843599106](https://github.com/yym68686/fugue/actions/runs/35843599106) 成功部署 API，精确镜像回执匹配，2/2 Ready。自动 gray/full 后于 09:45:39 UTC 更新 verified LKG `artifact_1790156489_f189faf86e98`；此前 discovery 保留旧 LKG，未提前使用候选。
+- [x] 匿名 discovery 与 pinned base、compiled artifact 的摘要字段逐项一致，仅两个静态平台入口，均保留 `region_aware`/TTL=60，完整 route artifact 仍为 162 条。当前 route/TLS/DNS convergence 均通过；六条公网 SOA authoritative、sequence=945，与实际 DNS artifact 一致。
+- [x] 本次部署期间 177 次跨三台 Edge HTTP 采样全部 200，health/ready 正常。之前范围修复期间的 5 次 TLS 失败及 42 次 SSH 采集失败独立保留，后续本机和集群侧复查正常；没有把这些失败抹除或断言其根因已确认。生产未注入损坏签名，拒绝场景由本地可丢弃存储回归覆盖。
+- [ ] 继续删除其余 API/default reader 和 serving 环境来源，完成超时、重启、DNS 更新连续性演练及最终简化清单。
+
+证据：[discovery-static-semantics-2026-09-23.json](verification/discovery-static-semantics-2026-09-23.json)。
