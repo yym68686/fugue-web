@@ -1,0 +1,66 @@
+{
+  "at": "2026-09-23T00:22:46.437501+00:00",
+  "discovery_status": 200,
+  "discovery_generation": "discovery_fd960fe05f40faf2",
+  "discovery_route_count": 162,
+  "route_artifact_id": "artifact_1790122358_460317d227a2",
+  "route_artifact_generation": "route-eb96be6671b8356b9ade23d07867d372b6e1cf17a916638923014314f4ab715a",
+  "expected_route_count": 162,
+  "health": {
+    "/healthz": 200,
+    "/readyz": 200
+  },
+  "public_dns": {
+    "at": "2026-09-23T00:23:52.316382+00:00",
+    "samples": [
+      {
+        "address": "15.204.94.71",
+        "zone": "fugue.pro",
+        "exit": 0,
+        "answer": "fugue.pro.\t\t60\tIN\tSOA\tns1.dns.fugue.pro. hostmaster.fugue.pro. 872 300 60 3600 60",
+        "error": "bash: warning: setlocale: LC_ALL: cannot change locale (en_US.UTF-8): No such file or directory\n"
+      },
+      {
+        "address": "15.204.94.71",
+        "zone": "oaix.cc",
+        "exit": 0,
+        "answer": "oaix.cc.\t\t60\tIN\tSOA\tns1.dns.fugue.pro. hostmaster.oaix.cc. 872 300 60 3600 60",
+        "error": "bash: warning: setlocale: LC_ALL: cannot change locale (en_US.UTF-8): No such file or directory\n"
+      },
+      {
+        "address": "15.204.94.71",
+        "zone": "i00.pro",
+        "exit": 0,
+        "answer": "i00.pro.\t\t60\tIN\tSOA\tns1.dns.fugue.pro. hostmaster.i00.pro. 872 300 60 3600 60",
+        "error": "bash: warning: setlocale: LC_ALL: cannot change locale (en_US.UTF-8): No such file or directory\n"
+      },
+      {
+        "address": "51.38.126.103",
+        "zone": "fugue.pro",
+        "exit": 0,
+        "answer": "fugue.pro.\t\t60\tIN\tSOA\tns1.dns.fugue.pro. hostmaster.fugue.pro. 872 300 60 3600 60",
+        "error": "bash: warning: setlocale: LC_ALL: cannot change locale (en_US.UTF-8): No such file or directory\n"
+      },
+      {
+        "address": "51.38.126.103",
+        "zone": "oaix.cc",
+        "exit": 0,
+        "answer": "oaix.cc.\t\t60\tIN\tSOA\tns1.dns.fugue.pro. hostmaster.oaix.cc. 872 300 60 3600 60",
+        "error": "bash: warning: setlocale: LC_ALL: cannot change locale (en_US.UTF-8): No such file or directory\n"
+      },
+      {
+        "address": "51.38.126.103",
+        "zone": "i00.pro",
+        "exit": 0,
+        "answer": "i00.pro.\t\t60\tIN\tSOA\tns1.dns.fugue.pro. hostmaster.i00.pro. 872 300 60 3600 60",
+        "error": "bash: warning: setlocale: LC_ALL: cannot change locale (en_US.UTF-8): No such file or directory\n"
+      }
+    ]
+  },
+  "ci": "https://github.com/yym68686/fugue/actions/runs/35801237504",
+  "validation": [
+    "Full make test, API race and clean prepush passed; declarative CI initially rejected the code commit because the same-commit API production intent was missing, then a remote-main intent-only commit passed CI and deployed.",
+    "Discovery route count equals the verified route artifact count (162); ambient platform route input was present in the test but did not enter the bundle.",
+    "No verified ReleaseSet returns an empty platform_routes list while preserving bootstrap topology; this fail-closed behavior is covered by regression."
+  ]
+}
