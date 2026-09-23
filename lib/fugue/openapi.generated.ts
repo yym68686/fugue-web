@@ -491,7 +491,10 @@ export interface paths {
     post: operations["platformConsumerHeartbeat"];
   };
   "/v1/platform-state/consumers/trusted-heartbeat": {
-    /** Report Trusted Platform State Consumer Heartbeat */
+    /**
+     * Report Trusted Platform State Consumer Heartbeat
+     * @description Kubernetes-bound DNS identities must still match a live authorized Pod on the claimed node and the unique backend of that node's managed public DNS Service (UDP/TCP port 53). Service ownership, node-local transport, EndpointSlice ownership, Pod UID and endpoint addresses are rechecked. Positive applied/passed reports require both Pod and endpoint readiness; negative reports from the selected live backend remain accepted. An unselected, terminating or ambiguous backend cannot overwrite current consumer facts. Kubernetes lookup failure returns 503; binding mismatch returns 403 or 409 without advancing the heartbeat cursor or audit log. This check does not change artifacts, serving configuration or local readiness. Independently provisioned non-Kubernetes component identities retain their existing authentication contract.
+     */
     post: operations["trustedPlatformConsumerHeartbeat"];
   };
   "/v1/platform-state/consumers/identity": {
@@ -14350,7 +14353,10 @@ export interface operations {
       default: components["responses"]["ErrorResponse"];
     };
   };
-  /** Report Trusted Platform State Consumer Heartbeat */
+  /**
+   * Report Trusted Platform State Consumer Heartbeat
+   * @description Kubernetes-bound DNS identities must still match a live authorized Pod on the claimed node and the unique backend of that node's managed public DNS Service (UDP/TCP port 53). Service ownership, node-local transport, EndpointSlice ownership, Pod UID and endpoint addresses are rechecked. Positive applied/passed reports require both Pod and endpoint readiness; negative reports from the selected live backend remain accepted. An unselected, terminating or ambiguous backend cannot overwrite current consumer facts. Kubernetes lookup failure returns 503; binding mismatch returns 403 or 409 without advancing the heartbeat cursor or audit log. This check does not change artifacts, serving configuration or local readiness. Independently provisioned non-Kubernetes component identities retain their existing authentication contract.
+   */
   trustedPlatformConsumerHeartbeat: {
     requestBody: {
       content: {
@@ -14370,6 +14376,7 @@ export interface operations {
       404: components["responses"]["ErrorResponse"];
       409: components["responses"]["ErrorResponse"];
       422: components["responses"]["ErrorResponse"];
+      503: components["responses"]["ErrorResponse"];
       default: components["responses"]["ErrorResponse"];
     };
   };
