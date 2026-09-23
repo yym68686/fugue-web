@@ -4183,3 +4183,15 @@ P0-EP-X 生产取证确认 canonical Service selector 仅有 app 标签，会同
 - [ ] 完成配置变化期间的旧连接处理、坏候选保留旧服务、UDP conntrack 与长 TCP 排空，再进行真实 backend 版本替换演练。Y42 的完整连续性故障继续未关闭，暂不恢复普通 DNS 代码发布。
 
 证据：[dns-public-service-2026-09-23.json](verification/dns-public-service-2026-09-23.json)。
+
+### P0-EP-Y45：DNS 可信心跳绑定当前公网后端身份
+
+- [x] Kubernetes DNS 心跳在写入前核对 live Pod UID、ServiceAccount、节点和当前 typed consumer authorization；只允许节点上唯一的受管理公网 DNS Service 后端写入逻辑 consumer 回执。核对声明摘要、Local 传输、selector、EndpointSlice Service owner、UDP/TCP target port、Pod IP 和 targetRef UID；读取结束复核 Pod/Service resourceVersion 与 EndpointSlice，观察到切换则拒绝。
+- [x] 正向 applied/passed 必须同时具备 Pod 与 EndpointSlice Ready；仍被选中的 live backend 可报告负向事实。未选中候选、删除中旧 Pod、重复本地后端、漂移或查询失败不能覆盖当前回执；拒绝不推进 cursor、不写审计、不修改 artifact/LKG。候选本地加载和 readiness 不依赖控制面接受心跳，不增加就绪循环依赖。
+- [x] OpenAPI 先记录行为并生成；覆盖错误身份、撤销 annotation、负向报告、Service 漂移、端口/IP/owner 不符、双后端、查询失败和读取中变化，HTTP 回归确认拒绝前后事实/审计不变且重试 sequence 未被消耗。全量 make test、专项 API race、前端 contract:check 和两地实际对象快照回放通过。
+- [x] 干净 prepush 首次因 API 全量测试超过 55 秒超时，保留失败回执；同一目录完整 API 测试 82 秒通过后，完整 prepush 重跑 17.4 秒通过，没有跳过检查。后端 `f708d17a34b26e7eaf3a1d4b08c6488f8bcfb4f0` 经 [CI 35867389145](https://github.com/yym68686/fugue/actions/runs/35867389145) 仅发布 API；前端契约 `587883c4` 的 [CI 35867405847](https://github.com/yym68686/fugue-web/actions/runs/35867405847) 成功。
+- [x] API 2/2 Ready，两个实际 Pod 镜像与 Guardian immutable receipt、计划 digest 和准确源码提交一致。两个原 DNS Pod UID、镜像/容器状态与公网 Service 保持；发布后心跳 sequence 持续推进，credential ID 与现行 Service EndpointSlice 的 Pod UID 一致，runtime facts 的 assignment/fence/generation 匹配，未见心跳错误。当前 route/TLS/DNS 收敛分别 3/3、3/3、2/2。
+- [x] 13:23:07–13:42:00 UTC 连续 1,452 次公网 UDP/TCP DNS 查询与 363 次跨 Edge HTTP 全部通过。生产验证只读；伪造/移除/重复身份与故障场景由本地测试覆盖，没有向生产注入失败。
+- [ ] 本步仅约束新 Kubernetes DNS 心跳写入；历史 convergence 事实仍按 freshness 失效，独立签发的非 Kubernetes identity 保持既有认证路径。继续把运行事实读取及 convergence 绑定当前实际后端，完成候选/旧实例独立 cache 和回执、单一选中后端切换、配置变化时旧连接处理、UDP/TCP 排空及真实版本替换演练。Y42/Y44 的无中断更新任务仍未完成，不能据此恢复普通 DNS Pod 替换。
+
+证据：[dns-public-backend-identity-2026-09-23.json](verification/dns-public-backend-identity-2026-09-23.json)。
