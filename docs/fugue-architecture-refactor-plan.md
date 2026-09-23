@@ -32,13 +32,13 @@ Runtime Facts / ACK / LKG
 
 ## 当前状态判断
 
-截至 Y40，Y39 复审发现的公开摘要范围、签名校验与静态输入保真缺口已修复并完成生产验收。Discovery 仅公开 verified 基础 intent 声明的两个平台入口；route、DNS、TLS 的 serving 状态仍以实时证据为准。
+截至 Y41，Y39 复审发现的公开摘要范围、签名校验与静态输入保真缺口已修复并完成生产验收。Discovery 仅公开 verified 基础 intent 声明的两个平台入口；管理路由列表和单域名解释已改读已发布 TrafficReleaseSet 与消费者事实，携带完整发布身份。内部 robustness/traffic-safety 的业务推导仍待迁移；route、DNS、TLS 的 serving 状态以实时证据为准。
 
 截至 Y38，route、DNS、TLS 已完成统一 TrafficReleaseSet 的生产 full 接管。三台 active Edge 和两台 DNS 按当前 release、artifact、expected consumer set 与 fence 提供真实 serving 回执；全局 ReleaseSet、route、DNS、TLS、policy 五份 verified LKG 绑定同一验证 release 和 evidence hash。
 
 签名 producer policy 已启用自动 serving：固定基础 intent 与输入 policy，捕获业务投影后编译、gray、full，并在观察窗口与消费者收敛通过后更新 LKG。gray/full 各至少观察 120 秒，600 秒未完成则恢复 verified 基线。policy 授权版本变化的生产演练已验证：5.321 秒内发布恢复版本，八个消费者随后收敛，原五份 positive LKG 保留。超时专用演练、重启恢复与连接连续性仍待补齐。
 
-当前已验收代码：API `e2f6283a`、schema migrator `43e0052d`、两地 DNS client `56749f65`、release guardian `7faf072a`、Controller `df46c017`、两地 Edge worker `7cff4f63`。Y26 已删除 Edge route-intents HTTP serving 路径中的业务表即时生成及 standalone LKG 回退，只返回适用的已发布 TrafficReleaseSet；缺少/损坏发布时返回 503，consumer 保留当前 artifact。业务投影仍由配置 producer 独立完成。
+当前已验收代码：API `b93e69a8`、schema migrator `43e0052d`、两地 DNS client `56749f65`、release guardian `7faf072a`、Controller `df46c017`、两地 Edge worker `7cff4f63`。Y26 已删除 Edge route-intents HTTP serving 路径中的业务表即时生成及 standalone LKG 回退，只返回适用的已发布 TrafficReleaseSet；缺少/损坏发布时返回 503，consumer 保留当前 artifact。业务投影仍由配置 producer 独立完成。
 
 历史 revision 资源回收、不可变执行快照保护、排除路由负向证明和 DNS 通配监听恢复均已完成相应生产验收，详见 Y10–Y26。发布监控保留了 SSH 采集失败与一次 US A/B 期间 TLS EOF；后续独立复查正常，不能据此声称所有发布均零中断。
 
@@ -4134,3 +4134,15 @@ P0-EP-X 生产取证确认 canonical Service selector 仅有 app 标签，会同
 - [ ] 继续删除其余 API/default reader 和 serving 环境来源，完成超时、重启、DNS 更新连续性演练及最终简化清单。
 
 证据：[discovery-static-semantics-2026-09-23.json](verification/discovery-static-semantics-2026-09-23.json)。
+
+### P0-EP-Y41：管理路由诊断读取真实发布与运行事实
+
+- [x] `/v1/admin/routes` 与 `/v1/admin/routes/explain/{hostname}` 删除业务表/环境 route 即时推导，改用 current gray/full 的已签名 TrafficReleaseSet；返回 `traffic_release`，包含 parent/route digest、lineage、release ID 与 fence。
+- [x] 按具体 release 而非仅 parent artifact 读取最新 prepared consumer set，验证 route/DNS/TLS 三个成员的签名和 lineage，按精确发布身份评估可信回执；过期、错误 fence 或不匹配的事实显示 degraded，不生成新的 serving 配置。缺少/损坏 artifact 或成员身份返回 503。
+- [x] 增加可选 `edge_group_id`，重复/空/非法值返回 400；未指定分组且各组选择不同 gray/full 时返回 409。读取结束复核发布、fence、成员集合与组集合，避免输出混合快照。新 full 覆盖旧 gray 的行为有回归覆盖。
+- [x] 本地测试覆盖未发布业务策略不影响输出、ambient fallback 拒绝、完整签名拒绝、过期事实、错误 fence、只读不改配置、未知域名和混合分组；全量 make test、专项 race、干净 prepush 和前端 contract:check 通过。
+- [x] `b93e69a8` 经 [CI 35848093163](https://github.com/yym68686/fugue/actions/runs/35848093163) 仅发布 API，精确 Guardian 镜像回执匹配，2/2 Ready。DE/US 查询各返回 162 条 artifact 路由，三个域名的 route ownership/策略字段及发布 lineage 对比通过；未知域名为 unrouted，非法参数均为 400。
+- [x] 两地列表查询分别约 1.04/1.62 秒，health/ready 和 authority 正常；本次部署窗口 150 次跨三台 Edge 请求全部 200。这里的 serving mode 是发布内容加消费者收敛状态，不额外声称逐域名端到端探测。
+- [ ] 下一步迁移 `explainRouteForRobustness`、`robustnessTrafficSafetyChecks` 和 `trafficSafetyEligibleEdgeNodeCount` 的业务表/环境/default 来源；完成后再移除对应 legacy projection wrapper。剩余故障恢复演练、环境退役和最终简化清单继续保持未完成。
+
+证据：[published-route-diagnostics-2026-09-23.json](verification/published-route-diagnostics-2026-09-23.json)。

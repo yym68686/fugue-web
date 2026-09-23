@@ -1,0 +1,211 @@
+{
+  "at": "2026-09-23T10:28:36.830196+00:00",
+  "commit": "b93e69a8ee9b7c90e6ff5f7393ecd94dcad6af55",
+  "api": {
+    "component": "api",
+    "image_tag": "b93e69a8ee9b7c90e6ff5f7393ecd94dcad6af55",
+    "ready_replicas": 2,
+    "updated_replicas": 2,
+    "desired_replicas": 2
+  },
+  "receipt": {
+    "apiVersion": "release.fugue.dev/v2",
+    "component": "api",
+    "configDigest": "sha256:1442bc4b75417d1db6d154fd67ab9c51437a3c6d5a3ad1ff92db70205e01c292",
+    "configSha": "b93e69a8ee9b7c90e6ff5f7393ecd94dcad6af55",
+    "immutableRef": "ghcr.io/yym68686/fugue-api@sha256:c8573f869bc85d07f3a86adeee302edaa6a3824ecfc173f2bfca777f23776c58",
+    "intentDigest": "sha256:75bb20d6019bf55c04c79adec2e96e800ce20e80bb37663577f9a0d134bd7e4e",
+    "kind": "ImmutableComponentArtifactReceipt",
+    "ociRevision": "b93e69a8ee9b7c90e6ff5f7393ecd94dcad6af55",
+    "planDigest": "sha256:928c2ad35d96ba7e45911c2f30f737efb2e1e49f082b6e6bd0c1a88d6750bdd8",
+    "platform": "linux/amd64",
+    "platformManifestDigest": "sha256:5e0f8b4ab86e8ce6658e138a3983f9ba0f71dfa6be7f4ddfaba141283b57d2f2",
+    "receiptDigest": "sha256:219fc13c5dc7f7cfc271e420da73469bd5edba17a116d30a65e3222ccbc1a457",
+    "repository": "ghcr.io/yym68686/fugue-api",
+    "sourceSha": "b93e69a8ee9b7c90e6ff5f7393ecd94dcad6af55",
+    "sourceTag": "b93e69a8ee9b7c90e6ff5f7393ecd94dcad6af55",
+    "topDigest": "sha256:c8573f869bc85d07f3a86adeee302edaa6a3824ecfc173f2bfca777f23776c58",
+    "verification": "registry_manifest_config_and_layer_get"
+  },
+  "checks": [
+    {
+      "group": "edge-group-country-de",
+      "route_count": 162,
+      "traffic_release": {
+        "schema": "fugue.traffic-release-binding/v1",
+        "release_set_id": "artifact_1790159023_fd8f3e0572c4",
+        "release_set_digest": "sha256:e1c39fa9a0e7d2dd47c1ab9b24599919b790bf35ebb1c706be0d4489bcb94a44",
+        "release_set_generation": "release-35f36ced6ba4538a3c70fd381b9479f70a9afdbc7f9dd7c7679f018498fe42e4",
+        "route_artifact_id": "artifact_1790159021_a7ec943a538c",
+        "route_artifact_digest": "sha256:46c48dac31794b23f95095d4e13b6b4c74598166bc2784354e7b6b30cd371418",
+        "route_artifact_generation": "route-35f36ced6ba4538a3c70fd381b9479f70a9afdbc7f9dd7c7679f018498fe42e4",
+        "route_artifact_sequence": 950,
+        "release_id": "artifactrel_1790159148_8d8104cf7bcf",
+        "release_channel": "full",
+        "fencing_token": 152,
+        "scope_key": "global",
+        "intent_digest": "sha256:06a220b79bfe6e9c30bad8d14bd85b400bdd63bc5d23d6c10df2288cde0e2886",
+        "policy_digest": "sha256:d0eb9bbfb319f4fe51e677b4bed1ca9de437f2e056be878246a164f45fb82e02",
+        "input_snapshot_digest": "sha256:e09eccdd05519415e615a920b84e3e65af7777d35104eef9d7fd86870698ac04",
+        "compiler_version": "platform-config-compiler/v30",
+        "projection_digest": "sha256:50c42895f13fc48c82ceb99ed4d0e696c094ee30ec68e535dfad35af9d5daa80"
+      },
+      "healthy_edge_groups": {
+        "edge-group-country-de": true
+      },
+      "list_seconds": 1.043,
+      "explanations": [
+        {
+          "hostname": "api.fugue.pro",
+          "serving_mode": "edge",
+          "route_count": 1,
+          "seconds": 1.394
+        },
+        {
+          "hostname": "mesh.fugue.pro",
+          "serving_mode": "edge",
+          "route_count": 1,
+          "seconds": 0.896
+        },
+        {
+          "hostname": "drain-canary-0705.fugue.pro",
+          "serving_mode": "edge",
+          "route_count": 1,
+          "seconds": 0.935
+        }
+      ],
+      "unknown_hostname_mode": "unrouted"
+    },
+    {
+      "group": "edge-group-country-us",
+      "route_count": 162,
+      "traffic_release": {
+        "schema": "fugue.traffic-release-binding/v1",
+        "release_set_id": "artifact_1790159023_fd8f3e0572c4",
+        "release_set_digest": "sha256:e1c39fa9a0e7d2dd47c1ab9b24599919b790bf35ebb1c706be0d4489bcb94a44",
+        "release_set_generation": "release-35f36ced6ba4538a3c70fd381b9479f70a9afdbc7f9dd7c7679f018498fe42e4",
+        "route_artifact_id": "artifact_1790159021_a7ec943a538c",
+        "route_artifact_digest": "sha256:46c48dac31794b23f95095d4e13b6b4c74598166bc2784354e7b6b30cd371418",
+        "route_artifact_generation": "route-35f36ced6ba4538a3c70fd381b9479f70a9afdbc7f9dd7c7679f018498fe42e4",
+        "route_artifact_sequence": 950,
+        "release_id": "artifactrel_1790159148_8d8104cf7bcf",
+        "release_channel": "full",
+        "fencing_token": 152,
+        "scope_key": "global",
+        "intent_digest": "sha256:06a220b79bfe6e9c30bad8d14bd85b400bdd63bc5d23d6c10df2288cde0e2886",
+        "policy_digest": "sha256:d0eb9bbfb319f4fe51e677b4bed1ca9de437f2e056be878246a164f45fb82e02",
+        "input_snapshot_digest": "sha256:e09eccdd05519415e615a920b84e3e65af7777d35104eef9d7fd86870698ac04",
+        "compiler_version": "platform-config-compiler/v30",
+        "projection_digest": "sha256:50c42895f13fc48c82ceb99ed4d0e696c094ee30ec68e535dfad35af9d5daa80"
+      },
+      "healthy_edge_groups": {
+        "edge-group-country-us": true
+      },
+      "list_seconds": 1.618,
+      "explanations": [
+        {
+          "hostname": "api.fugue.pro",
+          "serving_mode": "edge",
+          "route_count": 1,
+          "seconds": 1.206
+        },
+        {
+          "hostname": "mesh.fugue.pro",
+          "serving_mode": "edge",
+          "route_count": 1,
+          "seconds": 1.112
+        },
+        {
+          "hostname": "drain-canary-0705.fugue.pro",
+          "serving_mode": "edge",
+          "route_count": 1,
+          "seconds": 1.619
+        }
+      ],
+      "unknown_hostname_mode": "unrouted"
+    }
+  ],
+  "bad_queries": [
+    {
+      "query": "?edge_group_id=",
+      "status": 400
+    },
+    {
+      "query": "?edge_group_id=BAD",
+      "status": 400
+    },
+    {
+      "query": "?edge_group_id=edge-group-country-de&edge_group_id=edge-group-country-us",
+      "status": 400
+    }
+  ],
+  "aggregate_status": 200,
+  "health": {
+    "/healthz": 200,
+    "/readyz": 200
+  },
+  "http_sampling": {
+    "count": 150,
+    "first_at": "2026-09-23T10:17:26.683927+00:00",
+    "last_at": "2026-09-23T10:28:22.900114+00:00",
+    "failures": []
+  },
+  "prepush": {
+    "apiVersion": "prepush.fugue.dev/v1",
+    "baseCommit": "e2f6283a386c08f7e9e83f53a10bd52c56500978",
+    "changedFilesDigest": "sha256:ed898b058ed5684c16d3f3a53a79477e4c19b7fb3e77e22300678fbfdea86e2e",
+    "checks": {
+      "affected-tests": {
+        "durationMs": 110532,
+        "status": "pass"
+      },
+      "affected-vet": {
+        "durationMs": 3924,
+        "status": "pass"
+      },
+      "compile-all": {
+        "durationMs": 15580,
+        "status": "pass"
+      },
+      "declarative-release-tests": {
+        "durationMs": 18153,
+        "status": "pass"
+      },
+      "diff-check": {
+        "durationMs": 448,
+        "status": "pass"
+      },
+      "gofmt": {
+        "durationMs": 56,
+        "status": "pass"
+      },
+      "helm-lint-render": {
+        "durationMs": 0,
+        "status": "skipped"
+      },
+      "openapi-generated": {
+        "durationMs": 1225,
+        "status": "pass"
+      },
+      "shell-syntax": {
+        "durationMs": 0,
+        "status": "pass"
+      }
+    },
+    "elapsedMs": 130822,
+    "kind": "PrepushReceipt",
+    "sourceCommit": "b93e69a8ee9b7c90e6ff5f7393ecd94dcad6af55",
+    "status": "pass"
+  },
+  "limits": [
+    "Only admin route list and route explain were migrated; internal traffic-safety and robustness builders remain pending.",
+    "Signature corruption, stale facts, foreign fences and mixed group releases were exercised in disposable local storage, not injected into production.",
+    "Serving modes describe published configuration plus consumer convergence; they are not new end-to-end probes for every hostname."
+  ],
+  "ci": "https://github.com/yym68686/fugue/actions/runs/35848093163",
+  "local_validation": {
+    "make_test": "pass",
+    "targeted_race": "pass",
+    "frontend_contract_check": "pass"
+  }
+}

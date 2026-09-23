@@ -182,11 +182,17 @@ export interface paths {
     post: operations["promoteControlPlaneStore"];
   };
   "/v1/admin/routes": {
-    /** List Route Serving Modes */
+    /**
+     * List Route Serving Modes
+     * @description Read-only projection of the signed published TrafficReleaseSet and fresh consumer facts. Business rows and process route configuration are never serving evidence. Without edge_group_id all currently assigned groups must select the same publication; mixed gray/full publications return 409. Missing or invalid artifacts or prepared membership return 503. Stale consumer evidence is reported as degraded, not replaced with business intent.
+     */
     get: operations["listRouteServingModes"];
   };
   "/v1/admin/routes/explain/{hostname}": {
-    /** Explain Route */
+    /**
+     * Explain Route
+     * @description Explains the signed published route and its exact consumer evidence, without compiling business rows or reading ambient routes. A missing hostname in an otherwise valid publication is unrouted. Mixed publications require edge_group_id; missing or invalid publication returns 503. The traffic_release field binds the response to artifact lineage and release fence. Healthy groups require fresh route, DNS and TLS consumer evidence.
+     */
     get: operations["explainRoute"];
   };
   "/v1/admin/platform/autonomy/status": {
@@ -9679,6 +9685,7 @@ export interface components {
       status: components["schemas"]["ControlPlaneStoreStatus"];
     };
     RouteExplainResponse: {
+      traffic_release?: components["schemas"]["TrafficReleaseBinding"];
       hostname?: string;
       /** @enum {string} */
       serving_mode?: "edge" | "route_a_legacy" | "unrouted" | "degraded";
@@ -9711,6 +9718,10 @@ export interface components {
       [key: string]: unknown;
     };
     RouteServingModeListResponse: {
+      traffic_release?: components["schemas"]["TrafficReleaseBinding"];
+      healthy_edge_groups?: {
+        [key: string]: boolean;
+      };
       routes: components["schemas"]["RouteServingMode"][];
       /** Format: date-time */
       generated_at: string;
@@ -12123,6 +12134,8 @@ export interface components {
     };
   };
   parameters: {
+    /** @description One current publication cohort. Required when gray and full groups select different releases. Duplicate, empty or noncanonical values are rejected. */
+    RouteDiagnosticEdgeGroup?: string;
     IdPathParam: string;
     DiagnosticSessionIdPathParam: string;
     TenantIdPathParam: string;
@@ -13038,8 +13051,16 @@ export interface operations {
       default: components["responses"]["ErrorResponse"];
     };
   };
-  /** List Route Serving Modes */
+  /**
+   * List Route Serving Modes
+   * @description Read-only projection of the signed published TrafficReleaseSet and fresh consumer facts. Business rows and process route configuration are never serving evidence. Without edge_group_id all currently assigned groups must select the same publication; mixed gray/full publications return 409. Missing or invalid artifacts or prepared membership return 503. Stale consumer evidence is reported as degraded, not replaced with business intent.
+   */
   listRouteServingModes: {
+    parameters: {
+      query?: {
+        edge_group_id?: components["parameters"]["RouteDiagnosticEdgeGroup"];
+      };
+    };
     responses: {
       /** @description Successful response */
       200: {
@@ -13047,12 +13068,26 @@ export interface operations {
           "application/json": components["schemas"]["RouteServingModeListResponse"];
         };
       };
+      /** @description Current groups select different publications; specify edge_group_id. */
+      409: {
+        content: never;
+      };
+      /** @description Published artifacts or prepared membership are unavailable. */
+      503: {
+        content: never;
+      };
       default: components["responses"]["ErrorResponse"];
     };
   };
-  /** Explain Route */
+  /**
+   * Explain Route
+   * @description Explains the signed published route and its exact consumer evidence, without compiling business rows or reading ambient routes. A missing hostname in an otherwise valid publication is unrouted. Mixed publications require edge_group_id; missing or invalid publication returns 503. The traffic_release field binds the response to artifact lineage and release fence. Healthy groups require fresh route, DNS and TLS consumer evidence.
+   */
   explainRoute: {
     parameters: {
+      query?: {
+        edge_group_id?: components["parameters"]["RouteDiagnosticEdgeGroup"];
+      };
       path: {
         hostname: string;
       };
@@ -13063,6 +13098,14 @@ export interface operations {
         content: {
           "application/json": components["schemas"]["RouteExplainResponseEnvelope"];
         };
+      };
+      /** @description Current groups select different publications; specify edge_group_id. */
+      409: {
+        content: never;
+      };
+      /** @description Published artifacts or prepared membership are unavailable. */
+      503: {
+        content: never;
       };
       default: components["responses"]["ErrorResponse"];
     };
