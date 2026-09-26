@@ -1142,6 +1142,18 @@ export interface paths {
     /** Delete App Domain */
     delete: operations["deleteAppDomain"];
   };
+  "/v1/apps/{id}/domains/{hostname}/certificate": {
+    /**
+     * Inspect a custom-domain certificate without reading private material
+     * @description Requires app.tls.read or app.tls.write and the app tenant/project boundary. Stored material is not proof of current edge serving state.
+     */
+    get: operations["getAppDomainCertificateMetadata"];
+    /**
+     * Import a publicly trusted certificate for a verified app domain
+     * @description Requires app.tls.write and the app tenant/project boundary. Every certificate DNS name must belong to a verified domain of this app. A compare-and-swap fingerprint prevents overwriting a concurrently replaced certificate; an identical retry is idempotent. Imports never change DNS, domain verification, TLS readiness or serving route configuration. Existing edge certificate delivery consumes the material; serving requires live evidence.
+     */
+    put: operations["importAppDomainCertificate"];
+  };
   "/v1/apps/{id}/domains/availability": {
     /** Get App Domain Availability */
     get: operations["getAppDomainAvailability"];
@@ -6578,6 +6590,22 @@ export interface components {
       created_at: string;
       /** Format: date-time */
       updated_at: string;
+    };
+    AppDomainCertificateMetadata: {
+      hostname: string;
+      app_id: string;
+      present: boolean;
+      certificate_sha256?: string;
+      /** Format: date-time */
+      not_after?: string;
+      /** Format: date-time */
+      updated_at?: string;
+    };
+    ImportAppDomainCertificateRequest: {
+      certificate_pem: string;
+      private_key_pem: string;
+      /** @description Empty only when no certificate is currently stored. */
+      expected_certificate_sha256: string;
     };
     StaticEdgeRegistrationListResponse: {
       registrations: components["schemas"]["StaticEdgeRegistration"][];
@@ -17694,6 +17722,53 @@ export interface operations {
       200: {
         content: {
           "application/json": components["schemas"]["AppDomainResponse"];
+        };
+      };
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
+  /**
+   * Inspect a custom-domain certificate without reading private material
+   * @description Requires app.tls.read or app.tls.write and the app tenant/project boundary. Stored material is not proof of current edge serving state.
+   */
+  getAppDomainCertificateMetadata: {
+    parameters: {
+      path: {
+        id: components["parameters"]["IdPathParam"];
+        hostname: string;
+      };
+    };
+    responses: {
+      /** @description Certificate metadata only */
+      200: {
+        content: {
+          "application/json": components["schemas"]["AppDomainCertificateMetadata"];
+        };
+      };
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
+  /**
+   * Import a publicly trusted certificate for a verified app domain
+   * @description Requires app.tls.write and the app tenant/project boundary. Every certificate DNS name must belong to a verified domain of this app. A compare-and-swap fingerprint prevents overwriting a concurrently replaced certificate; an identical retry is idempotent. Imports never change DNS, domain verification, TLS readiness or serving route configuration. Existing edge certificate delivery consumes the material; serving requires live evidence.
+   */
+  importAppDomainCertificate: {
+    parameters: {
+      path: {
+        id: components["parameters"]["IdPathParam"];
+        hostname: string;
+      };
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ImportAppDomainCertificateRequest"];
+      };
+    };
+    responses: {
+      /** @description Validated certificate material stored; this is not a serving acknowledgement */
+      200: {
+        content: {
+          "application/json": components["schemas"]["AppDomainCertificateMetadata"];
         };
       };
       default: components["responses"]["ErrorResponse"];
