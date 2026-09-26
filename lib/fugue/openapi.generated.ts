@@ -656,6 +656,28 @@ export interface paths {
     /** Create Project */
     post: operations["createProject"];
   };
+  "/v1/static-edges": {
+    /** List Static Edge Registrations */
+    get: operations["listStaticEdgeRegistrations"];
+    /**
+     * Register Static Edge Metadata
+     * @description Records account and project ownership metadata for an independent static edge. The standalone executor remains the runtime, health, credential, and DNS authority.
+     */
+    post: operations["createStaticEdgeRegistration"];
+  };
+  "/v1/static-edges/{id}": {
+    /** Get Static Edge Registration */
+    get: operations["getStaticEdgeRegistration"];
+    /** Revoke Static Edge Registration */
+    delete: operations["revokeStaticEdgeRegistration"];
+  };
+  "/v1/static-edges/{id}/proof": {
+    /**
+     * Record Static Edge Possession Observation
+     * @description Stores the digest and signing-key identifier produced by a direct executor observation. This control-plane record does not grant the API authority over the independent edge.
+     */
+    post: operations["updateStaticEdgePossessionProof"];
+  };
   "/v1/projects/image-usage": {
     /** List Project Image Usage */
     get: operations["listProjectImageUsage"];
@@ -6534,6 +6556,57 @@ export interface components {
     };
     ProjectResponse: {
       project: components["schemas"]["Project"];
+    };
+    StaticEdgeRegistration: {
+      id: string;
+      tenant_id: string;
+      project_id: string;
+      name: string;
+      edge_id: string;
+      /** @enum {string} */
+      transport: "mtls" | "ssh";
+      /** Format: uri */
+      manager_url?: string;
+      certificate_fingerprint?: string;
+      signing_key_id?: string;
+      possession_proof_digest?: string;
+      /** @enum {string} */
+      status: "pending" | "ready" | "revoked";
+      /** Format: date-time */
+      last_proof_at?: string;
+      /** Format: date-time */
+      created_at: string;
+      /** Format: date-time */
+      updated_at: string;
+    };
+    StaticEdgeRegistrationListResponse: {
+      registrations: components["schemas"]["StaticEdgeRegistration"][];
+      /** Format: date-time */
+      generated_at: string;
+    };
+    StaticEdgeRegistrationResponse: {
+      registration: components["schemas"]["StaticEdgeRegistration"];
+    };
+    CreateStaticEdgeRegistrationRequest: {
+      tenant_id?: string;
+      project_id: string;
+      name: string;
+      edge_id: string;
+      /** @enum {string} */
+      transport: "mtls" | "ssh";
+      /** Format: uri */
+      manager_url?: string;
+      certificate_fingerprint?: string;
+      signing_key_id: string;
+      /** @description Digest of a direct possession observation; the API stores this metadata and does not perform the executor handshake. */
+      possession_proof_digest: string;
+    };
+    UpdateStaticEdgePossessionProofRequest: {
+      /** @description Digest of a direct possession observation; the API stores this metadata and does not perform the executor handshake. */
+      possession_proof_digest: string;
+      signing_key_id: string;
+      /** @default true */
+      ready?: boolean;
     };
     PutProjectRouteTableRequest: {
       domains?: components["schemas"]["ProjectRouteDomain"][];
@@ -15117,6 +15190,103 @@ export interface operations {
       201: {
         content: {
           "application/json": components["schemas"]["ProjectResponse"];
+        };
+      };
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
+  /** List Static Edge Registrations */
+  listStaticEdgeRegistrations: {
+    parameters: {
+      query?: {
+        tenant_id?: string;
+        project_id?: string;
+      };
+    };
+    responses: {
+      /** @description Static edge registrations visible to the principal */
+      200: {
+        content: {
+          "application/json": components["schemas"]["StaticEdgeRegistrationListResponse"];
+        };
+      };
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
+  /**
+   * Register Static Edge Metadata
+   * @description Records account and project ownership metadata for an independent static edge. The standalone executor remains the runtime, health, credential, and DNS authority.
+   */
+  createStaticEdgeRegistration: {
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["CreateStaticEdgeRegistrationRequest"];
+      };
+    };
+    responses: {
+      /** @description Static edge registration created */
+      201: {
+        content: {
+          "application/json": components["schemas"]["StaticEdgeRegistrationResponse"];
+        };
+      };
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
+  /** Get Static Edge Registration */
+  getStaticEdgeRegistration: {
+    parameters: {
+      path: {
+        id: components["parameters"]["IdPathParam"];
+      };
+    };
+    responses: {
+      /** @description Static edge registration */
+      200: {
+        content: {
+          "application/json": components["schemas"]["StaticEdgeRegistrationResponse"];
+        };
+      };
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
+  /** Revoke Static Edge Registration */
+  revokeStaticEdgeRegistration: {
+    parameters: {
+      path: {
+        id: components["parameters"]["IdPathParam"];
+      };
+    };
+    responses: {
+      /** @description Static edge registration revoked */
+      200: {
+        content: {
+          "application/json": components["schemas"]["StaticEdgeRegistrationResponse"];
+        };
+      };
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
+  /**
+   * Record Static Edge Possession Observation
+   * @description Stores the digest and signing-key identifier produced by a direct executor observation. This control-plane record does not grant the API authority over the independent edge.
+   */
+  updateStaticEdgePossessionProof: {
+    parameters: {
+      path: {
+        id: components["parameters"]["IdPathParam"];
+      };
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["UpdateStaticEdgePossessionProofRequest"];
+      };
+    };
+    responses: {
+      /** @description Static edge possession observation recorded */
+      200: {
+        content: {
+          "application/json": components["schemas"]["StaticEdgeRegistrationResponse"];
         };
       };
       default: components["responses"]["ErrorResponse"];
