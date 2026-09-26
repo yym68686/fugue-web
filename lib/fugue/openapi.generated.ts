@@ -11202,11 +11202,36 @@ export interface components {
       reserved_hostnames: string[];
       default_dns_ttl: number;
     };
+    /** @description Desired Edge authority cells and serving pools. Runtime health, addresses, loaded digests and traffic weights are excluded. This field is signed as part of PlatformIntent and does not by itself authorize an Edge to serve a route. */
+    PlatformEdgeTopology: {
+      /** @enum {string} */
+      schema_version: "edge-topology/v1";
+      authority_cells: {
+          id: string;
+          legacy_group_id?: string;
+        }[];
+      serving_pools: {
+          id: string;
+        }[];
+      edges: {
+          id: string;
+          authority_cell_id: string;
+          serving_pool_ids: string[];
+          capabilities: string[];
+          failure_domains: {
+            [key: string]: string;
+          };
+          labels?: {
+            [key: string]: string;
+          };
+        }[];
+    };
     PlatformConfigIntent: {
       schema_version?: string;
       generation: string;
       scope?: string;
       application_domains?: components["schemas"]["PlatformApplicationDomains"];
+      edge_topology?: components["schemas"]["PlatformEdgeTopology"];
       dns_consumers?: components["schemas"]["PlatformDNSConsumerIntent"][];
       routes?: components["schemas"]["PlatformConfigRouteIntent"][];
       dns?: components["schemas"]["PlatformConfigDNSIntent"][];
