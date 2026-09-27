@@ -1703,6 +1703,27 @@ export interface paths {
     /** Join Cluster Cleanup */
     post: operations["joinClusterCleanup"];
   };
+  "/v1/agent/edge-candidates": {
+    /**
+     * agentEdgeCandidates
+     * @description Issues a short-lived Ed25519 permission bound to the authenticated runtime and independently published Agent policy. Does not accept caller-selected audience or origin. Verifies signed topology, current per-cell traffic publications, complete hostname route proofs, fresh node capacity, inventory health and quarantine/drain state, then rechecks authority before signing. Missing or stale inputs fail closed without renewing previous evidence. No serving configuration, DNS selection or LKG is changed. Responses are no-store and never include signing keys.
+     */
+    get: operations["agentEdgeCandidates"];
+  };
+  "/v1/admin/agent-edge/preview": {
+    /**
+     * previewAgentEdgeCandidates
+     * @description Platform admin with artifact.read scope only. Runs the same bounded source and evidence checks for one existing runtime, without producing a signature or granting traffic. Reports bounded per-edge diagnostics and signing-key availability; does not create configuration or keys.
+     */
+    get: operations["previewAgentEdgeCandidates"];
+  };
+  "/v1/admin/agent-edge/trust": {
+    /**
+     * getAgentEdgePublicTrust
+     * @description Platform admin with artifact.read scope only. Exports the public portion of the independently managed signing-key configuration. Never creates or rotates keys, returns private material, or grants Agent traffic. Used for out-of-band managed trust distribution, not automatic client trust discovery.
+     */
+    get: operations["getAgentEdgePublicTrust"];
+  };
   "/v1/agent/heartbeat": {
     /** Agent Heartbeat */
     post: operations["agentHeartbeat"];
@@ -2078,6 +2099,152 @@ export type webhooks = Record<string, never>;
 
 export interface components {
   schemas: {
+    AgentEdgeSelectionPolicy: {
+      probe_interval_seconds: number;
+      probe_timeout_milliseconds: number;
+      fact_max_age_seconds: number;
+      failure_threshold: number;
+      better_sample_threshold: number;
+      switch_improvement_percent: number;
+      switch_cooldown_seconds: number;
+      standby_count: number;
+      desired_distinct_cells: number;
+      max_candidates: number;
+    };
+    AgentEdgePublication: {
+      serving_group_id: string;
+      release_set_id: string;
+      release_set_digest: string;
+      route_artifact_id: string;
+      route_artifact_digest: string;
+      policy_digest: string;
+      intent_digest: string;
+      input_snapshot_digest: string;
+      topology_digest: string;
+      /** @enum {string} */
+      scope_key: "global";
+      release_id: string;
+      /** @enum {string} */
+      channel: "gray" | "full";
+      /** Format: int64 */
+      fencing_token: number;
+      /** Format: date-time */
+      published_at: string;
+    };
+    AgentEdgePolicyReference: {
+      artifact_id: string;
+      artifact_digest: string;
+      release_id: string;
+      /** @enum {string} */
+      channel: "shadow" | "full";
+      /** Format: int64 */
+      fencing_token: number;
+      /** Format: date-time */
+      published_at: string;
+    };
+    AgentEdgeCandidate: {
+      publication: components["schemas"]["AgentEdgePublication"];
+      edge_id: string;
+      authority_cell_id: string;
+      /** @description Canonical public IP literal; no hostname, URI, private, reserved or mapped address. */
+      address: string;
+      route_digests: string[];
+      failure_domains: {
+        [key: string]: string;
+      };
+      evidence_digest: string;
+      /** Format: date-time */
+      evidence_observed_at: string;
+      /** Format: date-time */
+      evidence_valid_until: string;
+    };
+    /** @description Audience-bound permission for Agent control traffic only. Each candidate binds its own exact current cell publication. Signed hard minimums do not silently change during an outage; desired standby and cell redundancy are separately reported as degraded. Absolute validity never outlives original route, capacity, health or signing-key evidence. Shadow permissions allow observation only. */
+    AgentEdgeGrant: {
+      /** @enum {string} */
+      schema: "fugue.agent-edge-grant/v1";
+      /** @enum {string} */
+      purpose: "agent-control";
+      audience: string;
+      /**
+       * Format: uri
+       * @description Canonical configured HTTPS origin with a DNS hostname and implicit port 443.
+       */
+      origin: string;
+      /** @enum {string} */
+      mode: "shadow" | "active";
+      policy_reference: components["schemas"]["AgentEdgePolicyReference"];
+      policy: components["schemas"]["AgentEdgeSelectionPolicy"];
+      minimum_candidates: number;
+      min_distinct_cells: number;
+      min_distinct_domains: {
+        [key: string]: number;
+      };
+      candidates: components["schemas"]["AgentEdgeCandidate"][];
+      /** Format: date-time */
+      issued_at: string;
+      /** Format: date-time */
+      valid_until: string;
+    };
+    SignedAgentEdgeGrant: {
+      grant: components["schemas"]["AgentEdgeGrant"];
+      key_id: string;
+      digest: string;
+      signature: string;
+    };
+    AgentEdgeTrustKey: {
+      key_id: string;
+      public_key: string;
+      /** Format: date-time */
+      not_before: string;
+      /** Format: date-time */
+      not_after: string;
+      revoked: boolean;
+    };
+    /** @description Public-only export for independent managed trust provisioning. Agents must not accept this configuration from a candidate-grant response or discover an unpinned replacement key automatically. */
+    AgentEdgeTrustKeyring: {
+      /** @enum {string} */
+      schema: "fugue.agent-edge-trust/v1";
+      /** Format: int64 */
+      generation: number;
+      keys: components["schemas"]["AgentEdgeTrustKey"][];
+    };
+    /** @description Independent signed policy_snapshot in agent-edge-control scope. Uses explicit platform ownership, matching HTTPS hostname and a pinned signed topology intent. CPU and memory limits apply to fresh authenticated node resource observations. No DNS policy or traffic artifact is modified by issuing a grant. */
+    AgentEdgeAuthorityPolicy: {
+      /** @enum {string} */
+      schema_version: "fugue.agent-edge-policy/v1";
+      generation: string;
+      /** @enum {string} */
+      scope: "agent-edge-control";
+      /** @enum {string} */
+      mode: "shadow" | "active";
+      /**
+       * Format: uri
+       * @description Canonical configured HTTPS origin with a DNS hostname and implicit port 443.
+       */
+      origin: string;
+      signing_key_id: string;
+      topology_intent_artifact_id: string;
+      topology_intent_digest: string;
+      constraint: components["schemas"]["PlatformEdgeSelectionConstraint"];
+      selection: components["schemas"]["AgentEdgeSelectionPolicy"];
+      capacity: {
+        max_node_cpu_percent: number;
+        max_node_memory_percent: number;
+        fact_max_age_seconds: number;
+      };
+      grant_ttl_seconds: number;
+      minimum_lease_seconds: number;
+    };
+    AgentEdgePreview: {
+      ready: boolean;
+      /** @enum {boolean} */
+      authorizes_traffic: false;
+      signing_key_ready: boolean;
+      grant?: components["schemas"]["AgentEdgeGrant"];
+      diagnostics: {
+        [key: string]: string;
+      };
+    };
     DNSListenerReadiness: {
       ready: boolean;
       /** @enum {string} */
@@ -20733,6 +20900,116 @@ export interface operations {
       200: {
         content: {
           "text/plain": string;
+        };
+      };
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
+  /**
+   * agentEdgeCandidates
+   * @description Issues a short-lived Ed25519 permission bound to the authenticated runtime and independently published Agent policy. Does not accept caller-selected audience or origin. Verifies signed topology, current per-cell traffic publications, complete hostname route proofs, fresh node capacity, inventory health and quarantine/drain state, then rechecks authority before signing. Missing or stale inputs fail closed without renewing previous evidence. No serving configuration, DNS selection or LKG is changed. Responses are no-store and never include signing keys.
+   */
+  agentEdgeCandidates: {
+    parameters: {
+      header?: {
+        /** @description Optional continuity hint within the independently authorized candidate set. It cannot expand pools, ownership, residency, health or capacity eligibility. */
+        "X-Fugue-Agent-Current-Edge"?: string;
+      };
+    };
+    responses: {
+      /** @description Current bounded read-only result */
+      200: {
+        content: {
+          "application/json": components["schemas"]["SignedAgentEdgeGrant"];
+        };
+      };
+      /** @description Invalid request */
+      400: {
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"];
+        };
+      };
+      /** @description Caller is not authorized */
+      403: {
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"];
+        };
+      };
+      /** @description Trusted configuration or current observations unavailable */
+      503: {
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"];
+        };
+      };
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
+  /**
+   * previewAgentEdgeCandidates
+   * @description Platform admin with artifact.read scope only. Runs the same bounded source and evidence checks for one existing runtime, without producing a signature or granting traffic. Reports bounded per-edge diagnostics and signing-key availability; does not create configuration or keys.
+   */
+  previewAgentEdgeCandidates: {
+    parameters: {
+      query: {
+        runtime_id: string;
+      };
+    };
+    responses: {
+      /** @description Current bounded read-only result */
+      200: {
+        content: {
+          "application/json": components["schemas"]["AgentEdgePreview"];
+        };
+      };
+      /** @description Invalid request */
+      400: {
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"];
+        };
+      };
+      /** @description Caller is not authorized */
+      403: {
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"];
+        };
+      };
+      /** @description Trusted configuration or current observations unavailable */
+      503: {
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"];
+        };
+      };
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
+  /**
+   * getAgentEdgePublicTrust
+   * @description Platform admin with artifact.read scope only. Exports the public portion of the independently managed signing-key configuration. Never creates or rotates keys, returns private material, or grants Agent traffic. Used for out-of-band managed trust distribution, not automatic client trust discovery.
+   */
+  getAgentEdgePublicTrust: {
+    responses: {
+      /** @description Current bounded read-only result */
+      200: {
+        content: {
+          "application/json": components["schemas"]["AgentEdgeTrustKeyring"];
+        };
+      };
+      /** @description Invalid request */
+      400: {
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"];
+        };
+      };
+      /** @description Caller is not authorized */
+      403: {
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"];
+        };
+      };
+      /** @description Trusted configuration or current observations unavailable */
+      503: {
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"];
         };
       };
       default: components["responses"]["ErrorResponse"];
