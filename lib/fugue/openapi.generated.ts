@@ -3592,8 +3592,7 @@ export interface components {
       generation: string;
       hostname: string;
       path_prefix?: string;
-      /** @enum {string} */
-      route_kind: "platform" | "custom-domain" | "platform-domain" | "platform-route" | "control-plane-api";
+      route_kind: string;
       app_id: string;
       tenant_id: string;
       runtime_id: string;
@@ -3673,8 +3672,7 @@ export interface components {
     EdgeRouteBinding: {
       hostname: string;
       path_prefix?: string;
-      /** @enum {string} */
-      route_kind: "platform" | "custom-domain" | "platform-domain" | "platform-route" | "control-plane-api";
+      route_kind: string;
       app_id: string;
       tenant_id: string;
       runtime_id: string;
