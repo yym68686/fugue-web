@@ -2078,6 +2078,11 @@ export type webhooks = Record<string, never>;
 
 export interface components {
   schemas: {
+    DNSListenerReadiness: {
+      ready: boolean;
+      /** @enum {string} */
+      reason: "ready" | "listeners_unavailable" | "checkpoint_unavailable" | "checkpoint_expired" | "legacy_unready";
+    };
     EdgeAuthorityReadStatus: {
       edge_group_id: string;
       status: string;
