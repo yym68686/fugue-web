@@ -4,6 +4,11 @@
  */
 
 
+/** OneOf type helpers */
+type Without<T, U> = { [P in Exclude<keyof T, keyof U>]?: never };
+type XOR<T, U> = (T | U) extends object ? (Without<T, U> & U) | (Without<U, T> & T) : T | U;
+type OneOf<T extends any[]> = T extends [infer Only] ? Only : T extends [infer A, infer B, ...infer Rest] ? OneOf<[XOR<A, B>, ...Rest]> : never;
+
 export interface paths {
   "/button.svg": {
     /** Get Deploy Button */
@@ -11407,8 +11412,11 @@ export interface components {
       /** @description Desired release references and weights. Compilation requires matching fresh release observations. Candidate traffic supports the existing Edge Fugue-Release-Stickiness cookie (or omission); custom cookie names and sticky_header overrides are rejected, never silently ignored. Existing Edge identity precedence remains the built-in cookie, X-Fugue-Release-Stickiness, X-API-Key, Authorization, then per-request trace identity. Sticky declarations remain in signed policy and its digest; no business lookup is required by Edge. */
       traffic_constraints?: components["schemas"]["PlatformTrafficPolicyConstraint"][];
     };
-    PlatformEdgeSelectionConstraint: {
-      tenant_id: string;
+    /** @description Omitted owner_kind preserves tenant ownership. Platform service grants require explicit platform ownership and routes without an app or tenant owner; they cannot authorize tenant applications. */
+    PlatformEdgeSelectionConstraint: ({
+      /** @enum {string} */
+      owner_kind?: "tenant" | "platform";
+      tenant_id?: string;
       hostname: string;
       allowed_pool_ids: string[];
       required_capabilities: string[];
@@ -11419,7 +11427,16 @@ export interface components {
         [key: string]: number;
       };
       fact_max_age_seconds: number;
-    };
+    }) & OneOf<[{
+      /** @enum {string} */
+      owner_kind?: "tenant";
+      tenant_id: string;
+    }, {
+      /** @enum {string} */
+      owner_kind: "platform";
+      /** @enum {string} */
+      tenant_id?: "";
+    }]>;
     /** @description By default applies only to paths matching the specified app owner, or all paths at the hostname when app_id is empty. Explicit tenant_hostname scope preserves legacy hostname policy behavior across apps within one tenant and requires tenant_id. Every referenced constraint must match at least one route. A tenant mismatch is always rejected, including other paths at the same hostname. Exclusion owner digest, generation and fence retain versioned authorization metadata. Compilation derives exclusion_lifecycle using fixed runtime_snapshot.captured_at when a fully identified exclusion has an expiry; that timestamp is required for this case. Missing authorization metadata yields legacy_hold. Exclusion expiry never silently removes an exclusion, including expired_hold and legacy_hold. */
     PlatformRoutePolicyConstraint: {
       id: string;
