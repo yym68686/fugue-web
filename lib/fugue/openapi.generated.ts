@@ -1706,7 +1706,7 @@ export interface paths {
   "/v1/agent/edge-candidates": {
     /**
      * agentEdgeCandidates
-     * @description Issues a short-lived Ed25519 permission bound to the authenticated runtime and independently published Agent policy. Does not accept caller-selected audience or origin. Verifies signed topology, current per-cell traffic publications, complete hostname route proofs, fresh node capacity, inventory health and quarantine/drain state, then rechecks authority before signing. Missing or stale inputs fail closed without renewing previous evidence. No serving configuration, DNS selection or LKG is changed. Responses are no-store and never include signing keys.
+     * @description Issues a short-lived Ed25519 permission bound to the authenticated runtime and independently published Agent policy. A full policy publication takes precedence; before the first full publication, a shadow publication may issue shadow-only grants. Active grants require a full policy publication. Does not accept caller-selected audience or origin. Verifies signed topology, current per-cell traffic publications, complete hostname route proofs, fresh node capacity, inventory health and quarantine/drain state, then rechecks authority before signing. Missing or stale inputs fail closed without renewing previous evidence. No serving configuration, DNS selection or LKG is changed. Responses are no-store and never include signing keys.
      */
     get: operations["agentEdgeCandidates"];
   };
@@ -6482,6 +6482,7 @@ export interface components {
     FailoverAppRequest: {
       target_runtime_id?: string;
     };
+    /** @description Same-runtime, same-storage-class capacity growth without a new primary node is performed in place. An unchanged existing primary node pin is not a placement change. This path preserves database topology, affinity, resources and the application; it never falls back to a restart or switchover. Completion requires volume/filesystem convergence and an unchanged ready primary identity. Other placement or class changes use the localization workflow. */
     LocalizeAppDatabaseRequest: {
       target_node_name?: string;
       target_runtime_id?: string;
@@ -7870,6 +7871,11 @@ export interface components {
       plan: components["schemas"]["ImageCachePrunePlan"];
     };
     CreateImageCachePrunePlanTaskRequest: {
+      /**
+       * @description Return a compact plan receipt without per-manifest/blob arrays. The full plan remains persisted under its ID.
+       * @default false
+       */
+      summary?: boolean;
       node_id?: string;
       cluster_node_name?: string;
       runtime_id?: string;
@@ -13344,6 +13350,8 @@ export interface operations {
   adminListImageCacheInventory: {
     parameters: {
       query?: {
+        /** @description Omit manifest and blob detail arrays; retain node totals. Defaults to false. */
+        summary?: boolean;
         node_id?: string;
         cluster_node_name?: string;
         runtime_id?: string;
@@ -13363,6 +13371,8 @@ export interface operations {
   adminGetImageCachePrunePlan: {
     parameters: {
       query?: {
+        /** @description Omit per-manifest and per-blob arrays; retain plan ID, counts and reason summaries. Defaults to false. */
+        summary?: boolean;
         node_id?: string;
         cluster_node_name?: string;
         runtime_id?: string;
@@ -20367,6 +20377,12 @@ export interface operations {
   listNodeUpdateTasks: {
     parameters: {
       query?: {
+        /** @description Retrieve one exact task within the caller's authorized tenant scope. */
+        task_id?: string;
+        /** @description Maximum newest tasks returned. Omission preserves the legacy unbounded list. */
+        limit?: number;
+        /** @description Include payload and logs. False avoids loading those large fields from storage. */
+        details?: boolean;
         node_updater_id?: string;
         status?: string;
       };
@@ -20907,7 +20923,7 @@ export interface operations {
   };
   /**
    * agentEdgeCandidates
-   * @description Issues a short-lived Ed25519 permission bound to the authenticated runtime and independently published Agent policy. Does not accept caller-selected audience or origin. Verifies signed topology, current per-cell traffic publications, complete hostname route proofs, fresh node capacity, inventory health and quarantine/drain state, then rechecks authority before signing. Missing or stale inputs fail closed without renewing previous evidence. No serving configuration, DNS selection or LKG is changed. Responses are no-store and never include signing keys.
+   * @description Issues a short-lived Ed25519 permission bound to the authenticated runtime and independently published Agent policy. A full policy publication takes precedence; before the first full publication, a shadow publication may issue shadow-only grants. Active grants require a full policy publication. Does not accept caller-selected audience or origin. Verifies signed topology, current per-cell traffic publications, complete hostname route proofs, fresh node capacity, inventory health and quarantine/drain state, then rechecks authority before signing. Missing or stale inputs fail closed without renewing previous evidence. No serving configuration, DNS selection or LKG is changed. Responses are no-store and never include signing keys.
    */
   agentEdgeCandidates: {
     parameters: {
