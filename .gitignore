@@ -46,3 +46,29 @@ next-env.d.ts
 # claude code local workspace + agent scratch (never commit)
 .claude/
 plans/
+
+# Local request statistics and one-off check output (not test fixtures)
+/m
+/tmpstats.db
+/tmpstats.db-shm
+/tmpstats.db-wal
+
+# Research about the unrelated Python/SQL Fugue project
+/fugue_infrastructure_research_zh.md
+
+# Python tools: keep these rules portable across developer machines
+__pycache__/
+*.py[cod]
+
+# Generated operational logs and packet captures; keep code and policy JSON
+/ops/**/*.log
+/ops/**/*.pcap
+/ops/**/*.pcapng
+
+# Investigation reports, verification evidence and operational tooling stay
+# local: they carry production host addresses, Pod identifiers and topology
+# detail that must not be published from this public repository.
+/docs/
+/ops/
+/.agents/
+/skills-lock.json
