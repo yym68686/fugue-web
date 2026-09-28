@@ -5731,6 +5731,7 @@ export interface components {
     AppNetworkPolicyDirectionSpec: {
       mode?: components["schemas"]["AppNetworkPolicyMode"];
       allow_dns?: boolean;
+      /** @description For restricted egress, allows public internet destinations and the TCP 80/443 backends of authenticated platform-managed public Front Services when Kubernetes DNATs a public address to a private Pod IP. The supplemental rule is limited to the declared control-plane namespace and exact Service pod selectors; it grants no access to other private destinations or Front management ports. Disabled or absent public-internet permission never receives this rule. */
       allow_public_internet?: boolean;
       allow_backing_services?: boolean;
       allow_apps?: components["schemas"]["AppNetworkPolicyAppPeer"][];
