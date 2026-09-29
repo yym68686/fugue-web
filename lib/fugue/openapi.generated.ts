@@ -530,6 +530,13 @@ export interface paths {
      */
     get: operations["getPlatformConsumerArtifact"];
   };
+  "/v1/platform-state/consumers/artifacts/{artifact_id}/tls/{hostname}": {
+    /**
+     * Read a custom-domain certificate authorized by a serving cell publication
+     * @description A verified Edge Worker identity can read one existing certificate only when its exact current gray or full cell assignment includes the signed TLS reference and locally owned route for that hostname. The expected set, authority, route/TLS parent, publication fence, tenant and app ownership are rechecked before disclosure. Shadow, foreign cells, stale assignments, unverified domains and missing certificates are denied. This read never issues certificates, modifies domain status, reports readiness or changes LKG. Responses are private and no-store.
+     */
+    get: operations["getPlatformConsumerTLSCertificate"];
+  };
   "/v1/admin/failure-contracts": {
     /** List Subsystem Failure Contracts */
     get: operations["listSubsystemFailureContracts"];
@@ -14939,6 +14946,30 @@ export interface operations {
       401: components["responses"]["ErrorResponse"];
       404: components["responses"]["ErrorResponse"];
       503: components["responses"]["ErrorResponse"];
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
+  /**
+   * Read a custom-domain certificate authorized by a serving cell publication
+   * @description A verified Edge Worker identity can read one existing certificate only when its exact current gray or full cell assignment includes the signed TLS reference and locally owned route for that hostname. The expected set, authority, route/TLS parent, publication fence, tenant and app ownership are rechecked before disclosure. Shadow, foreign cells, stale assignments, unverified domains and missing certificates are denied. This read never issues certificates, modifies domain status, reports readiness or changes LKG. Responses are private and no-store.
+   */
+  getPlatformConsumerTLSCertificate: {
+    parameters: {
+      query: {
+        expected_consumer_set_id: string;
+      };
+      path: {
+        artifact_id: string;
+        hostname: components["parameters"]["HostnamePathParam"];
+      };
+    };
+    responses: {
+      /** @description Existing certificate belonging to the signed custom-domain owner. */
+      200: {
+        content: {
+          "application/json": components["schemas"]["EdgeTLSCertificateBundleResponse"];
+        };
+      };
       default: components["responses"]["ErrorResponse"];
     };
   };
