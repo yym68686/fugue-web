@@ -5896,13 +5896,22 @@ export interface components {
       capacity_bytes?: number;
       /** Format: int64 */
       allocatable_bytes?: number;
-      /** Format: int64 */
+      /**
+       * Format: int64
+       * @description Used bytes reported by kubelet. For image filesystems this may count image data only, rather than all data on the filesystem.
+       */
       used_bytes?: number;
-      /** Format: double */
+      /**
+       * Format: double
+       * @description Physical filesystem fullness, calculated from capacity minus available bytes when available, otherwise used bytes divided by capacity. Scheduler allocatable bytes are never the denominator.
+       */
       usage_percent?: number;
       /** Format: int64 */
       requested_bytes?: number;
-      /** Format: double */
+      /**
+       * Format: double
+       * @description Requested storage divided by scheduler allocatable bytes, falling back to capacity when allocatable is unavailable.
+       */
       request_percent?: number;
       /** Format: int64 */
       schedulable_free_bytes?: number;
@@ -6009,6 +6018,7 @@ export interface components {
       ready: boolean;
       disk_pressure: boolean;
       filesystem_pressure: boolean;
+      /** @description Physical filesystem fullness for the image or node filesystem used by the pressure assessment; independent of scheduler allocatable storage. */
       filesystem_usage_percent?: number;
       filesystem_pressure_reason?: string;
       node_schedulable: boolean;
