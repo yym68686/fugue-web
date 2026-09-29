@@ -454,14 +454,14 @@ export interface paths {
   "/v1/admin/platform-config/release-set/prepare-consumers": {
     /**
      * Prepare ReleaseSet Consumer Expectations
-     * @description Builds immutable expectations for an active ReleaseSet release from authoritative node policy topology. Same release and topology is idempotent; a new release authority or changed topology creates increasing revisions without overwriting historical sets. Edge and DNS membership is independent of heartbeat freshness; missing or stale heartbeats cannot remove an existing required consumer. DNS zone rows belong to one physical process. Incomplete preparation never satisfies full promotion.
+     * @description Builds immutable expectations for an active ReleaseSet release. An authority-cell scope requires signed consumer_topology bound by every child artifact and the pinned policy digest; all declared members remain required regardless of legacy inventory or heartbeat absence. Other scopes retain authoritative node policy topology. Same release and topology is idempotent; a new release authority or changed topology creates increasing revisions without overwriting historical sets. Edge and DNS membership is independent of heartbeat freshness; missing or stale heartbeats cannot remove an existing required consumer. DNS zone rows belong to one physical process. Incomplete preparation never satisfies full promotion.
      */
     post: operations["preparePlatformReleaseSetConsumers"];
   };
   "/v1/admin/platform-state/convergence": {
     /**
      * List Platform Consumer Convergence
-     * @description Projects immutable expected sets onto current authoritative node policy topology. Heartbeat freshness is assessed after membership, so a silent or stale Edge or DNS process remains required. ReleaseSet assessments require verified consumer identity and exact expected-set, ReleaseSet, active release fence and child artifact generation sequence; missing binding context is unknown and old or unverified receipts cannot pass. DNS zone aliases belong to one physical process within an authority. Live DNS backend checks bind the immutable member's authority to its exact Pod credential, current Pod policy and selected public backend. Full promotion selects the newest active release publication for the target ReleaseSet, requires the latest expected set for every referenced traffic artifact, and applies the same assessment. Historical expected sets remain available without granting current promotion authority. CLI state queries use these server assessments.
+     * @description For authority-cell releases, verifies expected membership against the signed consumer_topology and keeps every declared member required. Other scopes project immutable expected sets onto current authoritative node policy topology. Heartbeat freshness is assessed after membership, so a silent or stale Edge or DNS process remains required. ReleaseSet assessments require verified consumer identity and exact expected-set, ReleaseSet, active release fence and child artifact generation sequence; missing binding context is unknown and old or unverified receipts cannot pass. DNS zone aliases belong to one physical process within an authority. Live DNS backend checks bind the immutable member's authority to its exact Pod credential, current Pod policy and selected public backend. Full promotion selects the newest active release publication for the target ReleaseSet, requires the latest expected set for every referenced traffic artifact, and applies the same assessment. Historical expected sets remain available without granting current promotion authority. CLI state queries use these server assessments.
      */
     get: operations["listPlatformConsumerConvergence"];
   };
@@ -11411,6 +11411,8 @@ export interface components {
         }[];
     };
     PlatformConfigIntent: {
+      /** @description Explicit neutral publication authority. Requires scope authority-cell:<id>, exactly that neutral cell with no legacy alias in edge_topology, and DNS consumers belonging to it. Worker and DNS membership is compiled from this signed intent, independently of flat inventory or heartbeat freshness. The paired policy must pin the exact compiled consumer topology digest. This declaration does not select public transport or copy a serving artifact or LKG. */
+      authority_cell_id?: string;
       schema_version?: string;
       generation: string;
       scope?: string;
@@ -11554,6 +11556,10 @@ export interface components {
       edge_group_ids: string[];
     };
     PlatformConfigPolicySnapshot: {
+      /** @description Must match the intent's neutral cell and authority-cell:<id> scope; requires consumer_topology_digest. Absent for legacy global publications. */
+      authority_cell_id?: string;
+      /** @description Pins the canonical PlatformTrafficConsumerTopology derived from signed intent. Requires authority_cell_id. Changing execution membership requires new explicit intent and policy; runtime facts never expand or shrink this set. */
+      consumer_topology_digest?: string;
       traffic_rollout_cohorts?: components["schemas"]["PlatformTrafficRolloutCohort"][];
       dns_authorities?: components["schemas"]["PlatformDNSAuthorityPolicy"][];
       dns_client_policies?: components["schemas"]["PlatformDNSClientPolicy"][];
@@ -11679,7 +11685,16 @@ export interface components {
       input_snapshot_digest?: string;
       compiler_version: string;
     };
+    /** @description Immutable execution membership for one neutral cell. Arrays contain sorted unique physical Kubernetes node IDs. Each Edge requires its own route and TLS receipt; each DNS process requires its own DNS receipt. Every member remains required while silent, unready or absent from legacy inventory. All child artifacts bind the topology digest in signed metadata and their policy. */
+    PlatformTrafficConsumerTopology: {
+      /** @enum {string} */
+      schema_version: "fugue.traffic-consumer-topology/v1";
+      authority_cell_id: string;
+      edge_node_ids: string[];
+      dns_node_ids: string[];
+    };
     PlatformConfigReleaseSet: {
+      consumer_topology?: components["schemas"]["PlatformTrafficConsumerTopology"];
       /** @description Immutable projection of the signed PolicySnapshot cohorts; every child policy must match. */
       traffic_rollout_cohorts?: components["schemas"]["PlatformTrafficRolloutCohort"][];
       schema_version: string;
@@ -14561,7 +14576,7 @@ export interface operations {
   };
   /**
    * Prepare ReleaseSet Consumer Expectations
-   * @description Builds immutable expectations for an active ReleaseSet release from authoritative node policy topology. Same release and topology is idempotent; a new release authority or changed topology creates increasing revisions without overwriting historical sets. Edge and DNS membership is independent of heartbeat freshness; missing or stale heartbeats cannot remove an existing required consumer. DNS zone rows belong to one physical process. Incomplete preparation never satisfies full promotion.
+   * @description Builds immutable expectations for an active ReleaseSet release. An authority-cell scope requires signed consumer_topology bound by every child artifact and the pinned policy digest; all declared members remain required regardless of legacy inventory or heartbeat absence. Other scopes retain authoritative node policy topology. Same release and topology is idempotent; a new release authority or changed topology creates increasing revisions without overwriting historical sets. Edge and DNS membership is independent of heartbeat freshness; missing or stale heartbeats cannot remove an existing required consumer. DNS zone rows belong to one physical process. Incomplete preparation never satisfies full promotion.
    */
   preparePlatformReleaseSetConsumers: {
     requestBody: {
@@ -14586,7 +14601,7 @@ export interface operations {
   };
   /**
    * List Platform Consumer Convergence
-   * @description Projects immutable expected sets onto current authoritative node policy topology. Heartbeat freshness is assessed after membership, so a silent or stale Edge or DNS process remains required. ReleaseSet assessments require verified consumer identity and exact expected-set, ReleaseSet, active release fence and child artifact generation sequence; missing binding context is unknown and old or unverified receipts cannot pass. DNS zone aliases belong to one physical process within an authority. Live DNS backend checks bind the immutable member's authority to its exact Pod credential, current Pod policy and selected public backend. Full promotion selects the newest active release publication for the target ReleaseSet, requires the latest expected set for every referenced traffic artifact, and applies the same assessment. Historical expected sets remain available without granting current promotion authority. CLI state queries use these server assessments.
+   * @description For authority-cell releases, verifies expected membership against the signed consumer_topology and keeps every declared member required. Other scopes project immutable expected sets onto current authoritative node policy topology. Heartbeat freshness is assessed after membership, so a silent or stale Edge or DNS process remains required. ReleaseSet assessments require verified consumer identity and exact expected-set, ReleaseSet, active release fence and child artifact generation sequence; missing binding context is unknown and old or unverified receipts cannot pass. DNS zone aliases belong to one physical process within an authority. Live DNS backend checks bind the immutable member's authority to its exact Pod credential, current Pod policy and selected public backend. Full promotion selects the newest active release publication for the target ReleaseSet, requires the latest expected set for every referenced traffic artifact, and applies the same assessment. Historical expected sets remain available without granting current promotion authority. CLI state queries use these server assessments.
    */
   listPlatformConsumerConvergence: {
     parameters: {
