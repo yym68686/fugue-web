@@ -11427,13 +11427,15 @@ export interface components {
           };
         }[];
     };
-    PlatformConfigIntent: {
+    PlatformConfigIntent: ({
+      /** @description Exact route/TLS publication references for cell-dns only. Each neutral routing cell appears once. References never enroll a Worker in the DNS authority. */
+      cell_route_publications?: components["schemas"]["PlatformCellRoutePublicationReference"][];
       /**
-       * @description Explicit route/TLS-only authority for one neutral cell. Must match intent, policy, producer and consumer topology. It contains exactly edge_route_bundle and caddy_route_config; DNS input, membership and publication are forbidden. Omission retains the complete route/DNS/TLS publication contract. No existing serving authority is converted implicitly.
+       * @description Explicit publication boundary; cell-routes owns exactly route/TLS artifacts and Worker membership; cell-dns owns exactly a DNS artifact and DNS process membership, with exact independent Cell route/TLS references. Omission retains the complete route/DNS/TLS publication contract. Existing authority is never converted implicitly.
        * @enum {string}
        */
-      publication_role?: "cell-routes";
-      /** @description Explicit neutral publication authority. Requires scope authority-cell:<id> and exactly that neutral cell with no legacy alias in edge_topology. Complete traffic publications require DNS consumers belonging to it; cell-routes publications prohibit DNS consumers. Worker and DNS membership is compiled from this signed intent, independently of flat inventory or heartbeat freshness. The paired policy must pin the exact compiled consumer topology digest. This declaration does not select public transport or copy a serving artifact or LKG. */
+      publication_role?: "cell-routes" | "cell-dns";
+      /** @description Explicit neutral publication authority. Requires scope authority-cell:<id>. Complete and cell-routes publications declare exactly that routing cell without a legacy alias. cell-dns declares independently referenced routing cells in edge_topology and enrolls only its own DNS consumers. Complete traffic publications require DNS consumers belonging to their authority; cell-routes publications prohibit DNS consumers. Worker and DNS membership is compiled from this signed intent, independently of flat inventory or heartbeat freshness. The paired policy must pin the exact compiled consumer topology digest. This declaration does not select public transport or copy a serving artifact or LKG. */
       authority_cell_id?: string;
       schema_version?: string;
       generation: string;
@@ -11446,10 +11448,19 @@ export interface components {
       acme_challenges?: components["schemas"]["PlatformACMEChallengeIntent"][];
       tls?: components["schemas"]["PlatformConfigTLSIntent"][];
       cache_policies?: components["schemas"]["CachePolicy"][];
-    } & OneOf<[unknown, {
+    }) & OneOf<[unknown, {
+      /** @enum {string} */
+      publication_role: "cell-routes";
       dns?: unknown[];
       dns_consumers?: unknown[];
       acme_challenges?: unknown[];
+    }, {
+      /** @enum {string} */
+      publication_role: "cell-dns";
+      routes?: unknown[];
+      tls?: unknown[];
+      cache_policies?: unknown[];
+      dns_consumers: unknown[];
     }]>;
     /** @description Producer query strategy, independent of runtime ranking, locality and candidate eligibility. The producer observes inventory and ranking directly, expands concrete DNSAnswerRules, and never reads legacy DNS bundles when this policy is present. Readiness remains independently proven. */
     PlatformDNSQueryPolicy: {
@@ -11583,10 +11594,10 @@ export interface components {
     };
     PlatformConfigPolicySnapshot: ({
       /**
-       * @description Explicit route/TLS-only authority for one neutral cell. Must match intent, policy, producer and consumer topology. It contains exactly edge_route_bundle and caddy_route_config; DNS input, membership and publication are forbidden. Omission retains the complete route/DNS/TLS publication contract. No existing serving authority is converted implicitly.
+       * @description Explicit publication boundary; cell-routes owns exactly route/TLS artifacts and Worker membership; cell-dns owns exactly a DNS artifact and DNS process membership, with exact independent Cell route/TLS references. Omission retains the complete route/DNS/TLS publication contract. Existing authority is never converted implicitly.
        * @enum {string}
        */
-      publication_role?: "cell-routes";
+      publication_role?: "cell-routes" | "cell-dns";
       /** @description Must match the intent's neutral cell and authority-cell:<id> scope; requires consumer_topology_digest. Absent for legacy global publications. */
       authority_cell_id?: string;
       /** @description Pins the canonical PlatformTrafficConsumerTopology derived from signed intent. Requires authority_cell_id. Changing execution membership requires new explicit intent and policy; runtime facts never expand or shrink this set. */
@@ -11628,10 +11639,19 @@ export interface components {
       /** @description Desired release references and weights. Compilation requires matching fresh release observations. Candidate traffic supports the existing Edge Fugue-Release-Stickiness cookie (or omission); custom cookie names and sticky_header overrides are rejected, never silently ignored. Existing Edge identity precedence remains the built-in cookie, X-Fugue-Release-Stickiness, X-API-Key, Authorization, then per-request trace identity. Sticky declarations remain in signed policy and its digest; no business lookup is required by Edge. */
       traffic_constraints?: components["schemas"]["PlatformTrafficPolicyConstraint"][];
     }) & OneOf<[unknown, {
+      /** @enum {string} */
+      publication_role: "cell-routes";
       dns_authorities?: unknown[];
       dns_client_policies?: unknown[];
       dns_answer_rules?: unknown[];
       edge_selection_constraints?: unknown[];
+    }, {
+      /** @enum {string} */
+      publication_role: "cell-dns";
+      /** @enum {string} */
+      dns_placement_mode: "consumer_readiness";
+      route_constraints?: unknown[];
+      traffic_constraints?: unknown[];
     }]>;
     /** @description Omitted owner_kind preserves tenant ownership. Platform service grants require explicit platform ownership and routes without an app or tenant owner; they cannot authorize tenant applications. */
     PlatformEdgeSelectionConstraint: ({
@@ -11721,29 +11741,38 @@ export interface components {
       input_snapshot_digest?: string;
       compiler_version: string;
     };
-    /** @description Immutable execution membership for one neutral cell. Arrays contain sorted unique physical Kubernetes node IDs. Each Edge requires its own route and TLS receipt; each DNS process requires its own DNS receipt. DNS membership must be empty for cell-routes and nonempty otherwise. Every member remains required while silent, unready or absent from legacy inventory. All child artifacts bind the topology digest in signed metadata and their policy. */
-    PlatformTrafficConsumerTopology: {
+    /** @description Immutable execution membership for one neutral cell. Arrays contain sorted unique physical Kubernetes node IDs. Each Edge requires its own route and TLS receipt; each DNS process requires its own DNS receipt. DNS membership must be empty for cell-routes and nonempty otherwise; Edge membership must be empty for cell-dns and nonempty otherwise. Every member remains required while silent, unready or absent from legacy inventory. All child artifacts bind the topology digest in signed metadata and their policy. */
+    PlatformTrafficConsumerTopology: ({
       /**
-       * @description Explicit route/TLS-only authority for one neutral cell. Must match intent, policy, producer and consumer topology. It contains exactly edge_route_bundle and caddy_route_config; DNS input, membership and publication are forbidden. Omission retains the complete route/DNS/TLS publication contract. No existing serving authority is converted implicitly.
+       * @description Explicit publication boundary; cell-routes owns exactly route/TLS artifacts and Worker membership; cell-dns owns exactly a DNS artifact and DNS process membership, with exact independent Cell route/TLS references. Omission retains the complete route/DNS/TLS publication contract. Existing authority is never converted implicitly.
        * @enum {string}
        */
-      publication_role?: "cell-routes";
+      publication_role?: "cell-routes" | "cell-dns";
       /** @enum {string} */
       schema_version: "fugue.traffic-consumer-topology/v1";
       authority_cell_id: string;
       edge_node_ids: string[];
       dns_node_ids: string[];
-    } & OneOf<[{
+    }) & OneOf<[{
       dns_node_ids?: unknown[];
+      edge_node_ids?: unknown[];
     }, {
+      /** @enum {string} */
+      publication_role: "cell-routes";
+      dns_node_ids?: unknown[];
+      edge_node_ids?: unknown[];
+    }, {
+      /** @enum {string} */
+      publication_role: "cell-dns";
+      edge_node_ids?: unknown[];
       dns_node_ids?: unknown[];
     }]>;
-    PlatformConfigReleaseSet: {
+    PlatformConfigReleaseSet: ({
       /**
-       * @description Explicit route/TLS-only authority for one neutral cell. Must match intent, policy, producer and consumer topology. It contains exactly edge_route_bundle and caddy_route_config; DNS input, membership and publication are forbidden. Omission retains the complete route/DNS/TLS publication contract. No existing serving authority is converted implicitly.
+       * @description Explicit publication boundary; cell-routes owns exactly route/TLS artifacts and Worker membership; cell-dns owns exactly a DNS artifact and DNS process membership, with exact independent Cell route/TLS references. Omission retains the complete route/DNS/TLS publication contract. Existing authority is never converted implicitly.
        * @enum {string}
        */
-      publication_role?: "cell-routes";
+      publication_role?: "cell-routes" | "cell-dns";
       consumer_topology?: components["schemas"]["PlatformTrafficConsumerTopology"];
       /** @description Immutable projection of the signed PolicySnapshot cohorts; every child policy must match. */
       traffic_rollout_cohorts?: components["schemas"]["PlatformTrafficRolloutCohort"][];
@@ -11754,9 +11783,16 @@ export interface components {
       artifact_kinds: string[];
       dependencies?: components["schemas"]["PlatformArtifactDependency"][];
       lineage: components["schemas"]["PlatformConfigLineage"];
-    } & (OneOf<[unknown, {
+    }) & (OneOf<[unknown, {
+      /** @enum {string} */
+      publication_role: "cell-routes";
       artifact_ids?: string[];
       artifact_kinds?: ("edge_route_bundle" | "caddy_route_config")[];
+    }, {
+      /** @enum {string} */
+      publication_role: "cell-dns";
+      artifact_ids?: string[];
+      artifact_kinds?: "dns_answer_bundle"[];
     }]>);
     PlatformArtifactDependency: {
       from: string;
@@ -11838,6 +11874,28 @@ export interface components {
       route_count: number;
       omitted_runtime_fields: string[];
     };
+    PlatformCellRoutePublicationReference: {
+      authority_cell_id: string;
+      release_set_id: string;
+      release_set_digest: string;
+      release_id: string;
+      /** @enum {string} */
+      release_channel: "gray" | "full";
+      /** Format: int64 */
+      fencing_token: number;
+      canary_rule_ref?: string;
+      route_artifact_id: string;
+      route_artifact_digest: string;
+      tls_artifact_id: string;
+      tls_artifact_digest: string;
+    };
+    /** @description Retained immutable compiler inputs, embedded in the signed DNS artifact for offline recovery. All artifact signatures, exact membership and reference pins are checked. Compilation and serving publication also require the exact currently selected Cell publication; a shadow or stale release cannot authorize DNS. */
+    PlatformCellRoutePublicationInput: {
+      reference: components["schemas"]["PlatformCellRoutePublicationReference"];
+      parent: components["schemas"]["PlatformArtifact"];
+      route: components["schemas"]["PlatformArtifact"];
+      tls: components["schemas"]["PlatformArtifact"];
+    };
     PlatformRuntimeSnapshot: {
       dns_selections?: components["schemas"]["PlatformDNSSelectionObservation"][];
       dns_edge_endpoints?: components["schemas"]["PlatformDNSEdgeEndpoint"][];
@@ -11903,6 +11961,7 @@ export interface components {
       };
     };
     PlatformConfigCompileRequest: {
+      cell_route_publications?: components["schemas"]["PlatformCellRoutePublicationInput"][];
       intent: components["schemas"]["PlatformConfigIntent"];
       policy: components["schemas"]["PlatformConfigPolicySnapshot"];
       runtime_snapshot?: components["schemas"]["PlatformRuntimeSnapshot"];
@@ -11986,17 +12045,29 @@ export interface components {
       runtime_id?: string;
       deployment_generation?: string;
     };
-    /** @description A complete traffic compilation includes dns_artifact. Explicit cell-routes compilation omits DNS and binds only route/TLS artifacts. */
+    /** @description Child artifacts match the exact publication role. A complete traffic compilation includes route, DNS and TLS; cell-routes includes route/TLS; cell-dns includes only DNS with independent Cell route/TLS references. */
     PlatformConfigCompileResponse: {
       lineage: components["schemas"]["PlatformConfigLineage"];
       release_set: components["schemas"]["PlatformConfigReleaseSet"];
       intent_artifact: components["schemas"]["PlatformArtifact"];
       policy_artifact: components["schemas"]["PlatformArtifact"];
-      route_artifact: components["schemas"]["PlatformArtifact"];
+      route_artifact?: components["schemas"]["PlatformArtifact"];
       dns_artifact?: components["schemas"]["PlatformArtifact"];
-      tls_artifact: components["schemas"]["PlatformArtifact"];
+      tls_artifact?: components["schemas"]["PlatformArtifact"];
       release_artifact: components["schemas"]["PlatformArtifact"];
-    };
+    } & OneOf<[{
+      release_set?: unknown;
+    }, {
+      release_set?: {
+        /** @enum {string} */
+        publication_role: "cell-routes";
+      };
+    }, {
+      release_set?: {
+        /** @enum {string} */
+        publication_role: "cell-dns";
+      };
+    }]>;
     PlatformArtifactLineageDependency: {
       artifact: components["schemas"]["PlatformArtifact"];
       lineage: components["schemas"]["PlatformConfigLineage"];
@@ -12334,6 +12405,7 @@ export interface components {
       edge_group_id: string;
       assignment: components["schemas"]["PlatformConsumerAssignment"];
       parent_digest: string;
+      /** @description Route member for complete traffic publications; empty for cell-dns, where each fact binds an independently referenced Cell route artifact. */
       route_artifact_id: string;
       plan_digest: string;
       /** Format: date-time */
@@ -14308,6 +14380,7 @@ export interface operations {
     requestBody: {
       content: {
         "application/json": {
+          cell_route_publications?: components["schemas"]["PlatformCellRoutePublicationInput"][];
           intent_artifact_id: string;
           policy_artifact_id: string;
           runtime_snapshot?: components["schemas"]["PlatformRuntimeSnapshot"];
