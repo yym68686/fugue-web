@@ -512,7 +512,7 @@ export interface paths {
   "/v1/platform-state/consumers/identity": {
     /**
      * Exchange a bound Kubernetes Pod token for a short-lived consumer identity
-     * @description Requires a Pod-bound ServiceAccount token accepted by the Kubernetes API. Kubernetes SelfSubjectReview and a live Pod lookup determine the node identity. Only Pods in the configured control-plane namespace with an operator-managed typed fugue.pro/consumer-identity annotation may exchange credentials. The signed identity expires after two minutes. This operation does not report consumer health or change serving state.
+     * @description Requires a Pod-bound ServiceAccount token accepted by the Kubernetes API. Kubernetes SelfSubjectReview and a live Pod lookup determine the node identity. Only Pods in the configured control-plane namespace with an operator-managed typed fugue.pro/consumer-identity annotation may exchange credentials. Edge Worker identities may explicitly declare a canonical cell-* authority_id in that annotation, matching the Pod's fugue.io/edge-group-id label. The server then binds consumer_id to component:authority_id:node_id. Such an identity can read and report only an exact authority-bound expected member; it cannot overwrite the legacy component:node_id consumer or another cell. An absent authority_id retains the legacy identity. Neither form grants a new assignment or copies observations, fences, or LKG across authorities. The signed identity expires after two minutes. This operation does not report consumer health or change serving state.
      */
     post: operations["exchangePlatformConsumerIdentity"];
   };
@@ -11166,6 +11166,8 @@ export interface components {
       consumer_id: string;
       component: string;
       node_id: string;
+      /** @description Explicit neutral Edge Worker authority. When present, cohort must equal this value and consumer_id must be component:authority_id:node_id. Absent for legacy members; adding it never reuses legacy runtime evidence. */
+      authority_id?: string;
       artifact_kind: string;
       scope_key: string;
       failure_domain: string;
@@ -12220,6 +12222,10 @@ export interface components {
       expires_at: string;
       component: string;
       node_id: string;
+      /** @description Server-derived neutral Edge Worker authority; omitted for legacy identities. */
+      authority_id?: string;
+      /** @description Exact consumer identity derived from the signed component, node and optional authority scope. Legacy responses may omit this field. */
+      consumer_id?: string;
       scope_key: string;
       artifact_kinds: string[];
     };
@@ -14792,7 +14798,7 @@ export interface operations {
   };
   /**
    * Exchange a bound Kubernetes Pod token for a short-lived consumer identity
-   * @description Requires a Pod-bound ServiceAccount token accepted by the Kubernetes API. Kubernetes SelfSubjectReview and a live Pod lookup determine the node identity. Only Pods in the configured control-plane namespace with an operator-managed typed fugue.pro/consumer-identity annotation may exchange credentials. The signed identity expires after two minutes. This operation does not report consumer health or change serving state.
+   * @description Requires a Pod-bound ServiceAccount token accepted by the Kubernetes API. Kubernetes SelfSubjectReview and a live Pod lookup determine the node identity. Only Pods in the configured control-plane namespace with an operator-managed typed fugue.pro/consumer-identity annotation may exchange credentials. Edge Worker identities may explicitly declare a canonical cell-* authority_id in that annotation, matching the Pod's fugue.io/edge-group-id label. The server then binds consumer_id to component:authority_id:node_id. Such an identity can read and report only an exact authority-bound expected member; it cannot overwrite the legacy component:node_id consumer or another cell. An absent authority_id retains the legacy identity. Neither form grants a new assignment or copies observations, fences, or LKG across authorities. The signed identity expires after two minutes. This operation does not report consumer health or change serving state.
    */
   exchangePlatformConsumerIdentity: {
     responses: {
