@@ -11954,8 +11954,10 @@ export interface components {
       lkg?: components["schemas"]["PlatformLKGSnapshot"];
       dependencies?: components["schemas"]["PlatformArtifactLineageDependency"][];
     };
-    /** @description Signed operational policy stored as policy_snapshot in the platform-config-producer scope. Activate or pause through the existing artifact shadow release API; a draft has no effect. */
+    /** @description Signed operational policy stored as policy_snapshot in platform-config-producer for global, or platform-config-producer:<cell-id> for an independent cell. Activate or pause through the existing artifact shadow release API; a draft has no effect. A cell producer explicitly declares authority_cell_id and pins static intent and projection policy in its exact target scope. */
     PlatformProducerPolicy: {
+      /** @description Required for an independent cell producer and absent for global. Binds producer policy scope, target_scope and both pinned input authorities. */
+      authority_cell_id?: string;
       /** @enum {string} */
       schema_version: "fugue.platform.producer/v1";
       generation: string;
@@ -11970,11 +11972,11 @@ export interface components {
       };
       /** @enum {string} */
       input_source: "business-static-intent";
-      /** @description Required exact immutable platform_intent ID in global scope. */
+      /** @description Required exact immutable platform_intent ID in target_scope. An independent cell input carries the same authority_cell_id and complete declared Edge and DNS topology. */
       static_intent_artifact_id: string;
       /** @description Required exact content_hash of the pinned static intent. */
       static_intent_digest: string;
-      /** @description Optional exact validated global PolicySnapshot holding DNS declarations and optional route defaults. Supported fields are schema_version, generation, scope, dns_authorities, dns_client_policies, dns_readiness, tls_readiness, traffic_rollout_cohorts, dns_query_policy, dns_placement_mode; the optional route defaults group must include all four of minimum_healthy_edges (1..10000), max_stale_seconds (1..604800), route_constraints and dns_route_state_constraints. Explicit empty arrays are allowed; null, partial groups and unknown fields are rejected. Base route_constraints are defaults by hostname; an explicit business route policy takes precedence. Requires business-static-intent and DNS consumers in the pinned intent. */
+      /** @description Optional exact validated PolicySnapshot in target_scope holding DNS declarations and optional route defaults. Required for a cell producer, where authority_cell_id and consumer_topology_digest bind the same declared cell membership. Supported fields are schema_version, generation, scope, authority_cell_id, consumer_topology_digest, dns_authorities, dns_client_policies, dns_readiness, tls_readiness, traffic_rollout_cohorts, dns_query_policy, dns_placement_mode; the optional route defaults group must include all four of minimum_healthy_edges (1..10000), max_stale_seconds (1..604800), route_constraints and dns_route_state_constraints. Explicit empty arrays are allowed; null, partial groups and unknown fields are rejected. Base route_constraints are defaults by hostname; an explicit business route policy takes precedence. Requires business-static-intent and DNS consumers in the pinned intent. */
       dns_policy_artifact_id?: string;
       dns_policy_digest?: string;
       /**
@@ -11997,8 +11999,8 @@ export interface components {
           node_id: string;
           template_zone: string;
         }[];
-      /** @enum {string} */
-      target_scope: "global";
+      /** @description Exact output scope. A cell suffix must equal authority_cell_id; no fallback or publication across scopes. */
+      target_scope: string;
       interval_seconds: number;
       /** @description Must be at least interval_seconds; bounds reuse of the previous runtime snapshot when desired intent and policy are unchanged. */
       refresh_seconds: number;
