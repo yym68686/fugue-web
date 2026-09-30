@@ -5,6 +5,7 @@ import { useState } from "react";
 
 import { callConsole } from "@/components/workbench/shared";
 import { useT } from "@/lib/i18n/client";
+import SecretCopyField from "./SecretCopyField";
 
 type CreatedResult = {
   secret: string;
@@ -20,7 +21,7 @@ const PLUS_ICON = (
 /**
  * "New key" action for the access-keys page. Opens a modal to name the key and
  * pick its scopes, mints it via POST /api/console/keys, then reveals the secret
- * exactly once before refreshing the list. Rendered as a client island so the
+ * before refreshing the list. Rendered as a client island so the
  * page itself can stay a server component.
  */
 export default function NewKeyButton({
@@ -39,14 +40,12 @@ export default function NewKeyButton({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [created, setCreated] = useState<CreatedResult | null>(null);
-  const [copied, setCopied] = useState(false);
 
   function openModal() {
     setLabel("");
     setSelected(new Set(availableScopes));
     setError(null);
     setCreated(null);
-    setCopied(false);
     setOpen(true);
   }
 
@@ -55,6 +54,7 @@ export default function NewKeyButton({
     setOpen(false);
     // If a key was just created, the list needs to pick up the new row.
     if (created) router.refresh();
+    setCreated(null);
   }
 
   function toggleScope(scope: string) {
@@ -91,18 +91,6 @@ export default function NewKeyButton({
     }
   }
 
-  async function copySecret() {
-    if (!created) return;
-    try {
-      await navigator.clipboard.writeText(created.secret);
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 2000);
-    } catch {
-      // Clipboard may be unavailable (insecure context); the secret is still
-      // selectable in the field, so fail quietly.
-    }
-  }
-
   return (
     <>
       <button type="button" className="btn primary" onClick={openModal}>
@@ -121,15 +109,10 @@ export default function NewKeyButton({
                 <div className="modal-b">
                   <p style={{ marginBottom: 10 }}>
                     {t(
-                      "Copy your key secret now. For security it won't be shown again.",
+                      "Copy your key now. You can copy it again from the Access keys page.",
                     )}
                   </p>
-                  <div className="newkey-secret">
-                    <code>{created.secret}</code>
-                    <button type="button" className="btn ghost" onClick={copySecret}>
-                      {copied ? t("Copied") : t("Copy")}
-                    </button>
-                  </div>
+                  <SecretCopyField secret={created.secret} />
                   <div className="newkey-secret-meta">
                     <span className="mono">{created.key.label}</span>
                     {created.key.prefix && (

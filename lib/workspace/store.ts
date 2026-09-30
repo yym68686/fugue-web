@@ -281,13 +281,12 @@ export async function ensureAppUser(user: SessionUser) {
 
 /**
  * Persist a user-minted API key into the local mirror the /keys page reads
- * from. The secret is intentionally NOT stored (secret_sealed = NULL): unlike
- * the workspace admin key, the app never acts with this key, so it is revealed
- * to the user once at creation and then only its metadata is retained. Marked
+ * from. Seal the secret so its owner can copy it again from the keys page. Marked
  * source='managed' (created through the console) and is_workspace_admin=FALSE.
  */
 export async function persistManagedApiKey(input: {
   email: string;
+  secret: string;
   key: {
     id: string;
     tenantId: string;
@@ -323,8 +322,8 @@ export async function persistManagedApiKey(input: {
         )
         VALUES (
           $1, $2, $3, $4, $5, $6::jsonb,
-          NULL, 'active', 'managed', FALSE,
-          NULL, NULL, NULL, $7, $8, $7
+          $7, 'active', 'managed', FALSE,
+          NULL, NULL, NULL, $8, $9, $8
         )
         ON CONFLICT (fugue_key_id) DO UPDATE
         SET
@@ -333,6 +332,7 @@ export async function persistManagedApiKey(input: {
           label = EXCLUDED.label,
           prefix = EXCLUDED.prefix,
           scopes = EXCLUDED.scopes,
+          secret_sealed = EXCLUDED.secret_sealed,
           status = 'active',
           source = 'managed',
           is_workspace_admin = FALSE,
@@ -348,6 +348,7 @@ export async function persistManagedApiKey(input: {
         input.key.label,
         input.key.prefix,
         JSON.stringify(input.key.scopes),
+        sealText(input.secret),
         now,
         createdAt,
       ],
@@ -375,6 +376,7 @@ export async function updateManagedApiKeyStatus(input: {
         UPDATE app_api_keys
         SET
           status = $3,
+          secret_sealed = CASE WHEN $3 = 'deleted' THEN NULL ELSE secret_sealed END,
           disabled_at = CASE WHEN $3 = 'disabled' THEN $4::timestamptz ELSE NULL END,
           deleted_at = CASE WHEN $3 = 'deleted' THEN $4::timestamptz ELSE NULL END,
           last_synced_at = $4,
@@ -386,6 +388,20 @@ export async function updateManagedApiKeyStatus(input: {
       [input.fugueKeyId, normalizeEmail(input.email), input.status, now],
     ),
   );
+}
+
+/** Read a secret only on explicit request, scoped to the authenticated owner. */
+export async function getApiKeySecretForUser(email: string, fugueKeyId: string) {
+  const result = await withDbSchemaRetry(() =>
+    queryDb<{ secret_sealed: string | null }>(
+      `SELECT secret_sealed FROM app_api_keys
+       WHERE fugue_key_id = $1 AND user_email = $2 AND status != 'deleted'`,
+      [fugueKeyId, normalizeEmail(email)],
+    ),
+  );
+  const row = result.rows[0];
+  if (!row) return { found: false, secret: null } as const;
+  return { found: true, secret: row.secret_sealed ? unsealText(row.secret_sealed) : null } as const;
 }
 
 /**
@@ -457,7 +473,7 @@ export async function getManagedApiKeyForUser(email: string, fugueKeyId: string)
 
 /**
  * Persist a freshly-minted node-enrollment key into the local mirror the
- * /servers page reads. As with managed API keys, the secret is NOT stored
+ * /servers page reads. The secret is NOT stored
  * (secret_sealed = NULL): it is revealed once at creation for the join command
  * and never again. Marked source='managed', status='active'.
  */

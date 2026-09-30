@@ -154,14 +154,14 @@ export const zhCN = {
   "macOS / Linux": "macOS / Linux",
   "Windows PowerShell": "Windows PowerShell",
   "Confirm it is on your PATH:": "确认它已在 PATH 中：",
-  "You authenticate the CLI with an API key minted from the console. For security the secret is shown only once, so copy it right away.":
-    "你需要用在控制台生成的 API 密钥来登录 CLI。出于安全考虑，密钥只显示一次，请立即复制。",
+  "You authenticate the CLI with an API key minted from the console. Copy it when you create it or from the Access keys page.":
+    "你需要用在控制台生成的 API 密钥来登录 CLI。创建时或稍后在访问密钥页面均可复制。",
   "Sign in to the console.": "登录控制台。",
   "Open the Access keys page from the sidebar.": "在侧边栏打开「API 密钥」页面。",
   "Click New key, give it a name, pick the scopes it needs, and create it.":
     "点击「新建密钥」，为它取名、选择所需权限范围，然后创建。",
-  "Copy the secret from the dialog — it will not be shown again.":
-    "在弹窗中复制密钥凭证——它不会再次显示。",
+  "Copy the secret from the dialog or use Copy next to the key in the list.":
+    "在弹窗中复制密钥凭证，或点击密钥列表中的「复制」。",
   "Go to Access keys": "前往 API 密钥",
   "Self-hosting Fugue? The Access keys page lives at your own console URL followed by /keys.":
     "自建 Fugue？「API 密钥」页面位于你自己的控制台地址后加 /keys。",
@@ -866,10 +866,18 @@ export const zhCN = {
   "Choose at least one scope.": "请至少选择一个作用域。",
   "Failed to create key": "创建密钥失败",
   "API key created": "API 密钥已创建",
-  "Copy your key secret now. For security it won't be shown again.":
-    "请立即复制密钥凭证；出于安全考虑，它不会再次显示。",
+  "Copy your key now. You can copy it again from the Access keys page.":
+    "请复制密钥凭证。之后也可以在访问密钥页面再次复制。",
   Copy: "复制",
   Copied: "已复制",
+  "Copying…": "复制中…",
+  "API key secret": "完整 API 密钥",
+  "Copy key {label}": "复制密钥 {label}",
+  "Automatic copy failed. Select the key and copy it manually.":
+    "自动复制失败，请选中密钥后手动复制。",
+  "Failed to copy key. Try again.": "复制密钥失败，请重试。",
+  "This key's secret was not saved. Create a new key to copy it.":
+    "此旧密钥的完整凭证未保存，无法恢复。请创建新密钥后复制。",
   Done: "完成",
 
   // --- access keys: per-row edit / disable / delete ---

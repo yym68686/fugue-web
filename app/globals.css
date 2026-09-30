@@ -3382,7 +3382,8 @@ button {
   gap: 8px;
 }
 
-.newkey-secret code {
+.newkey-secret code,
+.newkey-secret input {
   flex: 1;
   min-width: 0;
   overflow-x: auto;

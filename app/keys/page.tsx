@@ -3,6 +3,7 @@ import { withPageTiming } from '@/lib/server/with-page-timing';
 import AppLayout from '@/components/AppLayout';
 import NewKeyButton from '@/components/keys/NewKeyButton';
 import KeyRowActions from '@/components/keys/KeyRowActions';
+import CopyKeyButton from '@/components/keys/CopyKeyButton';
 import { ApiKey } from '@/lib/types';
 import { requireActivePageSession } from '@/lib/auth/page-access';
 import { getAuthContext } from '@/lib/fugue/console';
@@ -39,12 +40,15 @@ async function resolveGrantableScopes(email: string): Promise<string[]> {
   }
 }
 
-async function getKeys(userEmail: string): Promise<ApiKey[]> {
-  const result = await queryDb<ApiKey>(
+type KeyListItem = Omit<ApiKey, 'secret_sealed'> & { has_secret: boolean };
+
+async function getKeys(userEmail: string): Promise<KeyListItem[]> {
+  const result = await queryDb<KeyListItem>(
     `
     SELECT fugue_key_id, user_email, tenant_id, label, prefix, scopes,
            status, source, is_workspace_admin, last_used_at,
-           disabled_at, deleted_at, created_at, updated_at
+           disabled_at, deleted_at, created_at, updated_at,
+           (secret_sealed IS NOT NULL AND secret_sealed != '') AS has_secret
     FROM app_api_keys
     WHERE status != 'deleted'
       AND user_email = $1
@@ -168,6 +172,7 @@ export default withPageTiming('/keys', async function KeysPage() {
                   <span className={`chip ${statusChip[k.status] || 'idle'}`}>
                     {statusLabel(t, k.status)}
                   </span>
+                  <CopyKeyButton keyId={k.fugue_key_id} label={k.label} available={k.has_secret} />
                   {!k.is_workspace_admin && (
                     <KeyRowActions
                       keyId={k.fugue_key_id}

@@ -73,6 +73,7 @@ export async function POST(request: Request) {
 
     await persistManagedApiKey({
       email: auth.session.email,
+      secret,
       key: {
         id: apiKey.id,
         tenantId: apiKey.tenant_id || ws.workspace.tenantId,
@@ -94,7 +95,7 @@ export async function POST(request: Request) {
           scopes,
         },
       },
-    });
+    }, { headers: { "Cache-Control": "private, no-store" } });
   } catch (error) {
     return jsonError(readErrorStatus(error), readErrorMessage(error));
   }

@@ -91,14 +91,14 @@ export default async function Docs() {
           </h2>
           <p className="doc-p">
             {t(
-              "You authenticate the CLI with an API key minted from the console. For security the secret is shown only once, so copy it right away.",
+              "You authenticate the CLI with an API key minted from the console. Copy it when you create it or from the Access keys page.",
             )}
           </p>
           <ol className="doc-ol">
             <li>{t("Sign in to the console.")}</li>
             <li>{t("Open the Access keys page from the sidebar.")}</li>
             <li>{t("Click New key, give it a name, pick the scopes it needs, and create it.")}</li>
-            <li>{t("Copy the secret from the dialog — it will not be shown again.")}</li>
+            <li>{t("Copy the secret from the dialog or use Copy next to the key in the list.")}</li>
           </ol>
           <a className="doc-link" href="/keys">
             {t("Go to Access keys")} →
