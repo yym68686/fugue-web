@@ -12106,6 +12106,11 @@ export interface components {
       mode: "paused" | "shadow" | "serving";
       /** @description Required in serving mode. Automatic traffic releases require an existing full verified TrafficReleaseSet LKG, complete pinned inputs and consumer_readiness placement for complete traffic publications. A cell-routes publication instead requires exact route/TLS membership and excludes DNS authority. Fresh actual gray convergence gates full, and fresh full convergence gates LKG. Timeout rolls back to the unchanged verified LKG and records failure of that candidate; the same desired source is not retried until it changes. These actions reuse existing release lanes, consumer facts and LKG records. */
       serving?: {
+        /**
+         * @description For cell-routes only. After this exact producer policy publication has produced one verified full LKG, retain that publication and stop capturing or publishing further candidates. Both capture and transactional gray admission enforce the bound. It never pauses recovery of an in-progress failed candidate, changes policy mode, renews proof/LKG expiry or authorizes another policy. A separately published policy is required to resume. Omission preserves continuous producer behavior.
+         * @default false
+         */
+        single_publication?: boolean;
         canary_rule_ref: string;
         gray_min_seconds: number;
         full_min_seconds: number;
@@ -12187,8 +12192,14 @@ export interface components {
       /** Format: int64 */
       fencing_token: number;
     };
-    /** @description Transactional precondition for replacing an established neutral cell-routes producer's shadow or paused policy with a shadow policy. Checks the exact current producer publication, unchanged full route/TLS publication and its unexpired verified positive LKG while holding producer-before-target scope locks. Only generation and route_placement_transition may change; pinned inputs and scheduling remain identical. No traffic lane, runtime identity, input artifact or LKG is written. Optional for other release operations; when supplied it cannot be combined with overrides or a canary selector. Idempotency key must equal producer-reconfiguration/<digest>, where digest is sha256 of canonical sorted-key JSON {artifact_id,content_hash,precondition}; precondition is this object. A retry succeeds only while this exact successor remains current with the same serving baseline. Changed, frozen, expired or superseded state conflicts without writes. Rollback APIs retain their separate recovery contract. */
+    /** @description Transactional precondition for updating an established neutral cell-routes producer. Checks the exact current producer publication, unchanged full route/TLS publication and its unexpired verified positive LKG while holding producer-before-target scope locks. The default placement operation only replaces generation and route_placement_transition in shadow mode. Explicit activate_serving preserves every source and placement constraint and changes only generation, mode and bounded serving settings with single_publication=true. The operation publishes the producer policy in its shadow control lane; activation authorizes the existing producer to perform observed gray/full/LKG transitions, without selecting public transport. Optional for other release operations; when supplied it cannot be combined with overrides or a canary selector. Idempotency key must equal producer-reconfiguration/<digest>, where digest is sha256 of canonical sorted-key JSON {artifact_id,content_hash,precondition}; precondition is this object including operation when present. A retry succeeds only while this exact successor remains current with the same serving baseline. Changed, frozen, expired or superseded state conflicts without writes. Rollback APIs retain their separate recovery contract. */
     PlatformProducerReconfiguration: {
+      /**
+       * @description activate_serving requires an existing shadow or paused route-only producer, identical input and placement declarations, and bounded serving settings with single_publication=true. The canary cohort must exist in the exact current full baseline; candidate publication independently revalidates pinned inputs, cohort membership and fresh runtime gates. The default placement operation cannot activate serving.
+       * @default placement
+       * @enum {string}
+       */
+      operation?: "placement" | "activate_serving";
       previous_policy: components["schemas"]["PlatformPublicationPrecondition"];
       serving_full: components["schemas"]["PlatformPublicationPrecondition"];
       verification_evidence_hash: string;
