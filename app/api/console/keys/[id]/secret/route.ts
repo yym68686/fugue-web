@@ -10,8 +10,7 @@ import {
 } from "@/lib/fugue/product-route";
 import { getApiKeySecretForUser } from "@/lib/workspace/store";
 
-// POST prevents link prefetching; secrets never enter the page's RSC payload.
-export async function POST(_request: Request, context: RouteContextWithParams<"id">) {
+async function readSecret(context: RouteContextWithParams<"id">) {
   try {
     const auth = await requireActiveSessionUser();
     if (auth.response) return auth.response;
@@ -30,4 +29,15 @@ export async function POST(_request: Request, context: RouteContextWithParams<"i
   } catch (error) {
     return jsonError(readErrorStatus(error), readErrorMessage(error));
   }
+}
+
+// POST prevents link prefetching; secrets never enter the page's RSC payload.
+export async function POST(_request: Request, context: RouteContextWithParams<"id">) {
+  const response = await readSecret(context);
+  const body = await response.text();
+  // These are small, complete JSON responses. An explicit byte length also
+  // avoids truncated chunk terminators through HTTP/1.1 close-mode proxies.
+  response.headers.set("Content-Length", String(new TextEncoder().encode(body).byteLength));
+  response.headers.set("Cache-Control", "private, no-store");
+  return new NextResponse(body, { status: response.status, headers: response.headers });
 }
