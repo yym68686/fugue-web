@@ -312,6 +312,31 @@ export default function ServicesTable({
                               </span>
                             </div>
                           )}
+                          {r.sourceSync && (
+                            <div className="node-detail-item">
+                              <span className="node-detail-k">{t("GitHub sync")}</span>
+                              <span className="node-detail-v">
+                                <span className={`chip ${r.sourceSync.phase === "ok" ? "ok" : r.sourceSync.phase === "suspended" ? "err" : "warn"}`}>
+                                  {r.sourceSync.phase || "unknown"}
+                                </span>
+                                {r.sourceSync.last_checked_at && (
+                                  <span className="faint" style={{ marginLeft: 8 }}>
+                                    {t("checked {time}", { time: r.sourceSync.last_checked_at })}
+                                  </span>
+                                )}
+                                {r.sourceSync.next_check_at && (
+                                  <span className="faint" style={{ marginLeft: 8 }}>
+                                    {t("next {time}", { time: r.sourceSync.next_check_at })}
+                                  </span>
+                                )}
+                                {r.sourceSync.last_error_message && (
+                                  <span className="node-detail-v" style={{ display: "block", marginTop: 4 }}>
+                                    {r.sourceSync.last_error_message}
+                                  </span>
+                                )}
+                              </span>
+                            </div>
+                          )}
                           <div className="node-detail-item">
                             <span className="node-detail-k">{t("Deploy method")}</span>
                             <span className="node-detail-v">
