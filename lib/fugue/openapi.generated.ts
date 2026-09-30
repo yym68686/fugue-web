@@ -11617,7 +11617,7 @@ export interface components {
       schema_version?: string;
       generation: string;
       scope?: string;
-      /** @description Versioned DNS treatment of inactive routes, keyed uniquely by record kind. Omission defaults to omit. serve_error_page permits disabled/unavailable local routes only with exact loaded-state and TLS proof; it never restores upstreams or permits route_a_only or excluded nodes. */
+      /** @description Versioned DNS treatment of inactive routes, keyed uniquely by record kind. Omission defaults to omit. For independent cell-dns compilation, complete referenced routes that are inactive and omitted produce no answer or readiness target; they do not block unrelated DNS records. A genuinely missing route dependency still rejects compilation, and active candidates must satisfy all Cell and DNS quorum floors. serve_error_page permits disabled/unavailable local routes only with exact loaded-state and TLS proof; it never restores upstreams or permits route_a_only or excluded nodes. */
       dns_route_state_constraints?: ({
           /** @enum {string} */
           record_kind: "platform" | "platform-route" | "platform-domain" | "custom-domain-target" | "hosted";
