@@ -11431,6 +11431,7 @@ export interface components {
         }[];
     };
     PlatformConfigIntent: ({
+      route_authority_transition?: components["schemas"]["PlatformRouteAuthorityTransition"];
       /** @description Exact route/TLS publication references for cell-dns only. Each neutral routing cell appears once. References never enroll a Worker in the DNS authority. */
       cell_route_publications?: components["schemas"]["PlatformCellRoutePublicationReference"][];
       /**
@@ -11877,6 +11878,32 @@ export interface components {
       route_count: number;
       omitted_runtime_fields: string[];
     };
+    /** @description Exact full global publication used only by an explicit DNS authority transition. The full release must remain selected for every retired authority alias when compilation and publication are checked. The DNS child authenticates physical endpoint ownership; route/TLS children authenticate complete behavior. */
+    PlatformPreviousTrafficPublicationReference: {
+      release_set_id: string;
+      release_set_digest: string;
+      release_id: string;
+      /** Format: int64 */
+      fencing_token: number;
+      route_artifact_id: string;
+      route_artifact_digest: string;
+      tls_artifact_id: string;
+      tls_artifact_digest: string;
+      dns_artifact_id: string;
+      dns_artifact_digest: string;
+    };
+    PlatformPreviousTrafficPublicationInput: {
+      reference: components["schemas"]["PlatformPreviousTrafficPublicationReference"];
+      parent: components["schemas"]["PlatformArtifact"];
+      route: components["schemas"]["PlatformArtifact"];
+      tls: components["schemas"]["PlatformArtifact"];
+      dns: components["schemas"]["PlatformArtifact"];
+    };
+    /** @description Optional cell-dns-only migration authorization. Removing every explicit legacy_group_id from previous_topology must exactly yield intent.edge_topology; physical membership, pools, capabilities, labels and failure domains cannot change. Every referenced neutral Cell must preserve the previous signed route/TLS behavior and hard policy, allowing only those explicit authority aliases to change. Fresh authenticated dns_authority_transition_v1 capability from every required DNS process gates gray/full publication. Each physical target requires one coherent complete publication proof set; alternatives never add quorum votes. Invalid or stale inputs retain the previous positive LKG and never select public transport. */
+    PlatformRouteAuthorityTransition: {
+      previous_topology: components["schemas"]["PlatformEdgeTopology"];
+      previous_publication: components["schemas"]["PlatformPreviousTrafficPublicationReference"];
+    };
     PlatformCellRoutePublicationReference: {
       authority_cell_id: string;
       release_set_id: string;
@@ -11964,6 +11991,7 @@ export interface components {
       };
     };
     PlatformConfigCompileRequest: {
+      previous_traffic_publication?: components["schemas"]["PlatformPreviousTrafficPublicationInput"];
       cell_route_publications?: components["schemas"]["PlatformCellRoutePublicationInput"][];
       intent: components["schemas"]["PlatformConfigIntent"];
       policy: components["schemas"]["PlatformConfigPolicySnapshot"];
@@ -14424,6 +14452,7 @@ export interface operations {
     requestBody: {
       content: {
         "application/json": {
+          previous_traffic_publication?: components["schemas"]["PlatformPreviousTrafficPublicationInput"];
           cell_route_publications?: components["schemas"]["PlatformCellRoutePublicationInput"][];
           intent_artifact_id: string;
           policy_artifact_id: string;
