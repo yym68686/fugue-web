@@ -12079,8 +12079,19 @@ export interface components {
       lkg?: components["schemas"]["PlatformLKGSnapshot"];
       dependencies?: components["schemas"]["PlatformArtifactLineageDependency"][];
     };
+    /** @description Explicit signed producer configuration for retiring declared authority aliases in route placement constraints. Only cell-routes producers may use it. The topology pair must differ solely by removing one or more legacy_group_id values; stable Edge IDs, membership, pools, capabilities, labels and failure domains are identical. No country-derived mapping, runtime identity rebinding, public selection or LKG promotion is authorized. Each affected constraint is pinned in full, including ownership, exclusions, their original expiry/fence and health minimums. Capture rejects missing, changed or unlisted affected source constraints; publication rechecks the exact transformed output. Failed capture or publication preserves the prior positive LKG. */
+    PlatformRoutePlacementTransition: {
+      previous_topology: components["schemas"]["PlatformEdgeTopology"];
+      next_topology: components["schemas"]["PlatformEdgeTopology"];
+      /** @description Unique source constraints sorted by hostname. Every listed source must change at least one declared alias. Canonical sources use the ordinary PolicySnapshot normalization; their digest hashes the normalized constraint as a JSON object with sorted keys, omitted empty optional fields and the platform JSON escaping rules. */
+      constraints: {
+          source: components["schemas"]["PlatformRoutePolicyConstraint"];
+          source_digest: string;
+        }[];
+    };
     /** @description Signed operational policy stored as policy_snapshot in platform-config-producer for global, or platform-config-producer:<cell-id> for an independent cell. Activate or pause through the existing artifact shadow release API; a draft has no effect. A cell producer explicitly declares authority_cell_id and pins static intent and projection policy in its exact target scope. */
     PlatformProducerPolicy: ({
+      route_placement_transition?: components["schemas"]["PlatformRoutePlacementTransition"];
       /**
        * @description Explicit route/TLS-only authority for one neutral cell. Must match intent, policy, producer and consumer topology. It contains exactly edge_route_bundle and caddy_route_config; DNS input, membership and publication are forbidden. Omission retains the complete route/DNS/TLS publication contract. No existing serving authority is converted implicitly.
        * @enum {string}
