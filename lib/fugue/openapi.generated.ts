@@ -12180,7 +12180,21 @@ export interface components {
       /** @description Must exactly match the target artifact id or generation. */
       target_confirmation: string;
     };
+    PlatformPublicationPrecondition: {
+      artifact_id: string;
+      content_hash: string;
+      release_id: string;
+      /** Format: int64 */
+      fencing_token: number;
+    };
+    /** @description Transactional precondition for replacing an established neutral cell-routes producer's shadow or paused policy with a shadow policy. Checks the exact current producer publication, unchanged full route/TLS publication and its unexpired verified positive LKG while holding producer-before-target scope locks. Only generation and route_placement_transition may change; pinned inputs and scheduling remain identical. No traffic lane, runtime identity, input artifact or LKG is written. Optional for other release operations; when supplied it cannot be combined with overrides or a canary selector. Idempotency key must equal producer-reconfiguration/<digest>, where digest is sha256 of canonical sorted-key JSON {artifact_id,content_hash,precondition}; precondition is this object. A retry succeeds only while this exact successor remains current with the same serving baseline. Changed, frozen, expired or superseded state conflicts without writes. Rollback APIs retain their separate recovery contract. */
+    PlatformProducerReconfiguration: {
+      previous_policy: components["schemas"]["PlatformPublicationPrecondition"];
+      serving_full: components["schemas"]["PlatformPublicationPrecondition"];
+      verification_evidence_hash: string;
+    };
     PlatformArtifactReleaseRequest: {
+      producer_reconfiguration?: components["schemas"]["PlatformProducerReconfiguration"];
       /** @enum {string} */
       release_channel: "shadow" | "gray" | "full";
       canary_rule_ref?: string;
