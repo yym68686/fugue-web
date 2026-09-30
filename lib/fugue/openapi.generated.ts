@@ -350,7 +350,10 @@ export interface paths {
     post: operations["runRobustnessRepair"];
   };
   "/v1/admin/artifacts": {
-    /** List Platform Artifacts */
+    /**
+     * List Platform Artifacts
+     * @description Filters are applied before the result limit. An exact generation with kind and scope locates an immutable input without downloading unrelated artifact history; multiple results remain visible for ambiguity checks.
+     */
     get: operations["listPlatformArtifacts"];
     /** Create Platform Artifact Draft */
     post: operations["createPlatformArtifact"];
@@ -14334,12 +14337,17 @@ export interface operations {
       default: components["responses"]["ErrorResponse"];
     };
   };
-  /** List Platform Artifacts */
+  /**
+   * List Platform Artifacts
+   * @description Filters are applied before the result limit. An exact generation with kind and scope locates an immutable input without downloading unrelated artifact history; multiple results remain visible for ambiguity checks.
+   */
   listPlatformArtifacts: {
     parameters: {
       query?: {
         kind?: string;
         scope?: string;
+        /** @description Exact generation identity, combined with kind and scope. Surrounding whitespace is ignored; case is preserved. */
+        generation?: string;
         status?: string;
         limit?: number;
       };
