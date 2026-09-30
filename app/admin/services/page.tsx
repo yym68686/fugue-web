@@ -33,6 +33,8 @@ export type ServiceRow = {
   observedStatus: ConsoleObservedStatus | null;
   storedStatus: ConsoleAppStatus | null;
   sourceSync: ConsoleAppStatus['source_sync'] | null;
+  originSource: ConsoleApp['origin_source'];
+  buildSource: ConsoleApp['build_source'];
   desiredReplicas: number | null;
 };
 
@@ -113,6 +115,8 @@ export default withPageTiming('/admin/services', async function AdminServicesPag
     routeUrl: app.route?.public_url || app.route?.url || null,
     ...serviceRuntimeInput(app),
     sourceSync: app.status?.source_sync ?? app.stored_status?.source_sync ?? null,
+    originSource: app.origin_source,
+    buildSource: app.build_source,
     desiredReplicas:
       typeof app.observed_status?.desired_replicas === 'number'
         ? app.observed_status.desired_replicas

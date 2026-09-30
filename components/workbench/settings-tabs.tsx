@@ -1,12 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { BackingService, ConsoleAppDetail } from "@/lib/fugue/console";
 import { readRuntimeCountryCode } from "@/lib/geo/country";
 import CountryLabel from "@/components/geo/CountryLabel";
 import { useT } from "@/lib/i18n/client";
 import { ActionButton, callConsole, ConfirmDialog } from "./shared";
+
+import { SourceSyncStatus } from './SourceSyncStatus';
 
 const APP = (id: string) => `/apps/${encodeURIComponent(id)}`;
 
@@ -15,13 +17,21 @@ const APP = (id: string) => `/apps/${encodeURIComponent(id)}`;
 export function SettingsTab({
   app,
   onDeleted,
+  observedNow,
 }: {
   app: ConsoleAppDetail;
   onDeleted: () => void;
+  observedNow: number;
 }) {
   const t = useT();
   const router = useRouter();
   const spec = app.spec ?? {};
+  const tracksGitHub = app.origin_source?.type?.startsWith('github') === true;
+  useEffect(() => {
+    if (!tracksGitHub) return;
+    const timer = setInterval(() => { if (document.visibilityState === 'visible') router.refresh(); }, 60_000);
+    return () => clearInterval(timer);
+  }, [tracksGitHub, router]);
   const [startupCommand, setStartupCommand] = useState(spec.command ?? "");
   const [imageMirrorLimit, setImageMirrorLimit] = useState(
     spec.image_mirror_limit != null ? String(spec.image_mirror_limit) : "",
@@ -120,7 +130,9 @@ export function SettingsTab({
             <span className="mono">{app.build_source?.commit_sha?.slice(0, 12) || "—"}</span>
           </div>
         </div>
+        <div className="form"><SourceSyncStatus app={app} now={observedNow} /></div>
         <div className="form-foot">
+          <button type="button" className="btn ghost" onClick={() => router.refresh()}>{t('Refresh')}</button>
           <ActionButton
             className="btn"
             confirm={t("Rebuild from source and deploy?")}

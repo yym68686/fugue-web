@@ -199,7 +199,7 @@ export default function ProjectWorkbench({
             or inside a single tab. */}
         {selected.kind === "app" && <AppFailureNotice app={selected.app} />}
 
-        {selected.kind === "app" && renderAppTab(tab, selected.app, () => router.push("/projects"))}
+        {selected.kind === "app" && renderAppTab(tab, selected.app, () => router.push("/projects"), observedNow)}
         {selected.kind === "db" && renderDbTab(tab, selected.svc)}
       </div>
     );
@@ -330,7 +330,7 @@ function ServiceCard({
   );
 }
 
-function renderAppTab(tab: string, app: ConsoleAppDetail, onDeleted: () => void) {
+function renderAppTab(tab: string, app: ConsoleAppDetail, onDeleted: () => void, observedNow: number) {
   switch (tab) {
     case "Route":
       return <RouteTab app={app} />;
@@ -345,7 +345,7 @@ function renderAppTab(tab: string, app: ConsoleAppDetail, onDeleted: () => void)
     case "Observability":
       return <ObservabilityTab app={app} />;
     case "Settings":
-      return <SettingsTab app={app} onDeleted={onDeleted} />;
+      return <SettingsTab app={app} onDeleted={onDeleted} observedNow={observedNow} />;
     default:
       return null;
   }

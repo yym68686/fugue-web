@@ -9717,6 +9717,14 @@ export interface components {
     AppHTTPRequestStreamResponse: {
       probes: components["schemas"]["HTTPStreamProbe"][];
     };
+    /**
+     * @description Runtime and public HTTP availability are separate observations. For an active
+     * HTTP app with a public route, diagnosis also performs a bounded, unauthenticated
+     * HEAD at the declared route path without following redirects. Evidence records
+     * the public status and correlation headers. Public transport failures, 5xx or
+     * inconclusive 404 responses cannot leave an otherwise healthy runtime classified
+     * as available. This read does not publish or repair serving configuration.
+     */
     AppDiagnosis: {
       category: string;
       summary: string;
