@@ -522,7 +522,7 @@ export interface paths {
   "/v1/platform-state/consumers/assignment": {
     /**
      * Get the expected ReleaseSet assignments for a trusted consumer
-     * @description Returns the latest expected set revision for each authorized artifact kind in each active ReleaseSet channel. Assignments are bound to the signed child artifact and the active release fencing token. Shadow assignments authorize validation only and must not replace serving state. Superseded releases and unrelated topology are excluded.
+     * @description Returns the latest expected set revision for each authorized artifact kind in each active ReleaseSet channel. Assignments are bound to the signed child artifact and the active release fencing token. Shadow assignments authorize validation only and must not replace serving state. Superseded releases and unrelated topology are excluded. Serving-only selection honors the signed publication role; cell-dns requires its prepared DNS membership and selected parent/fence without requiring a route child.
      */
     get: operations["getPlatformConsumerAssignment"];
   };
@@ -532,6 +532,13 @@ export interface paths {
      * @description Returns a validated signed child artifact or its exact signed ReleaseSet parent only when the verified component identity is currently present in that child assignment. Parent reads require the same expected_consumer_set_id and retain the child assignment and release envelope; arbitrary parents and nonselected canary members are denied. The endpoint is read-only and never records runtime facts.
      */
     get: operations["getPlatformConsumerArtifact"];
+  };
+  "/v1/platform-state/consumers/artifacts/{artifact_id}/route-sources": {
+    /**
+     * Read approved routing publications for an assigned DNS artifact
+     * @description Read-only private observation for a trusted cell DNS identity in the exact current artifact and expected consumer set. Only immutable producer policies approved by dns_route_sources can supply route/TLS publications. Each scope includes its current gray/full lane cursors and approved selected publications, plus the unexpired verified full LKG when available. Failed or rolled-back publications and arbitrary history are excluded. The API authenticates all artifacts and producer activation bindings in one coherent source snapshot, then rechecks the DNS assignment before disclosure. The selection digest excludes observation time and changes when any returned authority binding changes. Readers must re-read and compare it after probing; neither this response nor a matching digest grants readiness, renews a proof deadline or selects public transport. Response encoding is bounded to 16 MiB. A source update cannot widen the signed DNS record, owner, candidate or failure-domain policy.
+     */
+    get: operations["getPlatformConsumerDNSRouteSources"];
   };
   "/v1/platform-state/consumers/artifacts/{artifact_id}/tls/{hostname}": {
     /**
@@ -12547,6 +12554,43 @@ export interface components {
       /** Format: date-time */
       generated_at: string;
     };
+    PlatformConsumerDNSRouteSourcesResponse: {
+      assignment: components["schemas"]["PlatformConsumerAssignment"];
+      release: components["schemas"]["PlatformArtifactRelease"];
+      snapshot: components["schemas"]["PlatformDNSRouteSourceSnapshot"];
+    };
+    PlatformDNSRouteSourceSnapshot: {
+      dns_artifact_id: string;
+      dns_artifact_digest: string;
+      selection_digest: string;
+      /** Format: date-time */
+      observed_at: string;
+      scopes: components["schemas"]["PlatformDNSRouteSourceScope"][];
+    };
+    PlatformDNSRouteSourceScope: {
+      scope_key: string;
+      /** @description Existing gray/full lane cursors, including lanes whose current publication is not approved. Such a cursor grants no access to that publication. A frozen lane rejects the observation. */
+      lanes: ({
+          /** @enum {string} */
+          release_channel: "gray" | "full";
+          /** Format: int64 */
+          fencing_token: number;
+          /** Format: int64 */
+          version: number;
+          active_release_id: string;
+        })[];
+      publications: components["schemas"]["PlatformDNSRouteSourcePublication"][];
+    };
+    PlatformDNSRouteSourcePublication: {
+      selections: ("gray" | "full" | "lkg")[];
+      parent: components["schemas"]["PlatformArtifact"];
+      route: components["schemas"]["PlatformArtifact"];
+      tls: components["schemas"]["PlatformArtifact"];
+      release: components["schemas"]["PlatformArtifactRelease"];
+      producer_policy: components["schemas"]["PlatformArtifact"];
+      producer_release: components["schemas"]["PlatformArtifactRelease"];
+      lkg?: components["schemas"]["PlatformLKGSnapshot"];
+    };
     PlatformConsumerArtifactResponse: {
       artifact: components["schemas"]["PlatformArtifact"];
       assignment: components["schemas"]["PlatformConsumerAssignment"];
@@ -15063,7 +15107,7 @@ export interface operations {
   };
   /**
    * Get the expected ReleaseSet assignments for a trusted consumer
-   * @description Returns the latest expected set revision for each authorized artifact kind in each active ReleaseSet channel. Assignments are bound to the signed child artifact and the active release fencing token. Shadow assignments authorize validation only and must not replace serving state. Superseded releases and unrelated topology are excluded.
+   * @description Returns the latest expected set revision for each authorized artifact kind in each active ReleaseSet channel. Assignments are bound to the signed child artifact and the active release fencing token. Shadow assignments authorize validation only and must not replace serving state. Superseded releases and unrelated topology are excluded. Serving-only selection honors the signed publication role; cell-dns requires its prepared DNS membership and selected parent/fence without requiring a route child.
    */
   getPlatformConsumerAssignment: {
     parameters: {
@@ -15108,6 +15152,35 @@ export interface operations {
       400: components["responses"]["ErrorResponse"];
       401: components["responses"]["ErrorResponse"];
       404: components["responses"]["ErrorResponse"];
+      503: components["responses"]["ErrorResponse"];
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
+  /**
+   * Read approved routing publications for an assigned DNS artifact
+   * @description Read-only private observation for a trusted cell DNS identity in the exact current artifact and expected consumer set. Only immutable producer policies approved by dns_route_sources can supply route/TLS publications. Each scope includes its current gray/full lane cursors and approved selected publications, plus the unexpired verified full LKG when available. Failed or rolled-back publications and arbitrary history are excluded. The API authenticates all artifacts and producer activation bindings in one coherent source snapshot, then rechecks the DNS assignment before disclosure. The selection digest excludes observation time and changes when any returned authority binding changes. Readers must re-read and compare it after probing; neither this response nor a matching digest grants readiness, renews a proof deadline or selects public transport. Response encoding is bounded to 16 MiB. A source update cannot widen the signed DNS record, owner, candidate or failure-domain policy.
+   */
+  getPlatformConsumerDNSRouteSources: {
+    parameters: {
+      query: {
+        expected_consumer_set_id: string;
+      };
+      path: {
+        artifact_id: string;
+      };
+    };
+    responses: {
+      /** @description Assignment-bound source observation; no serving or readiness grant. */
+      200: {
+        content: {
+          "application/json": components["schemas"]["PlatformConsumerDNSRouteSourcesResponse"];
+        };
+      };
+      400: components["responses"]["ErrorResponse"];
+      401: components["responses"]["ErrorResponse"];
+      403: components["responses"]["ErrorResponse"];
+      404: components["responses"]["ErrorResponse"];
+      409: components["responses"]["ErrorResponse"];
       503: components["responses"]["ErrorResponse"];
       default: components["responses"]["ErrorResponse"];
     };
