@@ -11439,6 +11439,8 @@ export interface components {
         }[];
     };
     PlatformConfigIntent: ({
+      /** @description Optional cell-dns-only authorization for independently advancing signed routing sources. Each entry approves one immutable producer policy artifact by ID and digest in a referenced routing scope. Exact policy activation and traffic release IDs/channels/fences remain separate observed bindings; they are never inferred from this approval. Baseline inputs retain those bindings and must belong to an approved policy. Source observations never add DNS records, owners, physical candidates or pools; they must satisfy the DNS artifact's own constraints and fresh exact-publication HTTPS proofs. A global source requires the explicit previous-authority transition. A future policy can be approved before activation; a different policy artifact requires new signed DNS configuration. Gray/full activation additionally requires dns_route_sources_v1 from every required DNS consumer. Omission retains exact embedded-reference behavior. */
+      dns_route_sources?: components["schemas"]["PlatformDNSRouteSourceAuthorization"][];
       route_authority_transition?: components["schemas"]["PlatformRouteAuthorityTransition"];
       /** @description Exact route/TLS publication references for cell-dns only. Each neutral routing cell appears once. References never enroll a Worker in the DNS authority. */
       cell_route_publications?: components["schemas"]["PlatformCellRoutePublicationReference"][];
@@ -11901,6 +11903,7 @@ export interface components {
       dns_artifact_digest: string;
     };
     PlatformPreviousTrafficPublicationInput: {
+      producer_policy?: components["schemas"]["PlatformPublicationPrecondition"];
       reference: components["schemas"]["PlatformPreviousTrafficPublicationReference"];
       parent: components["schemas"]["PlatformArtifact"];
       route: components["schemas"]["PlatformArtifact"];
@@ -11911,6 +11914,11 @@ export interface components {
     PlatformRouteAuthorityTransition: {
       previous_topology: components["schemas"]["PlatformEdgeTopology"];
       previous_publication: components["schemas"]["PlatformPreviousTrafficPublicationReference"];
+    };
+    PlatformDNSRouteSourceAuthorization: {
+      scope_key: string;
+      policy_artifact_id: string;
+      policy_digest: string;
     };
     PlatformCellRoutePublicationReference: {
       authority_cell_id: string;
@@ -11929,6 +11937,7 @@ export interface components {
     };
     /** @description Retained immutable compiler inputs, embedded in the signed DNS artifact for offline recovery. All artifact signatures, exact membership and reference pins are checked. Compilation and serving publication also require the exact currently selected Cell publication; a shadow or stale release cannot authorize DNS. */
     PlatformCellRoutePublicationInput: {
+      producer_policy?: components["schemas"]["PlatformPublicationPrecondition"];
       reference: components["schemas"]["PlatformCellRoutePublicationReference"];
       parent: components["schemas"]["PlatformArtifact"];
       route: components["schemas"]["PlatformArtifact"];
