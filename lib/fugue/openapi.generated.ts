@@ -1181,13 +1181,16 @@ export interface paths {
     get: operations["getAppDomainAvailability"];
   };
   "/v1/apps/{id}/domains/verify": {
-    /** Verify App Domain */
+    /**
+     * Verify App Domain
+     * @description Rechecks DNS ownership and restores TLS ready from a currently usable shared certificate bound to the same hostname, app and tenant. Reverification does not require a legacy Edge TLS report. Missing or invalid certificate material never promotes readiness; verification does not assert fresh runtime serving evidence.
+     */
     post: operations["verifyAppDomain"];
   };
   "/v1/apps/{id}/domains/diagnosis": {
     /**
      * Get App Domain Diagnosis
-     * @description Checks actual shared certificate validity and ownership independently from historical TLS status. Presence alone cannot pass shared_tls_certificate or tls_ready. The separate route_active check also requires positive fresh current-generation application runtime evidence; desired replicas zero fails, missing or stale runtime evidence is unknown. A valid certificate cannot make a stopped application active. Diagnosis does not change serving configuration or synthesize runtime observations.
+     * @description Returns DNS evidence from the current verification, including the actual matched target and its addresses when a manual hosted record has been replaced. Historical record IDs are not reported as current matches. Checks actual shared certificate validity and ownership independently from historical TLS status. Presence alone cannot pass shared_tls_certificate or tls_ready. The separate route_active check also requires positive fresh current-generation application runtime evidence; desired replicas zero fails, missing or stale runtime evidence is unknown. A valid certificate cannot make a stopped application active. Diagnosis does not change serving configuration or synthesize runtime observations.
      */
     get: operations["getAppDomainDiagnosis"];
   };
@@ -18382,7 +18385,10 @@ export interface operations {
       default: components["responses"]["ErrorResponse"];
     };
   };
-  /** Verify App Domain */
+  /**
+   * Verify App Domain
+   * @description Rechecks DNS ownership and restores TLS ready from a currently usable shared certificate bound to the same hostname, app and tenant. Reverification does not require a legacy Edge TLS report. Missing or invalid certificate material never promotes readiness; verification does not assert fresh runtime serving evidence.
+   */
   verifyAppDomain: {
     parameters: {
       path: {
@@ -18406,7 +18412,7 @@ export interface operations {
   };
   /**
    * Get App Domain Diagnosis
-   * @description Checks actual shared certificate validity and ownership independently from historical TLS status. Presence alone cannot pass shared_tls_certificate or tls_ready. The separate route_active check also requires positive fresh current-generation application runtime evidence; desired replicas zero fails, missing or stale runtime evidence is unknown. A valid certificate cannot make a stopped application active. Diagnosis does not change serving configuration or synthesize runtime observations.
+   * @description Returns DNS evidence from the current verification, including the actual matched target and its addresses when a manual hosted record has been replaced. Historical record IDs are not reported as current matches. Checks actual shared certificate validity and ownership independently from historical TLS status. Presence alone cannot pass shared_tls_certificate or tls_ready. The separate route_active check also requires positive fresh current-generation application runtime evidence; desired replicas zero fails, missing or stale runtime evidence is unknown. A valid certificate cannot make a stopped application active. Diagnosis does not change serving configuration or synthesize runtime observations.
    */
   getAppDomainDiagnosis: {
     parameters: {
