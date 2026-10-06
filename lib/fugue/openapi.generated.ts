@@ -1228,6 +1228,17 @@ export interface paths {
     /** Localize Backing Service */
     post: operations["localizeBackingService"];
   };
+  "/v1/backing-services/{id}/recover": {
+    /**
+     * Recover Managed Postgres Backing Service
+     * @description Platform administrator only. An offline source is never copied without
+     * an observed primary and verified bound data claim. The controller checks
+     * live storage capacity before bounded source rescue and retains the source
+     * through replica catch-up, switchover, and write-read verification. Dry run
+     * returns intent only; live preflight occurs before each mutation.
+     */
+    post: operations["recoverBackingService"];
+  };
   "/v1/apps/{id}/bindings": {
     /** List App Bindings */
     get: operations["listAppBindings"];
@@ -8698,6 +8709,15 @@ export interface components {
       target_runtime_id?: string;
       operation?: components["schemas"]["Operation"];
     };
+    BackingServiceRecoveryResponse: {
+      backing_service: components["schemas"]["BackingService"];
+      operation?: components["schemas"]["Operation"];
+      plan?: {
+        [key: string]: unknown;
+      };
+      dry_run?: boolean;
+      resumed?: boolean;
+    };
     AppListResponse: {
       apps: components["schemas"]["App"][];
       page_info?: components["schemas"]["CursorPageInfo"];
@@ -9894,6 +9914,8 @@ export interface components {
     MigrateAppRequest: {
       target_runtime_id?: string;
       dry_run?: boolean;
+      /** @description Explicit destination class for copying a stopped dedicated PVC into a new movable RWO PVC. Only accepted when desired replicas are zero; the controller verifies that no source workload pod remains before copying. Source PVCs are retained. */
+      offline_storage_class_name?: string;
     };
     AppMoveVolumeImpact: {
       mode?: string;
@@ -18603,6 +18625,56 @@ export interface operations {
         content: {
           "application/json": components["schemas"]["BackingServiceMigrateResponse"];
         };
+      };
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
+  /**
+   * Recover Managed Postgres Backing Service
+   * @description Platform administrator only. An offline source is never copied without
+   * an observed primary and verified bound data claim. The controller checks
+   * live storage capacity before bounded source rescue and retains the source
+   * through replica catch-up, switchover, and write-read verification. Dry run
+   * returns intent only; live preflight occurs before each mutation.
+   */
+  recoverBackingService: {
+    parameters: {
+      path: {
+        id: components["parameters"]["IdPathParam"];
+      };
+    };
+    requestBody: {
+      content: {
+        "application/json": {
+          /** @default true */
+          dry_run?: boolean;
+          target_runtime_id: string;
+          target_node_name?: string;
+          storage_size?: string;
+          storage_class_name: string;
+        };
+      };
+    };
+    responses: {
+      /** @description Intent plan; live source evidence is not yet verified */
+      200: {
+        content: {
+          "application/json": components["schemas"]["BackingServiceRecoveryResponse"];
+        };
+      };
+      /** @description Recovery operation accepted or exact active operation resumed */
+      202: {
+        content: {
+          "application/json": components["schemas"]["BackingServiceRecoveryResponse"];
+        };
+      };
+      /** @description Platform administrator permission is required. */
+      403: {
+        content: never;
+      };
+      /** @description Another database operation or different recovery intent is active. */
+      409: {
+        content: never;
       };
       default: components["responses"]["ErrorResponse"];
     };
