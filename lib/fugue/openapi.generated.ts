@@ -1233,9 +1233,12 @@ export interface paths {
      * Recover Managed Postgres Backing Service
      * @description Platform administrator only. An offline source is never copied without
      * an observed primary and verified bound data claim. The controller checks
-     * live storage capacity before bounded source rescue and retains the source
-     * through replica catch-up, switchover, and write-read verification. Dry run
-     * returns intent only; live preflight occurs before each mutation.
+     * destination capacity before a disk-full source is fenced. Cold recovery
+     * streams from the stopped source directly into destination storage, verifies
+     * copied files and PostgreSQL system identity, and preserves the application
+     * Service address. Source storage is never expanded. Durable phase records
+     * prevent recopying an activated destination. Dry run describes intent only;
+     * live preflight occurs before each mutation.
      */
     post: operations["recoverBackingService"];
   };
@@ -5376,6 +5379,8 @@ export interface components {
       user?: string;
       password?: string;
       service_name?: string;
+      /** @description Stable application-facing Service retained during a verified cold migration. Ordinary configuration updates preserve this controller-owned identity; service_name identifies the selected CNPG cluster. */
+      endpoint_service_name?: string;
       /** @description Persisted Kubernetes credential identity owned by this backing service. Fugue allocates it independently of display names and preserves it across code releases, renames and ordinary configuration updates. Existing credentials are adopted only after ownership and reference validation. */
       credential_secret_name?: string;
       runtime_id?: string;
@@ -18634,9 +18639,12 @@ export interface operations {
    * Recover Managed Postgres Backing Service
    * @description Platform administrator only. An offline source is never copied without
    * an observed primary and verified bound data claim. The controller checks
-   * live storage capacity before bounded source rescue and retains the source
-   * through replica catch-up, switchover, and write-read verification. Dry run
-   * returns intent only; live preflight occurs before each mutation.
+   * destination capacity before a disk-full source is fenced. Cold recovery
+   * streams from the stopped source directly into destination storage, verifies
+   * copied files and PostgreSQL system identity, and preserves the application
+   * Service address. Source storage is never expanded. Durable phase records
+   * prevent recopying an activated destination. Dry run describes intent only;
+   * live preflight occurs before each mutation.
    */
   recoverBackingService: {
     parameters: {
