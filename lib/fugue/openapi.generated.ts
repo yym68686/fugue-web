@@ -8033,6 +8033,7 @@ export interface components {
     NodeUpdaterDesiredState: {
       /** Format: date-time */
       generated_at: string;
+      /** @description Global minimum updater rollout generation. Optional storage-recovery script releases do not advance this baseline. A participating node can explicitly upgrade to a newer supported generation without changing the baseline or upgrading other nodes. */
       node_updater_generation?: string;
       node_updater: components["schemas"]["NodeUpdater"];
       discovery_bundle: components["schemas"]["DiscoveryBundle"];
