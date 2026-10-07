@@ -12538,6 +12538,13 @@ export interface components {
       ready: boolean;
       ready_probe_ids: string[];
     };
+    /** @description Authenticated routing observation and one publication per physical DNS target. This context grants no readiness; readers replay constraints and validate fresh proofs and current selection independently. */
+    DNSRuntimeRouteContext: {
+      snapshot: components["schemas"]["PlatformDNSRouteSourceSnapshot"];
+      selections: {
+        [key: string]: string;
+      };
+    };
     DNSServingRuntimeFacts: {
       /** @enum {string} */
       schema: "fugue.dns.runtime-facts/v1";
@@ -12548,6 +12555,7 @@ export interface components {
       /** @description Route member for complete traffic publications; empty for cell-dns, where each fact binds an independently referenced Cell route artifact. */
       route_artifact_id: string;
       plan_digest: string;
+      route_sources?: components["schemas"]["DNSRuntimeRouteContext"];
       /** Format: date-time */
       observed_at: string;
       /** Format: date-time */
