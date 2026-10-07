@@ -482,6 +482,13 @@ export interface paths {
     /** Get Platform Hostname Lineage */
     get: operations["getPlatformHostnameLineage"];
   };
+  "/v1/admin/platform-state/dns-decisions/{node_id}": {
+    /**
+     * Read recorded answers from the selected public DNS backend
+     * @description Platform admin with artifact.read only. Reads bounded, retained actual DNS decision receipts through the Kubernetes Pod proxy, binding the Pod UID and public Service backend before and after the read. Does not run a query, recompute current rankings, authorize serving, or renew proofs. desired and loaded publications may differ. A receipt records the response submitted to the DNS writer, not delivery to the end client. Retention, queue drops, persistence failures and process identity are explicit; absence is not evidence that a query did not occur. Raw client addresses and ECS prefixes are not retained. Replay inputs are bounded, versioned local evidence, not signed serving artifacts. Query filters apply to the selected backend's retained receipts, including its recovered previous-process records. An unavailable or ambiguous backend returns 503, never another node's observations.
+     */
+    get: operations["getPlatformDNSDecisions"];
+  };
   "/v1/admin/platform-state/dns-runtime-facts/{node_id}": {
     /**
      * Read DNS observations from the current authenticated public backend
@@ -4842,6 +4849,120 @@ export interface components {
       /** @description Normalized hosted zones that authoritative DNS nodes must load dynamically. */
       hosted_zones?: string[];
       records: components["schemas"]["EdgeDNSRecord"][];
+    };
+    DNSDecisionPublication: {
+      release_set_id?: string;
+      parent_digest?: string;
+      artifact_id?: string;
+      digest?: string;
+      generation?: string;
+      /** Format: int64 */
+      fencing_token?: number;
+      policy_digest?: string;
+      input_snapshot_digest?: string;
+      release_channel?: string;
+    };
+    DNSDecisionPublicationState: {
+      /** Format: date-time */
+      observed_at: string;
+      desired_known: boolean;
+      desired?: components["schemas"]["DNSDecisionPublication"];
+      loaded?: components["schemas"]["DNSDecisionPublication"];
+      lkg?: components["schemas"]["DNSDecisionPublication"];
+      serving_lkg: boolean;
+      rejected: boolean;
+      outcome?: string;
+      fallback_reason?: string;
+    };
+    DNSDecisionRecord: {
+      record_name: string;
+      policy: components["schemas"]["DNSAnswerPolicy"];
+      input_candidates: components["schemas"]["EdgeDNSAnswerCandidate"][];
+      materialized_candidates: components["schemas"]["EdgeDNSAnswerCandidate"][];
+      /** @description Actual stable-sort order and effective score before incumbent or exploration promotion. Lower scores rank first; candidate fields retain tie-break inputs. */
+      ranking: {
+          candidate: components["schemas"]["EdgeDNSAnswerCandidate"];
+          sort_score: number;
+        }[];
+      filtered: {
+          edge_id: string;
+          ip: string;
+          reason: string;
+        }[];
+      /** Format: date-time */
+      selection_at: string;
+      selected_edge_group_id: string;
+      selection_result: string;
+      exploration_kind: string;
+      /** Format: date-time */
+      cooldown_until?: string;
+      /**
+       * @description Published scoped cooldown window at selection time, not a new cooldown decision. Global profiles do not carry a deadline and report not_recorded.
+       * @enum {string}
+       */
+      cooldown_result: "active" | "expired" | "not_active" | "not_recorded";
+      scope_source: string;
+      scope_resolution: string;
+      matched_scope_key: string;
+      answered: components["schemas"]["EdgeDNSAnswerCandidate"][];
+    };
+    DNSDecisionReceipt: {
+      /** @enum {string} */
+      schema: "fugue.dns-decision/v1";
+      decision_id: string;
+      process_id: string;
+      node_id: string;
+      /** Format: date-time */
+      observed_at: string;
+      hostname: string;
+      qtype: number;
+      query_id: number;
+      transport: string;
+      rcode: number;
+      rrset: string[];
+      authority: string[];
+      additional: string[];
+      write_succeeded: boolean;
+      publication: components["schemas"]["DNSDecisionPublicationState"];
+      answer_publication?: components["schemas"]["DNSDecisionPublication"];
+      records: components["schemas"]["DNSDecisionRecord"][];
+      /**
+       * Format: byte
+       * @description Versioned, address-redacted replay input containing original record/proof inputs, captured clocks, selection hints, exploration buckets and publication references. Offline execution only; not serving authorization.
+       */
+      replay_input: string;
+      evidence_digest: string;
+    };
+    DNSDecisionSnapshot: {
+      node_id: string;
+      process_id: string;
+      /** Format: date-time */
+      captured_at: string;
+      publication: components["schemas"]["DNSDecisionPublicationState"];
+      receipts: components["schemas"]["DNSDecisionReceipt"][];
+      retained: number;
+      /** Format: int64 */
+      dropped: number;
+      /** Format: int64 */
+      evicted: number;
+      /** Format: int64 */
+      persistence_errors: number;
+      /** Format: int64 */
+      recovery_errors: number;
+      retention_limit: number;
+      max_receipt_bytes: number;
+    };
+    DNSDecisionResponse: {
+      backend: {
+        namespace: string;
+        pod_name: string;
+        pod_uid: string;
+        service_name: string;
+        service_uid: string;
+      };
+      snapshot: components["schemas"]["DNSDecisionSnapshot"];
+      /** Format: date-time */
+      evaluated_at: string;
     };
     EdgeDNSRecord: {
       /** @description Signed absolute expiry per TXT, A or AAAA value. DNS consumers remove expired values and cap response TTL at query time, including after cache reload and LKG fallback. Leased records cannot also contain dynamic candidates or scoped candidates. */
@@ -15188,6 +15309,31 @@ export interface operations {
           "application/json": {
             [key: string]: unknown;
           };
+        };
+      };
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
+  /**
+   * Read recorded answers from the selected public DNS backend
+   * @description Platform admin with artifact.read only. Reads bounded, retained actual DNS decision receipts through the Kubernetes Pod proxy, binding the Pod UID and public Service backend before and after the read. Does not run a query, recompute current rankings, authorize serving, or renew proofs. desired and loaded publications may differ. A receipt records the response submitted to the DNS writer, not delivery to the end client. Retention, queue drops, persistence failures and process identity are explicit; absence is not evidence that a query did not occur. Raw client addresses and ECS prefixes are not retained. Replay inputs are bounded, versioned local evidence, not signed serving artifacts. Query filters apply to the selected backend's retained receipts, including its recovered previous-process records. An unavailable or ambiguous backend returns 503, never another node's observations.
+   */
+  getPlatformDNSDecisions: {
+    parameters: {
+      query?: {
+        hostname?: string;
+        decision_id?: string;
+        limit?: number;
+      };
+      path: {
+        node_id: string;
+      };
+    };
+    responses: {
+      /** @description Recorded answers and separate current publication observations */
+      200: {
+        content: {
+          "application/json": components["schemas"]["DNSDecisionResponse"];
         };
       };
       default: components["responses"]["ErrorResponse"];
