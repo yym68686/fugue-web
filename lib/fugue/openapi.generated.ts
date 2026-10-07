@@ -4544,6 +4544,8 @@ export interface components {
       };
     };
     PhysicalEdgeQualitySnapshot: {
+      /** @description Captured origin-socket observations. Not promoted into scoring until independently bound to the current route proof; does not assert client-path, throughput, capacity or failure-rate evidence. */
+      network_samples?: components["schemas"]["EdgeNetworkSample"][];
       /** @enum {string} */
       schema: "fugue.physical-edge-quality-shadow/v1";
       /** Format: date-time */
@@ -4752,6 +4754,8 @@ export interface components {
       draining: boolean;
       last_error?: string;
       performance_samples?: components["schemas"]["EdgePerformanceSample"][];
+      /** @description Isolated network observations from the serving worker; never merged into legacy HTTP quality scores. */
+      network_samples?: components["schemas"]["EdgeNetworkSample"][];
     };
     EdgeHeartbeatResponse: {
       node: components["schemas"]["EdgeNode"];
@@ -4779,6 +4783,25 @@ export interface components {
       created_at: string;
       /** Format: date-time */
       updated_at: string;
+    };
+    EdgeNetworkSample: {
+      id: string;
+      edge_id: string;
+      edge_group_id: string;
+      hostname: string;
+      path_prefix: string;
+      /** @enum {string} */
+      traffic_class: "streaming" | "dynamic_api";
+      route_digest: string;
+      bundle_version: string;
+      /** @description Exact configured TCP destination, without credentials or HTTP path. */
+      service_target: string;
+      /** @enum {string} */
+      source: "service_endpoint_tcp_info_v1";
+      /** @description Kernel TCP RTT on the direct origin connection at GotConn, including reused connections. Null means unknown. This success-conditioned sample cannot establish a network failure rate. */
+      service_rtt_ms?: number | null;
+      /** Format: date-time */
+      observed_at: string;
     };
     EdgePerformanceSample: {
       id?: string;
