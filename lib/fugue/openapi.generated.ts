@@ -7960,6 +7960,8 @@ export interface components {
       active_lv_count: number;
       /** Format: int32 */
       bound_pv_count: number;
+      /** @description Whether Kubernetes PV enumeration completed successfully; false means the count is unknown. */
+      bound_pv_count_known?: boolean;
       bound_pvc_refs?: string[];
       safe_to_decommission: boolean;
       unsafe_reasons?: string[];
