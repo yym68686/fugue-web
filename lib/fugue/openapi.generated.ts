@@ -160,6 +160,16 @@ export interface paths {
     /** List Platform Domain Bindings */
     get: operations["listPlatformDomainBindings"];
   };
+  "/v1/admin/image-cache/orphan-policy": {
+    /** adminGetImageOrphanPolicy */
+    get: operations["adminGetImageOrphanPolicy"];
+    /** adminPutImageOrphanPolicy */
+    put: operations["adminPutImageOrphanPolicy"];
+  };
+  "/v1/admin/image-cache/orphans": {
+    /** adminListImageOrphans */
+    get: operations["adminListImageOrphans"];
+  };
   "/v1/admin/image-cache/inventory": {
     /** List Image Cache Inventory */
     get: operations["adminListImageCacheInventory"];
@@ -2133,6 +2143,74 @@ export type webhooks = Record<string, never>;
 
 export interface components {
   schemas: {
+    ImageOrphanPolicy: {
+      /** Format: int64 */
+      generation: number;
+      /** @enum {string} */
+      mode: "observe" | "retire";
+      repository_prefixes: string[];
+      /** @description Explicitly excluded offline or decommissioned nodes; deletion on these nodes remains forbidden. */
+      excluded_nodes?: string[];
+      quarantine_seconds: number;
+      minimum_observations: number;
+      inventory_max_age_seconds: number;
+      /** @default 1800 */
+      sweep_interval_seconds?: number;
+      /** @default 50 */
+      max_targets_per_node?: number;
+      /** @default 1800 */
+      node_cooldown_seconds?: number;
+      /** Format: date-time */
+      updated_at: string;
+      updated_by: string;
+    };
+    ImageOrphanPolicyUpdate: {
+      /** Format: int64 */
+      expected_generation: number;
+      /** @enum {string} */
+      mode: "observe" | "retire";
+      repository_prefixes: string[];
+      /** @description Explicitly excluded offline or decommissioned nodes; deletion on these nodes remains forbidden. */
+      excluded_nodes?: string[];
+      quarantine_seconds: number;
+      minimum_observations: number;
+      inventory_max_age_seconds: number;
+      /** @default 1800 */
+      sweep_interval_seconds?: number;
+      /** @default 50 */
+      max_targets_per_node?: number;
+      /** @default 1800 */
+      node_cooldown_seconds?: number;
+    };
+    ImageOrphanPolicyResponse: {
+      policy: components["schemas"]["ImageOrphanPolicy"];
+    };
+    ImageOrphanDecision: {
+      id: string;
+      node: string;
+      repo: string;
+      target: string;
+      digest: string;
+      /** @enum {string} */
+      ownership: "unknown";
+      /** @enum {string} */
+      state: "quarantined" | "retirement_authorized" | "protected" | "absent";
+      /** Format: int64 */
+      policy_generation: number;
+      observations: number;
+      /** Format: date-time */
+      first_observed_at: string;
+      /** Format: date-time */
+      last_observed_at: string;
+      reason: string;
+      graph_hash?: string;
+    };
+    ImageOrphanListResponse: {
+      policy: components["schemas"]["ImageOrphanPolicy"];
+      coverage_complete: boolean;
+      coverage_reason: string;
+      decisions: components["schemas"]["ImageOrphanDecision"][];
+    };
     AgentEdgeSelectionPolicy: {
       probe_interval_seconds: number;
       probe_timeout_milliseconds: number;
@@ -7746,6 +7824,8 @@ export interface components {
       plans: components["schemas"]["DistributedImageRetentionPlan"][];
     };
     ImageCacheNodeInventory: {
+      /** @description Complete authenticated inventory persisted with this observation. */
+      snapshot_complete?: boolean;
       id: string;
       node_id?: string;
       cluster_node_name?: string;
@@ -13689,6 +13769,47 @@ export interface operations {
       200: {
         content: {
           "application/json": components["schemas"]["PlatformDomainBindingListResponse"];
+        };
+      };
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
+  /** adminGetImageOrphanPolicy */
+  adminGetImageOrphanPolicy: {
+    responses: {
+      /** @description Durable orphan retirement policy or observations. Platform administrator required. */
+      200: {
+        content: {
+          "application/json": components["schemas"]["ImageOrphanPolicyResponse"];
+        };
+      };
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
+  /** adminPutImageOrphanPolicy */
+  adminPutImageOrphanPolicy: {
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ImageOrphanPolicyUpdate"];
+      };
+    };
+    responses: {
+      /** @description Durable orphan retirement policy or observations. Platform administrator required. */
+      200: {
+        content: {
+          "application/json": components["schemas"]["ImageOrphanPolicyResponse"];
+        };
+      };
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
+  /** adminListImageOrphans */
+  adminListImageOrphans: {
+    responses: {
+      /** @description Durable orphan retirement policy or observations. Platform administrator required. */
+      200: {
+        content: {
+          "application/json": components["schemas"]["ImageOrphanListResponse"];
         };
       };
       default: components["responses"]["ErrorResponse"];
