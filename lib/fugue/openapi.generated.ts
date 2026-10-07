@@ -7837,6 +7837,16 @@ export interface components {
       manifests: components["schemas"]["ImageCacheManifest"][];
     };
     ImageCachePruneCandidate: {
+      /**
+       * @description Derived from the current protection snapshot; age alone never retires an unattributed artifact.
+       * @enum {string}
+       */
+      lifecycle_state?: "protected" | "quarantined" | "delete_eligible";
+      /** @description Durable image or replica identities authorizing retirement, revalidated before execution. */
+      retirement_evidence?: string[];
+      /** Format: date-time */
+      first_seen_at?: string;
+      policy_version?: string;
       image_ref?: string;
       node_name?: string;
       repo: string;
@@ -7873,6 +7883,9 @@ export interface components {
       last_seen_at?: string;
     };
     ImageCachePrunePlan: {
+      policy_version?: string;
+      /** @description Digest of policy, node, budget and classified content identities; execution always revalidates current evidence. */
+      plan_hash?: string;
       id: string;
       node_id?: string;
       cluster_node_name?: string;
@@ -7958,7 +7971,10 @@ export interface components {
       lv_names?: string[];
       /** Format: int32 */
       active_lv_count: number;
-      /** Format: int32 */
+      /**
+       * Format: int32
+       * @description Bound LocalPV count; -1 explicitly represents unavailable ownership evidence.
+       */
       bound_pv_count: number;
       /** @description Whether Kubernetes PV enumeration completed successfully; false means the count is unknown. */
       bound_pv_count_known?: boolean;
