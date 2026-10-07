@@ -65,6 +65,13 @@ export interface paths {
     /** Get Edge Node Quality */
     get: operations["getEdgeNodeQuality"];
   };
+  "/v1/edge/quality-shadow/{hostname}": {
+    /**
+     * Capture a replayable physical-edge network quality shadow
+     * @description Platform-admin-only read. Does not change DNS, publish artifacts, execute probes or authorize promotion. Uses exact hostname, traffic class and scope; legacy timings without segment provenance remain diagnostic-only. Missing metrics and hostname-specific route/TLS proofs block promotion. This is a captured counterfactual, not a receipt of an actual DNS answer. Resolver/ECS scope cannot establish a particular terminal's current network path.
+     */
+    get: operations["getEdgeQualityShadow"];
+  };
   "/v1/edge/quality-rank/{hostname}": {
     /** Get Edge Quality Rank */
     get: operations["getEdgeQualityRank"];
@@ -4484,6 +4491,119 @@ export interface components {
       routes?: components["schemas"]["EdgeNodeQualityRoute"][];
       /** Format: date-time */
       generated_at: string;
+    };
+    PhysicalEdgeQualityPolicy: {
+      version: string;
+      window_seconds: number;
+      bucket_seconds: number;
+      required_buckets: number;
+      minimum_records: number;
+      cooldown_seconds: number;
+      evidence_max_age_seconds: number;
+      advantage_ms: number;
+      advantage_ratio: number;
+      unknown_cost_ms: number;
+      uncertainty_ms: number;
+      failure_cost_ms: number;
+      capacity_cost_ms: number;
+      throughput_cost_ms: number;
+      throughput_target_bps: number;
+      probe_interval_seconds: number;
+      probe_budget_per_interval: number;
+    };
+    PhysicalEdgeQualityCandidate: {
+      edge_id: string;
+      edge_group_id: string;
+      route_generation: string;
+      route_proof_verified: boolean;
+      /** Format: date-time */
+      proof_observed_at: string | null;
+      hard_gates: string[];
+    };
+    PhysicalEdgeQualityObservation: {
+      id: string;
+      edge_id: string;
+      hostname: string;
+      traffic_class: string;
+      scope: string;
+      route_generation: string;
+      /** Format: date-time */
+      observed_at: string;
+      client_network_ms: number | null;
+      service_network_ms: number | null;
+      client_source: string;
+      service_source: string;
+      upload_bps: number | null;
+      download_bps: number | null;
+      client_failure_rate: number | null;
+      service_failure_rate: number | null;
+      capacity_utilization: number | null;
+      /** @description Never used in the network score. Includes app/model wait, connection lifetime and unverified legacy measurements. */
+      diagnostics: {
+        [key: string]: number;
+      };
+    };
+    PhysicalEdgeQualitySnapshot: {
+      /** @enum {string} */
+      schema: "fugue.physical-edge-quality-shadow/v1";
+      /** Format: date-time */
+      captured_at: string;
+      hostname: string;
+      traffic_class: string;
+      scope: string;
+      policy: components["schemas"]["PhysicalEdgeQualityPolicy"];
+      current_edge_id: string;
+      /** Format: date-time */
+      last_switch_at: string | null;
+      candidates: components["schemas"]["PhysicalEdgeQualityCandidate"][];
+      observations: components["schemas"]["PhysicalEdgeQualityObservation"][];
+      blockers: string[];
+    };
+    PhysicalEdgeQualityMetric: {
+      /** @enum {string} */
+      state: "observed" | "unknown";
+      value: number;
+      records: number;
+    };
+    PhysicalEdgeQualityAssessment: {
+      edge_id: string;
+      edge_group_id: string;
+      score: number;
+      lower: number;
+      upper: number;
+      metrics: {
+        [key: string]: components["schemas"]["PhysicalEdgeQualityMetric"];
+      };
+      missing: string[];
+      hard_gates: string[];
+      ready: boolean;
+      record_count: number;
+      bucket_count: number;
+    };
+    PhysicalEdgeQualityResult: {
+      /** @enum {string} */
+      mode: "shadow";
+      /** @enum {boolean} */
+      dns_unchanged: true;
+      /** @enum {boolean} */
+      promotion_ready: false;
+      /** @enum {string} */
+      hypothesis: "hold" | "switch" | "failover";
+      proposed_edge_id: string;
+      probe_edge_ids: string[];
+      /** @enum {boolean} */
+      probe_executed: false;
+      sustained_buckets: number;
+      candidates: components["schemas"]["PhysicalEdgeQualityAssessment"][];
+      rejected_records: {
+        [key: string]: number;
+      };
+      blockers: string[];
+    };
+    PhysicalEdgeQualityReceipt: {
+      snapshot: components["schemas"]["PhysicalEdgeQualitySnapshot"];
+      result: components["schemas"]["PhysicalEdgeQualityResult"];
+      digest: string;
     };
     EdgeQualityRankResponse: {
       hostname: string;
@@ -13525,6 +13645,34 @@ export interface operations {
         };
       };
       default: components["responses"]["ErrorResponse"];
+    };
+  };
+  /**
+   * Capture a replayable physical-edge network quality shadow
+   * @description Platform-admin-only read. Does not change DNS, publish artifacts, execute probes or authorize promotion. Uses exact hostname, traffic class and scope; legacy timings without segment provenance remain diagnostic-only. Missing metrics and hostname-specific route/TLS proofs block promotion. This is a captured counterfactual, not a receipt of an actual DNS answer. Resolver/ECS scope cannot establish a particular terminal's current network path.
+   */
+  getEdgeQualityShadow: {
+    parameters: {
+      query: {
+        traffic_class: string;
+        /** @description Exact scope; no country filtering or cross-scope sample fallback. */
+        scope?: string;
+      };
+      path: {
+        hostname: string;
+      };
+    };
+    responses: {
+      /** @description Bounded, digest-protected shadow snapshot and deterministic result. */
+      200: {
+        content: {
+          "application/json": components["schemas"]["PhysicalEdgeQualityReceipt"];
+        };
+      };
+      400: components["responses"]["ErrorResponse"];
+      401: components["responses"]["ErrorResponse"];
+      403: components["responses"]["ErrorResponse"];
+      500: components["responses"]["ErrorResponse"];
     };
   };
   /** Get Edge Quality Rank */
