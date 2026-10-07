@@ -7897,11 +7897,106 @@ export interface components {
       updated_at: string;
     };
     ImageCacheInventoryReportRequest: {
+      upload_temp?: components["schemas"]["ImageCacheUploadObservation"];
+      manifest_total_count?: number;
+      chunk_index?: number;
+      chunk_count?: number;
+      endpoint?: string;
+      cluster_node?: string;
+      pins?: {
+          [key: string]: unknown;
+        }[];
+      disk?: components["schemas"]["ImageCacheInventoryDiskReport"];
       node?: components["schemas"]["ImageCacheNodeInventory"];
-      manifests?: components["schemas"]["ImageCacheManifest"][];
+      manifests?: components["schemas"]["ImageCacheManifestReport"][];
       unreferenced_blobs?: components["schemas"]["ImageCacheInventoryBlobReport"][];
       /** Format: date-time */
       observed_at?: string;
+    };
+    ImageCacheUploadEntry: {
+      path?: string;
+      /** Format: int64 */
+      size_bytes?: number;
+      modified_at?: string;
+      reason?: string;
+    };
+    ImageCacheUploadObservation: {
+      candidates?: components["schemas"]["ImageCacheUploadEntry"][];
+      skipped?: components["schemas"]["ImageCacheUploadEntry"][];
+      deleted?: components["schemas"]["ImageCacheUploadEntry"][];
+      /** Format: int64 */
+      candidate_bytes?: number;
+      /** Format: int64 */
+      deleted_bytes?: number;
+      /** Format: int64 */
+      total_bytes?: number;
+      state_mismatches?: number;
+      error?: string;
+    };
+    ImageCacheInventoryDiskReport: {
+      enabled?: boolean;
+      over_high_watermark?: boolean;
+      below_min_free?: boolean;
+      /** Format: int64 */
+      total_bytes?: number;
+      /** Format: int64 */
+      used_bytes?: number;
+      /** Format: int64 */
+      free_bytes?: number;
+      /** Format: int64 */
+      cache_bytes?: number;
+      /** Format: int64 */
+      min_free_bytes?: number;
+      /** Format: int64 */
+      max_delete_bytes_per_run?: number;
+      /** Format: int64 */
+      needed_delete_bytes?: number;
+      used_percent?: number;
+      high_watermark_percent?: number;
+      low_watermark_percent?: number;
+    };
+    ImageCacheManifestReport: {
+      content_type?: string;
+      /** Format: int64 */
+      size_bytes?: number;
+      /** Format: int64 */
+      referenced_blob_bytes?: number;
+      /** Format: int64 */
+      unique_blob_bytes_observed?: number;
+      modified_at?: string;
+      id?: string;
+      node_id?: string;
+      cluster_node_name?: string;
+      runtime_id?: string;
+      image_ref?: string;
+      repo: string;
+      target: string;
+      digest?: string;
+      media_type?: string;
+      /** Format: int64 */
+      manifest_size_bytes?: number;
+      /** Format: int64 */
+      total_blob_bytes?: number;
+      referenced_blobs?: string[];
+      /** @description Child manifest digests referenced by an OCI index or Docker manifest list. */
+      referenced_manifests?: string[];
+      /**
+       * @description Whether the node-local manifest graph was completely verified. Legacy reports that omit this field are treated as complete.
+       * @enum {string}
+       */
+      graph_status?: "complete" | "incomplete";
+      /** @description Bounded, machine-readable attribution for an incomplete graph. Raw filesystem paths, registry responses, and manifest bodies are never reported through this field. */
+      graph_failure_reason?: components["schemas"]["ImageMeasurementReason"];
+      /** Format: date-time */
+      created_at_observed?: string;
+      /** Format: date-time */
+      last_seen_at?: string;
+      pinned_locally?: boolean;
+      present?: boolean;
+      /** Format: date-time */
+      created_at?: string;
+      /** Format: date-time */
+      updated_at?: string;
     };
     ImageCacheInventoryBlobReport: {
       digest: string;
