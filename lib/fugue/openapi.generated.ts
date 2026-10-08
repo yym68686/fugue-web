@@ -147,6 +147,13 @@ export interface paths {
     /** Create Edge Node Token */
     post: operations["createEdgeNodeToken"];
   };
+  "/v1/edge/network-observation": {
+    /**
+     * Read an exact live connection from the transport-selected public Front
+     * @description Read-only bounded diagnostic for a node-scoped Edge credential. Resolves the actual public Service and EndpointSlice owner, rechecks runtime identities, and returns only one coarse peer sample. Does not probe applications or change routing. Raw peer endpoints are transient and are not persisted in the result.
+     */
+    post: operations["readEdgePublicNetworkObservation"];
+  };
   "/v1/edge/heartbeat": {
     /** Edge Heartbeat */
     post: operations["edgeHeartbeat"];
@@ -4810,7 +4817,36 @@ export interface components {
       /** Format: date-time */
       observed_at: string;
     };
-    /** @description Public Front TCP peer measurement joined to an exact live connection over a node-local Unix socket. Success-conditioned; retransmissions are not connection failure rates. Scope describes the TCP peer prefix, not a DNS resolver, country, or claimed original terminal. No raw client address or port is retained. */
+    EdgePublicNetworkObservationRequest: {
+      /** @enum {string} */
+      schema: "fugue.public-front-network/v1";
+      nonce: string;
+      edge_id: string;
+      edge_group_id: string;
+      /** @enum {string} */
+      slot: "a" | "b";
+      /** @description Transient public TCP peer endpoint observed by trusted local Caddy. Never retained in the response. */
+      remote_addr: string;
+    };
+    EdgePublicNetworkObservationResponse: {
+      /** @enum {string} */
+      schema: "fugue.public-front-network/v1";
+      nonce: string;
+      edge_id: string;
+      edge_group_id: string;
+      sample: components["schemas"]["EdgeClientNetworkSample"];
+    };
+    EdgeClientNetworkBackend: {
+      namespace: string;
+      pod_name: string;
+      pod_uid: string;
+      pod_version: string;
+      service_name: string;
+      service_uid: string;
+      service_version: string;
+      endpoints_digest: string;
+    };
+    /** @description Public Front TCP peer measurement joined to an exact live connection over a node-local Unix socket or a fenced read of the transport-selected public Front. Success-conditioned; retransmissions are not connection failure rates. Scope describes the TCP peer prefix, not a DNS resolver, country, or claimed original terminal. No raw client address or port is retained. */
     EdgeClientNetworkSample: {
       connection_id: string;
       /** @enum {string} */
@@ -4832,6 +4868,7 @@ export interface components {
       bytes_sent: number;
       /** Format: int64 */
       bytes_retransmitted: number;
+      backend?: components["schemas"]["EdgeClientNetworkBackend"];
     };
     EdgePerformanceSample: {
       id?: string;
@@ -14092,6 +14129,26 @@ export interface operations {
       201: {
         content: {
           "application/json": components["schemas"]["CreateEdgeNodeTokenResponse"];
+        };
+      };
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
+  /**
+   * Read an exact live connection from the transport-selected public Front
+   * @description Read-only bounded diagnostic for a node-scoped Edge credential. Resolves the actual public Service and EndpointSlice owner, rechecks runtime identities, and returns only one coarse peer sample. Does not probe applications or change routing. Raw peer endpoints are transient and are not persisted in the result.
+   */
+  readEdgePublicNetworkObservation: {
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["EdgePublicNetworkObservationRequest"];
+      };
+    };
+    responses: {
+      /** @description Exact connection evidence from an unchanged public transport */
+      200: {
+        content: {
+          "application/json": components["schemas"]["EdgePublicNetworkObservationResponse"];
         };
       };
       default: components["responses"]["ErrorResponse"];
