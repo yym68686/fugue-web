@@ -4800,14 +4800,38 @@ export interface components {
       traffic_class: "streaming" | "dynamic_api";
       route_digest: string;
       bundle_version: string;
-      /** @description Exact configured TCP destination, without credentials or HTTP path. */
+      /** @description Exact configured origin TCP destination, without credentials or HTTP path. Empty for public Front samples. */
       service_target: string;
       /** @enum {string} */
-      source: "service_endpoint_tcp_info_v1";
+      source: "service_endpoint_tcp_info_v1" | "public_front_tcp_info_v1";
+      client_network?: components["schemas"]["EdgeClientNetworkSample"];
       /** @description Kernel TCP RTT on the direct origin connection at GotConn, including reused connections. Null means unknown. This success-conditioned sample cannot establish a network failure rate. */
       service_rtt_ms?: number | null;
       /** Format: date-time */
       observed_at: string;
+    };
+    /** @description Public Front TCP peer measurement joined to an exact live connection over a node-local Unix socket. Success-conditioned; retransmissions are not connection failure rates. Scope describes the TCP peer prefix, not a DNS resolver, country, or claimed original terminal. No raw client address or port is retained. */
+    EdgeClientNetworkSample: {
+      connection_id: string;
+      /** @enum {string} */
+      slot: "a" | "b";
+      scope: string;
+      /** Format: date-time */
+      started_at: string;
+      /** Format: date-time */
+      observed_at: string;
+      tcp_info_available: boolean;
+      rtt_ms: number | null;
+      min_rtt_ms: number | null;
+      rtt_variance_ms: number | null;
+      /** Format: int64 */
+      segments_out: number;
+      /** Format: int64 */
+      retransmitted_segments: number;
+      /** Format: int64 */
+      bytes_sent: number;
+      /** Format: int64 */
+      bytes_retransmitted: number;
     };
     EdgePerformanceSample: {
       id?: string;
