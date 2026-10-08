@@ -68,7 +68,7 @@ export interface paths {
   "/v1/edge/quality-shadow/{hostname}": {
     /**
      * Capture a replayable physical-edge network quality shadow
-     * @description Platform-admin-only read. Does not change DNS, publish artifacts, execute probes or authorize promotion. Uses exact hostname, traffic class and scope; legacy timings without segment provenance remain diagnostic-only. Missing metrics and hostname-specific route/TLS proofs block promotion. This is a captured counterfactual, not a receipt of an actual DNS answer. Resolver/ECS scope cannot establish a particular terminal's current network path.
+     * @description Platform-admin-only read. Does not change DNS, publish artifacts, execute probes or authorize promotion. Uses exact hostname, traffic class and scope; legacy timings without segment provenance remain diagnostic-only. Missing metrics and hostname-specific route/TLS proofs block promotion. This is a captured counterfactual, not a receipt of an actual DNS answer. Resolver/ECS scope cannot establish a particular terminal's current network path. When binding a real DNS receipt, capacity may additionally be read from authenticated Kubernetes observations for at most eight exact physical candidates, four concurrently with a two-second total deadline. These reads do not invoke business requests or manufacture network samples; missing capacity remains unknown and original metric timestamps are kept.
      */
     get: operations["getEdgeQualityShadow"];
   };
@@ -4538,6 +4538,8 @@ export interface components {
       capacity_source?: string;
       /** @description Exact captured TLS witness used to bind a historical measurement or node-capacity observation. Replay requires the original raw facts; never a substitute for fresh current DNS route proof. */
       route_witness_id?: string;
+      /** @description Exact separately captured physical-node capacity observation. Mutually exclusive with route_witness_id; never fills historical network buckets or invents RTT. */
+      node_capacity_id?: string;
       id: string;
       edge_id: string;
       hostname: string;
@@ -4560,10 +4562,19 @@ export interface components {
         [key: string]: number;
       };
     };
+    /** @description Read-only authenticated node facts, independent of business traffic or route witness scheduling. Address and physical identity must match the actual DNS candidate; Kubernetes node UID, limits and pressure are checked before and after collection. Current facts cannot replace missing historical capacity observations. */
+    PhysicalNodeCapacitySample: {
+      id: string;
+      edge_id: string;
+      edge_group_id: string;
+      address: string;
+      capacity: components["schemas"]["EdgeNetworkNodeCapacity"];
+    };
     PhysicalEdgeQualitySnapshot: {
       /** @description Interpretation boundaries, not fabricated measurements or authority to publish. */
       limitations?: string[];
       actual_dns_receipt?: components["schemas"]["DNSDecisionReceipt"];
+      node_capacity_samples?: components["schemas"]["PhysicalNodeCapacitySample"][];
       /** @description Captured socket observations and independent TLS route witnesses. Historical measurements require a witness for their exact physical edge, route and bundle plus a fresh actual DNS proof of the same route content. A witness is not a latency sample or serving authority. */
       network_samples?: components["schemas"]["EdgeNetworkSample"][];
       /** @enum {string} */
@@ -13827,7 +13838,7 @@ export interface operations {
   };
   /**
    * Capture a replayable physical-edge network quality shadow
-   * @description Platform-admin-only read. Does not change DNS, publish artifacts, execute probes or authorize promotion. Uses exact hostname, traffic class and scope; legacy timings without segment provenance remain diagnostic-only. Missing metrics and hostname-specific route/TLS proofs block promotion. This is a captured counterfactual, not a receipt of an actual DNS answer. Resolver/ECS scope cannot establish a particular terminal's current network path.
+   * @description Platform-admin-only read. Does not change DNS, publish artifacts, execute probes or authorize promotion. Uses exact hostname, traffic class and scope; legacy timings without segment provenance remain diagnostic-only. Missing metrics and hostname-specific route/TLS proofs block promotion. This is a captured counterfactual, not a receipt of an actual DNS answer. Resolver/ECS scope cannot establish a particular terminal's current network path. When binding a real DNS receipt, capacity may additionally be read from authenticated Kubernetes observations for at most eight exact physical candidates, four concurrently with a two-second total deadline. These reads do not invoke business requests or manufacture network samples; missing capacity remains unknown and original metric timestamps are kept.
    */
   getEdgeQualityShadow: {
     parameters: {
