@@ -4607,6 +4607,11 @@ export interface components {
       snapshot: components["schemas"]["PhysicalEdgeQualitySnapshot"];
       result: components["schemas"]["PhysicalEdgeQualityResult"];
       digest: string;
+      /**
+       * @description New captures sort embedded JSON object keys with exact JSON numbers before hashing. An absent value identifies the original byte-order-sensitive digest and remains replayable from its original encoding.
+       * @enum {string}
+       */
+      digest_format?: "embedded-json-sorted-v1";
     };
     EdgeQualityRankResponse: {
       hostname: string;
