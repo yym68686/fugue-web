@@ -4825,6 +4825,30 @@ export interface components {
       address: string;
       /** Format: date-time */
       valid_until: string;
+      node_capacity?: components["schemas"]["EdgeNetworkNodeCapacity"];
+    };
+    /** @description Authenticated physical-node CPU and working-set memory usage against Kubernetes allocatable limits. Node identity and limits are rechecked. Not a request-concurrency, bandwidth, application or model capacity claim. Absent means unknown; saturated values remain observations, not zero or missing. */
+    EdgeNetworkNodeCapacity: {
+      /** @enum {string} */
+      source: "kubelet_node_allocatable_v1";
+      node_uid: string;
+      /** Format: date-time */
+      observed_at: string;
+      /** Format: date-time */
+      valid_until: string;
+      /** Format: date-time */
+      cpu_observed_at: string;
+      /** Format: date-time */
+      memory_observed_at: string;
+      /** Format: int64 */
+      cpu_usage_nanocores: number;
+      /** Format: int64 */
+      cpu_allocatable_millicores: number;
+      /** Format: int64 */
+      memory_working_set_bytes: number;
+      /** Format: int64 */
+      memory_allocatable_bytes: number;
+      pressure: ("MemoryPressure" | "DiskPressure" | "PIDPressure")[];
     };
     EdgePublicNetworkObservationRequest: {
       /** @enum {string} */
