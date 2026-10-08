@@ -5298,6 +5298,11 @@ export interface components {
       scope: string;
       /** Format: date-time */
       captured_at: string;
+      /**
+       * Format: date-time
+       * @description Conservative start of this signed physical primary assignment. Preserved when evidence is refreshed without changing the primary; reset on a new assignment. Absent on older artifacts means unknown cooldown history, never zero elapsed time. This is not proof of uninterrupted endpoint health or terminal traffic.
+       */
+      primary_since?: string;
     };
     EdgeDNSAnswerCandidate: {
       ip: string;
@@ -12110,6 +12115,8 @@ export interface components {
     }]>;
     /** @description Producer query strategy, independent of runtime ranking, locality and candidate eligibility. The producer observes inventory and ranking directly, expands concrete DNSAnswerRules, and never reads legacy DNS bundles when this policy is present. Readiness remains independently proven. */
     PlatformDNSQueryPolicy: {
+      /** @description Explicit opt-in hostnames for physical network selection. No country preferences apply. Missing evidence rejects new compilation and cannot invalidate a positive serving artifact. Static records and shared targets without unanimous ownership are not eligible. */
+      physical_routes?: components["schemas"]["PlatformPhysicalQualityRoute"][];
       /** @enum {string} */
       ranking_mode: "active" | "shadow" | "disabled";
       /** @enum {string} */
@@ -12119,6 +12126,15 @@ export interface components {
       switch_cooldown_seconds: number;
       minimum_ttl_seconds: number;
       maximum_ttl_seconds: number;
+    };
+    PlatformPhysicalQualityRoute: {
+      hostname: string;
+      /** @enum {string} */
+      traffic_class: "large_body_api" | "small_api" | "dynamic_api" | "static_cacheable" | "streaming" | "sse" | "websocket" | "html_dynamic";
+      policy: components["schemas"]["PhysicalEdgeQualityPolicy"] & {
+        /** @enum {string} */
+        version?: "physical-network-cohort-v2";
+      };
     };
     PlatformDNSAuthorityPolicy: {
       node_id: string;
@@ -12174,6 +12190,7 @@ export interface components {
       switch_cooldown_seconds: number;
     };
     PlatformDNSSelectionObservation: {
+      physical_evidence?: components["schemas"]["PhysicalEdgeQualityReceipt"];
       physical_selection?: components["schemas"]["DNSPhysicalSelection"];
       node_id: string;
       hostname: string;
