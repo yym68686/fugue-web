@@ -4500,6 +4500,8 @@ export interface components {
       generated_at: string;
     };
     PhysicalEdgeQualityPolicy: {
+      /** @description Explicit v2 node CPU/memory headroom gate. Does not declare link or application capacity. */
+      maximum_node_utilization?: number;
       version: string;
       window_seconds: number;
       bucket_seconds: number;
@@ -4509,7 +4511,9 @@ export interface components {
       evidence_max_age_seconds: number;
       advantage_ms: number;
       advantage_ratio: number;
+      /** @description In physical-network-cohort-v2 this is one total optional-metric uncertainty budget, not a per-missing-field penalty. It is configured risk tolerance, not a physical worst-case bound. */
       unknown_cost_ms: number;
+      /** @description In v2 this widens observed latency quantile bands; it is not a statistical confidence claim. */
       uncertainty_ms: number;
       failure_cost_ms: number;
       capacity_cost_ms: number;
@@ -4528,7 +4532,11 @@ export interface components {
       hard_gates: string[];
     };
     PhysicalEdgeQualityObservation: {
-      /** @description Exact captured TLS witness used to bind a historical bundle. Replay requires the original sample and witness; never a substitute for fresh current DNS route proof. */
+      /** @description Coarse observed public TCP peer network. Never equated with the recursive DNS resolver or every terminal. */
+      client_cohort?: string;
+      /** @description Explicit capacity provenance; node capacity is not inferred from application concurrency. */
+      capacity_source?: string;
+      /** @description Exact captured TLS witness used to bind a historical measurement or node-capacity observation. Replay requires the original raw facts; never a substitute for fresh current DNS route proof. */
       route_witness_id?: string;
       id: string;
       edge_id: string;
@@ -4553,6 +4561,8 @@ export interface components {
       };
     };
     PhysicalEdgeQualitySnapshot: {
+      /** @description Interpretation boundaries, not fabricated measurements or authority to publish. */
+      limitations?: string[];
       actual_dns_receipt?: components["schemas"]["DNSDecisionReceipt"];
       /** @description Captured socket observations and independent TLS route witnesses. Historical measurements require a witness for their exact physical edge, route and bundle plus a fresh actual DNS proof of the same route content. A witness is not a latency sample or serving authority. */
       network_samples?: components["schemas"]["EdgeNetworkSample"][];
@@ -4593,6 +4603,7 @@ export interface components {
       bucket_count: number;
     };
     PhysicalEdgeQualityResult: {
+      comparisons?: components["schemas"]["PhysicalEdgeQualityComparison"][];
       /** @enum {string} */
       mode: "shadow";
       /** @enum {boolean} */
@@ -4611,6 +4622,17 @@ export interface components {
         [key: string]: number;
       };
       blockers: string[];
+    };
+    /** @description Comparison within one actually observed common TCP peer network. Bands combine observed variation and a configured uncertainty budget, not a statistical confidence interval or a worst-case bound for unobserved terminals. */
+    PhysicalEdgeQualityComparison: {
+      edge_id: string;
+      incumbent_edge_id: string;
+      cohort: string;
+      incumbent_lower: number;
+      challenger_upper: number;
+      sustained_buckets: number;
+      ready: boolean;
+      advantageous: boolean;
     };
     PhysicalEdgeQualityReceipt: {
       snapshot: components["schemas"]["PhysicalEdgeQualitySnapshot"];
