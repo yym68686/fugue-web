@@ -4528,6 +4528,8 @@ export interface components {
       hard_gates: string[];
     };
     PhysicalEdgeQualityObservation: {
+      /** @description Exact captured TLS witness used to bind a historical bundle. Replay requires the original sample and witness; never a substitute for fresh current DNS route proof. */
+      route_witness_id?: string;
       id: string;
       edge_id: string;
       hostname: string;
@@ -4552,7 +4554,7 @@ export interface components {
     };
     PhysicalEdgeQualitySnapshot: {
       actual_dns_receipt?: components["schemas"]["DNSDecisionReceipt"];
-      /** @description Captured origin-socket observations. Not promoted into scoring until independently bound to the current route proof; does not assert client-path, throughput, capacity or failure-rate evidence. */
+      /** @description Captured socket observations and independent TLS route witnesses. Historical measurements require a witness for their exact physical edge, route and bundle plus a fresh actual DNS proof of the same route content. A witness is not a latency sample or serving authority. */
       network_samples?: components["schemas"]["EdgeNetworkSample"][];
       /** @enum {string} */
       schema: "fugue.physical-edge-quality-shadow/v1";
@@ -4810,12 +4812,19 @@ export interface components {
       /** @description Exact configured origin TCP destination, without credentials or HTTP path. Empty for public Front samples. */
       service_target: string;
       /** @enum {string} */
-      source: "service_endpoint_tcp_info_v1" | "public_front_tcp_info_v1";
+      source: "service_endpoint_tcp_info_v1" | "public_front_tcp_info_v1" | "route_tls_witness_v1";
+      route_witness?: components["schemas"]["EdgeNetworkRouteWitness"];
       client_network?: components["schemas"]["EdgeClientNetworkSample"];
       /** @description Kernel TCP RTT on the direct origin connection at GotConn, including reused connections. Null means unknown. This success-conditioned sample cannot establish a network failure rate. */
       service_rtt_ms?: number | null;
       /** Format: date-time */
       observed_at: string;
+    };
+    /** @description API-collected TLS nonce HEAD proof of the enclosing exact edge, hostname, path, route digest and bundle version at observed_at. Does not invoke the application. Heartbeat callers cannot submit this witness source. Expired witnesses only bind historical measurements, never current readiness. */
+    EdgeNetworkRouteWitness: {
+      address: string;
+      /** Format: date-time */
+      valid_until: string;
     };
     EdgePublicNetworkObservationRequest: {
       /** @enum {string} */
