@@ -4544,6 +4544,7 @@ export interface components {
       };
     };
     PhysicalEdgeQualitySnapshot: {
+      actual_dns_receipt?: components["schemas"]["DNSDecisionReceipt"];
       /** @description Captured origin-socket observations. Not promoted into scoring until independently bound to the current route proof; does not assert client-path, throughput, capacity or failure-rate evidence. */
       network_samples?: components["schemas"]["EdgeNetworkSample"][];
       /** @enum {string} */
@@ -5134,7 +5135,8 @@ export interface components {
     };
     DNSAnswerPolicy: {
       /** @enum {string} */
-      policy_kind: "global" | "geo" | "weighted" | "latency_aware" | "pinned" | "disabled";
+      policy_kind: "global" | "geo" | "weighted" | "latency_aware" | "physical_quality" | "pinned" | "disabled";
+      physical_selection?: components["schemas"]["DNSPhysicalSelection"];
       allowed_edge_groups?: string[];
       preferred_edge_groups?: string[];
       fallback_edge_groups?: string[];
@@ -5161,6 +5163,20 @@ export interface components {
       selected_edge_group_id?: string;
       shadow_selected_edge_group_id?: string;
       shadow_reason?: string;
+    };
+    /** @description Immutable physical-edge order compiled from verified network evidence. Query execution only removes endpoints lacking current route/TLS readiness; it never re-ranks by group, country, business duration, or random exploration. Evidence age gates compilation, not the validity of a positive serving LKG. */
+    DNSPhysicalSelection: {
+      /** @enum {string} */
+      version: "physical-edge-network-v1";
+      primary_edge_id: string;
+      ordered_edge_ids: string[];
+      evidence_digest: string;
+      dns_receipt_id: string;
+      loaded_digest: string;
+      policy_digest: string;
+      scope: string;
+      /** Format: date-time */
+      captured_at: string;
     };
     EdgeDNSAnswerCandidate: {
       ip: string;
@@ -12026,7 +12042,7 @@ export interface components {
       /** @enum {string} */
       type: "A" | "AAAA";
       /** @enum {string} */
-      selection_mode: "geo" | "latency_aware" | "global" | "weighted" | "pinned" | "disabled";
+      selection_mode: "geo" | "latency_aware" | "physical_quality" | "global" | "weighted" | "pinned" | "disabled";
       /** @enum {string} */
       scoped_selection_mode?: "geo" | "latency_aware" | "global" | "weighted" | "pinned" | "disabled";
       preferred_edge_groups?: string[];
@@ -12037,6 +12053,7 @@ export interface components {
       switch_cooldown_seconds: number;
     };
     PlatformDNSSelectionObservation: {
+      physical_selection?: components["schemas"]["DNSPhysicalSelection"];
       node_id: string;
       hostname: string;
       /** @enum {string} */
@@ -13680,6 +13697,8 @@ export interface operations {
         traffic_class: string;
         /** @description Exact scope; no country filtering or cross-scope sample fallback. */
         scope?: string;
+        /** @description Optionally bind to a recent successful, replay-verified actual answer from this public DNS process. Missing or conflicting evidence remains an explicit blocker; this never queries a current ranking as a substitute. */
+        dns_node_id?: string;
       };
       path: {
         hostname: string;
