@@ -4845,10 +4845,12 @@ export interface components {
       /** @description Exact configured origin TCP destination, without credentials or HTTP path. Empty for public Front samples. */
       service_target: string;
       /** @enum {string} */
-      source: "service_endpoint_tcp_info_v1" | "public_front_tcp_info_v1" | "route_tls_witness_v1";
+      source: "service_endpoint_tcp_info_v1" | "service_endpoint_tcp_probe_v1" | "public_front_tcp_info_v1" | "route_tls_witness_v1";
+      /** @description Present only for service_endpoint_tcp_probe_v1. Reports the outcome of one independently configured, bounded TCP-only origin attempt, including destination resolution. False proves connection establishment, not HTTP success; absent means unknown. No application request is sent. */
+      service_connect_failed?: boolean;
       route_witness?: components["schemas"]["EdgeNetworkRouteWitness"];
       client_network?: components["schemas"]["EdgeClientNetworkSample"];
-      /** @description Kernel TCP RTT on the direct origin connection at GotConn, including reused connections. Null means unknown. This success-conditioned sample cannot establish a network failure rate. */
+      /** @description Kernel TCP RTT on the direct origin connection at GotConn (passive) or immediately after a configured TCP-only probe connects. Null means unknown, including failed probes and unavailable kernel RTT. Never includes application wait, DNS lookup duration or total connect duration. Passive success-conditioned samples cannot establish a failure rate. */
       service_rtt_ms?: number | null;
       /** Format: date-time */
       observed_at: string;
