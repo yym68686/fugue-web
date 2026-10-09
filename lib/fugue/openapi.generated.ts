@@ -5269,7 +5269,8 @@ export interface components {
     };
     DNSAnswerPolicy: {
       /** @enum {string} */
-      policy_kind: "global" | "geo" | "weighted" | "latency_aware" | "physical_quality" | "pinned" | "disabled";
+      policy_kind: "global" | "geo" | "weighted" | "latency_aware" | "physical_quality" | "physical_order" | "pinned" | "disabled";
+      physical_order?: components["schemas"]["DNSPhysicalOrder"];
       physical_selection?: components["schemas"]["DNSPhysicalSelection"];
       allowed_edge_groups?: string[];
       preferred_edge_groups?: string[];
@@ -5297,6 +5298,12 @@ export interface components {
       selected_edge_group_id?: string;
       shadow_selected_edge_group_id?: string;
       shadow_reason?: string;
+    };
+    /** @description Explicit immutable physical-edge order. This is configuration authority, not a claim of measured network superiority. The first currently route/TLS-ready endpoint wins. Geography, numeric candidate scores, group weights and exploration cannot reorder it. Deploying support does not convert an existing signed policy. */
+    DNSPhysicalOrder: {
+      /** @enum {string} */
+      version: "physical-order-v1";
+      ordered_edge_ids: string[];
     };
     /** @description Immutable physical-edge order compiled from verified network evidence. Query execution only removes endpoints lacking current route/TLS readiness; it never re-ranks by group, country, business duration, or random exploration. Evidence age gates compilation, not the validity of a positive serving LKG. */
     DNSPhysicalSelection: {
@@ -12192,7 +12199,8 @@ export interface components {
       /** @enum {string} */
       type: "A" | "AAAA";
       /** @enum {string} */
-      selection_mode: "geo" | "latency_aware" | "physical_quality" | "global" | "weighted" | "pinned" | "disabled";
+      selection_mode: "geo" | "latency_aware" | "physical_quality" | "physical_order" | "global" | "weighted" | "pinned" | "disabled";
+      physical_order?: components["schemas"]["DNSPhysicalOrder"];
       /** @enum {string} */
       scoped_selection_mode?: "geo" | "latency_aware" | "global" | "weighted" | "pinned" | "disabled";
       preferred_edge_groups?: string[];
