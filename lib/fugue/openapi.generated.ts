@@ -73,7 +73,11 @@ export interface paths {
     get: operations["getEdgeQualityShadow"];
   };
   "/v1/edge/quality-rank/{hostname}": {
-    /** Get Edge Quality Rank */
+    /**
+     * Retired Composite Edge Quality Rank
+     * @deprecated
+     * @description The composite business-duration and geographic scorer is retired. This endpoint returns 410 without computing a ranking. Use physical-edge quality receipts and actual DNS decision explain/replay instead.
+     */
     get: operations["getEdgeQualityRank"];
   };
   "/v1/edge/nodes/{edge_id}/desired-state": {
@@ -13888,7 +13892,11 @@ export interface operations {
       500: components["responses"]["ErrorResponse"];
     };
   };
-  /** Get Edge Quality Rank */
+  /**
+   * Retired Composite Edge Quality Rank
+   * @deprecated
+   * @description The composite business-duration and geographic scorer is retired. This endpoint returns 410 without computing a ranking. Use physical-edge quality receipts and actual DNS decision explain/replay instead.
+   */
   getEdgeQualityRank: {
     parameters: {
       query?: {
@@ -13909,10 +13917,10 @@ export interface operations {
       };
     };
     responses: {
-      /** @description Successful response */
-      200: {
+      /** @description Legacy ranking retired; no ranking is computed. */
+      410: {
         content: {
-          "application/json": components["schemas"]["EdgeQualityRankResponse"];
+          "application/json": components["schemas"]["ErrorResponse"];
         };
       };
       default: components["responses"]["ErrorResponse"];
