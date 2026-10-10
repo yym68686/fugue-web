@@ -5327,12 +5327,22 @@ export interface components {
     };
     /** @description Explicit immutable physical-edge order. This is configuration authority, not a claim of measured network superiority. The first currently route/TLS-ready endpoint wins. Geography, numeric candidate scores, group weights and exploration cannot reorder it. Deploying support does not convert an existing signed policy. */
     DNSPhysicalOrder: {
+      /**
+       * Format: date-time
+       * @description Optional preserved primary assignment epoch from verified quality publication; never inferred from process start or sample time.
+       */
+      primary_since?: string;
       /** @enum {string} */
       version: "physical-order-v1";
       ordered_edge_ids: string[];
     };
     /** @description Immutable physical-edge order compiled from verified network evidence. Query execution only removes endpoints lacking current route/TLS readiness; it never re-ranks by group, country, business duration, or random exploration. Evidence age gates compilation, not the validity of a positive serving LKG. */
     DNSPhysicalSelection: {
+      /**
+       * @description V4 distinguishes preserving a fresh route-ready current primary while collecting evidence from a measured quality selection. Learning never fabricates network metrics.
+       * @enum {string}
+       */
+      quality_state?: "learning" | "measured";
       /** @enum {string} */
       version: "physical-edge-network-v1";
       primary_edge_id: string;
@@ -12161,6 +12171,7 @@ export interface components {
     }]>;
     /** @description Producer query strategy, independent of runtime ranking, locality and candidate eligibility. The producer observes inventory and ranking directly, expands concrete DNSAnswerRules, and never reads legacy DNS bundles when this policy is present. Readiness remains independently proven. */
     PlatformDNSQueryPolicy: {
+      dynamic_quality?: components["schemas"]["PlatformDynamicQualityPolicy"];
       ordered_projection?: components["schemas"]["PlatformDNSOrderedProjection"];
       /** @description Explicit opt-in hostnames for physical network selection. No country preferences apply. Missing evidence rejects new compilation and cannot invalidate a positive serving artifact. Static records and shared targets without unanimous ownership are not eligible. */
       physical_routes?: components["schemas"]["PlatformPhysicalQualityRoute"][];
@@ -12184,6 +12195,17 @@ export interface components {
           type: "A" | "AAAA";
           order: components["schemas"]["DNSPhysicalOrder"];
         })[];
+    };
+    /** @description Applies quality evaluation to every eligible owned dynamic query, including future domains. Static records and explicit pinned placement are preserved. Signed current order remains the safe learning baseline until independently bound evidence authorizes a change; learning failures are isolated per query. Refresh is bounded and rotates fairly, independently of user query volume. */
+    PlatformDynamicQualityPolicy: {
+      /** @enum {string} */
+      mode: "all_dynamic";
+      policy: components["schemas"]["PhysicalEdgeQualityPolicy"] & {
+        /** @enum {string} */
+        version?: "physical-network-delivery-v4";
+      };
+      refresh_queries_per_cycle: number;
+      refresh_concurrency: number;
     };
     PlatformPhysicalQualityRoute: {
       hostname: string;
@@ -12956,7 +12978,7 @@ export interface components {
        * @default placement
        * @enum {string}
        */
-      operation?: "placement" | "activate_serving" | "refresh_serving" | "continuous_serving" | "expand_membership" | "physical_dns" | "retire_dns_selector";
+      operation?: "placement" | "activate_serving" | "refresh_serving" | "continuous_serving" | "expand_membership" | "physical_dns" | "retire_dns_selector" | "dynamic_quality";
       previous_policy: components["schemas"]["PlatformPublicationPrecondition"];
       serving_full: components["schemas"]["PlatformPublicationPrecondition"];
       verification_evidence_hash: string;
