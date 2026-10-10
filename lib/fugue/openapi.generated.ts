@@ -4536,6 +4536,8 @@ export interface components {
       hard_gates: string[];
     };
     PhysicalEdgeQualityObservation: {
+      /** @description V4 only: retransmitted data segments divided by sent data segments in a verified public TCP delivery window. This is not a connection failure rate. */
+      client_retransmission_rate?: number | null;
       /** @description Coarse observed public TCP peer network. Never equated with the recursive DNS resolver or every terminal. */
       client_cohort?: string;
       /** @description Explicit capacity provenance; node capacity is not inferred from application concurrency. */
@@ -4920,6 +4922,8 @@ export interface components {
     };
     /** @description Public Front TCP peer measurement joined to an exact live connection over a node-local Unix socket or a fenced read of the transport-selected public Front. Success-conditioned; retransmissions are not connection failure rates. Scope describes the TCP peer prefix, not a DNS resolver, country, or claimed original terminal. No raw client address or port is retained. */
     EdgeClientNetworkSample: {
+      delivery?: components["schemas"]["EdgeClientDeliveryCounters"];
+      delivery_baseline?: components["schemas"]["EdgeClientDeliveryCounters"];
       connection_id: string;
       /** @enum {string} */
       slot: "a" | "b";
@@ -4941,6 +4945,24 @@ export interface components {
       /** Format: int64 */
       bytes_retransmitted: number;
       backend?: components["schemas"]["EdgeClientNetworkBackend"];
+    };
+    /** @description Kernel counters from the exact established public TCP socket. A matched pair measures acknowledged bytes per kernel busy time, excluding idle/model/application wait. No capacity claim is made for application-limited, undersized, stale, reset or unmatched windows. Units are bytes per second, never bits per second. */
+    EdgeClientDeliveryCounters: {
+      /** Format: date-time */
+      observed_at: string;
+      /** Format: int64 */
+      bytes_acked: number;
+      /** Format: int64 */
+      busy_microseconds: number;
+      /** Format: int64 */
+      data_segments_out: number;
+      /** Format: int64 */
+      retransmitted_segments: number;
+      /** Format: int64 */
+      delivery_rate_bytes_per_second: number;
+      application_limited: boolean;
+      /** Format: int64 */
+      last_data_sent_ms: number;
     };
     EdgePerformanceSample: {
       id?: string;
@@ -12169,7 +12191,7 @@ export interface components {
       traffic_class: "large_body_api" | "small_api" | "dynamic_api" | "static_cacheable" | "streaming" | "sse" | "websocket" | "html_dynamic";
       policy: components["schemas"]["PhysicalEdgeQualityPolicy"] & ({
         /** @enum {string} */
-        version?: "physical-network-cohort-v2" | "physical-network-bounded-v3";
+        version?: "physical-network-cohort-v2" | "physical-network-bounded-v3" | "physical-network-delivery-v4";
       });
     };
     PlatformDNSAuthorityPolicy: {
