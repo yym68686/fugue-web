@@ -4517,7 +4517,7 @@ export interface components {
       /** Format: date-time */
       generated_at: string;
     };
-    /** @description V5 preserves signed raw evidence and historical V4 replay. It permits comparison against an incumbent with observed excess transfer failures even when too few downloads complete, and bounds uncertainty from undersampled client cohorts without treating them as proven vetoes. Every sufficiently sampled cohort must still show sustained advantage, and capacity, cooldown and route readiness gates remain mandatory. */
+    /** @description V6 preserves historical V4/V5 replay. With comparable completed downloads or explicit excess incumbent transfer failures, a retransmission metric observed on only one edge is excluded from both comparison costs and adds one configured uncertainty budget to the challenger. Raw observations remain intact. Missing optional packet counters cannot veto otherwise sufficient delivery evidence. Every sufficiently sampled cohort must still show sustained advantage, and capacity, cooldown and route readiness gates remain mandatory. */
     PhysicalEdgeQualityPolicy: {
       /** @description Explicit v2 node CPU/memory headroom gate. Does not declare link or application capacity. */
       maximum_node_utilization?: number;
@@ -4666,6 +4666,10 @@ export interface components {
     };
     /** @description Comparison within one actually observed common TCP peer network. Bands combine observed variation and a configured uncertainty budget, not a statistical confidence interval or a worst-case bound for unobserved terminals. */
     PhysicalEdgeQualityComparison: {
+      /** @description V6 optional metrics excluded from both comparison costs because only one side observed them; raw observations are preserved. */
+      excluded_metric_costs?: string[];
+      /** @description Additional configured uncertainty for a V6 comparison with an excluded optional metric; not a statistical confidence bound. */
+      comparison_uncertainty_ms?: number;
       edge_id: string;
       incumbent_edge_id: string;
       cohort: string;
@@ -12303,7 +12307,7 @@ export interface components {
       mode: "all_dynamic";
       policy: components["schemas"]["PhysicalEdgeQualityPolicy"] & ({
         /** @enum {string} */
-        version?: "physical-network-delivery-v4" | "physical-network-failure-aware-v5";
+        version?: "physical-network-delivery-v4" | "physical-network-failure-aware-v5" | "physical-network-comparable-delivery-v6";
       });
       refresh_queries_per_cycle: number;
       refresh_concurrency: number;
@@ -12314,7 +12318,7 @@ export interface components {
       traffic_class: "large_body_api" | "small_api" | "dynamic_api" | "static_cacheable" | "streaming" | "sse" | "websocket" | "html_dynamic";
       policy: components["schemas"]["PhysicalEdgeQualityPolicy"] & ({
         /** @enum {string} */
-        version?: "physical-network-cohort-v2" | "physical-network-bounded-v3" | "physical-network-delivery-v4" | "physical-network-failure-aware-v5";
+        version?: "physical-network-cohort-v2" | "physical-network-bounded-v3" | "physical-network-delivery-v4" | "physical-network-failure-aware-v5" | "physical-network-comparable-delivery-v6";
       });
     };
     PlatformDNSAuthorityPolicy: {
