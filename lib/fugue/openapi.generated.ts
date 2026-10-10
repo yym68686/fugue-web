@@ -72,6 +72,20 @@ export interface paths {
      */
     get: operations["getEdgeQualityShadow"];
   };
+  "/v1/admin/edge-quality/client-probes": {
+    /**
+     * Issue one bounded authenticated client measurement plan
+     * @description Requires explicit edge.quality.observe authority. Resolves current eligible physical edges and exact route proofs. Issues short-lived signed permits for identical generated download bytes; no application request is sent. The executor records actual public TCP peer RTT. Client connect timing is diagnostic only and cannot establish a terminal's public path.
+     */
+    post: operations["issueEdgeClientProbePlan"];
+  };
+  "/v1/admin/edge-quality/client-probes/report": {
+    /**
+     * Retain a complete authenticated client measurement round
+     * @description Requires explicit edge.quality.observe authority and the same observer identity that obtained the signed plan. Requires one explicit outcome per planned edge. Successful downloads must have identical expected bytes and SHA-256. Signed executor attestations bind physical edge, route, bundle and coarse public TCP peer. TTFB, application waiting and local connect timing are not downstream throughput. Failed attempts remain explicit; all-failed rounds cannot invent a peer cohort. Does not publish or change DNS.
+     */
+    post: operations["reportEdgeClientProbeRound"];
+  };
   "/v1/edge/quality-rank/{hostname}": {
     /**
      * Retired Composite Edge Quality Rank
@@ -4536,6 +4550,7 @@ export interface components {
       hard_gates: string[];
     };
     PhysicalEdgeQualityObservation: {
+      client_probe_round_id?: string;
       /** @description V4 only: retransmitted data segments divided by sent data segments in a verified public TCP delivery window. This is not a connection failure rate. */
       client_retransmission_rate?: number | null;
       /** @description Coarse observed public TCP peer network. Never equated with the recursive DNS resolver or every terminal. */
@@ -4577,6 +4592,8 @@ export interface components {
       capacity: components["schemas"]["EdgeNetworkNodeCapacity"];
     };
     PhysicalEdgeQualitySnapshot: {
+      /** @description Complete authenticated observer rounds with signed public-socket attestations and identical generated payloads. Never application or inference durations. */
+      client_probe_reports?: components["schemas"]["EdgeClientProbeReport"][];
       /** @description Interpretation boundaries, not fabricated measurements or authority to publish. */
       limitations?: string[];
       actual_dns_receipt?: components["schemas"]["DNSDecisionReceipt"];
@@ -4837,6 +4854,80 @@ export interface components {
       created_at: string;
       /** Format: date-time */
       updated_at: string;
+    };
+    EdgeClientProbeRequest: {
+      hostname: string;
+      path: string;
+      /** @enum {string} */
+      traffic_class: "dynamic_api" | "streaming";
+      observer_label: string;
+    };
+    EdgeClientProbePermit: {
+      /** @enum {string} */
+      schema: "fugue.client-probe-permit/v1";
+      round_id: string;
+      attempt_id: string;
+      observer_id: string;
+      hostname: string;
+      path: string;
+      /** @enum {string} */
+      traffic_class: "dynamic_api" | "streaming";
+      edge_id: string;
+      edge_group_id: string;
+      address: string;
+      route_digest: string;
+      bundle_version: string;
+      /** Format: date-time */
+      issued_at: string;
+      /** Format: date-time */
+      expires_at: string;
+      /** @enum {integer} */
+      body_bytes: 1048576;
+      body_seed: string;
+      body_sha256: string;
+      target_edge_ids: string[];
+      key_id: string;
+      signature: string;
+    };
+    EdgeClientProbePlan: {
+      /** @enum {string} */
+      schema: "fugue.client-probe-plan/v1";
+      round_id: string;
+      observer_label: string;
+      permits: components["schemas"]["EdgeClientProbePermit"][];
+    };
+    EdgeClientProbeAttestation: {
+      /** @enum {string} */
+      schema: "fugue.client-probe-attestation/v1";
+      attempt_id: string;
+      edge_id: string;
+      edge_group_id: string;
+      route_digest: string;
+      bundle_version: string;
+      /** Format: date-time */
+      observed_at: string;
+      client_network: components["schemas"]["EdgeClientNetworkSample"];
+      key_id: string;
+      signature: string;
+    };
+    EdgeClientProbeOutcome: {
+      attempt_id: string;
+      /** Format: date-time */
+      started_at: string;
+      /** Format: date-time */
+      completed_at: string;
+      bytes_received: number;
+      body_sha256: string;
+      body_seconds: number;
+      /** @enum {string} */
+      failure: "" | "connect" | "tls" | "response" | "body" | "integrity";
+      attestation?: components["schemas"]["EdgeClientProbeAttestation"];
+    };
+    EdgeClientProbeReport: {
+      /** @enum {string} */
+      schema: "fugue.client-probe-report/v1";
+      plan: components["schemas"]["EdgeClientProbePlan"];
+      outcomes: components["schemas"]["EdgeClientProbeOutcome"][];
     };
     EdgeNetworkSample: {
       id: string;
@@ -13934,6 +14025,57 @@ export interface operations {
       401: components["responses"]["ErrorResponse"];
       403: components["responses"]["ErrorResponse"];
       500: components["responses"]["ErrorResponse"];
+    };
+  };
+  /**
+   * Issue one bounded authenticated client measurement plan
+   * @description Requires explicit edge.quality.observe authority. Resolves current eligible physical edges and exact route proofs. Issues short-lived signed permits for identical generated download bytes; no application request is sent. The executor records actual public TCP peer RTT. Client connect timing is diagnostic only and cannot establish a terminal's public path.
+   */
+  issueEdgeClientProbePlan: {
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["EdgeClientProbeRequest"];
+      };
+    };
+    responses: {
+      /** @description Signed per-edge permits for a single same-content round. */
+      200: {
+        content: {
+          "application/json": components["schemas"]["EdgeClientProbePlan"];
+        };
+      };
+      400: components["responses"]["ErrorResponse"];
+      401: components["responses"]["ErrorResponse"];
+      403: components["responses"]["ErrorResponse"];
+      503: components["responses"]["ErrorResponse"];
+    };
+  };
+  /**
+   * Retain a complete authenticated client measurement round
+   * @description Requires explicit edge.quality.observe authority and the same observer identity that obtained the signed plan. Requires one explicit outcome per planned edge. Successful downloads must have identical expected bytes and SHA-256. Signed executor attestations bind physical edge, route, bundle and coarse public TCP peer. TTFB, application waiting and local connect timing are not downstream throughput. Failed attempts remain explicit; all-failed rounds cannot invent a peer cohort. Does not publish or change DNS.
+   */
+  reportEdgeClientProbeRound: {
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["EdgeClientProbeReport"];
+      };
+    };
+    responses: {
+      /** @description Complete retained observation, with no routing authorization. */
+      200: {
+        content: {
+          "application/json": {
+            accepted: boolean;
+            /** @enum {boolean} */
+            routing_authorized: false;
+            report_digest: string;
+          };
+        };
+      };
+      400: components["responses"]["ErrorResponse"];
+      401: components["responses"]["ErrorResponse"];
+      403: components["responses"]["ErrorResponse"];
+      503: components["responses"]["ErrorResponse"];
     };
   };
   /**
