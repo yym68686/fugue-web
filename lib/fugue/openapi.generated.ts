@@ -4914,6 +4914,7 @@ export interface components {
       key_id: string;
       signature: string;
     };
+    /** @description Client wall timestamps admit at most two seconds of clock skew against signed server times. Attempt duration remains bounded to 90 seconds; body_seconds measures only receiver body transfer with a monotonic clock. */
     EdgeClientProbeOutcome: {
       attempt_id: string;
       /** Format: date-time */
@@ -4925,6 +4926,8 @@ export interface components {
       body_seconds: number;
       /** @enum {string} */
       failure: "" | "connect" | "tls" | "response" | "body" | "integrity";
+      /** @description HTTP response status when headers were received; a rejected measurement is not a network failure. */
+      http_status?: number;
       attestation?: components["schemas"]["EdgeClientProbeAttestation"];
     };
     EdgeClientProbeReport: {
