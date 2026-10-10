@@ -4592,8 +4592,10 @@ export interface components {
       capacity: components["schemas"]["EdgeNetworkNodeCapacity"];
     };
     PhysicalEdgeQualitySnapshot: {
-      /** @description Complete single-level receipts for every declared service sharing one DNS alias. A normal switch requires all services to independently approve the same candidate; failures use a common eligible fallback. Child receipts retain exact actual DNS binding and raw network evidence. */
+      /** @description Complete single-level receipts for every declared service and path sharing one DNS answer. A normal switch requires all routes to independently approve the same candidate; failures use a common eligible fallback. Child receipts retain their traffic class, exact actual DNS binding and raw network evidence. */
       service_receipts?: components["schemas"]["PhysicalEdgeQualityReceipt"][];
+      /** @description Exact declared service path measured by this receipt. When present, evidence from another path or traffic class cannot replace it. Omitted for historical single-route receipts and consensus roots. */
+      path_prefix?: string;
       /** @description Actual DNS query hostname when a declared single-service alias differs from the measured service hostname. Omitted for direct names. Publication must verify the declared owner and actual receipt; no arbitrary cross-host evidence fallback. */
       dns_hostname?: string;
       /** @description Complete authenticated observer rounds with signed public-socket attestations and identical generated payloads. Never application or inference durations. */
