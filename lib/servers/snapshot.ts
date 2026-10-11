@@ -55,7 +55,14 @@ export async function serversSnapshot(
 ): Promise<ServersSnapshot> {
   const [runtimes, nodes, context, keys] = await Promise.allSettled([
     readRuntimes(workspace.adminKeySecret),
-    readTenantNodes(workspace.adminKeySecret),
+    // Tenant responses intentionally aggregate internal nodes. Only a verified
+    // platform-admin page may read physical inventory, and we still join it to
+    // the runtimes visible to this workspace before projecting browser data.
+    readTenantNodes(
+      isAdmin && process.env.FUGUE_BOOTSTRAP_KEY?.trim()
+        ? process.env.FUGUE_BOOTSTRAP_KEY.trim()
+        : workspace.adminKeySecret,
+    ),
     getAuthContext(workspace.adminKeySecret),
     listNodeKeys(workspace.adminKeySecret),
   ]);

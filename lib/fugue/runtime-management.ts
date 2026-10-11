@@ -35,7 +35,12 @@ export async function readTenantNodes(key: string) {
   );
   if (!Array.isArray(data.cluster_nodes))
     throw new Error("Incomplete node inventory.");
-  return data.cluster_nodes;
+  // Go omits an empty workloads slice; a successful inventory with no field
+  // means zero visible workloads, not an unavailable measurement.
+  return data.cluster_nodes.map((node) => ({
+    ...node,
+    workloads: node.workloads ?? [],
+  }));
 }
 export async function readRuntime(key: string, id: string) {
   const data = await fugueGet<{ runtime: Runtime }>(key, runtimePath(id));

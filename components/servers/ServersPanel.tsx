@@ -228,7 +228,11 @@ function ServerCard({ server, now }: { server: ServerView; now: number }) {
             </>
           ) : (
             <p className="wb-alert">
-              {t("Node health and resource measurements are unavailable.")}
+              {t(
+                r.cluster_scope === "internal" && !server.capabilities.scope
+                  ? "Individual internal-node measurements are restricted to platform admins."
+                  : "Node health and resource measurements are unavailable.",
+              )}
             </p>
           )}
           <RuntimeAccessEditor server={server} />

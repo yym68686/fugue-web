@@ -5,6 +5,7 @@ import type { MessageCatalog } from "@/lib/i18n/translate";
 // falls back to its English source. Grouped loosely by area; kept flat so
 // lookups stay O(1).
 export const zhCN = {
+  "Individual internal-node measurements are restricted to platform admins.": "内部节点的单机测量详情仅向平台管理员开放。",
   "Pricing preview": "价格预览",
   // --- server ownership, sharing and placement ---
   "Server access": "服务器访问权限",
