@@ -10,6 +10,7 @@ import {
   getManagedNodeKeyForUser,
 } from "@/lib/workspace/store";
 import { listNodeKeys } from "@/lib/fugue/console";
+import { rememberExternalNodeKey } from "@/lib/servers/node-keys";
 
 /**
  * Guard chain shared by the per-key mutation routes (PATCH/DELETE/disable/
@@ -67,6 +68,7 @@ export async function resolveOwnedNodeKey(id: string) {
       live = (await listNodeKeys(ws.workspace.adminKeySecret)).node_keys?.find(
         (k) => k.id === id && k.tenant_id === ws.workspace.tenantId && k.status === "active",
       );
+      if (live) await rememberExternalNodeKey(auth.session.email, ws.workspace.tenantId, live);
     } catch (error) {
       return { response: jsonError(readErrorStatus(error), readErrorMessage(error)) } as const;
     }

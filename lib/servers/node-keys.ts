@@ -72,6 +72,15 @@ export async function readNodeKeySecret(
   };
 }
 
+/** Retain CLI-created keys before explicit actions so partial revocation cleanup
+ * remains visible and retryable just like web-created keys. */
+export async function rememberExternalNodeKey(email: string, tenantId: string, key: FugueNodeKey) {
+  if (key.tenant_id !== tenantId || key.status !== "active") throw new Error("Node key ownership could not be verified.");
+  await queryDb(`INSERT INTO app_node_keys (fugue_node_key_id, user_email, tenant_id, label, prefix, status, source, last_used_at, last_synced_at)
+    VALUES ($1, $2, $3, $4, $5, 'active', 'external', $6, NOW())
+    ON CONFLICT (fugue_node_key_id) DO NOTHING`, [key.id, normalizeEmail(email), tenantId, key.label, key.prefix, key.last_used_at]);
+}
+
 /** Explicit rename of a backend-authorized key may create its metadata mirror. */
 export async function renameExternalNodeKey(
   email: string,

@@ -7,6 +7,7 @@ import {
 } from "@/lib/workspace/store";
 import {
   readNodeKeySecret,
+  rememberExternalNodeKey,
   syncNodeKeyMetadata,
 } from "@/lib/servers/node-keys";
 import { sealText, unsealText } from "@/lib/security/seal";
@@ -106,4 +107,15 @@ test("metadata sync preserves local labels, deletion and revocation boundaries",
   assert.doesNotMatch(sql, /INSERT|label_override\s*=/i);
   assert.match(sql, /WHEN local.status = 'revoked' THEN 'revoked'/);
   assert.match(sql, /local.user_email = \$1 AND local.tenant_id = \$2/);
+});
+
+
+test("explicit actions remember CLI keys without overwriting existing revoked or renamed mirrors", async (t) => {
+  const queries = database(t);
+  const key = { id: "external-key", tenant_id: "tenant", label: "CLI", prefix: "test", scope: "tenant-runtime", status: "active", created_at: null, updated_at: null, last_used_at: null, revoked_at: null };
+  await assert.rejects(rememberExternalNodeKey("owner@example.test", "tenant", { ...key, tenant_id: "other" }));
+  assert.equal(queries.length, 0);
+  await rememberExternalNodeKey("owner@example.test", "tenant", key);
+  assert.match(queries[0].sql, /ON CONFLICT \(fugue_node_key_id\) DO NOTHING/);
+  assert.deepEqual(queries[0].values.slice(0, 3), ["external-key", "owner@example.test", "tenant"]);
 });
