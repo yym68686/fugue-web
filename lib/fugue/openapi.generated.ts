@@ -49,6 +49,13 @@ export interface paths {
      */
     get: operations["edgeRouteIntents"];
   };
+  "/v1/admin/ssh/front-acknowledgements/{edge_id}/{instance_uid}": {
+    /**
+     * Read persisted SSH route evidence for one exact edge instance
+     * @description Requires platform admin. Returns the stored acknowledgement without refreshing its timestamps. Freshness and correspondence to the currently authorized route bundle are evaluated separately. An acknowledgement is runtime evidence; it does not authorize traffic selection or prove that public traffic reaches this instance. Public transport ownership and host-key probes must be verified independently. Route derivation or evidence-store failures do not return positive evidence.
+     */
+    get: operations["adminGetSSHFrontAcknowledgement"];
+  };
   "/v1/edge/ssh/ack": {
     /**
      * Acknowledge durably loaded SSH routes from one edge instance
@@ -6368,6 +6375,30 @@ export interface components {
       /** Format: int64 */
       termination_grace_period_seconds?: number;
       restart_token?: string;
+    };
+    AdminSSHFrontObservation: {
+      acknowledgement: components["schemas"]["EdgeSSHAcknowledgement"];
+      /** Format: date-time */
+      evaluated_at: string;
+      fresh: boolean;
+      current_routes_match: boolean;
+    };
+    EdgeSSHAcknowledgement: {
+      edge_id: string;
+      edge_group_id: string;
+      instance_uid: string;
+      bundle_version: string;
+      route_digest: string;
+      /** @enum {boolean} */
+      persisted: true;
+      /** Format: date-time */
+      loaded_at: string;
+      /** Format: date-time */
+      observed_at: string;
+      /** Format: date-time */
+      expires_at: string;
+      connections: components["schemas"]["EdgeSSHRouteConnections"][];
+      routes: components["schemas"]["EdgeSSHRoute"][] | null;
     };
     EdgeSSHAcknowledgementRequest: {
       edge_id: string;
@@ -14243,6 +14274,36 @@ export interface operations {
       };
       /** @description Route artifact recovery state is unavailable or invalid; retain the current serving bundle. */
       503: {
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"];
+        };
+      };
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
+  /**
+   * Read persisted SSH route evidence for one exact edge instance
+   * @description Requires platform admin. Returns the stored acknowledgement without refreshing its timestamps. Freshness and correspondence to the currently authorized route bundle are evaluated separately. An acknowledgement is runtime evidence; it does not authorize traffic selection or prove that public traffic reaches this instance. Public transport ownership and host-key probes must be verified independently. Route derivation or evidence-store failures do not return positive evidence.
+   */
+  adminGetSSHFrontAcknowledgement: {
+    parameters: {
+      path: {
+        edge_id: string;
+        instance_uid: string;
+      };
+    };
+    responses: {
+      /** @description Persisted evidence and its current validity; stale evidence remains visible and never becomes fresh through a read. */
+      200: {
+        headers: {
+          "Cache-Control"?: "no-store";
+        };
+        content: {
+          "application/json": components["schemas"]["AdminSSHFrontObservation"];
+        };
+      };
+      /** @description No acknowledgement exists for this exact node and instance. */
+      404: {
         content: {
           "application/json": components["schemas"]["ErrorResponse"];
         };
