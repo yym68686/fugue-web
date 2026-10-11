@@ -71,7 +71,8 @@ function readTimestamp(value: unknown) {
 function readStringArray(value: unknown) {
   if (Array.isArray(value)) {
     return value.filter(
-      (item): item is string => typeof item === "string" && item.trim().length > 0,
+      (item): item is string =>
+        typeof item === "string" && item.trim().length > 0,
     );
   }
 
@@ -206,7 +207,10 @@ async function ensureUserStub(client: PoolClient, email: string) {
   );
 }
 
-async function upsertWorkspaceAdminKey(client: PoolClient, record: WorkspaceAccess) {
+async function upsertWorkspaceAdminKey(
+  client: PoolClient,
+  record: WorkspaceAccess,
+) {
   await client.query(
     `
       INSERT INTO app_api_keys (
@@ -391,7 +395,10 @@ export async function updateManagedApiKeyStatus(input: {
 }
 
 /** Read a secret only on explicit request, scoped to the authenticated owner. */
-export async function getApiKeySecretForUser(email: string, fugueKeyId: string) {
+export async function getApiKeySecretForUser(
+  email: string,
+  fugueKeyId: string,
+) {
   const result = await withDbSchemaRetry(() =>
     queryDb<{ secret_sealed: string | null }>(
       `SELECT secret_sealed FROM app_api_keys
@@ -401,7 +408,10 @@ export async function getApiKeySecretForUser(email: string, fugueKeyId: string) 
   );
   const row = result.rows[0];
   if (!row) return { found: false, secret: null } as const;
-  return { found: true, secret: row.secret_sealed ? unsealText(row.secret_sealed) : null } as const;
+  return {
+    found: true,
+    secret: row.secret_sealed ? unsealText(row.secret_sealed) : null,
+  } as const;
 }
 
 /**
@@ -448,7 +458,10 @@ export async function updateManagedApiKeyMeta(input: {
  * disabled/deleted/edited through the user-facing /keys controls, even though
  * the tenant-scoped admin key technically could via the control plane.
  */
-export async function getManagedApiKeyForUser(email: string, fugueKeyId: string) {
+export async function getManagedApiKeyForUser(
+  email: string,
+  fugueKeyId: string,
+) {
   const result = await withDbSchemaRetry(() =>
     queryDb<{
       fugue_key_id: string;
@@ -473,12 +486,12 @@ export async function getManagedApiKeyForUser(email: string, fugueKeyId: string)
 
 /**
  * Persist a freshly-minted node-enrollment key into the local mirror the
- * /servers page reads. The secret is NOT stored
- * (secret_sealed = NULL): it is revealed once at creation for the join command
- * and never again. Marked source='managed', status='active'.
+ * /servers page reads. Only the encrypted secret is saved; plaintext is returned
+ * on explicit owner-authorized copy requests, never in page data.
  */
 export async function persistManagedNodeKey(input: {
   email: string;
+  secret: string;
   key: {
     id: string;
     tenantId: string;
@@ -511,7 +524,7 @@ export async function persistManagedNodeKey(input: {
         )
         VALUES (
           $1, $2, $3, $4, $5,
-          NULL, NULL, 'active', 'managed',
+          NULL, $8, 'active', 'managed',
           NULL, NULL, $6, $7, $6
         )
         ON CONFLICT (fugue_node_key_id) DO UPDATE
@@ -520,6 +533,7 @@ export async function persistManagedNodeKey(input: {
           tenant_id = EXCLUDED.tenant_id,
           label = EXCLUDED.label,
           prefix = EXCLUDED.prefix,
+          secret_sealed = EXCLUDED.secret_sealed,
           status = 'active',
           source = 'managed',
           revoked_at = NULL,
@@ -534,6 +548,7 @@ export async function persistManagedNodeKey(input: {
         input.key.prefix,
         now,
         createdAt,
+        sealText(input.secret),
       ],
     ),
   );
@@ -552,7 +567,7 @@ export async function revokeManagedNodeKey(input: {
     queryDb(
       `
         UPDATE app_node_keys
-        SET status = 'revoked', revoked_at = $3, last_synced_at = $3, updated_at = $3
+        SET status = 'revoked', secret_sealed = NULL, revoked_at = $3, last_synced_at = $3, updated_at = $3
         WHERE fugue_node_key_id = $1 AND user_email = $2
       `,
       [input.nodeKeyId, normalizeEmail(input.email), now],
@@ -598,7 +613,10 @@ export async function renameManagedNodeKey(input: {
 }
 
 /** Fetch a single mirrored node key for authorization checks before a mutation. */
-export async function getManagedNodeKeyForUser(email: string, nodeKeyId: string) {
+export async function getManagedNodeKeyForUser(
+  email: string,
+  nodeKeyId: string,
+) {
   const result = await withDbSchemaRetry(() =>
     queryDb<{
       fugue_node_key_id: string;
@@ -698,7 +716,9 @@ export async function getWorkspaceSnapshotsByTenantIds(tenantIds: string[]) {
 export async function getWorkspaceSnapshotsByEmails(emails: string[]) {
   const normalizedEmails = [
     ...new Set(
-      emails.map((email) => normalizeEmail(email)).filter((email) => email.length > 0),
+      emails
+        .map((email) => normalizeEmail(email))
+        .filter((email) => email.length > 0),
     ),
   ];
 

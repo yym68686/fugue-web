@@ -4214,3 +4214,56 @@ select.input {
   gap: 10px;
   padding: 14px;
 }
+
+/* Server inventory and scoped runtime management. */
+.server-toolbar, .server-inline { display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+.server-toolbar { justify-content:space-between; margin-bottom:16px; }
+.panel-h.server-toolbar { margin-bottom:0; }
+.server-search { flex:1; min-width:170px; max-width:400px; }
+.server-filter { width:auto; max-width:260px; }
+.server-card + .server-card { border-top:1px solid var(--line); }
+.server-card > summary { display:flex; align-items:center; gap:12px; padding:20px; cursor:pointer; list-style:none; }
+.server-card > summary::-webkit-details-marker { display:none; }
+.server-card > summary:focus-visible { outline:2px solid var(--accent); outline-offset:-3px; }
+.server-heading { flex:1; min-width:0; overflow-wrap:anywhere; }
+.server-heading small, .server-key-row small { display:block; color:var(--muted); margin-top:5px; }
+.server-expand { font-size:20px; color:var(--muted); }
+.server-card-body { padding:0 24px 24px; border-top:1px solid var(--line); }
+.server-card-body h3, .server-card-body h4 { margin:20px 0 12px; }
+.server-facts { display:grid; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); gap:16px; margin:20px 0; }
+.server-facts dt { color:var(--muted); font-size:12px; }
+.server-facts dd { margin:5px 0 0; overflow-wrap:anywhere; font-size:13px; }
+.server-table-scroll { overflow-x:auto; margin:16px 0; }
+.server-table-scroll td { overflow-wrap:anywhere; min-width:90px; }
+.server-conditions, .server-grants { padding:0; margin:12px 0; list-style:none; }
+.server-conditions li { display:grid; gap:5px; padding:12px 0; border-bottom:1px solid var(--line); }
+.server-conditions span, .server-conditions small { color:var(--muted); font-size:12px; overflow-wrap:anywhere; }
+.server-grants li { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:12px 0; border-bottom:1px solid var(--line); }
+.server-grants small { display:block; color:var(--muted); margin-top:4px; }
+.server-access { border-top:1px solid var(--line); margin-top:24px; }
+.server-inline .input { flex:1; min-width:180px; width:auto; }
+.server-access-actions { margin-top:20px; }
+.server-pricing { padding:16px; border:1px solid var(--line); border-radius:var(--radius); margin:16px 0; }
+.server-form-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:14px; margin:16px 0; }
+.server-form-grid label { color:var(--muted); font-size:12px; }
+.server-form-grid .input { margin-top:8px; }
+.server-check { display:inline-flex; align-items:center; gap:8px; }
+.server-check input { accent-color:var(--accent); }
+.server-pricing > .btn { margin-top:14px; }
+.server-key-row { flex-wrap:wrap; gap:18px; }
+.runtime-picker { display:grid; gap:8px; width:100%; }
+.runtime-picker > label { color:var(--muted); font-size:13px; }
+.runtime-picker .input { width:100%; }
+.runtime-management { padding:20px; display:grid; gap:16px; }
+.runtime-management h4 { margin:8px 0 0; }
+.runtime-management ul { margin:0; padding-left:20px; }
+.runtime-management .server-grants { padding:0; }
+@media (max-width:700px) {
+  .server-card > summary { flex-wrap:wrap; padding:16px; gap:9px; }
+  .server-heading { flex-basis:calc(100% - 40px); }
+  .server-card-body { padding:0 16px 20px; }
+  .server-filter, .server-search { max-width:none; width:100%; }
+  .server-key-row > div { max-width:100%; }
+}
+
+.server-toolbar > .meta { display:flex; gap:16px; }

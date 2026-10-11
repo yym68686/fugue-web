@@ -9,7 +9,7 @@ import {
   readRouteParam,
   type RouteContextWithParams,
 } from "@/lib/fugue/product-route";
-import { renameManagedNodeKey } from "@/lib/workspace/store";
+import { renameExternalNodeKey } from "@/lib/servers/node-keys";
 
 /**
  * Rename a node key. This is LOCAL-only — the control plane exposes no node-key
@@ -32,11 +32,14 @@ export async function PATCH(
     return jsonError(400, "Invalid request body.");
   }
 
+  if (!body || typeof body !== "object" || Array.isArray(body))
+    return jsonError(400, "Invalid request body.");
+
   const label = typeof body.label === "string" ? body.label.trim() : "";
   if (!label) return jsonError(400, "Enter a name for the node.");
   if (label.length > 120) return jsonError(400, "Node name is too long.");
 
-  await renameManagedNodeKey({ email: owned.email, nodeKeyId: id, label });
+  await renameExternalNodeKey(owned.email, owned.key.tenant_id, id, label);
   return NextResponse.json({ ok: true, result: { label } });
 }
 

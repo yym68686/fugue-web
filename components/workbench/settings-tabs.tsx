@@ -8,6 +8,7 @@ import CountryLabel from "@/components/geo/CountryLabel";
 import { useT } from "@/lib/i18n/client";
 import { ActionButton, callConsole, ConfirmDialog } from "./shared";
 
+import AppMigrationPanel from "@/components/servers/AppMigrationPanel";
 import { SourceSyncStatus } from './SourceSyncStatus';
 
 const APP = (id: string) => `/apps/${encodeURIComponent(id)}`;
@@ -45,6 +46,7 @@ export function SettingsTab({
 
   return (
     <>
+      <AppMigrationPanel key={app.id} appId={app.id} currentRuntimeId={app.status?.current_runtime_id || spec.runtime_id} />
       <div className="panel">
         <div className="panel-h">
           <h3>{t("Runtime settings")}</h3>

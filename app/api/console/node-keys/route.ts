@@ -9,13 +9,14 @@ import {
   requireWorkspaceForSession,
 } from "@/lib/fugue/product-route";
 import { persistManagedNodeKey } from "@/lib/workspace/store";
+import { sealText } from "@/lib/security/seal";
 
 /**
  * Mint a node-enrollment key in the caller's workspace, mirror its metadata
  * locally, and return the join command the user runs on their VPS. The guard
  * chain is inline (not withWorkspaceKey) because persistence also needs the
- * session email and the tenant id. The secret is returned exactly once — the
- * backend never stores it and neither do we.
+ * session email and the tenant id. The backend returns the secret once;
+ * the web mirror encrypts it for owner-only copying.
  */
 export async function POST(request: Request) {
   const auth = await requireActiveSessionUser();
@@ -31,6 +32,9 @@ export async function POST(request: Request) {
     return jsonError(400, "Invalid request body.");
   }
 
+  if (!body || typeof body !== "object" || Array.isArray(body))
+    return jsonError(400, "Invalid request body.");
+
   const label = typeof body.label === "string" ? body.label.trim() : "";
   if (!label) {
     return jsonError(400, "Enter a name for the node.");
@@ -40,6 +44,9 @@ export async function POST(request: Request) {
   }
 
   try {
+    // Validate both prerequisites before minting a credential.
+    buildNodeJoinCommand("");
+    sealText("node-key-storage-preflight");
     const created = await createNodeKey(ws.workspace.adminKeySecret, {
       label,
       tenantId: ws.workspace.tenantId,
@@ -53,6 +60,7 @@ export async function POST(request: Request) {
 
     await persistManagedNodeKey({
       email: auth.session.email,
+      secret,
       key: {
         id: nodeKey.id,
         tenantId: nodeKey.tenant_id || ws.workspace.tenantId,
@@ -62,18 +70,21 @@ export async function POST(request: Request) {
       },
     });
 
-    return NextResponse.json({
-      ok: true,
-      result: {
-        secret,
-        joinCommand: buildNodeJoinCommand(secret),
-        key: {
-          id: nodeKey.id,
-          label: nodeKey.label || label,
-          prefix: nodeKey.prefix ?? null,
+    return NextResponse.json(
+      {
+        ok: true,
+        result: {
+          secret,
+          joinCommand: buildNodeJoinCommand(secret),
+          key: {
+            id: nodeKey.id,
+            label: nodeKey.label || label,
+            prefix: nodeKey.prefix ?? null,
+          },
         },
       },
-    });
+      { headers: { "Cache-Control": "private, no-store" } },
+    );
   } catch (error) {
     return jsonError(readErrorStatus(error), readErrorMessage(error));
   }

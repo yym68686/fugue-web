@@ -1,5 +1,5 @@
-import { listRuntimeTargets } from "@/lib/fugue/console";
-import { withWorkspaceKey } from "@/lib/console/route-helpers";
+import { deploymentTargets } from "@/lib/fugue/runtime-management";
+import { withServerActor } from "@/lib/servers/route";
 
 export const dynamic = "force-dynamic";
 
@@ -7,5 +7,7 @@ export const dynamic = "force-dynamic";
 // any runtimes the tenant owns). Used by the new-project wizard's runtime
 // picker.
 export async function GET() {
-  return withWorkspaceKey((key) => listRuntimeTargets(key));
+  return withServerActor((actor) =>
+    deploymentTargets(actor.key, actor.tenantId),
+  );
 }

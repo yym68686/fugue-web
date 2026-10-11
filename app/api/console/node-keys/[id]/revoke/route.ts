@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { revokeNodeKey } from "@/lib/fugue/console";
+import { revokeOwnedNodeKey } from "@/lib/console/delete-node-key";
 import { resolveOwnedNodeKey } from "@/lib/console/key-guard";
 import {
   jsonError,
@@ -9,7 +9,6 @@ import {
   readRouteParam,
   type RouteContextWithParams,
 } from "@/lib/fugue/product-route";
-import { revokeManagedNodeKey } from "@/lib/workspace/store";
 
 /**
  * Revoke (disable) a node-enrollment key, then mirror status='revoked' locally.
@@ -24,8 +23,11 @@ export async function POST(
   if (owned.response) return owned.response;
 
   try {
-    await revokeNodeKey(owned.adminKeySecret, id);
-    await revokeManagedNodeKey({ email: owned.email, nodeKeyId: id });
+    await revokeOwnedNodeKey({
+      email: owned.email,
+      nodeKeyId: id,
+      adminKeySecret: owned.adminKeySecret,
+    });
     return NextResponse.json({ ok: true, result: { status: "revoked" } });
   } catch (error) {
     return jsonError(readErrorStatus(error), readErrorMessage(error));

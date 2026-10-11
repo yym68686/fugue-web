@@ -2,7 +2,8 @@
 
 import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import type { RuntimeTarget } from "@/lib/fugue/console";
+import type { RuntimeView } from "@/lib/servers/model";
+import RuntimeTargetPicker from "@/components/servers/RuntimeTargetPicker";
 import { useGitHubConnection } from "@/lib/github/connection-client";
 import { useT } from "@/lib/i18n/client";
 
@@ -36,7 +37,7 @@ function newEnvRow(): EnvRow {
   return { id: ++envRowSeq, key: "", value: "" };
 }
 
-export default function NewProjectWizard({ runtimes }: { runtimes: RuntimeTarget[] }) {
+export default function NewProjectWizard({ runtimes, runtimeError }: { runtimes: RuntimeView[]; runtimeError?: string }) {
   const router = useRouter();
   const t = useT();
 
@@ -152,6 +153,10 @@ export default function NewProjectWizard({ runtimes }: { runtimes: RuntimeTarget
   }
 
   async function submit() {
+    if (runtimeId && !runtimes.some((r) => r.id === runtimeId)) {
+      setError(t("Current selection is unavailable"));
+      return;
+    }
     const msg = validate();
     if (msg) {
       setError(msg);
@@ -452,21 +457,9 @@ export default function NewProjectWizard({ runtimes }: { runtimes: RuntimeTarget
                 </>
               )}
               <div className="form-row">
-                <label>{t("Runtime target")}</label>
-                <select
-                  className="input"
-                  value={runtimeId}
-                  onChange={(e) => setRuntimeId(e.target.value)}
-                >
-                  <option value="">{t("Auto-assign")}</option>
-                  {runtimes.map((r) => (
-                    <option key={r.id || r.name} value={r.id || ""}>
-                      {r.name || r.machine_name || r.id}
-                      {r.status ? ` · ${r.status}` : ""}
-                    </option>
-                  ))}
-                </select>
+                <RuntimeTargetPicker targets={runtimes} value={runtimeId} onChange={setRuntimeId} disabled={busy} />
               </div>
+              {runtimeError && <p className="wb-alert err" role="alert">{t(runtimeError)}</p>}
               <div className="form-row">
                 <label>{t("Service port")}</label>
                 <input

@@ -223,6 +223,7 @@ export type ProjectResourceRollup = {
 };
 
 export type ClusterNodeStat = {
+  schedulable_free_bytes?: number;
   capacity_bytes?: number;
   allocatable_bytes?: number;
   used_bytes?: number;
@@ -232,6 +233,7 @@ export type ClusterNodeStat = {
 };
 
 export type ClusterNodeCpuStat = {
+  schedulable_free_millicores?: number;
   capacity_millicores?: number;
   allocatable_millicores?: number;
   used_millicores?: number;
@@ -336,7 +338,7 @@ async function readFugueError(
   return new FugueApiError(response.status, message);
 }
 
-async function fugueGet<T>(adminKey: string, path: string): Promise<T> {
+export async function fugueGet<T>(adminKey: string, path: string): Promise<T> {
   return measurePageDependency("api", apiTimingName(path), () => fugueGetUnmeasured<T>(adminKey, path));
 }
 
@@ -360,7 +362,7 @@ async function fugueGetUnmeasured<T>(adminKey: string, path: string): Promise<T>
   return (await response.json()) as T;
 }
 
-async function fugueSend<T>(
+export async function fugueSend<T>(
   adminKey: string,
   method: "POST" | "PUT" | "PATCH" | "DELETE",
   path: string,

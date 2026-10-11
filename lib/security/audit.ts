@@ -6,6 +6,8 @@ import { normalizeEmail } from "@/lib/auth/validation";
 import { withDbClient } from "@/lib/db/pool";
 
 export type SecurityAuditAction =
+  | "admin.runtime.scope.requested"
+  | "admin.runtime.scope.completed"
   | "admin.app.delete.completed"
   | "admin.app.delete.requested"
   | "admin.app.rebuild.completed"
@@ -26,6 +28,12 @@ export type SecurityAuditAction =
   | "user.status.changed";
 
 export type OutboundAdminMutationRequest =
+  | {
+      actorEmail: string;
+      kind: "runtime.scope";
+      runtimeId: string;
+      scope: "internal" | "byovps";
+    }
   | {
       actorEmail: string;
       appId: string;
@@ -66,6 +74,10 @@ class AdminMutationAuditUnavailableError extends Error {
 }
 
 export const OUTBOUND_ADMIN_MUTATION_ACTIONS = {
+  "runtime.scope": {
+    requested: "admin.runtime.scope.requested",
+    completed: "admin.runtime.scope.completed",
+  },
   "app.delete": {
     completed: "admin.app.delete.completed",
     requested: "admin.app.delete.requested",
@@ -132,6 +144,12 @@ function buildOutboundAdminMutationAuditEvent(
   const action = OUTBOUND_ADMIN_MUTATION_ACTIONS[input.kind][stage];
 
   switch (input.kind) {
+    case "runtime.scope":
+      return {
+        action,
+        actorEmail: input.actorEmail,
+        metadata: { runtimeId: input.runtimeId, scope: input.scope, stage },
+      };
     case "app.delete":
     case "app.rebuild":
       return {

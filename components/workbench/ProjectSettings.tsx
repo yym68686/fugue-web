@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useT } from "@/lib/i18n/client";
 import { ActionButton, callConsole, ConfirmDialog } from "./shared";
+import ProjectRuntimePanel from "@/components/servers/ProjectRuntimePanel";
 import ShareTemplateButton from "@/components/projects/ShareTemplateButton";
 
 export default function ProjectSettings({
@@ -24,6 +25,7 @@ export default function ProjectSettings({
 
   return (
     <>
+      <ProjectRuntimePanel key={projectId} projectId={projectId} />
       <div className="panel">
         <div className="panel-h">
           <h3>{t("Basic info")}</h3>

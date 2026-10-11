@@ -27,6 +27,24 @@ server-to-server API requests. It takes precedence for those requests only;
 it does not replace the public URL in installation commands. Keep
 `FUGUE_API_URL` configured even when using the internal override.
 
+### Server management
+
+The Servers page distinguishes owned, shared, public and internal runtime
+capacity. Owners can manage BYOVPS visibility, grants, pricing and offline
+inventory. Internal membership changes require an active platform-admin session
+and are audited before calling the backend. The backend remains authoritative
+for membership, grants, placement and deletion dependencies.
+
+New node-key secrets are encrypted with the existing `WORKSPACE_STORE_SECRET`
+keyring and returned only by an explicit owner-authorized copy request. Old
+keys without saved ciphertext cannot be recovered. Revocation clears saved
+ciphertext; refreshing metadata cannot restore a revoked or deleted key.
+
+Project settings include a default deployment server and exclusive reservations.
+Service settings provide migration preview and operation tracking. A preview
+never starts a migration; confirmation rechecks backend prerequisites. These
+controls do not publish traffic or DNS configuration artifacts.
+
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.

@@ -21,7 +21,7 @@ const PLUS_ICON = (
 /**
  * "Connect node" action for the servers page. Opens a modal to name the node,
  * mints a tenant-runtime node key via POST /api/console/node-keys, then reveals
- * the one-line join command (with the secret embedded) exactly once. Rendered as
+ * the one-line join command (with the secret embedded). Rendered as
  * a client island so the page itself can stay a server component.
  */
 export default function ConnectNodeButton() {
@@ -101,7 +101,7 @@ export default function ConnectNodeButton() {
                 <div className="modal-b">
                   <p style={{ marginBottom: 10 }}>
                     {t(
-                      "Run this on the server you want to connect (as root). For security the key is shown only once.",
+                      "Run this on the server you want to connect (as root). You can copy this command again from Node keys.",
                     )}
                   </p>
                   <div className="newkey-secret">
