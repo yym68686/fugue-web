@@ -8949,6 +8949,8 @@ export interface components {
       allow_edge?: boolean;
       /** @description Explicit existing Edge authority for managed node enrollment. Requires allow_edge=true. */
       edge_group_id?: string;
+      /** @description Finalize this exact managed enrollment after server verification of current authority, both Worker slots, Front and fresh route/TLS health. This field must be sent alone. It changes declared release membership and does not force traffic selection. */
+      edge_admission_id?: string;
       allow_dns?: boolean;
       allow_internal_maintenance?: boolean;
       desired_control_plane_role?: string;
