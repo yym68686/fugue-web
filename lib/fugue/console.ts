@@ -1629,7 +1629,13 @@ export async function listRuntimes(adminKey: string) {
  * the backend's /install/join-cluster.sh, which requires that env var).
  */
 export function buildNodeJoinCommand(secret: string): string {
-  const base = readApiBaseUrl();
+  // This command runs on a user's VPS, outside the cluster. The internal API
+  // override is only for server-to-server requests, never installation URLs.
+  const raw = process.env.FUGUE_API_URL?.trim();
+  if (!raw) {
+    throw new Error("Missing FUGUE_API_URL. Configure the public fugue backend URL.");
+  }
+  const base = raw.replace(/\/+$/, "");
   return `curl -fsSL ${base}/install/join-cluster.sh | sudo FUGUE_NODE_KEY='${secret}' bash`;
 }
 

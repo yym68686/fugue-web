@@ -16,6 +16,17 @@ bun dev
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
+### Fugue API endpoints
+
+Set `FUGUE_API_URL` to the public control-plane URL reachable from users' VPS
+machines (for example, `https://api.fugue.pro`). The Servers page uses this
+runtime configuration to generate the node installation command.
+
+Optionally set `FUGUE_INTERNAL_API_URL` to an internal control-plane URL for
+server-to-server API requests. It takes precedence for those requests only;
+it does not replace the public URL in installation commands. Keep
+`FUGUE_API_URL` configured even when using the internal override.
+
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
