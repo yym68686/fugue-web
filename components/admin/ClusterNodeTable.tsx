@@ -3,7 +3,8 @@
 import { Fragment, useState } from "react";
 
 import type { ClusterNode, ClusterNodeWorkload } from "@/lib/fugue/console";
-import { fmtBytes, fmtMillicores, fmtPercent } from "@/lib/format";
+import { fmtBytes, fmtMillicores } from "@/lib/format";
+import UsageCell from "@/components/ResourceUsage";
 import { useT } from "@/lib/i18n/client";
 import type { TranslateFn } from "@/lib/i18n/translate";
 
@@ -19,13 +20,6 @@ const STATUS_CHIP: Record<string, string> = {
 
 function statusChipClass(status: string): string {
   return STATUS_CHIP[status.toLowerCase().replace(/\s+/g, "")] ?? "idle";
-}
-
-function barClass(pct: number | undefined): string {
-  const v = pct ?? 0;
-  if (v >= 85) return "crit";
-  if (v >= 70) return "hot";
-  return "";
 }
 
 type RoleChip = { label: string; tone: string };
@@ -74,44 +68,6 @@ function roleChips(node: ClusterNode, t: TranslateFn): RoleChip[] {
   }
   if (chips.length === 0) chips.push({ label: t("Worker"), tone: "idle" });
   return chips;
-}
-
-function UsageCell({
-  usagePct,
-  requestPct,
-  detail,
-  t,
-}: {
-  usagePct: number | undefined;
-  requestPct: number | undefined;
-  detail: string;
-  t: TranslateFn;
-}) {
-  const usage = Math.max(0, Math.min(100, usagePct ?? 0));
-  const request = Math.max(0, Math.min(100, requestPct ?? 0));
-  return (
-    <div className="usage-cell">
-      <span className="bar bar-wide">
-        <i className={barClass(usagePct)} style={{ width: `${usage}%` }}></i>
-        {requestPct != null && (
-          <span
-            className="req-mark"
-            style={{ left: `${request}%` }}
-            title={t("Requested {pct}", { pct: fmtPercent(requestPct) })}
-          ></span>
-        )}
-      </span>
-      <span className="usage-meta">
-        <span className="bar-val">{fmtPercent(usagePct)}</span>
-        {requestPct != null && (
-          <span className="usage-req">
-            {t("Requested {pct}", { pct: fmtPercent(requestPct) })}
-          </span>
-        )}
-        {detail && <span className="usage-detail">{detail}</span>}
-      </span>
-    </div>
-  );
 }
 
 function workloadLabel(w: ClusterNodeWorkload, t: TranslateFn): string {

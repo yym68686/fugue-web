@@ -3,7 +3,13 @@
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useT } from "@/lib/i18n/client";
-import { fmtBytes, fmtDate, fmtMillicores } from "@/lib/format";
+import {
+  fmtBytes,
+  fmtDate,
+  fmtMillicores,
+  fmtStorageUsage,
+} from "@/lib/format";
+import ResourceUsage from "@/components/ResourceUsage";
 import {
   nodeHealth,
   type NodeView,
@@ -141,6 +147,54 @@ function ServerCard({ server, now }: { server: ServerView; now: number }) {
         </span>
         <span className="server-expand" aria-hidden="true">
           {open ? "−" : "+"}
+        </span>
+        <span className="server-resource-summary">
+          <ResourceUsage
+            label={t("CPU")}
+            t={t}
+            usagePct={node?.cpu?.usage_percent}
+            requestPct={node?.cpu?.request_percent}
+            detail={
+              node?.cpu?.capacity_millicores != null
+                ? `${node.cpu.used_millicores == null ? "—" : fmtMillicores(node.cpu.used_millicores)} / ${fmtMillicores(node.cpu.capacity_millicores)}`
+                : ""
+            }
+          />
+          <ResourceUsage
+            label={t("Memory")}
+            t={t}
+            usagePct={node?.memory?.usage_percent}
+            requestPct={node?.memory?.request_percent}
+            detail={
+              node?.memory
+                ? fmtStorageUsage(
+                    node.memory.used_bytes,
+                    node.memory.capacity_bytes,
+                  )
+                : ""
+            }
+          />
+          <ResourceUsage
+            label={t("Disk")}
+            t={t}
+            usagePct={node?.ephemeral_storage?.usage_percent}
+            requestPct={undefined}
+            detail={
+              node?.ephemeral_storage
+                ? fmtStorageUsage(
+                    node.ephemeral_storage.used_bytes,
+                    node.ephemeral_storage.capacity_bytes,
+                  )
+                : ""
+            }
+          />
+          {node && health === "unknown" && (
+            <span className="server-resource-note">
+              {t(
+                "Measurements may be stale. Refresh before making placement decisions.",
+              )}
+            </span>
+          )}
         </span>
       </summary>
       {open && (
