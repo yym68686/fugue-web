@@ -6618,10 +6618,14 @@ export interface components {
     };
     AppSSHStatus: {
       supported: boolean;
-      /** @description True only when the configured endpoint has a fresh matching managed host identity observation. This does not attest user authentication, every edge replica, or client trust. */
+      /**
+       * @deprecated
+       * @description Compatibility alias for route_configured used by existing SSH clients. Does not attest a handshake or host identity; use identity_verified and observation for host identity evidence.
+       */
       ready: boolean;
       /** @description Routing intent is allocated and publishable; not a handshake observation */
       route_configured?: boolean;
+      /** @description True only with fresh matching managed host identity evidence. Does not attest user authentication, every edge replica, or client trust. */
       identity_verified?: boolean;
       /** @enum {string} */
       identity_state?: "unmanaged" | "unobserved" | "verified" | "mismatch" | "unreachable" | "expired" | "route_changed" | "unavailable";
