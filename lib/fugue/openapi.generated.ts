@@ -49,6 +49,13 @@ export interface paths {
      */
     get: operations["edgeRouteIntents"];
   };
+  "/v1/edge/ssh/ack": {
+    /**
+     * Acknowledge durably loaded SSH routes from one edge instance
+     * @description Requires the node-scoped edge token for the exact edge_id. Records runtime evidence only, never serving intent. The supplied bundle version and route digest must match the current authorized route set. The front acknowledges only after durable cache publication and listener activation. Evidence expires after two minutes and cannot attest another node or instance.
+     */
+    post: operations["acknowledgeEdgeSSHRoutes"];
+  };
   "/v1/edge/ssh/routes": {
     /** Edge SSH Routes */
     get: operations["edgeSSHRoutes"];
@@ -1423,11 +1430,76 @@ export interface paths {
   "/v1/apps/{id}/ssh": {
     /** Get App SSH */
     get: operations["getAppSSH"];
-    /** Patch App SSH */
+    /**
+     * Patch App SSH
+     * @description Configures application-provided SSH. Returns conflict when an independent managed SSH public binding exists; use managed SSH intent for that endpoint.
+     */
     patch: operations["patchAppSSH"];
   };
+  "/v1/apps/{id}/ssh/managed": {
+    /**
+     * Read independent platform-managed SSH intent
+     * @description Requires app.ssh.read or app.ssh.write. Intent is independent of application releases. Prepared intent does not assert runtime readiness or activate a public route.
+     */
+    get: operations["getManagedSSHIntent"];
+    /**
+     * Update independent managed SSH intent with a generation precondition
+     * @description Requires app.ssh.write. expected_generation must be zero for creation or equal the current intent generation for an update. The identity must already exist and cannot change. Authorized key IDs refer to current tenant keys; private keys and raw grants are not accepted. This does not edit an application image, spec, Deployment, public route, or client trust. Initial activation requires separately verified candidate evidence.
+     */
+    put: operations["putManagedSSHIntent"];
+  };
+  "/v1/apps/{id}/ssh/managed/status": {
+    /**
+     * Read managed SSH candidates, serving state, and evidence
+     * @description Requires app.ssh.read or app.ssh.write. Candidate evidence is distinct from public endpoint observation and client trust. No private material is returned.
+     */
+    get: operations["getManagedSSHStatus"];
+  };
+  "/v1/apps/{id}/ssh/managed/binding": {
+    /**
+     * Reserve a durable public SSH address without switching traffic
+     * @description Requires app.ssh.write. Existing native endpoints require their exact legacy_route_digest from managed status. An empty digest is allowed only for a new endpoint. The server controls hostname and port range. Does not edit application specs, enable a public route, or modify client trust.
+     */
+    post: operations["prepareManagedSSHBinding"];
+  };
+  "/v1/apps/{id}/ssh/managed/activate": {
+    /**
+     * Activate an explicitly reviewed and verified SSH candidate
+     * @description Requires app.ssh.write and PostgreSQL independent route storage. All preconditions must match; the candidate must have fresh runtime and actual SSH key-exchange evidence and current authorization. Traffic publication and control state commit atomically. Failed activation preserves the prior route. Existing streams drain through their previous target. This does not change application images or client trust. A host identity migration may require separately reviewed client enrollment.
+     */
+    post: operations["activateManagedSSH"];
+  };
+  "/v1/apps/{id}/ssh/managed/rollback": {
+    /**
+     * Switch to a retained verified SSH slot with current authorization
+     * @description Requires app.ssh.write. Never restores expired or revoked grants. The retained slot must still have fresh runtime and handshake evidence and match current intent. Existing streams drain; new streams use the reviewed slot. Sets rollback_hold so automatic target or executable updates cannot immediately undo this rollback. Explicit candidate activation clears the hold. Does not modify application releases or client trust.
+     */
+    post: operations["rollbackManagedSSH"];
+  };
+  "/v1/apps/{id}/ssh/identity": {
+    /**
+     * Get the public managed SSH identity for an app
+     * @description Returns public identity metadata only. This operation never generates keys or changes serving routes. Requires app.ssh.read or app.ssh.write.
+     */
+    get: operations["getAppSSHIdentity"];
+    /**
+     * Prepare a durable managed SSH identity without activating it
+     * @description Requires app.ssh.write. Creates an independent identity once and returns the same identity on retry. Never adopts image host keys, replaces existing identity material, changes routing, restarts workloads, or updates client trust. An unavailable encryption key or corrupt identity fails closed.
+     */
+    post: operations["prepareAppSSHIdentity"];
+  };
+  "/v1/apps/{id}/ssh/identity/observe": {
+    /**
+     * Observe the configured public SSH endpoint without authentication
+     * @description Requires app.ssh.read or app.ssh.write. Performs a bounded key-exchange probe against the allocated public endpoint and records its observed host identity. The supplied identity_id is a precondition. This does not activate identity, update routes or client trust, or establish a user session. A successful probe represents this observation vantage and does not attest every edge replica.
+     */
+    post: operations["observeAppSSHIdentity"];
+  };
   "/v1/apps/{id}/ssh/rotate-port": {
-    /** Rotate App SSH Port */
+    /**
+     * Rotate App SSH Port
+     * @description Rotates an application-provided SSH endpoint. A managed SSH public binding rejects this legacy mutation.
+     */
     post: operations["rotateAppSSHPort"];
   };
   "/v1/apps/{id}/ssh/diagnose": {
@@ -6297,6 +6369,215 @@ export interface components {
       termination_grace_period_seconds?: number;
       restart_token?: string;
     };
+    EdgeSSHAcknowledgementRequest: {
+      edge_id: string;
+      edge_group_id: string;
+      instance_uid: string;
+      bundle_version: string;
+      route_digest: string;
+      /** @enum {boolean} */
+      persisted: true;
+      /** Format: date-time */
+      loaded_at: string;
+      connections: components["schemas"]["EdgeSSHRouteConnections"][];
+    };
+    EdgeSSHRouteConnections: {
+      app_id: string;
+      public_port: number;
+      target_host: string;
+      target_port: number;
+      count: number;
+    };
+    ManagedSSHActivationRequest: {
+      /** Format: int64 */
+      expected_revision: number;
+      /** Format: int64 */
+      expected_intent_generation: number;
+      artifact_digest: string;
+      fingerprint: string;
+      binding_id: string;
+      legacy_route_digest: string;
+    };
+    ManagedSSHRollbackRequest: {
+      /** Format: int64 */
+      expected_revision: number;
+      /** Format: int64 */
+      expected_intent_generation: number;
+      artifact_digest: string;
+      fingerprint: string;
+      binding_id: string;
+      legacy_route_digest: string;
+      slot_id: string;
+    };
+    ManagedSSHPublicBinding: {
+      id: string;
+      tenant_id: string;
+      app_id: string;
+      identity_id: string;
+      hostname: string;
+      public_port: number;
+      runtime_id: string;
+      runtime_type: string;
+      edge_group_id?: string;
+      legacy_route_digest: string;
+      /** Format: date-time */
+      created_at: string;
+    };
+    ManagedSSHTarget: {
+      tenant_id: string;
+      app_id: string;
+      namespace: string;
+      pod_name: string;
+      pod_uid: string;
+      container: string;
+      container_id: string;
+      user: string;
+      working_directory: string;
+    };
+    ManagedSSHCandidateEvidence: {
+      artifact_digest: string;
+      identity_id: string;
+      fingerprint: string;
+      server_pod_uid: string;
+      target_pod_uid: string;
+      target_container_id: string;
+      key_exchange_verified: boolean;
+      runtime_verified: boolean;
+      /** Format: date-time */
+      observed_at: string;
+      /** Format: date-time */
+      expires_at: string;
+    };
+    ManagedSSHSlotStatus: {
+      id: string;
+      namespace: string;
+      image: string;
+      helper_digest: string;
+      architecture: string;
+      artifact_digest: string;
+      /** Format: int64 */
+      generation: number;
+      target: components["schemas"]["ManagedSSHTarget"];
+      evidence?: components["schemas"]["ManagedSSHCandidateEvidence"];
+      verified: boolean;
+      /** Format: date-time */
+      valid_until: string;
+      /** Format: date-time */
+      created_at: string;
+      /** Format: date-time */
+      draining_since?: string;
+      /** Format: date-time */
+      retiring_at?: string;
+      /** Format: date-time */
+      retired_at?: string;
+    };
+    ManagedSSHControlStatus: {
+      identity_id: string;
+      /** Format: int64 */
+      revision: number;
+      /** Format: int64 */
+      generation: number;
+      /** Format: int64 */
+      intent_generation: number;
+      /** Format: int64 */
+      route_generation: number;
+      rollback_hold: boolean;
+      active?: components["schemas"]["ManagedSSHSlotStatus"];
+      candidate?: components["schemas"]["ManagedSSHSlotStatus"];
+      draining: components["schemas"]["ManagedSSHSlotStatus"][];
+      retired: components["schemas"]["ManagedSSHSlotStatus"][];
+      activation_actor?: string;
+      /** Format: date-time */
+      activated_at?: string;
+    };
+    ManagedSSHStatusResponse: {
+      intent: components["schemas"]["ManagedSSHIntent"];
+      binding?: components["schemas"]["ManagedSSHPublicBinding"];
+      control?: components["schemas"]["ManagedSSHControlStatus"];
+      legacy_route_digest: string;
+    };
+    ManagedSSHForwardRule: {
+      /** @description Numeric loopback address in the target container network namespace */
+      host: string;
+      port: number;
+      /** @description Optional inclusive upper port bound, at least port */
+      end_port?: number;
+    };
+    ManagedSSHIntentSpec: {
+      enabled: boolean;
+      identity_id: string;
+      /** @description Explicit application container name; no inferred sidecar selection */
+      container: string;
+      user: string;
+      /** @description Absolute normalized directory inside the target container */
+      working_directory: string;
+      authorized_key_ids: string[];
+      allow_pty: boolean;
+      allow_sftp: boolean;
+      forward_rules?: components["schemas"]["ManagedSSHForwardRule"][];
+      allowed_environment?: string[];
+      max_connections: number;
+      max_connections_per_ip: number;
+      max_channels: number;
+    };
+    ManagedSSHIntent: {
+      tenant_id: string;
+      app_id: string;
+      /** Format: int64 */
+      generation: number;
+      spec: components["schemas"]["ManagedSSHIntentSpec"];
+      /** Format: date-time */
+      created_at: string;
+      /** Format: date-time */
+      updated_at: string;
+    };
+    ManagedSSHIntentResponse: {
+      intent: components["schemas"]["ManagedSSHIntent"];
+    };
+    AppSSHIdentity: {
+      id: string;
+      tenant_id: string;
+      app_id: string;
+      /** Format: int64 */
+      generation: number;
+      /** @enum {string} */
+      algorithm: "ssh-ed25519";
+      /** @description OpenSSH authorized-key format public host key; never private material */
+      public_key: string;
+      /** @description SHA256 fingerprint of the public host key */
+      fingerprint: string;
+      /** Format: date-time */
+      created_at: string;
+    };
+    AppSSHIdentityResponse: {
+      identity: components["schemas"]["AppSSHIdentity"];
+    };
+    AppSSHObservation: {
+      id: string;
+      tenant_id: string;
+      app_id: string;
+      identity_id: string;
+      endpoint_id: string;
+      route_digest: string;
+      /** @enum {string} */
+      scope: "public_endpoint";
+      observer: string;
+      target: string;
+      algorithm?: string;
+      fingerprint?: string;
+      key_exchange_verified: boolean;
+      identity_matched: boolean;
+      /** Format: date-time */
+      observed_at: string;
+      /** Format: date-time */
+      expires_at: string;
+      /** @enum {string} */
+      reason: "identity_verified" | "identity_mismatch" | "target_unreachable" | "handshake_failed" | "unverified";
+    };
+    AppSSHObservationResponse: {
+      identity: components["schemas"]["AppSSHIdentity"];
+      observation: components["schemas"]["AppSSHObservation"];
+    };
     AppSSHSpec: {
       enabled?: boolean;
       /** Format: int32 */
@@ -6337,7 +6618,15 @@ export interface components {
     };
     AppSSHStatus: {
       supported: boolean;
+      /** @description True only when the configured endpoint has a fresh matching managed host identity observation. This does not attest user authentication, every edge replica, or client trust. */
       ready: boolean;
+      /** @description Routing intent is allocated and publishable; not a handshake observation */
+      route_configured?: boolean;
+      identity_verified?: boolean;
+      /** @enum {string} */
+      identity_state?: "unmanaged" | "unobserved" | "verified" | "mismatch" | "unreachable" | "expired" | "route_changed" | "unavailable";
+      identity_id?: string;
+      observation?: components["schemas"]["AppSSHObservation"];
       hostname?: string;
       /** Format: int32 */
       public_port?: number;
@@ -13957,6 +14246,32 @@ export interface operations {
       default: components["responses"]["ErrorResponse"];
     };
   };
+  /**
+   * Acknowledge durably loaded SSH routes from one edge instance
+   * @description Requires the node-scoped edge token for the exact edge_id. Records runtime evidence only, never serving intent. The supplied bundle version and route digest must match the current authorized route set. The front acknowledges only after durable cache publication and listener activation. Evidence expires after two minutes and cannot attest another node or instance.
+   */
+  acknowledgeEdgeSSHRoutes: {
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["EdgeSSHAcknowledgementRequest"];
+      };
+    };
+    responses: {
+      /** @description Accepted bounded runtime observation */
+      200: {
+        content: {
+          "application/json": {
+            accepted: boolean;
+            /** Format: date-time */
+            observed_at: string;
+            /** Format: date-time */
+            expires_at: string;
+          };
+        };
+      };
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
   /** Edge SSH Routes */
   edgeSSHRoutes: {
     parameters: {
@@ -20426,7 +20741,10 @@ export interface operations {
       default: components["responses"]["ErrorResponse"];
     };
   };
-  /** Patch App SSH */
+  /**
+   * Patch App SSH
+   * @description Configures application-provided SSH. Returns conflict when an independent managed SSH public binding exists; use managed SSH intent for that endpoint.
+   */
   patchAppSSH: {
     parameters: {
       path: {
@@ -20454,7 +20772,226 @@ export interface operations {
       default: components["responses"]["ErrorResponse"];
     };
   };
-  /** Rotate App SSH Port */
+  /**
+   * Read independent platform-managed SSH intent
+   * @description Requires app.ssh.read or app.ssh.write. Intent is independent of application releases. Prepared intent does not assert runtime readiness or activate a public route.
+   */
+  getManagedSSHIntent: {
+    parameters: {
+      path: {
+        id: components["parameters"]["IdPathParam"];
+      };
+    };
+    responses: {
+      /** @description Stored managed SSH intent */
+      200: {
+        content: {
+          "application/json": components["schemas"]["ManagedSSHIntentResponse"];
+        };
+      };
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
+  /**
+   * Update independent managed SSH intent with a generation precondition
+   * @description Requires app.ssh.write. expected_generation must be zero for creation or equal the current intent generation for an update. The identity must already exist and cannot change. Authorized key IDs refer to current tenant keys; private keys and raw grants are not accepted. This does not edit an application image, spec, Deployment, public route, or client trust. Initial activation requires separately verified candidate evidence.
+   */
+  putManagedSSHIntent: {
+    parameters: {
+      path: {
+        id: components["parameters"]["IdPathParam"];
+      };
+    };
+    requestBody: {
+      content: {
+        "application/json": {
+          /** Format: int64 */
+          expected_generation: number;
+          spec: components["schemas"]["ManagedSSHIntentSpec"];
+        };
+      };
+    };
+    responses: {
+      /** @description Persisted intent; runtime reconciliation is observed separately */
+      200: {
+        content: {
+          "application/json": components["schemas"]["ManagedSSHIntentResponse"];
+        };
+      };
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
+  /**
+   * Read managed SSH candidates, serving state, and evidence
+   * @description Requires app.ssh.read or app.ssh.write. Candidate evidence is distinct from public endpoint observation and client trust. No private material is returned.
+   */
+  getManagedSSHStatus: {
+    parameters: {
+      path: {
+        id: components["parameters"]["IdPathParam"];
+      };
+    };
+    responses: {
+      /** @description Independent intent, binding, and observed control state */
+      200: {
+        content: {
+          "application/json": components["schemas"]["ManagedSSHStatusResponse"];
+        };
+      };
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
+  /**
+   * Reserve a durable public SSH address without switching traffic
+   * @description Requires app.ssh.write. Existing native endpoints require their exact legacy_route_digest from managed status. An empty digest is allowed only for a new endpoint. The server controls hostname and port range. Does not edit application specs, enable a public route, or modify client trust.
+   */
+  prepareManagedSSHBinding: {
+    parameters: {
+      path: {
+        id: components["parameters"]["IdPathParam"];
+      };
+    };
+    requestBody: {
+      content: {
+        "application/json": {
+          identity_id: string;
+          legacy_route_digest: string;
+        };
+      };
+    };
+    responses: {
+      /** @description Reserved public binding; traffic has not been activated */
+      200: {
+        content: {
+          "application/json": {
+            binding: components["schemas"]["ManagedSSHPublicBinding"];
+          };
+        };
+      };
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
+  /**
+   * Activate an explicitly reviewed and verified SSH candidate
+   * @description Requires app.ssh.write and PostgreSQL independent route storage. All preconditions must match; the candidate must have fresh runtime and actual SSH key-exchange evidence and current authorization. Traffic publication and control state commit atomically. Failed activation preserves the prior route. Existing streams drain through their previous target. This does not change application images or client trust. A host identity migration may require separately reviewed client enrollment.
+   */
+  activateManagedSSH: {
+    parameters: {
+      path: {
+        id: components["parameters"]["IdPathParam"];
+      };
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ManagedSSHActivationRequest"];
+      };
+    };
+    responses: {
+      /** @description Atomically committed serving state; edge propagation and public observation remain separate */
+      200: {
+        content: {
+          "application/json": components["schemas"]["ManagedSSHStatusResponse"];
+        };
+      };
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
+  /**
+   * Switch to a retained verified SSH slot with current authorization
+   * @description Requires app.ssh.write. Never restores expired or revoked grants. The retained slot must still have fresh runtime and handshake evidence and match current intent. Existing streams drain; new streams use the reviewed slot. Sets rollback_hold so automatic target or executable updates cannot immediately undo this rollback. Explicit candidate activation clears the hold. Does not modify application releases or client trust.
+   */
+  rollbackManagedSSH: {
+    parameters: {
+      path: {
+        id: components["parameters"]["IdPathParam"];
+      };
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ManagedSSHRollbackRequest"];
+      };
+    };
+    responses: {
+      /** @description Atomically committed rollback with a retained identity and current authorization */
+      200: {
+        content: {
+          "application/json": components["schemas"]["ManagedSSHStatusResponse"];
+        };
+      };
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
+  /**
+   * Get the public managed SSH identity for an app
+   * @description Returns public identity metadata only. This operation never generates keys or changes serving routes. Requires app.ssh.read or app.ssh.write.
+   */
+  getAppSSHIdentity: {
+    parameters: {
+      path: {
+        id: components["parameters"]["IdPathParam"];
+      };
+    };
+    responses: {
+      /** @description Prepared managed SSH identity; this does not imply activation or client trust */
+      200: {
+        content: {
+          "application/json": components["schemas"]["AppSSHIdentityResponse"];
+        };
+      };
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
+  /**
+   * Prepare a durable managed SSH identity without activating it
+   * @description Requires app.ssh.write. Creates an independent identity once and returns the same identity on retry. Never adopts image host keys, replaces existing identity material, changes routing, restarts workloads, or updates client trust. An unavailable encryption key or corrupt identity fails closed.
+   */
+  prepareAppSSHIdentity: {
+    parameters: {
+      path: {
+        id: components["parameters"]["IdPathParam"];
+      };
+    };
+    responses: {
+      /** @description Prepared identity metadata without private key material */
+      200: {
+        content: {
+          "application/json": components["schemas"]["AppSSHIdentityResponse"];
+        };
+      };
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
+  /**
+   * Observe the configured public SSH endpoint without authentication
+   * @description Requires app.ssh.read or app.ssh.write. Performs a bounded key-exchange probe against the allocated public endpoint and records its observed host identity. The supplied identity_id is a precondition. This does not activate identity, update routes or client trust, or establish a user session. A successful probe represents this observation vantage and does not attest every edge replica.
+   */
+  observeAppSSHIdentity: {
+    parameters: {
+      path: {
+        id: components["parameters"]["IdPathParam"];
+      };
+    };
+    requestBody: {
+      content: {
+        "application/json": {
+          identity_id: string;
+        };
+      };
+    };
+    responses: {
+      /** @description Recorded observation, including mismatches and unsuccessful handshakes */
+      200: {
+        content: {
+          "application/json": components["schemas"]["AppSSHObservationResponse"];
+        };
+      };
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
+  /**
+   * Rotate App SSH Port
+   * @description Rotates an application-provided SSH endpoint. A managed SSH public binding rejects this legacy mutation.
+   */
   rotateAppSSHPort: {
     parameters: {
       path: {
