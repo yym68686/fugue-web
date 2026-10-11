@@ -4322,12 +4322,30 @@ export interface components {
       draining: boolean;
       route_ready: boolean;
       tls_ready: boolean;
+      enrollment?: components["schemas"]["EdgeNodeEnrollment"];
       token_prefix?: string;
       /** Format: date-time */
       last_heartbeat_at?: string;
     };
     EdgeNodeDesiredStateEnvelope: {
       desired_state: components["schemas"]["EdgeNodeDesiredState"];
+    };
+    /** @description Persisted administrator intent for preparing one new node against the current Edge authority. It permits private verification of signed current bundles on an absent activation only. It grants no public serving, health, DNS selection or LKG and its absolute lease is never renewed by reading. */
+    EdgeNodeEnrollment: {
+      id: string;
+      node_id: string;
+      edge_group_id: string;
+      authority_record_digest: string;
+      /** @enum {string} */
+      slot: "a" | "b";
+      fence_sequence: number;
+      bundle_version: string;
+      worker_source_sha: string;
+      worker_image_digest: string;
+      /** Format: date-time */
+      issued_at: string;
+      /** Format: date-time */
+      expires_at: string;
     };
     SetEdgeNodeCanaryRequest: {
       /** @enum {string} */
@@ -8923,11 +8941,14 @@ export interface components {
     ClusterNodeDiagnosisResponse: {
       diagnosis: components["schemas"]["ClusterNodeDiagnosis"];
     };
+    /** @description Update node roles. An explicit edge_group_id together with allow_edge=true enrolls this node with node-updater-managed Edge credentials. Group identity is configuration intent and is never inferred from country or hostname. node_reconciled only describes Kubernetes labels and taints; callers must separately verify Edge workload and serving readiness before reporting a completed Edge enrollment. */
     SetClusterNodePolicyRequest: {
       allow_app_runtime?: boolean;
       allow_builds?: boolean;
       allow_shared_pool?: boolean;
       allow_edge?: boolean;
+      /** @description Explicit existing Edge authority for managed node enrollment. Requires allow_edge=true. */
+      edge_group_id?: string;
       allow_dns?: boolean;
       allow_internal_maintenance?: boolean;
       desired_control_plane_role?: string;
