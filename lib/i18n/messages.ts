@@ -5,6 +5,18 @@ import type { MessageCatalog } from "@/lib/i18n/translate";
 // falls back to its English source. Grouped loosely by area; kept flat so
 // lookups stay O(1).
 export const zhCN = {
+  "Global DNS intent": "全局 DNS 配置意图",
+  "DNS intent not configured": "尚未配置 DNS 意图",
+  "No planned DNS suspension": "无计划停用限制",
+  "DNS participation suspended": "已暂停参与 DNS 选址",
+  "DNS intent unavailable": "暂时无法核验 DNS 意图",
+  "DNS intent identity conflict": "DNS 意图中的节点身份不匹配",
+  "Traffic quota exhausted": "流量额度已耗尽",
+  "Planned maintenance": "计划维护",
+  "Network unavailable": "网络不可用",
+  "Estimated recovery": "预计恢复日期",
+  "Route proof": "路由证明",
+  "Not evaluated": "未核验",
   "Edge eligibility": "Edge 可选状态",
   "No Edge observations": "尚无 Edge 观察记录",
   "Edge observation clock mismatch": "Edge 观察时间异常",

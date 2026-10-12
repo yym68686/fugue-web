@@ -81,6 +81,19 @@ function workloadLabel(w: ClusterNodeWorkload, t: TranslateFn): string {
 function NodeDetail({ node, t }: { node: ClusterNode; t: TranslateFn }) {
   const workloads = node.workloads ?? [];
   const observation = node.edge_observation;
+  const dnsIntent = observation?.dns_admission_intent;
+  const intentStates: Record<string, string> = {
+    not_configured: "DNS intent not configured",
+    allowed: "No planned DNS suspension",
+    suspended: "DNS participation suspended",
+    unavailable: "DNS intent unavailable",
+    identity_conflict: "DNS intent identity conflict",
+  };
+  const intentReasons: Record<string, string> = {
+    quota_exhausted: "Traffic quota exhausted",
+    maintenance: "Planned maintenance",
+    network_unavailable: "Network unavailable",
+  };
   const edgeReasons: Record<string, string> = {
     observations_missing: "No Edge observations",
     observation_from_future: "Edge observation clock mismatch",
@@ -106,7 +119,21 @@ function NodeDetail({ node, t }: { node: ClusterNode; t: TranslateFn }) {
                 {t("Last observed")}: {observation.observed_at}
               </time>
             )}
-            <span className="faint">{t("Route-specific proof is checked separately.")}</span>
+            <span className="faint">{t("Route proof")}: {t("Not evaluated")}</span>
+          </div>
+        )}
+        {dnsIntent && (
+          <div className="node-detail-item">
+            <span className="node-detail-k">{t("Global DNS intent")}</span>
+            <span className="node-detail-v" title={dnsIntent.producer_release_id}>
+              {t(intentStates[dnsIntent.state] ?? "DNS intent unavailable")}
+            </span>
+            {dnsIntent.reason && <span className="faint">{t(intentReasons[dnsIntent.reason])}</span>}
+            {dnsIntent.expected_recovery_date && (
+              <time className="faint" dateTime={dnsIntent.expected_recovery_date}>
+                {t("Estimated recovery")}: {dnsIntent.expected_recovery_date}
+              </time>
+            )}
           </div>
         )}
         <div className="node-detail-item">

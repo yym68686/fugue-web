@@ -4391,6 +4391,7 @@ export interface components {
     };
     /** @description A read-only evaluation of stored inventory, separate from configuration intent and per-route serving proofs. eligible=true only means inventory checks pass; it does not claim DNS selection or public reachability. */
     EdgeNodeInventoryObservation: {
+      dns_admission_intent?: components["schemas"]["EdgeDNSAdmissionIntent"];
       /** Format: date-time */
       evaluated_at: string;
       /** Format: date-time */
@@ -4406,6 +4407,27 @@ export interface components {
       reason: "observations_missing" | "observation_from_future" | "heartbeat_stale" | "draining" | "admission_rejected" | "node_unhealthy" | "route_state_missing" | "tls_state_missing" | "inventory_checks_passed";
       /** @enum {string} */
       route_proof_status: "not_evaluated";
+    };
+    /** @description Read-only projection of the current signed global producer input, separate from heartbeat health and currently serving DNS evidence. A planned suspension never expires on its estimated recovery date. unavailable or identity_conflict must not be shown as allowed; independent Cell membership is not inferred from this global intent. This does not mutate inventory admission flags. */
+    EdgeDNSAdmissionIntent: {
+      /** Format: date-time */
+      evaluated_at: string;
+      /** @enum {string} */
+      scope: "global";
+      /** @enum {string} */
+      state: "not_configured" | "allowed" | "suspended" | "unavailable" | "identity_conflict";
+      /** @enum {string} */
+      serving_evidence: "not_evaluated";
+      /** @enum {string} */
+      reason?: "quota_exhausted" | "maintenance" | "network_unavailable";
+      /** Format: date */
+      expected_recovery_date?: string;
+      producer_policy_id?: string;
+      producer_release_id?: string;
+      /** Format: int64 */
+      producer_fencing_token?: number;
+      input_artifact_id?: string;
+      input_digest?: string;
     };
     EdgeNodeDesiredState: {
       observation?: components["schemas"]["EdgeNodeInventoryObservation"];
