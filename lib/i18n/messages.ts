@@ -5,6 +5,19 @@ import type { MessageCatalog } from "@/lib/i18n/translate";
 // falls back to its English source. Grouped loosely by area; kept flat so
 // lookups stay O(1).
 export const zhCN = {
+  "Edge eligibility": "Edge 可选状态",
+  "No Edge observations": "尚无 Edge 观察记录",
+  "Edge observation clock mismatch": "Edge 观察时间异常",
+  "Edge heartbeat expired": "Edge 心跳已过期",
+  "Edge is draining": "Edge 正在排空",
+  "Edge admission disabled": "Edge 尚未获准接入",
+  "Edge reports unhealthy": "Edge 上报不健康",
+  "Edge route state missing": "缺少 Edge 路由状态",
+  "Edge TLS state missing": "缺少 Edge TLS 状态",
+  "Edge inventory checks passed": "Edge 节点基础检查通过",
+  "Edge observations unavailable": "暂时无法获取 Edge 观察记录",
+  "Last observed": "最近观察",
+  "Route-specific proof is checked separately.": "实际路由仍须通过各自的有效证明校验。",
   "Individual internal-node measurements are restricted to platform admins.": "内部节点的单机测量详情仅向平台管理员开放。",
   "Pricing preview": "价格预览",
   // --- server ownership, sharing and placement ---

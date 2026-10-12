@@ -68,7 +68,10 @@ export interface paths {
     get: operations["edgeSSHRoutes"];
   };
   "/v1/edge/nodes": {
-    /** List Edge Nodes */
+    /**
+     * List Edge Nodes
+     * @description Lists current policy-filtered nodes. include_stale retains stale heartbeat rows for diagnosis; inventory observations never attest a current route proof or a public DNS answer.
+     */
     get: operations["listEdgeNodes"];
   };
   "/v1/edge/nodes/{edge_id}": {
@@ -4319,6 +4322,7 @@ export interface components {
       binding: components["schemas"]["PlatformDomainBinding"];
     };
     EdgeNode: {
+      observation?: components["schemas"]["EdgeNodeInventoryObservation"];
       id: string;
       edge_group_id: string;
       /** @enum {string} */
@@ -4385,7 +4389,26 @@ export interface components {
       /** Format: date-time */
       updated_at: string;
     };
+    /** @description A read-only evaluation of stored inventory, separate from configuration intent and per-route serving proofs. eligible=true only means inventory checks pass; it does not claim DNS selection or public reachability. */
+    EdgeNodeInventoryObservation: {
+      /** Format: date-time */
+      evaluated_at: string;
+      /** Format: date-time */
+      observed_at?: string;
+      /** Format: date-time */
+      fresh_until?: string;
+      heartbeat_fresh: boolean;
+      admission_allows_dns: boolean;
+      route_state_present: boolean;
+      tls_state_present: boolean;
+      eligible: boolean;
+      /** @enum {string} */
+      reason: "observations_missing" | "observation_from_future" | "heartbeat_stale" | "draining" | "admission_rejected" | "node_unhealthy" | "route_state_missing" | "tls_state_missing" | "inventory_checks_passed";
+      /** @enum {string} */
+      route_proof_status: "not_evaluated";
+    };
     EdgeNodeDesiredState: {
+      observation?: components["schemas"]["EdgeNodeInventoryObservation"];
       edge_id: string;
       edge_group_id: string;
       workload_mode: string;
@@ -4397,6 +4420,7 @@ export interface components {
       lkg_generation?: string;
       cache_status?: string;
       max_stale_exceeded?: boolean;
+      /** @description Admission configuration only; current inventory freshness is reported in observation. A route still needs its own valid proof. */
       dns_eligible: boolean;
       draining: boolean;
       route_ready: boolean;
@@ -14359,10 +14383,14 @@ export interface operations {
       default: components["responses"]["ErrorResponse"];
     };
   };
-  /** List Edge Nodes */
+  /**
+   * List Edge Nodes
+   * @description Lists current policy-filtered nodes. include_stale retains stale heartbeat rows for diagnosis; inventory observations never attest a current route proof or a public DNS answer.
+   */
   listEdgeNodes: {
     parameters: {
       query?: {
+        include_stale?: boolean;
         edge_group_id?: string;
       };
     };

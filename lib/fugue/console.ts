@@ -278,6 +278,7 @@ export type ClusterNodePolicy = {
 };
 
 export type ClusterNode = {
+  edge_observation?: FugueAPIComponents["schemas"]["EdgeNodeInventoryObservation"];
   name: string;
   status: string;
   roles?: string[];
@@ -831,6 +832,14 @@ export async function listClusterNodes(): Promise<ClusterNode[]> {
     "/v1/cluster/nodes?sync_locations=false",
   );
   return Array.isArray(data.cluster_nodes) ? data.cluster_nodes : [];
+}
+
+export async function listEdgeInventory(): Promise<FugueAPIComponents["schemas"]["EdgeNode"][]> {
+  const data = await fugueGet<FugueAPIComponents["schemas"]["EdgeNodeListResponse"]>(
+    readBootstrapKey(),
+    "/v1/edge/nodes?include_stale=true",
+  );
+  return Array.isArray(data.nodes) ? data.nodes : [];
 }
 
 /* ------------------------------------------------------------------ *

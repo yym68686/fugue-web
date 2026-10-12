@@ -2,7 +2,7 @@ import AppLayout from '@/components/AppLayout';
 import { withPageTiming } from '@/lib/server/with-page-timing';
 import ClusterNodeTable from '@/components/admin/ClusterNodeTable';
 import { requireActiveAdminPageSession } from '@/lib/auth/page-access';
-import { listClusterNodes, type ClusterNode } from '@/lib/fugue/console';
+import { listClusterNodes, listEdgeInventory, type ClusterNode } from '@/lib/fugue/console';
 import { fmtPercent } from '@/lib/format';
 import { getRequestI18n } from '@/lib/i18n/server';
 
@@ -15,7 +15,12 @@ type ClusterData = {
 
 async function getClusterData(): Promise<ClusterData> {
   try {
-    const nodes = await listClusterNodes();
+    const [nodes, edges] = await Promise.all([
+      listClusterNodes(),
+      listEdgeInventory().catch(() => []),
+    ]);
+    const observations = new Map(edges.map((edge) => [edge.id, edge.observation]));
+    for (const node of nodes) node.edge_observation = observations.get(node.name);
     return { nodes, loadError: false };
   } catch {
     return { nodes: [], loadError: true };

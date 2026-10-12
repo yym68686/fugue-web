@@ -80,9 +80,35 @@ function workloadLabel(w: ClusterNodeWorkload, t: TranslateFn): string {
 /** Expanded detail: node addresses + the workloads scheduled on it. */
 function NodeDetail({ node, t }: { node: ClusterNode; t: TranslateFn }) {
   const workloads = node.workloads ?? [];
+  const observation = node.edge_observation;
+  const edgeReasons: Record<string, string> = {
+    observations_missing: "No Edge observations",
+    observation_from_future: "Edge observation clock mismatch",
+    heartbeat_stale: "Edge heartbeat expired",
+    draining: "Edge is draining",
+    admission_rejected: "Edge admission disabled",
+    node_unhealthy: "Edge reports unhealthy",
+    route_state_missing: "Edge route state missing",
+    tls_state_missing: "Edge TLS state missing",
+    inventory_checks_passed: "Edge inventory checks passed",
+  };
   return (
     <div className="node-detail">
       <div className="node-detail-grid">
+        {(node.policy?.effective_edge || observation) && (
+          <div className="node-detail-item">
+            <span className="node-detail-k">{t("Edge eligibility")}</span>
+            <span className="node-detail-v">
+              {t(observation ? edgeReasons[observation.reason] ?? "Edge observations unavailable" : "Edge observations unavailable")}
+            </span>
+            {observation?.observed_at && (
+              <time className="faint" dateTime={observation.observed_at}>
+                {t("Last observed")}: {observation.observed_at}
+              </time>
+            )}
+            <span className="faint">{t("Route-specific proof is checked separately.")}</span>
+          </div>
+        )}
         <div className="node-detail-item">
           <span className="node-detail-k">{t("Public IP")}</span>
           <span className="node-detail-v mono">{node.public_ip || "—"}</span>
