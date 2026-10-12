@@ -9967,7 +9967,10 @@ export interface components {
       cpu_millicores: number;
       /** Format: int64 */
       memory_mebibytes: number;
-      /** Format: int64 */
+      /**
+       * Format: int64
+       * @description Zero preserves an existing unlimited CPU allowance; removing a configured CPU limit is rejected by the live resize preflight.
+       */
       cpu_limit_millicores: number;
       /** Format: int64 */
       memory_limit_mebibytes: number;
