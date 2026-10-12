@@ -13756,6 +13756,9 @@ export interface components {
       ready: boolean;
       facts: {
           probe_id: string;
+          /** @description Diagnostic sweep identity retained with the original observation; it grants no authority and does not renew a proof deadline. */
+          observation_id?: string;
+          reason?: string;
           ready: boolean;
           proof: {
             digest: string;
