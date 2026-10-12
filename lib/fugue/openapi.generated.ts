@@ -11406,7 +11406,14 @@ export interface components {
       version: string;
       signals?: components["schemas"]["ReleaseSignal"][];
     };
+    /** @description Inventory and route-policy admission checks, not an end-to-end availability receipt. pass does not prove current public DNS answers, exact consumer ACKs, or client reachability; those evidence boundaries are explicit below. */
     ServiceTrafficSafetyState: {
+      /** @enum {string} */
+      evaluation_scope?: "inventory_and_route_policy";
+      /** @enum {string} */
+      public_dns_verification?: "not_evaluated";
+      /** @enum {string} */
+      consumer_proof_verification?: "see_route_explain";
       hostname: string;
       pass: boolean;
       /** Format: int32 */
