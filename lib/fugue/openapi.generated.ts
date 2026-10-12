@@ -12821,6 +12821,17 @@ export interface components {
       edge_group_ids: string[];
     };
     PlatformConfigPolicySnapshot: ({
+      /** @description Pinned global producer input only. Explicitly suspends these exact physical endpoint identities from future DNS candidate publications. Current serving artifacts remain unchanged until normal signed rollout succeeds. Expected recovery dates are informational and never expire the hold; removing a hold requires another fenced configuration publication and fresh route proofs. Runtime heartbeats cannot alter this intent. */
+      offline_edges?: ({
+          edge_id: string;
+          edge_group_id: string;
+          /** Format: ipv4 */
+          public_ipv4: string;
+          /** @enum {string} */
+          reason: "quota_exhausted" | "maintenance" | "network_unavailable";
+          /** Format: date */
+          expected_recovery_date?: string;
+        })[];
       /**
        * @description Explicit publication boundary; cell-routes owns exactly route/TLS artifacts and Worker membership; cell-dns owns exactly a DNS artifact and DNS process membership, with exact independent Cell route/TLS references. Omission retains the complete route/DNS/TLS publication contract. Existing authority is never converted implicitly.
        * @enum {string}
@@ -13461,7 +13472,7 @@ export interface components {
        * @default placement
        * @enum {string}
        */
-      operation?: "placement" | "activate_serving" | "refresh_serving" | "continuous_serving" | "expand_membership" | "physical_dns" | "retire_dns_selector" | "dynamic_quality";
+      operation?: "placement" | "activate_serving" | "refresh_serving" | "continuous_serving" | "expand_membership" | "physical_dns" | "retire_dns_selector" | "dynamic_quality" | "edge_offline";
       previous_policy: components["schemas"]["PlatformPublicationPrecondition"];
       serving_full: components["schemas"]["PlatformPublicationPrecondition"];
       verification_evidence_hash: string;
