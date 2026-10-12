@@ -4660,6 +4660,171 @@ export interface components {
       /** Format: date-time */
       generated_at: string;
     };
+    BusinessDNSPublicationAnchor: {
+      digest: string;
+      /** Format: int64 */
+      fencing_token: number;
+    };
+    /** @description Explicit real-business-only DNS allocation intent. Basis points describe DNS answers, not HTTP requests or bytes. This contract alone grants no serving authority. Observe mode never increases a candidate beyond the initial exploration allocation; adaptive mode requires replayable passive TCP evidence and bounded steps. A new intent is required to clear sticky stops. */
+    BusinessEdgeExplorationPolicy: {
+      /** @enum {string} */
+      version: "business-edge-exploration-v1";
+      /** @description Explicit DNS node ID to exact serving child artifact and publication fence permitted to initialize this intent. Each DNS assignment has its own artifact; republishing an old artifact cannot reset sticky stops or cooldown. */
+      initial_dns_publications: {
+        [key: string]: components["schemas"]["BusinessDNSPublicationAnchor"];
+      };
+      intent_id: string;
+      /** @enum {string} */
+      mode: "observe" | "adaptive" | "paused";
+      baseline_edge_id: string;
+      candidate_edge_ids: string[];
+      /** Format: date-time */
+      starts_at: string;
+      /**
+       * Format: date-time
+       * @description At most seven days after starts_at; expiration cannot be extended by evidence.
+       */
+      expires_at: string;
+      exploration_basis_points: number;
+      /** @description Maximum total non-baseline allocation, never below the exploration budget. */
+      maximum_candidate_basis_points: number;
+      maximum_step_basis_points: number;
+      bucket_seconds: number;
+      required_buckets: number;
+      minimum_connections_per_bucket: number;
+      cooldown_seconds: number;
+      evidence_max_age_seconds: number;
+      minimum_cohort_coverage_basis_points: number;
+      rtt_advantage_ratio: number;
+      delivery_advantage_ratio: number;
+      maximum_rtt_regression_ratio: number;
+      maximum_delivery_regression_ratio: number;
+      maximum_retransmission_increase: number;
+      stop_rtt_ms: number;
+      stop_retransmission_rate: number;
+    };
+    /** @description Predecessor allocation facts for deterministic evaluation. Publication must independently bind these facts to a verified previously serving artifact; a caller-supplied state is not serving authority. */
+    BusinessEdgeExplorationState: {
+      intent_id: string;
+      policy_digest: string;
+      basis_points: {
+        [key: string]: number;
+      };
+      stopped: {
+        [key: string]: "candidate_not_route_ready" | "observed_transport_stop_threshold";
+      };
+      /** Format: date-time */
+      last_adjusted_at: string;
+      /** Format: date-time */
+      last_evaluated_at: string;
+      /** Format: date-time */
+      last_evidence_bucket: string;
+      /**
+       * Format: date-time
+       * @description Adaptive shares cannot renew without fresh comparable passive observations.
+       */
+      evidence_valid_until: string;
+    };
+    /** @description Offline real-business TCP evidence input. Only public_front_tcp_info_v1 samples enter comparison. No client probe reports or application request durations participate. Supplied route-ready facts require independent authentication before any production publication. */
+    BusinessEdgeExplorationInput: {
+      policy: components["schemas"]["BusinessEdgeExplorationPolicy"];
+      /** Format: date-time */
+      captured_at: string;
+      hostname: string;
+      path_prefix: string;
+      /** @enum {string} */
+      traffic_class: "dynamic_api" | "streaming";
+      candidates: components["schemas"]["PhysicalEdgeQualityCandidate"][];
+      network_samples: components["schemas"]["EdgeNetworkSample"][];
+      previous?: components["schemas"]["BusinessEdgeExplorationState"];
+    };
+    /** @description One complete time bucket for one physical edge and actual coarse TCP peer network. One qualified sample per connection per bucket contributes; follow-up snapshots are not independent connections. */
+    BusinessEdgeExplorationWindow: {
+      edge_id: string;
+      cohort: string;
+      /** Format: date-time */
+      started_at: string;
+      /** Format: date-time */
+      last_observed_at: string;
+      connections: number;
+      /** @description Median acknowledged-byte delta of the selected independent connection intervals; not total business traffic. */
+      acknowledged_bytes_median: number;
+      /** @description Median sender-busy-time delta over those same intervals. */
+      busy_microseconds_median: number;
+      rtt_median_ms: number;
+      rtt_p90_ms: number;
+      delivery_median_bps: number;
+      delivery_p10_bps: number;
+      retransmission_p90: number;
+    };
+    BusinessEdgeExplorationCoverage: {
+      edge_id: string;
+      records: number;
+      connections: number;
+      /** @description Observed independent connection-bucket pairs including incomplete metric samples; denominator for evidence coverage. */
+      connection_windows: number;
+      /** @description Context-valid records with RTT; may include multiple observations of one connection. */
+      rtt_records: number;
+      /** @description Context-valid records with paired acknowledged-byte counters, including application-limited intervals. */
+      acknowledged_delta_records: number;
+      /** @description Context-valid records with qualified delivery rate; not independent sample count. */
+      delivery_records: number;
+      /** @description Context-valid records with normalized retransmission rate; not independent sample count. */
+      retransmission_records: number;
+      /** Format: date-time */
+      last_sample_at?: string;
+      reasons: {
+        [key: string]: number;
+      };
+    };
+    BusinessEdgeExplorationComparison: {
+      edge_id: string;
+      cohorts: string[];
+      coverage_basis_points: number;
+      complete_buckets: number;
+      /** @enum {string} */
+      verdict: "insufficient" | "inconclusive" | "better" | "worse";
+      reasons: string[];
+    };
+    BusinessEdgeExplorationDecision: {
+      state: components["schemas"]["BusinessEdgeExplorationState"];
+      /** @enum {string} */
+      action: "hold" | "initialize" | "withhold" | "baseline_only" | "stop_candidates" | "evidence_expired" | "increase" | "decrease";
+      reasons: string[];
+      windows: components["schemas"]["BusinessEdgeExplorationWindow"][];
+      coverage: components["schemas"]["BusinessEdgeExplorationCoverage"][];
+      comparisons: components["schemas"]["BusinessEdgeExplorationComparison"][];
+      rejected: {
+        [key: string]: number;
+      };
+      used_sample_ids: string[];
+      /** Format: date-time */
+      valid_until: string;
+      /**
+       * @description Offline calculation never authorizes DNS or routing changes.
+       * @enum {boolean}
+       */
+      serving_authority: false;
+    };
+    BusinessEdgeExplorationReceipt: {
+      input: components["schemas"]["BusinessEdgeExplorationInput"];
+      decision: components["schemas"]["BusinessEdgeExplorationDecision"];
+      /** @description Integrity hash of input and recomputed decision with digest empty; not a signature or producer authority. */
+      digest: string;
+    };
+    /** @description Immutable allocation embedded in a signed physical-edge-business-v1 selection. Receipts must be reconstructed against the producer intent and previous actual serving allocation before signing. Expiration disables exploration only; the signed baseline order remains available subject to current readiness. */
+    DNSBusinessAllocation: {
+      policy: components["schemas"]["BusinessEdgeExplorationPolicy"];
+      state: components["schemas"]["BusinessEdgeExplorationState"];
+      /** Format: date-time */
+      valid_until: string;
+      receipt_digest: string;
+    };
+    /** @description Captured actual DNS/route witness and passive TCP source plus deterministic business allocation calculation. The producer reconstructs evaluation input rather than trusting supplied scores or predecessor weights. */
+    BusinessEdgePublicationEvidence: {
+      source: components["schemas"]["PhysicalEdgeQualityReceipt"];
+      evaluation: components["schemas"]["BusinessEdgeExplorationReceipt"];
+    };
     /** @description V6 preserves historical V4/V5 replay. With comparable completed downloads or explicit excess incumbent transfer failures, a retransmission metric observed on only one edge is excluded from both comparison costs and adds one configured uncertainty budget to the challenger. Raw observations remain intact. Missing optional packet counters cannot veto otherwise sufficient delivery evidence. Every sufficiently sampled cohort must still show sustained advantage, and capacity, cooldown and route readiness gates remain mandatory. */
     PhysicalEdgeQualityPolicy: {
       /** @description Explicit v2 node CPU/memory headroom gate. Does not declare link or application capacity. */
@@ -5584,7 +5749,7 @@ export interface components {
       version: "physical-order-v1";
       ordered_edge_ids: string[];
     };
-    /** @description Immutable physical-edge order compiled from verified network evidence. Query execution only removes endpoints lacking current route/TLS readiness; it never re-ranks by group, country, business duration, or random exploration. Evidence age gates compilation, not the validity of a positive serving LKG. */
+    /** @description Immutable physical-edge order compiled from verified evidence. The historical physical-edge-network-v1 version never explores. Explicit physical-edge-business-v1 may execute only its embedded signed allocation until that allocation expires; it then preserves the declared baseline order. Both versions filter by current route/TLS readiness without legacy ranking. Allocation expiry does not invalidate a positive serving artifact. */
     DNSPhysicalSelection: {
       /**
        * @description V4 distinguishes preserving a fresh route-ready current primary while collecting evidence from a measured quality selection. Learning never fabricates network metrics.
@@ -5592,7 +5757,8 @@ export interface components {
        */
       quality_state?: "learning" | "measured";
       /** @enum {string} */
-      version: "physical-edge-network-v1";
+      version: "physical-edge-network-v1" | "physical-edge-business-v1";
+      business_allocation?: components["schemas"]["DNSBusinessAllocation"];
       primary_edge_id: string;
       ordered_edge_ids: string[];
       evidence_digest: string;
@@ -12713,6 +12879,9 @@ export interface components {
       refresh_concurrency: number;
     };
     PlatformPhysicalQualityRoute: {
+      business_exploration?: components["schemas"]["BusinessEdgeExplorationPolicy"];
+      /** @description Required exact sole service path when business_exploration is configured. No implicit path mixing or alias enrollment. */
+      path_prefix?: string;
       hostname: string;
       /** @enum {string} */
       traffic_class: "large_body_api" | "small_api" | "dynamic_api" | "static_cacheable" | "streaming" | "sse" | "websocket" | "html_dynamic";
@@ -13494,7 +13663,7 @@ export interface components {
        * @default placement
        * @enum {string}
        */
-      operation?: "placement" | "activate_serving" | "refresh_serving" | "continuous_serving" | "expand_membership" | "physical_dns" | "retire_dns_selector" | "dynamic_quality" | "edge_offline";
+      operation?: "placement" | "activate_serving" | "refresh_serving" | "continuous_serving" | "expand_membership" | "physical_dns" | "retire_dns_selector" | "dynamic_quality" | "edge_offline" | "business_exploration";
       previous_policy: components["schemas"]["PlatformPublicationPrecondition"];
       serving_full: components["schemas"]["PlatformPublicationPrecondition"];
       verification_evidence_hash: string;
@@ -14497,6 +14666,8 @@ export interface operations {
         scope?: string;
         /** @description Optionally bind to a recent successful, replay-verified actual answer from this public DNS process. Missing or conflicting evidence remains an explicit blocker; this never queries a current ranking as a substitute. */
         dns_node_id?: string;
+        /** @description Optional exact normalized served path prefix. Binds route proofs and retained samples to one declared service; omission preserves historical hostname-level capture. */
+        path_prefix?: string;
       };
       path: {
         hostname: string;
