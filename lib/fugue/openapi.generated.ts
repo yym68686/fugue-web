@@ -4660,6 +4660,7 @@ export interface components {
       /** Format: date-time */
       generated_at: string;
     };
+    /** @description Typed publication identity. The canonical fencing_token is a positive int64 sequence, not a credential. Artifact secret scanning permits this field only inside a complete initial_dns_publications anchor with a valid digest; string tokens, malformed anchors and other secret-like fields remain forbidden. */
     BusinessDNSPublicationAnchor: {
       digest: string;
       /** Format: int64 */
