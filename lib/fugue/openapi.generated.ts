@@ -4664,6 +4664,8 @@ export interface components {
       digest: string;
       /** Format: int64 */
       fencing_token: number;
+      /** @description Explicit baseline for this DNS node, required to be a declared candidate and to match its replayed serving answer. When absent the policy baseline applies. Compilation resolves this baseline into the node's signed allocation without changing another node's allocation. Consumers must advertise business_dns_baseline_v1 before publication using this field. */
+      baseline_edge_id?: string;
     };
     /** @description Explicit real-business-only DNS allocation intent. Basis points describe DNS answers, not HTTP requests or bytes. This contract alone grants no serving authority. Observe mode never increases a candidate beyond the initial exploration allocation; adaptive mode requires replayable passive TCP evidence and bounded steps. A new intent is required to clear sticky stops. */
     BusinessEdgeExplorationPolicy: {
