@@ -8497,7 +8497,10 @@ export interface components {
     AppReleaseGatePolicy: {
       /** Format: int32 */
       window_seconds?: number;
-      /** Format: int32 */
+      /**
+       * Format: int32
+       * @description Minimum candidate sample count. Below this count the gate remains inconclusive for comparative ratios and latency; absolute error and latency limits and active probes still apply.
+       */
       min_candidate_requests?: number;
       /** Format: double */
       max_5xx_rate?: number;
