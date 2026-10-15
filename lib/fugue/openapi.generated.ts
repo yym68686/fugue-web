@@ -7640,9 +7640,15 @@ export interface components {
     };
     BuilderAttemptEvidence: {
       attempt: number;
-      /** @enum {string} */
-      outcome: "succeeded" | "failed";
-      /** Format: date-time */
+      /**
+       * @description rejected means admission refused before a build Pod was started; failed means an execution attempt failed.
+       * @enum {string}
+       */
+      outcome: "succeeded" | "failed" | "rejected";
+      /**
+       * Format: date-time
+       * @description Time the attempt or admission evaluation began; rejected outcomes did not execute a build container.
+       */
       started_at: string;
       /** Format: date-time */
       finished_at: string;
