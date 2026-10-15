@@ -1804,7 +1804,10 @@ export interface paths {
     get: operations["nodeUpdaterImageReplicationTasks"];
   };
   "/v1/node-updater/tasks": {
-    /** Node Updater Tasks */
+    /**
+     * Node Updater Tasks
+     * @description Returns pending tasks in delivery priority order, then by creation time and task ID. Host journald and inotify policy tasks waiting at least ten minutes share the normal inventory priority so newer inventory tasks cannot indefinitely pass them. Upgrader, storage rescue, overdue inventory, and deploy-blocking image work retain higher priority. Ordering does not bypass claim or execution checks and does not guarantee an execution deadline.
+     */
     get: operations["nodeUpdaterTasks"];
   };
   "/v1/node-updater/tasks/{id}/claim": {
@@ -22959,7 +22962,10 @@ export interface operations {
       default: components["responses"]["ErrorResponse"];
     };
   };
-  /** Node Updater Tasks */
+  /**
+   * Node Updater Tasks
+   * @description Returns pending tasks in delivery priority order, then by creation time and task ID. Host journald and inotify policy tasks waiting at least ten minutes share the normal inventory priority so newer inventory tasks cannot indefinitely pass them. Upgrader, storage rescue, overdue inventory, and deploy-blocking image work retain higher priority. Ordering does not bypass claim or execution checks and does not guarantee an execution deadline.
+   */
   nodeUpdaterTasks: {
     parameters: {
       query?: {
