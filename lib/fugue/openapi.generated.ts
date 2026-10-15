@@ -6756,6 +6756,17 @@ export interface components {
       generation: number;
       target: components["schemas"]["ManagedSSHTarget"];
       evidence?: components["schemas"]["ManagedSSHCandidateEvidence"];
+      last_valid_evidence?: components["schemas"]["ManagedSSHCandidateEvidence"];
+      /** @description Last observed or last accepted loaded digest; serving indicates whether its evidence is currently valid. Never proves the desired artifact is applied. */
+      loaded_artifact_digest?: string;
+      /** Format: int64 */
+      loaded_generation?: number;
+      /** @enum {string} */
+      convergence_state?: "applied" | "pending_apply" | "rejected";
+      pending_apply?: components["schemas"]["ManagedSSHApplyProgress"];
+      /** @description Fresh bound evidence for the desired artifact or a known, still-authorized previous artifact within its propagation deadline. */
+      serving?: boolean;
+      verification_failure?: string;
       verified: boolean;
       /** Format: date-time */
       valid_until: string;
@@ -6767,6 +6778,12 @@ export interface components {
       retiring_at?: string;
       /** Format: date-time */
       retired_at?: string;
+    };
+    ManagedSSHApplyProgress: {
+      /** Format: date-time */
+      started_at: string;
+      /** Format: date-time */
+      deadline: string;
     };
     ManagedSSHControlStatus: {
       identity_id: string;
