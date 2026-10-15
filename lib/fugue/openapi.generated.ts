@@ -528,7 +528,10 @@ export interface paths {
     get: operations["listPlatformConsumerConvergence"];
   };
   "/v1/admin/platform-config/hostname-lineage": {
-    /** Get Platform Hostname Lineage */
+    /**
+     * Get Platform Hostname Lineage
+     * @description Bounded diagnostic metadata for validated artifacts containing the hostname. Searches the most recent artifacts of each traffic kind. Content bodies are omitted by default; fetch a specific artifact separately when executable content is needed. This diagnostic response is not serving authority.
+     */
     get: operations["getPlatformHostnameLineage"];
   };
   "/v1/admin/platform-state/dns-decisions/{node_id}": {
@@ -16583,15 +16586,22 @@ export interface operations {
       default: components["responses"]["ErrorResponse"];
     };
   };
-  /** Get Platform Hostname Lineage */
+  /**
+   * Get Platform Hostname Lineage
+   * @description Bounded diagnostic metadata for validated artifacts containing the hostname. Searches the most recent artifacts of each traffic kind. Content bodies are omitted by default; fetch a specific artifact separately when executable content is needed. This diagnostic response is not serving authority.
+   */
   getPlatformHostnameLineage: {
     parameters: {
       query: {
         hostname: string;
+        /** @description Maximum recent candidates inspected per artifact kind, before hostname matching. */
+        limit?: number;
+        /** @description Include full matching artifact content. Limited to at most 5 candidates per kind when enabled. */
+        include_content?: boolean;
       };
     };
     responses: {
-      /** @description Validated route, DNS and TLS artifacts for one hostname */
+      /** @description Validated route, DNS and TLS artifact metadata and lineage for one hostname; content included only when explicitly requested */
       200: {
         content: {
           "application/json": {
