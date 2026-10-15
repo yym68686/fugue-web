@@ -209,6 +209,16 @@ export interface paths {
     /** List Platform Domain Bindings */
     get: operations["listPlatformDomainBindings"];
   };
+  "/v1/admin/tls-issuance/policy": {
+    /** Read independent certificate issuance policy */
+    get: operations["getTLSIssuancePolicy"];
+    /** Compare and replace independent certificate issuance policy */
+    put: operations["putTLSIssuancePolicy"];
+  };
+  "/v1/acme/http-01/{hostname}/{token}": {
+    /** Read a current public ACME HTTP-01 proof */
+    get: operations["getHTTP01Challenge"];
+  };
   "/v1/admin/image-cache/orphan-policy": {
     /** adminGetImageOrphanPolicy */
     get: operations["adminGetImageOrphanPolicy"];
@@ -9519,6 +9529,32 @@ export interface components {
       last_error?: string;
       deep_health?: components["schemas"]["NodeDeepHealthResult"];
     };
+    TLSIssuancePolicy: {
+      /** @enum {string} */
+      schema: "fugue.tls-issuance-policy/v1";
+      /** Format: int64 */
+      generation: number;
+      enabled: boolean;
+      /** Format: uri */
+      directory_url: string;
+      issuer_id: string;
+      contact: string;
+      renew_before_hours: number;
+      retry_base_seconds: number;
+      domains: components["schemas"]["TLSIssuanceDomainPolicy"][];
+    };
+    TLSIssuanceDomainPolicy: {
+      hostname: string;
+      app_id: string;
+      tenant_id: string;
+      /** @enum {string} */
+      mode: "http-01" | "dns-01" | "external";
+      dns_zone?: string;
+      /** @description Explicit public entry IPs for HTTP-01, or authoritative IP:port endpoints for DNS-01. Every target must expose the same proof before CA acceptance. */
+      validation_targets?: string[];
+      /** Format: date-time */
+      not_before?: string;
+    };
     /**
      * @description refresh-join-config may carry pod_capacity_mode=resources to remove the
      * kubelet default 110-Pod quota by deriving max-pods from the host's
@@ -15314,6 +15350,53 @@ export interface operations {
       200: {
         content: {
           "application/json": components["schemas"]["PlatformDomainBindingListResponse"];
+        };
+      };
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
+  /** Read independent certificate issuance policy */
+  getTLSIssuancePolicy: {
+    responses: {
+      /** @description Current issuance intent */
+      200: {
+        content: {
+          "application/json": components["schemas"]["TLSIssuancePolicy"];
+        };
+      };
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
+  /** Compare and replace independent certificate issuance policy */
+  putTLSIssuancePolicy: {
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["TLSIssuancePolicy"];
+      };
+    };
+    responses: {
+      /** @description Persisted policy; generation must advance exactly once */
+      200: {
+        content: {
+          "application/json": components["schemas"]["TLSIssuancePolicy"];
+        };
+      };
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
+  /** Read a current public ACME HTTP-01 proof */
+  getHTTP01Challenge: {
+    parameters: {
+      path: {
+        hostname: string;
+        token: string;
+      };
+    };
+    responses: {
+      /** @description Only the matching unexpired public key authorization */
+      200: {
+        content: {
+          "text/plain": string;
         };
       };
       default: components["responses"]["ErrorResponse"];
