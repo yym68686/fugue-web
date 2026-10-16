@@ -9605,7 +9605,7 @@ export interface components {
     ClusterNodeDiagnosisResponse: {
       diagnosis: components["schemas"]["ClusterNodeDiagnosis"];
     };
-    /** @description Update node roles. An explicit edge_group_id together with allow_edge=true enrolls this node with node-updater-managed Edge credentials. Group identity is configuration intent and is never inferred from country or hostname. node_reconciled only describes Kubernetes labels and taints; callers must separately verify Edge workload and serving readiness before reporting a completed Edge enrollment. */
+    /** @description Update node roles. An explicit edge_group_id together with allow_edge=true enrolls this node with node-updater-managed Edge credentials. Group identity is configuration intent and is never inferred from country or hostname. node_reconciled only describes Kubernetes labels and taints; callers must separately verify Edge workload and serving readiness before reporting a completed Edge enrollment. Build permission is independent of shared-pool membership: an explicit allow_builds=false remains disabled during policy normalization and runtime refresh while application placement and serving configuration are preserved. A shared-pool change does not override saved build permission. */
     SetClusterNodePolicyRequest: {
       allow_app_runtime?: boolean;
       allow_builds?: boolean;
