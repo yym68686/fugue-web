@@ -22937,6 +22937,15 @@ export interface operations {
           "application/json": components["schemas"]["NodeUpdaterDesiredStateResponse"];
         };
       };
+      /** @description Verified discovery configuration is temporarily unavailable. Retain the previously verified desired state and retry later; no replacement configuration is returned. */
+      503: {
+        headers: {
+          "Cache-Control"?: "no-store";
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"];
+        };
+      };
       default: components["responses"]["ErrorResponse"];
     };
   };
