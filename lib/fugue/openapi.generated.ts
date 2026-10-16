@@ -8518,6 +8518,11 @@ export interface components {
       window_seconds?: number;
       /**
        * Format: int32
+       * @description Optional longer window for matched latency cohorts when sticky traffic leaves the ordinary window undersampled. Zero inherits window_seconds. Must not be shorter than the ordinary window. Recent absolute errors, latency limits, candidate sample minimum and comparable recent cohort regressions remain mandatory; the longer window never authorizes promotion without matched samples.
+       */
+      latency_comparison_window_seconds?: number;
+      /**
+       * Format: int32
        * @description Minimum candidate sample count. Below this count the gate remains inconclusive for comparative ratios and latency; absolute error and latency limits and active probes still apply.
        */
       min_candidate_requests?: number;
