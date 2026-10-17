@@ -1085,4 +1085,8 @@ export const zhCN = {
     "永久删除“{label}”？任何使用该密钥的客户端将立即失去访问权限。此操作无法撤销。",
   "Disable “{label}”? Clients using this key will lose access until you enable it again.":
     "关闭“{label}”？使用该密钥的客户端将失去访问权限，直到你重新启用它。",
+  "Before continuing, review our": "继续前，请阅读我们的",
+  "Terms of Service": "服务条款",
+  "Privacy Policy": "隐私政策",
+  "and": "与",
 } satisfies MessageCatalog;

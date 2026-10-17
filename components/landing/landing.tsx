@@ -1,16 +1,8 @@
 import type { ReactNode } from "react";
+import { PublicHeader, PublicFooter } from "@/components/landing/public-shell";
 
+import { PricingDetails } from "@/components/landing/pricing";
 import { getRequestI18n } from "@/lib/i18n/server";
-
-function BrandMark() {
-  return (
-    <svg width="24" height="24" viewBox="0 0 26 26" fill="none" aria-hidden="true">
-      <path d="M2 8 H14" stroke="#326CE5" strokeWidth="2" strokeLinecap="round" />
-      <path d="M8 13 H24" stroke="#7DA8F5" strokeWidth="2" strokeLinecap="round" />
-      <path d="M2 18 H18" stroke="#326CE5" strokeWidth="2" strokeLinecap="round" opacity=".55" />
-    </svg>
-  );
-}
 
 function Feature({
   code,
@@ -31,24 +23,10 @@ function Feature({
 }
 
 export default async function Landing() {
-  const { t } = await getRequestI18n();
+  const { t, locale } = await getRequestI18n();
   return (
     <div className="lp">
-      <header className="lp-top">
-        <a className="lp-brand" href="/">
-          <BrandMark />
-          <b>fugue</b>
-          <span className="lp-badge">CLOUD</span>
-        </a>
-        <nav className="lp-nav">
-          <a href="#how">{t("How it works")}</a>
-          <a href="#features">{t("Capabilities")}</a>
-          <a href="/docs">{t("Docs")}</a>
-          <a className="lp-nav-cta" href="/auth/sign-in">
-            {t("Sign in")}
-          </a>
-        </nav>
-      </header>
+      <PublicHeader locale={locale} home />
 
       <main className="lp-main">
         <section className="lp-hero">
@@ -157,6 +135,10 @@ export default async function Landing() {
           </Feature>
         </section>
 
+        <section className="lp-pricing" id="pricing" aria-label={t("Pricing")}>
+          <PricingDetails locale={locale} />
+        </section>
+
         <section className="lp-final">
           <h2>{t("Ready to deploy?")}</h2>
           <p>{t("From blank to a live service in minutes.")}</p>
@@ -166,10 +148,7 @@ export default async function Landing() {
         </section>
       </main>
 
-      <footer className="lp-foot">
-        <span>© {new Date().getFullYear()} Fugue</span>
-        <span className="lp-foot-mono">multi-tenant PaaS · k3s</span>
-      </footer>
+      <PublicFooter locale={locale} />
     </div>
   );
 }

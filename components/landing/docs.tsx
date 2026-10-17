@@ -1,16 +1,7 @@
 import type { ReactNode } from "react";
+import { PublicHeader, PublicFooter } from "@/components/landing/public-shell";
 
 import { getRequestI18n } from "@/lib/i18n/server";
-
-function BrandMark() {
-  return (
-    <svg width="24" height="24" viewBox="0 0 26 26" fill="none" aria-hidden="true">
-      <path d="M2 8 H14" stroke="#326CE5" strokeWidth="2" strokeLinecap="round" />
-      <path d="M8 13 H24" stroke="#7DA8F5" strokeWidth="2" strokeLinecap="round" />
-      <path d="M2 18 H18" stroke="#326CE5" strokeWidth="2" strokeLinecap="round" opacity=".55" />
-    </svg>
-  );
-}
 
 function CodeBlock({ label, children }: { label?: string; children: ReactNode }) {
   return (
@@ -24,22 +15,10 @@ function CodeBlock({ label, children }: { label?: string; children: ReactNode })
 }
 
 export default async function Docs() {
-  const { t } = await getRequestI18n();
+  const { t, locale } = await getRequestI18n();
   return (
     <div className="lp">
-      <header className="lp-top">
-        <a className="lp-brand" href="/">
-          <BrandMark />
-          <b>fugue</b>
-          <span className="lp-badge">DOCS</span>
-        </a>
-        <nav className="lp-nav">
-          <a href="/">{t("Home")}</a>
-          <a className="lp-nav-cta" href="/auth/sign-in">
-            {t("Sign in")}
-          </a>
-        </nav>
-      </header>
+      <PublicHeader locale={locale} />
 
       <main className="lp-main doc-main">
         <section className="doc-hero">
@@ -255,10 +234,7 @@ fugue app logs <app-name>`}
         </section>
       </main>
 
-      <footer className="lp-foot">
-        <span>© {new Date().getFullYear()} Fugue</span>
-        <span className="lp-foot-mono">multi-tenant PaaS · k3s</span>
-      </footer>
+      <PublicFooter locale={locale} />
     </div>
   );
 }

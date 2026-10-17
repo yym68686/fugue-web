@@ -221,6 +221,10 @@ export function AuthPanel({
         </p>
       </div>
 
+      <p className="auth-policy">
+        {t("Before continuing, review our")} <a href="/terms">{t("Terms of Service")}</a> {t("and")} <a href="/privacy">{t("Privacy Policy")}</a>.
+      </p>
+
       <div className="auth-oauth">
         <button
           type="button"

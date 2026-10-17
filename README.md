@@ -27,6 +27,28 @@ server-to-server API requests. It takes precedence for those requests only;
 it does not replace the public URL in installation commands. Keep
 `FUGUE_API_URL` configured even when using the internal override.
 
+### Public pricing and customer policies
+
+Public routes `/pricing`, `/privacy`, `/terms` (including `#refunds`), and
+`/support` are accessible without an account and linked from the landing page,
+documentation and console. Content follows the existing English/Chinese locale.
+
+`FUGUE_PUBLIC_PRICE_BOOK` is a **display-only runtime publication**, independent
+of the code release. Set it to a JSON object containing the standard control-plane
+price book's `currency` (USD), `hours_per_month`,
+`cpu_microcents_per_millicore_hour`, `memory_microcents_per_mib_hour`,
+`storage_microcents_per_gib_hour`, plus `effective_date` (YYYY-MM-DD).
+Copy the verified standard rates from `fugue admin billing show` with an explicit
+tenant; do not publish tenant balances, events, identifiers or credentials.
+One USD is 100,000,000 microcents. Update this publication alongside billing rate
+changes using `fugue app env set fugue-web --file <publication.env>`; no code
+change or image rebuild is required. Updating it never changes billing rates.
+The control-plane billing ledger remains authoritative. Missing or invalid
+publication displays an explicit unavailable notice rather than made-up rates.
+
+The support address is `support@fugue.pro`. Publishing this link does not
+provision a mailbox; inbound delivery and replies must be configured separately.
+
 ### Server management
 
 The Servers page distinguishes owned, shared, public and internal runtime

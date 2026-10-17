@@ -1,5 +1,7 @@
 import "server-only";
 
+import { MIN_TOPUP_USD as MIN_BILLING_TOP_UP_UNITS, MAX_TOPUP_USD as MAX_BILLING_TOP_UP_UNITS } from "@/lib/billing/topup-options";
+
 import { NextResponse } from "next/server";
 
 import { normalizeEmail } from "@/lib/auth/validation";
@@ -36,11 +38,6 @@ export type BillingTopupStatusView = {
   status: string;
   units: number;
 };
-
-// A top-up is denominated in whole USD "units" (1 unit = $1 = 100 cents). Bound
-// the range so a fat-fingered amount can't open a $0 or $1M checkout.
-const MIN_BILLING_TOP_UP_UNITS = 5;
-const MAX_BILLING_TOP_UP_UNITS = 5000;
 
 function readStatusError(status: number, message: string) {
   // Errors carry their HTTP status inline (`4xx ...`) so the route layer's

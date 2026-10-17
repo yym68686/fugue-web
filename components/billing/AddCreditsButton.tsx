@@ -5,11 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 
 import { useT } from "@/lib/i18n/client";
 
-// Preset top-up amounts in whole USD. The service enforces the same 5–5000
-// bound; these are just convenient defaults.
-const PRESET_AMOUNTS = [10, 25, 50, 100] as const;
-const MIN_UNITS = 5;
-const MAX_UNITS = 5000;
+import { TOPUP_PRESETS as PRESET_AMOUNTS, MIN_TOPUP_USD as MIN_UNITS, MAX_TOPUP_USD as MAX_UNITS } from "@/lib/billing/topup-options";
 
 // How long to keep polling a returning checkout before telling the user to
 // check back later. Creem usually delivers the webhook within a few seconds.

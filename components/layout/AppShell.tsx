@@ -6,6 +6,7 @@ import Link from "next/link";
 import { I18nProvider, useI18n } from "@/lib/i18n/client";
 import type { Locale, LocalePreference } from "@/lib/i18n/core";
 import type { ThemePreference } from "@/lib/theme";
+import { PublicFooter } from "@/components/landing/public-shell";
 import UserMenu from "@/components/layout/UserMenu";
 
 export type AppShellUser = {
@@ -111,7 +112,7 @@ function ShellInner({
   localePreference: LocalePreference;
 }) {
   const pathname = usePathname();
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
 
   const isActive = (href: string) =>
     pathname === href || pathname.startsWith(href + "/");
@@ -176,7 +177,7 @@ function ShellInner({
         )}
       </aside>
 
-      <main className="main">{children}</main>
+      <main className="main">{children}<PublicFooter locale={locale} compact /></main>
     </div>
   );
 }

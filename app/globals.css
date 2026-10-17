@@ -1814,6 +1814,48 @@ button {
   letter-spacing: 0.5px;
 }
 
+/* Public pricing, support and policies share the landing page palette. */
+.public-footer { gap: 16px; flex-wrap: wrap; }
+.public-footer nav, .public-links { display: flex; align-items: center; flex-wrap: wrap; gap: 12px 20px; }
+.public-footer a, .public-links a:not(.btn), .public-main a:not(.btn), .lp-pricing a:not(.btn) { color: var(--accent-fg); }
+.public-footer a { text-decoration: none; }
+.public-footer a:hover { text-decoration: underline; }
+.console-footer { display: flex; justify-content: space-between; margin-top: 32px; padding: 20px 0; border-top: 1px solid var(--line); font-size: 12px; color: var(--muted); }
+.public-main .doc-section { scroll-margin-top: 110px; }
+.public-main .doc-p { overflow-wrap: anywhere; }
+.lp-pricing { margin-top: clamp(56px, 9vw, 104px); scroll-margin-top: 100px; }
+.pricing-details { margin-top: 32px; }
+.pricing-intro { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; margin-bottom: 32px; }
+.pricing-intro h2 { font-size: clamp(24px, 3vw, 32px); margin: 10px 0; line-height: 1.2; }
+.pricing-topups, .support-card { border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); padding: 24px; }
+.pricing-topups > span { font-size: 13px; color: var(--muted); }
+.pricing-topups p { color: var(--muted); font-size: 13px; line-height: 1.6; margin: 12px 0 0; }
+.pricing-amounts { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+.pricing-amounts span { padding: 8px 12px; border: 1px solid var(--line-2); border-radius: var(--radius); font-family: var(--mono); color: var(--fg); }
+.pricing-details h3 { font-size: 18px; }
+.pricing-table-wrap { overflow-x: auto; margin: 20px 0; border: 1px solid var(--line); border-radius: var(--radius); }
+.pricing-table { border-collapse: collapse; width: 100%; font-size: 13px; }
+.pricing-table th, .pricing-table td { padding: 14px 16px; text-align: left; border-bottom: 1px solid var(--line); }
+.pricing-table thead th { background: var(--surface); color: var(--muted); font-weight: 500; }
+.pricing-table tbody th { font-weight: 500; }
+.pricing-table td { font-family: var(--mono); white-space: nowrap; }
+.pricing-table tbody tr:last-child > * { border-bottom: 0; }
+.pricing-details .doc-note p { margin: 8px 0 0; }
+.support-card { margin: 32px 0; }
+.support-card h2 { font-size: 18px; margin: 0 0 14px; }
+.support-email { font-size: clamp(20px, 4vw, 28px); overflow-wrap: anywhere; }
+.auth-policy { margin: 0 0 20px; color: var(--muted); font-size: 12px; line-height: 1.6; }
+.auth-policy a { color: var(--accent-fg); }
+
+@media (max-width: 600px) {
+  .lp-top { flex-wrap: wrap; gap: 12px; }
+  .lp-nav { flex-wrap: wrap; gap: 14px; }
+  .pricing-intro { grid-template-columns: 1fr; }
+  .public-footer { align-items: flex-start; }
+  .public-footer nav { gap: 12px 16px; }
+  .pricing-table th, .pricing-table td { padding: 12px 8px; font-size: 12px; }
+}
+
 @media (max-width: 860px) {
   .lp-hero {
     grid-template-columns: 1fr;
