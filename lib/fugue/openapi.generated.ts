@@ -1561,15 +1561,24 @@ export interface paths {
     get: operations["connectAppDatabaseAccessTunnel"];
   };
   "/v1/apps/{id}/request": {
-    /** Request App Internal HTTP Endpoint */
+    /**
+     * Request App Internal HTTP Endpoint
+     * @description Uses a fresh upstream connection for each diagnostic request so repeated probes follow the current Service endpoints after a workload handoff. The connection is released after the response body is consumed or closed.
+     */
     post: operations["requestAppInternalHTTP"];
   };
   "/v1/apps/{id}/request-stream": {
-    /** Diagnose App Internal HTTP Streaming Behavior */
+    /**
+     * Diagnose App Internal HTTP Streaming Behavior
+     * @description Each diagnostic probe uses a fresh upstream connection. An active response stream remains open until completion or the configured probe limits; completed probes do not retain connections to withdrawn workloads.
+     */
     post: operations["requestAppInternalHTTPStream"];
   };
   "/v1/apps/{id}/diagnosis": {
-    /** Get App Diagnosis */
+    /**
+     * Get App Diagnosis
+     * @description Internal HTTP availability probes use fresh upstream connections so connection reuse does not pin observations to a withdrawn workload.
+     */
     get: operations["getAppDiagnosis"];
   };
   "/v1/apps/{id}/files": {
@@ -21719,7 +21728,10 @@ export interface operations {
       default: components["responses"]["ErrorResponse"];
     };
   };
-  /** Request App Internal HTTP Endpoint */
+  /**
+   * Request App Internal HTTP Endpoint
+   * @description Uses a fresh upstream connection for each diagnostic request so repeated probes follow the current Service endpoints after a workload handoff. The connection is released after the response body is consumed or closed.
+   */
   requestAppInternalHTTP: {
     parameters: {
       path: {
@@ -21741,7 +21753,10 @@ export interface operations {
       default: components["responses"]["ErrorResponse"];
     };
   };
-  /** Diagnose App Internal HTTP Streaming Behavior */
+  /**
+   * Diagnose App Internal HTTP Streaming Behavior
+   * @description Each diagnostic probe uses a fresh upstream connection. An active response stream remains open until completion or the configured probe limits; completed probes do not retain connections to withdrawn workloads.
+   */
   requestAppInternalHTTPStream: {
     parameters: {
       path: {
@@ -21763,7 +21778,10 @@ export interface operations {
       default: components["responses"]["ErrorResponse"];
     };
   };
-  /** Get App Diagnosis */
+  /**
+   * Get App Diagnosis
+   * @description Internal HTTP availability probes use fresh upstream connections so connection reuse does not pin observations to a withdrawn workload.
+   */
   getAppDiagnosis: {
     parameters: {
       query?: {
