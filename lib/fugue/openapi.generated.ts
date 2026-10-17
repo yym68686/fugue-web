@@ -8522,6 +8522,11 @@ export interface components {
        */
       latency_comparison_window_seconds?: number;
       /**
+       * @description Opt in to model-specific latency comparison using application-provided request facts. Correlation requires the same app, nonempty request and trace IDs, method, normalized path, streaming mode and completion time within five seconds, with exactly one application model receipt and one edge request. Conflicting tenant identities, missing or ambiguous model evidence are unmatched, never a generic fallback. The telemetry operator must trust this application's model labels; this is not model routing or billing authority. Edge HTTP timings and all ordinary absolute and error gates remain unchanged.
+       * @default false
+       */
+      latency_cohort_model?: boolean;
+      /**
        * Format: int32
        * @description Minimum candidate sample count. Below this count the gate remains inconclusive for comparative ratios and latency; absolute error and latency limits and active probes still apply.
        */
