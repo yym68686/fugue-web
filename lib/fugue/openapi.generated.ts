@@ -21555,6 +21555,24 @@ export interface operations {
           "application/json": components["schemas"]["AppDatabaseQueryResponse"];
         };
       };
+      /** @description SQL is invalid for the selected application database */
+      400: {
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"];
+        };
+      };
+      /** @description Application database is unavailable or the query failed */
+      503: {
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"];
+        };
+      };
+      /** @description Application database query exceeded its execution deadline */
+      504: {
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"];
+        };
+      };
       default: components["responses"]["ErrorResponse"];
     };
   };
