@@ -13547,6 +13547,7 @@ export interface components {
       dns_flatten?: components["schemas"]["PlatformDNSFlattenObservation"][];
       intent_generation: string;
       policy_generation: string;
+      /** @description Runtime diagnostics may include dynamic_quality_coverage. Its hostname states distinguish inactive_route_constraint (the current DNS route-state policy excludes the owner), learning_no_eligible_query (no projected query exists), learning_address_family_evidence_required (only unsupported address-family queries exist), and learning_queued (at least one supported query is actually scheduled for observation). These diagnostics do not authorize serving or override route policy; current usable evidence is separately classified during capture. */
       facts?: {
         /** @description Independent managed-release readiness from one cluster observation window. EndpointSlice membership is checked through Pod and ReplicaSet controller UIDs to the exact Deployment, including addresses, workload labels, executable release key and Pod readiness. These facts may authorize compilation but never replace actual consumer serving proof. */
         release_readiness?: {
