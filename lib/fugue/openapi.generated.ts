@@ -4433,6 +4433,16 @@ export interface components {
       /** @enum {string} */
       route_proof_status: "not_evaluated";
     };
+    /** @description Explicit authorization for low-volume recovery probes of a pinned static platform route. TLS identity, random nonce, exact Edge identity and fresh route proof are required. Recovery only restores candidate eligibility, never claims provider quota or traffic authorization. Consecutive successes must come from distinct scheduled probes; failed or stale observations reset the success streak. No clock date enables admission. */
+    EdgeOfflineRecoveryPolicy: {
+      hostname: string;
+      path: string;
+      probe_interval_seconds: number;
+      probe_timeout_seconds: number;
+      success_threshold: number;
+      failure_threshold: number;
+      freshness_seconds: number;
+    };
     /** @description Read-only projection of the current signed global producer input, separate from heartbeat health and currently serving DNS evidence. A planned suspension never expires on its estimated recovery date. unavailable or identity_conflict must not be shown as allowed; independent Cell membership is not inferred from this global intent. This does not mutate inventory admission flags. */
     EdgeDNSAdmissionIntent: {
       /** Format: date-time */
@@ -4441,6 +4451,10 @@ export interface components {
       scope: "global";
       /** @enum {string} */
       state: "not_configured" | "allowed" | "suspended" | "unavailable" | "identity_conflict";
+      /** @enum {string} */
+      recovery_state?: "probing" | "ready" | "unavailable";
+      /** Format: date-time */
+      recovery_last_probe_at?: string;
       /** @enum {string} */
       serving_evidence: "not_evaluated";
       /** @enum {string} */
@@ -13162,7 +13176,7 @@ export interface components {
       edge_group_ids: string[];
     };
     PlatformConfigPolicySnapshot: ({
-      /** @description Pinned global producer input only. Explicitly suspends these exact physical endpoint identities from future DNS candidate publications. Current serving artifacts remain unchanged until normal signed rollout succeeds. Expected recovery dates are informational and never expire the hold; removing a hold requires another fenced configuration publication and fresh route proofs. Runtime heartbeats cannot alter this intent. */
+      /** @description Pinned global producer input only. Suspends exact endpoint identities. An optional recovery policy authorizes bounded low-frequency probes and automatic reevaluation on consecutive success, independent of estimated dates. Current serving artifacts remain unchanged until normal signed rollout and fresh per-route proofs succeed. Runtime observations never mutate the signed input. Historical membership uses the parent's signed recovery evidence. Holds without recovery require explicit configuration removal. */
       offline_edges?: ({
           edge_id: string;
           edge_group_id: string;
@@ -13172,6 +13186,7 @@ export interface components {
           reason: "quota_exhausted" | "maintenance" | "network_unavailable";
           /** Format: date */
           expected_recovery_date?: string;
+          recovery?: components["schemas"]["EdgeOfflineRecoveryPolicy"];
         })[];
       /**
        * @description Explicit publication boundary; cell-routes owns exactly route/TLS artifacts and Worker membership; cell-dns owns exactly a DNS artifact and DNS process membership, with exact independent Cell route/TLS references. Omission retains the complete route/DNS/TLS publication contract. Existing authority is never converted implicitly.
