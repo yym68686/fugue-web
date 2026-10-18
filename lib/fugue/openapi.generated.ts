@@ -21567,7 +21567,7 @@ export interface operations {
           "application/json": components["schemas"]["ErrorResponse"];
         };
       };
-      /** @description Application database query exceeded its execution deadline */
+      /** @description Application database query was canceled or exceeded its execution deadline */
       504: {
         content: {
           "application/json": components["schemas"]["ErrorResponse"];
