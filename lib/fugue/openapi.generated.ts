@@ -12976,6 +12976,7 @@ export interface components {
           id: string;
         }[];
       edges: {
+          /** @description Exact opaque Kubernetes node identity, including registered numeric-leading UUIDs. Never normalized, renamed or inferred from locality. */
           id: string;
           authority_cell_id: string;
           serving_pool_ids: string[];
