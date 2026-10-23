@@ -5682,6 +5682,14 @@ export interface components {
       fallback_reason?: string;
     };
     DNSDecisionRecord: {
+      /** @description Actual availability decision for explicitly opted-in records. Counts describe the original constrained candidate set and recovered materialization; they do not grant serving authority. */
+      availability?: {
+        authorized_candidates: number;
+        recovered_candidates: number;
+        quality_primary: string;
+        serving_primary: string;
+        fallback_used: boolean;
+      };
       record_name: string;
       policy: components["schemas"]["DNSAnswerPolicy"];
       input_candidates: components["schemas"]["EdgeDNSAnswerCandidate"][];
@@ -5799,6 +5807,7 @@ export interface components {
     DNSAnswerPolicy: {
       /** @enum {string} */
       policy_kind: "global" | "geo" | "weighted" | "latency_aware" | "physical_quality" | "physical_order" | "pinned" | "disabled";
+      availability_policy?: components["schemas"]["DNSAvailabilityPolicy"];
       physical_order?: components["schemas"]["DNSPhysicalOrder"];
       physical_selection?: components["schemas"]["DNSPhysicalSelection"];
       allowed_edge_groups?: string[];
@@ -5827,6 +5836,19 @@ export interface components {
       selected_edge_group_id?: string;
       shadow_selected_edge_group_id?: string;
       shadow_reason?: string;
+    };
+    /** @description Explicit availability authorization, not measured quality. The pool intersects the current signed endpoint/route/TLS constraints. Independent fresh observations gate initial admission and readmission. A failed observation resets recovery; unobserved or cached facts cannot count as successes. Every original proof deadline remains enforced. Quality primary resumes only after passing the same recovery gate. */
+    DNSAvailabilityPolicy: {
+      /** @enum {string} */
+      version: "dns-availability-v1";
+      ordered_edge_ids: string[];
+      recovery_successes: number;
+      /** @description Must not exceed fifteen declared DNS probe intervals. */
+      recovery_min_seconds: number;
+    };
+    PlatformDNSAvailabilityRoute: {
+      hostname: string;
+      policy: components["schemas"]["DNSAvailabilityPolicy"];
     };
     /** @description Explicit immutable physical-edge order. This is configuration authority, not a claim of measured network superiority. The first currently route/TLS-ready endpoint wins. Geography, numeric candidate scores, group weights and exploration cannot reorder it. Deploying support does not convert an existing signed policy. */
     DNSPhysicalOrder: {
@@ -13006,6 +13028,8 @@ export interface components {
     }]>;
     /** @description Producer query strategy, independent of runtime ranking, locality and candidate eligibility. The producer observes inventory and ranking directly, expands concrete DNSAnswerRules, and never reads legacy DNS bundles when this policy is present. Readiness remains independently proven. */
     PlatformDNSQueryPolicy: {
+      /** @description Explicit per-host automatic failover and recovery, independent of quality selection. Applies only to owned dynamic A/AAAA records; static, pinned, administrative and security constraints remain authoritative. */
+      availability_routes?: components["schemas"]["PlatformDNSAvailabilityRoute"][];
       dynamic_quality?: components["schemas"]["PlatformDynamicQualityPolicy"];
       ordered_projection?: components["schemas"]["PlatformDNSOrderedProjection"];
       /** @description Explicit opt-in hostnames for physical network selection. No country preferences apply. Missing evidence rejects new compilation and cannot invalidate a positive serving artifact. Static records and shared targets without unanimous ownership are not eligible. */
@@ -13835,7 +13859,7 @@ export interface components {
        * @default placement
        * @enum {string}
        */
-      operation?: "placement" | "activate_serving" | "refresh_serving" | "continuous_serving" | "expand_membership" | "shrink_membership" | "physical_dns" | "retire_dns_selector" | "dynamic_quality" | "edge_offline" | "business_exploration";
+      operation?: "placement" | "activate_serving" | "refresh_serving" | "continuous_serving" | "expand_membership" | "shrink_membership" | "physical_dns" | "retire_dns_selector" | "dynamic_quality" | "edge_offline" | "business_exploration" | "dns_availability";
       previous_policy: components["schemas"]["PlatformPublicationPrecondition"];
       serving_full: components["schemas"]["PlatformPublicationPrecondition"];
       verification_evidence_hash: string;
