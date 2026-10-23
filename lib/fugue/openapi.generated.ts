@@ -14126,6 +14126,8 @@ export interface components {
       checkpoint_valid_until: string;
       ready: boolean;
       facts: {
+          /** @description Distinct successful observation timestamps for this exact immutable probe identity, ending at proof.checked_at. Empty after failure or restart. Used only with separately verified current proof, signed recovery policy and bounded continuity; never renews the proof or checkpoint lease. */
+          probe_history?: string[];
           probe_id: string;
           /** @description Diagnostic sweep identity retained with the original observation; it grants no authority and does not renew a proof deadline. */
           observation_id?: string;
