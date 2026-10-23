@@ -482,7 +482,7 @@ export interface paths {
   "/v1/admin/artifacts/{artifact_id}/compiler-input": {
     /**
      * Read Frozen Compiler Runtime Input
-     * @description Platform administrators with artifact.read can retrieve the exact normalized runtime snapshot bound by a trusted artifact's input_snapshot_digest. Recomputes the digest and checks intent/policy generation binding. Older artifacts without a retained snapshot return 404; missing or corrupt input never falls back to live business data.
+     * @description Platform administrators with artifact.read can retrieve the exact normalized runtime snapshot bound by a trusted artifact's input_snapshot_digest. Recomputes the digest and checks intent/policy generation binding. The optional dns_configuration view returns only frozen DNS inputs and omits bulky physical replay evidence; it retains original observation times and selection identities, reports its own projection digest, and never claims that projected bytes match the original input digest. Older artifacts without a retained snapshot return 404; missing or corrupt input never falls back to live business data.
      */
     get: operations["getPlatformArtifactCompilerInput"];
   };
@@ -13523,6 +13523,11 @@ export interface components {
     };
     /** @description Optional cell-dns-only migration authorization. Removing every explicit legacy_group_id from previous_topology must exactly yield intent.edge_topology; physical membership, pools, capabilities, labels and failure domains cannot change. Every referenced neutral Cell must preserve the previous signed route/TLS behavior and hard policy, allowing only those explicit authority aliases to change. Fresh authenticated dns_authority_transition_v1 capability from every required DNS process gates gray/full publication. Each physical target requires one coherent complete publication proof set; alternatives never add quorum votes. Invalid or stale inputs retain the previous positive LKG and never select public transport. */
     PlatformRouteAuthorityTransition: {
+      /**
+       * @description Explicit DNS-only reference to the current verified complete global publication without requiring replacement routing Cells or Worker upgrades. Cell route publications must be empty. The previous topology still fixes physical membership and aliases; retained signed route/TLS constraints, complete target dependencies and proof lifetimes remain mandatory. Fresh dns_retained_routes_v1 capability is required only from the declared DNS consumers. Omission retains the existing migration contract.
+       * @enum {string}
+       */
+      reference_mode?: "retained-global-v1";
       previous_topology: components["schemas"]["PlatformEdgeTopology"];
       previous_publication: components["schemas"]["PlatformPreviousTrafficPublicationReference"];
     };
@@ -16549,10 +16554,13 @@ export interface operations {
   };
   /**
    * Read Frozen Compiler Runtime Input
-   * @description Platform administrators with artifact.read can retrieve the exact normalized runtime snapshot bound by a trusted artifact's input_snapshot_digest. Recomputes the digest and checks intent/policy generation binding. Older artifacts without a retained snapshot return 404; missing or corrupt input never falls back to live business data.
+   * @description Platform administrators with artifact.read can retrieve the exact normalized runtime snapshot bound by a trusted artifact's input_snapshot_digest. Recomputes the digest and checks intent/policy generation binding. The optional dns_configuration view returns only frozen DNS inputs and omits bulky physical replay evidence; it retains original observation times and selection identities, reports its own projection digest, and never claims that projected bytes match the original input digest. Older artifacts without a retained snapshot return 404; missing or corrupt input never falls back to live business data.
    */
   getPlatformArtifactCompilerInput: {
     parameters: {
+      query?: {
+        view?: "full" | "dns_configuration";
+      };
       path: {
         artifact_id: string;
       };
@@ -16562,6 +16570,9 @@ export interface operations {
       200: {
         content: {
           "application/json": {
+            /** @enum {string} */
+            projection?: "dns_configuration";
+            projection_digest?: string;
             artifact_id: string;
             input_snapshot_digest: string;
             runtime_snapshot: components["schemas"]["PlatformRuntimeSnapshot"];
