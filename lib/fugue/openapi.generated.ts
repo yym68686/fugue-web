@@ -13859,7 +13859,7 @@ export interface components {
        * @default placement
        * @enum {string}
        */
-      operation?: "placement" | "activate_serving" | "refresh_serving" | "continuous_serving" | "expand_membership" | "shrink_membership" | "physical_dns" | "retire_dns_selector" | "dynamic_quality" | "edge_offline" | "business_exploration" | "dns_availability";
+      operation?: "placement" | "activate_serving" | "refresh_serving" | "continuous_serving" | "expand_membership" | "shrink_membership" | "physical_dns" | "retire_dns_selector" | "dynamic_quality" | "edge_offline" | "business_exploration" | "dns_availability" | "dns_availability_recovery";
       previous_policy: components["schemas"]["PlatformPublicationPrecondition"];
       serving_full: components["schemas"]["PlatformPublicationPrecondition"];
       verification_evidence_hash: string;
