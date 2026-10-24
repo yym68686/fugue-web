@@ -4486,7 +4486,10 @@ export interface components {
       recovery_state?: "probing" | "ready" | "unavailable";
       /** Format: date-time */
       recovery_last_probe_at?: string;
-      /** @enum {string} */
+      /**
+       * @description Capacity below policy requires a complete authenticated subject transfer and a passing reference transfer. Incomplete, rejected, or unverifiable subject measurements report capacity_unavailable; a failed or slow reference reports reference_unavailable. None of these results admits the suspended member or proves a billing quota cause.
+       * @enum {string}
+       */
       recovery_last_result?: "route_unavailable" | "reference_unavailable" | "capacity_unavailable" | "capacity_below_policy" | "code_not_current" | "code_observation_unavailable" | "code_identity_conflict" | "code_transition_in_progress" | "evidence_unavailable" | "capacity_verified";
       /** @enum {string} */
       recovery_code_detail?: "cluster_client" | "node_metadata" | "authority_metadata" | "transition_journal" | "service_inventory" | "pod_inventory" | "public_service" | "public_front" | "endpoints" | "front_health" | "worker_target" | "code_binding" | "authority_changed" | "observation_changed" | "recovery_history";
