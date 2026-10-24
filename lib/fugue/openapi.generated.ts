@@ -464,7 +464,7 @@ export interface paths {
   "/v1/admin/platform-config/routes/project": {
     /**
      * Preview Pinned Platform Configuration
-     * @description Read-only preview selected by one exact signed validated producer policy. The default view=configuration projects desired intent and policy from a consistent business snapshot and pinned sources only. It never probes Kubernetes, DNS, origins or TLS, refreshes quality evidence, or requires a serving DNS backend. runtime_snapshot contains generation bindings only; omitted_runtime_fields and issues explicitly mark evidence not collected. migration_ready is always false: a configuration preview cannot prove readiness or authorize compilation/publication. Untrusted source references, invalid ownership or conflicting configuration still fail closed. view=runtime explicitly requests the existing full evidence capture and potentially large replay snapshot; transient backend/evidence failures can return 503. This opt-in is required for diagnostics and scripts that inspect runtime observations or replay a compilation. Runtime timestamps and leases are never renewed by the preview. Automatic producers and publication gates continue to require complete verified runtime evidence independently of this endpoint. Missing or duplicate policy references and invalid/duplicate view values return 400. The retired static-only selector returns 410. Both views retain business snapshot revision/time and configuration issues, preserve static non-address DNS and signed constraints, and write no serving state. Full runtime capture retains its bounded placement collectors.
+     * @description Read-only preview selected by one exact signed validated producer policy. The default view=configuration projects desired intent and policy from a consistent business snapshot and pinned sources only. It never probes Kubernetes, DNS, origins or TLS, refreshes quality evidence, or requires a serving DNS backend. runtime_snapshot contains generation bindings only; omitted_runtime_fields and issues explicitly mark evidence not collected. migration_ready is always false: a configuration preview cannot prove readiness or authorize compilation/publication. Untrusted source references, invalid ownership or conflicting configuration still fail closed. view=runtime explicitly requests the existing full evidence capture and potentially large replay snapshot; transient backend/evidence failures can return 503. This opt-in is required for diagnostics and scripts that inspect runtime observations or replay a compilation. Runtime timestamps and leases are never renewed by the preview. Automatic producers and publication gates continue to require complete verified runtime evidence independently of this endpoint. Missing or duplicate policy references and invalid/duplicate view values return 400. The retired static-only selector returns 410. view=runtime_summary performs the same strict runtime capture, then omits only runtime_snapshot.dns_selections[].physical_evidence from the HTTP response. runtime_summary reports the complete snapshot digest and exact omitted counts and byte sizes; omitted_runtime_fields explicitly records the omission. This summary is not a replay input or publication authorization. Full runtime capture, compiler verification and serving artifacts are unchanged. All views retain business snapshot revision/time and configuration issues, preserve static non-address DNS and signed constraints, and write no serving state. Full runtime capture retains its bounded placement collectors.
      */
     get: operations["projectPlatformIntent"];
   };
@@ -13484,10 +13484,11 @@ export interface components {
     };
     PlatformIntentProjectionResponse: {
       /**
-       * @description Configuration mode contains no runtime evidence and cannot authorize serving. Runtime mode explicitly includes full live observations.
+       * @description Configuration mode contains no runtime evidence and cannot authorize serving. Runtime mode includes full live observations. Runtime summary mode preserves live observations except the explicitly reported raw DNS physical evidence; it is not a replay snapshot.
        * @enum {string}
        */
-      preview_mode: "configuration" | "runtime";
+      preview_mode: "configuration" | "runtime" | "runtime_summary";
+      runtime_summary?: components["schemas"]["PlatformRuntimePreviewSummary"];
       /** @description Captured source rows excluded from the draft, with identities and reasons. Deleted or suspended zones never re-enter serving intent. */
       dns_exclusions: {
           record_id: string;
@@ -13509,13 +13510,22 @@ export interface components {
         }[];
       intent: components["schemas"]["PlatformConfigIntent"];
       policy: components["schemas"]["PlatformConfigPolicySnapshot"];
-      /** @description Generation bindings only in configuration mode. Full replay observations in explicit runtime mode; may be large. */
+      /** @description Generation bindings only in configuration mode. Full replay observations in runtime mode; may be large. In runtime_summary mode only dns_selections[].physical_evidence is omitted; all timestamps, candidates, selections, readiness and recovery facts are preserved. */
       runtime_snapshot: components["schemas"]["PlatformRuntimeSnapshot"];
       source_generation: string;
       /** Format: date-time */
       captured_at: string;
       route_count: number;
       omitted_runtime_fields: string[];
+    };
+    /** @description Present only for runtime_summary. Describes the exact live snapshot before response projection. The digest uses the same canonical runtime snapshot encoding as compiler lineage. Sizes count original JSON bytes of raw physical_evidence fields, excluding surrounding field names and separators. Neither a digest nor a summary replaces full replay verification. */
+    PlatformRuntimePreviewSummary: {
+      /** @enum {string} */
+      schema: "fugue.runtime-preview-summary/v1";
+      full_snapshot_digest: string;
+      omitted_physical_evidence_count: number;
+      /** Format: int64 */
+      omitted_physical_evidence_bytes: number;
     };
     /** @description Exact full global publication used only by an explicit DNS authority transition. The full release must remain selected for every retired authority alias when compilation and publication are checked. The DNS child authenticates physical endpoint ownership; route/TLS children authenticate complete behavior. */
     PlatformPreviousTrafficPublicationReference: {
@@ -16485,7 +16495,7 @@ export interface operations {
   };
   /**
    * Preview Pinned Platform Configuration
-   * @description Read-only preview selected by one exact signed validated producer policy. The default view=configuration projects desired intent and policy from a consistent business snapshot and pinned sources only. It never probes Kubernetes, DNS, origins or TLS, refreshes quality evidence, or requires a serving DNS backend. runtime_snapshot contains generation bindings only; omitted_runtime_fields and issues explicitly mark evidence not collected. migration_ready is always false: a configuration preview cannot prove readiness or authorize compilation/publication. Untrusted source references, invalid ownership or conflicting configuration still fail closed. view=runtime explicitly requests the existing full evidence capture and potentially large replay snapshot; transient backend/evidence failures can return 503. This opt-in is required for diagnostics and scripts that inspect runtime observations or replay a compilation. Runtime timestamps and leases are never renewed by the preview. Automatic producers and publication gates continue to require complete verified runtime evidence independently of this endpoint. Missing or duplicate policy references and invalid/duplicate view values return 400. The retired static-only selector returns 410. Both views retain business snapshot revision/time and configuration issues, preserve static non-address DNS and signed constraints, and write no serving state. Full runtime capture retains its bounded placement collectors.
+   * @description Read-only preview selected by one exact signed validated producer policy. The default view=configuration projects desired intent and policy from a consistent business snapshot and pinned sources only. It never probes Kubernetes, DNS, origins or TLS, refreshes quality evidence, or requires a serving DNS backend. runtime_snapshot contains generation bindings only; omitted_runtime_fields and issues explicitly mark evidence not collected. migration_ready is always false: a configuration preview cannot prove readiness or authorize compilation/publication. Untrusted source references, invalid ownership or conflicting configuration still fail closed. view=runtime explicitly requests the existing full evidence capture and potentially large replay snapshot; transient backend/evidence failures can return 503. This opt-in is required for diagnostics and scripts that inspect runtime observations or replay a compilation. Runtime timestamps and leases are never renewed by the preview. Automatic producers and publication gates continue to require complete verified runtime evidence independently of this endpoint. Missing or duplicate policy references and invalid/duplicate view values return 400. The retired static-only selector returns 410. view=runtime_summary performs the same strict runtime capture, then omits only runtime_snapshot.dns_selections[].physical_evidence from the HTTP response. runtime_summary reports the complete snapshot digest and exact omitted counts and byte sizes; omitted_runtime_fields explicitly records the omission. This summary is not a replay input or publication authorization. Full runtime capture, compiler verification and serving artifacts are unchanged. All views retain business snapshot revision/time and configuration issues, preserve static non-address DNS and signed constraints, and write no serving state. Full runtime capture retains its bounded placement collectors.
    */
   projectPlatformIntent: {
     parameters: {
@@ -16497,8 +16507,8 @@ export interface operations {
         static_intent_artifact_id?: string;
         /** @description Exactly one validated signed producer policy ID. Uses its pinned static/DNS configuration references without activation; invalid or retired sources fail without ambient fallback. */
         producer_policy_artifact_id: string;
-        /** @description Configuration-only preview by default; runtime explicitly opts into live capture and complete replay evidence. */
-        view?: "configuration" | "runtime";
+        /** @description Configuration-only preview by default; runtime includes complete live replay evidence; runtime_summary performs the same capture and omits raw DNS physical evidence from the response only. */
+        view?: "configuration" | "runtime" | "runtime_summary";
       };
     };
     responses: {
