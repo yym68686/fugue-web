@@ -36,5 +36,8 @@
     "openapi-typescript": {
       "undici": "6.28.1"
     }
+  },
+  "engines": {
+    "node": ">=24.22.1 <25"
   }
 }

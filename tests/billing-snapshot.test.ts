@@ -2,6 +2,9 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { listTenantBillingSummaries } from "@/lib/fugue/console";
+import { fugueApiEnv } from "./fixtures/fugue-api-env";
+
+fugueApiEnv();
 
 test("billing snapshot accounts for every requested tenant", async (t) => {
   const original = process.env.FUGUE_BOOTSTRAP_KEY;

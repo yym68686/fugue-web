@@ -2,6 +2,9 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { getConsoleGalleryData } from "@/lib/fugue/console";
+import { fugueApiEnv } from "./fixtures/fugue-api-env";
+
+fugueApiEnv();
 
 test("gallery waits for the complete snapshot and uses its resource totals", async (t) => {
   let releaseUsage!: (response: Response) => void;

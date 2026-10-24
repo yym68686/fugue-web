@@ -3,6 +3,9 @@ import { test, type TestContext } from "node:test";
 import type { Pool } from "pg";
 
 import { deleteOwnedNodeKey } from "@/lib/console/delete-node-key";
+import { fugueApiEnv } from "./fixtures/fugue-api-env";
+
+fugueApiEnv();
 
 const input = { email: "Owner@Example.com", nodeKeyId: "nodekey_fixture", adminKeySecret: "synthetic-test-key" };
 
