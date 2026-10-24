@@ -4455,6 +4455,25 @@ export interface components {
       max_elapsed_milliseconds: number;
       minimum_stable_seconds: number;
     };
+    /** @description Advisory code catch-up plan derived only from a verified physical member and the exact current group code authority. A member behind on the same slot needs the retained previous slot before the current slot. Each stage targets an inactive slot and keeps increasing published fences. The plan is not permission to restart, activate, change DNS, remove a hold, or replace a positive LKG; an executor must revalidate live identities, leases, capacity, preparation and route/TLS proofs for every step. */
+    EdgeCodeRecoveryPlan: {
+      /** @enum {string} */
+      schema: "fugue.edge-code-recovery-plan/v1";
+      authority_record_digest: string;
+      /** @enum {boolean} */
+      execution_authorized: false;
+      observed: components["schemas"]["EdgeCodeRecoveryTarget"];
+      stages: components["schemas"]["EdgeCodeRecoveryTarget"][];
+    };
+    EdgeCodeRecoveryTarget: {
+      /** @enum {string} */
+      slot: "a" | "b";
+      /** Format: int64 */
+      front_generation: number;
+      bundle_generation: string;
+      worker_source_sha: string;
+      worker_image_digest: string;
+    };
     /** @description Read-only projection of the current signed global producer input, separate from heartbeat health and currently serving DNS evidence. A planned suspension never expires on its estimated recovery date. unavailable or identity_conflict must not be shown as allowed; independent Cell membership is not inferred from this global intent. This does not mutate inventory admission flags. */
     EdgeDNSAdmissionIntent: {
       /** Format: date-time */
@@ -4468,7 +4487,10 @@ export interface components {
       /** Format: date-time */
       recovery_last_probe_at?: string;
       /** @enum {string} */
-      recovery_last_result?: "route_unavailable" | "reference_unavailable" | "capacity_unavailable" | "capacity_below_policy" | "code_not_current" | "evidence_unavailable" | "capacity_verified";
+      recovery_last_result?: "route_unavailable" | "reference_unavailable" | "capacity_unavailable" | "capacity_below_policy" | "code_not_current" | "code_observation_unavailable" | "code_identity_conflict" | "code_transition_in_progress" | "evidence_unavailable" | "capacity_verified";
+      /** @enum {string} */
+      recovery_code_detail?: "cluster_client" | "node_metadata" | "authority_metadata" | "transition_journal" | "service_inventory" | "pod_inventory" | "public_service" | "public_front" | "endpoints" | "front_health" | "worker_target" | "code_binding" | "authority_changed" | "observation_changed" | "recovery_history";
+      recovery_code_plan?: components["schemas"]["EdgeCodeRecoveryPlan"];
       recovery_capacity_bytes_per_second?: number;
       recovery_capacity_elapsed_milliseconds?: number;
       recovery_capacity_evidence_digest?: string;
