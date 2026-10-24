@@ -4435,6 +4435,7 @@ export interface components {
     };
     /** @description Explicit authorization for low-volume recovery probes of a pinned static platform route. TLS identity, random nonce, exact Edge identity and fresh route proof are required. Recovery only restores candidate eligibility, never claims provider quota or traffic authorization. Consecutive successes must come from distinct scheduled probes; failed or stale observations reset the success streak. No clock date enables admission. */
     EdgeOfflineRecoveryPolicy: {
+      capacity?: components["schemas"]["EdgeCapacityRecoveryPolicy"];
       hostname: string;
       path: string;
       probe_interval_seconds: number;
@@ -4442,6 +4443,17 @@ export interface components {
       success_threshold: number;
       failure_threshold: number;
       freshness_seconds: number;
+    };
+    /** @description Opt-in capacity recovery gate for the explicitly pinned static platform route (streaming class), in addition to route/TLS proof. Each round transfers the same signed, nonce-bound, uncompressed 1 MiB payload from the held Edge and one available declared reference. Full round elapsed time includes connection, TLS, headers and body. Both responses and socket attestations must verify. The held member's physical Front and Worker must match current group code authority before and after measurement. This grants only candidate eligibility; code-release holds, configuration publication, DNS proofs and LKG remain separate. Missing or unsupported evidence keeps the member held. No provider billing date is treated as capacity evidence. */
+    EdgeCapacityRecoveryPolicy: {
+      /** @enum {string} */
+      version: "edge-capacity-recovery-v1";
+      /** @enum {string} */
+      traffic_class: "streaming";
+      reference_edge_ids: string[];
+      minimum_bytes_per_second: number;
+      max_elapsed_milliseconds: number;
+      minimum_stable_seconds: number;
     };
     /** @description Read-only projection of the current signed global producer input, separate from heartbeat health and currently serving DNS evidence. A planned suspension never expires on its estimated recovery date. unavailable or identity_conflict must not be shown as allowed; independent Cell membership is not inferred from this global intent. This does not mutate inventory admission flags. */
     EdgeDNSAdmissionIntent: {
@@ -4455,6 +4467,11 @@ export interface components {
       recovery_state?: "probing" | "ready" | "unavailable";
       /** Format: date-time */
       recovery_last_probe_at?: string;
+      /** @enum {string} */
+      recovery_last_result?: "route_unavailable" | "reference_unavailable" | "capacity_unavailable" | "capacity_below_policy" | "code_not_current" | "evidence_unavailable" | "capacity_verified";
+      recovery_capacity_bytes_per_second?: number;
+      recovery_capacity_elapsed_milliseconds?: number;
+      recovery_capacity_evidence_digest?: string;
       /** @enum {string} */
       serving_evidence: "not_evaluated";
       /** @enum {string} */
