@@ -5886,7 +5886,7 @@ export interface components {
       shadow_selected_edge_group_id?: string;
       shadow_reason?: string;
     };
-    /** @description Explicit availability authorization, not measured quality. The pool intersects the current signed endpoint/route/TLS constraints. Independent fresh observations gate initial admission and readmission. A failed observation resets recovery; unobserved or cached facts cannot count as successes. Every original proof deadline remains enforced. Quality primary resumes only after passing the same recovery gate. */
+    /** @description Explicit availability authorization, not measured quality. The pool intersects the current signed endpoint/route/TLS constraints. Independent fresh observations gate initial admission and readmission. For explicitly approved dynamic routing sources, recovery continuity is scoped to the same DNS artifact, immutable producer authorization, source scope/policy, physical endpoint and route behavior; advancing a routing publication alone does not reset it. Each success still requires a fresh proof matching the exact currently approved publication. Changed configuration, producer, endpoint or route behavior starts a separate history. A failed observation resets recovery; unobserved or cached facts cannot count as successes. Recovery history is volatile and is not restored as positive readiness after restart. Every original proof deadline remains enforced. Quality primary resumes only after passing the same recovery gate. */
     DNSAvailabilityPolicy: {
       /** @enum {string} */
       version: "dns-availability-v1";
