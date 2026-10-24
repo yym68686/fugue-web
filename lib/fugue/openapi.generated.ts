@@ -13922,7 +13922,25 @@ export interface components {
       serving_full: components["schemas"]["PlatformPublicationPrecondition"];
       verification_evidence_hash: string;
     };
+    /** @description Optional atomic guard for a successor cell-dns release set. Pins all three lanes of that DNS authority and its current signed, unexpired positive LKG. Shadow and full predecessors must exist; a null gray means that lane must be absent and unfrozen. Checks run under the DNS authority scope lock and again before commit. Source signatures, publication references, capability, convergence and LKG verification gates still apply. No overrides or producer reconfiguration may be combined with this guard. The idempotency key must be dns-publication/<sha256 digest of canonical JSON containing artifact_id, content_hash, release_channel, canary_rule_ref and precondition>. A retry succeeds only while its exact successor remains selected, other lanes and LKG still match, and the target lane advanced by exactly one fence. A stale or frozen lane, changed LKG, expired evidence or superseded retry conflicts without writes. Publishing never replaces the positive LKG; verify-lkg remains a separate operation after fresh complete DNS observations. */
+    PlatformDNSPublicationPrecondition: {
+      lanes: {
+        shadow: components["schemas"]["PlatformPublicationPrecondition"];
+        gray: {
+          artifact_id: string;
+          content_hash: string;
+          release_id: string;
+          /** Format: int64 */
+          fencing_token: number;
+        } | null;
+        full: components["schemas"]["PlatformPublicationPrecondition"];
+      };
+      lkg_id: string;
+      lkg_publication: components["schemas"]["PlatformPublicationPrecondition"];
+      verification_evidence_hash: string;
+    };
     PlatformArtifactReleaseRequest: {
+      dns_publication_precondition?: components["schemas"]["PlatformDNSPublicationPrecondition"];
       producer_reconfiguration?: components["schemas"]["PlatformProducerReconfiguration"];
       /** @enum {string} */
       release_channel: "shadow" | "gray" | "full";
