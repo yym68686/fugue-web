@@ -591,6 +591,13 @@ export interface paths {
      */
     post: operations["trustedPlatformConsumerHeartbeat"];
   };
+  "/v1/platform-state/consumers/shadow-heartbeat": {
+    /**
+     * Report Isolated DNS Shadow Observation
+     * @description Validates an explicitly assigned cell-dns shadow with the same live Pod, declared backend, signed artifact, exact expectation, fence, freshness, replay and capability checks as trusted heartbeats. Only staged and shadow_validated observations are accepted. Stores one bounded latest shadow observation and an independent monotonic cursor per consumer, artifact kind and authority scope. It never changes serving observations, serving cursors, configuration or positive LKG. Release selection and latest expectation are rechecked under the publication lock before commit. The normal convergence endpoint selects these observations only for their exact shadow release; serving convergence never reads them. Candidate capability admission can use only the exact currently selected shadow. Existing clients keep their original heartbeat contract.
+     */
+    post: operations["shadowPlatformConsumerHeartbeat"];
+  };
   "/v1/platform-state/consumers/identity": {
     /**
      * Exchange a bound Kubernetes Pod token for a short-lived consumer identity
@@ -17054,6 +17061,33 @@ export interface operations {
    * @description Kubernetes-bound DNS identities must still match a live authorized Pod on the claimed node and the unique backend of that node's managed public DNS Service (UDP/TCP port 53). Service ownership, node-local transport, EndpointSlice ownership, Pod UID and endpoint addresses are rechecked. Positive applied/passed reports require both Pod and endpoint readiness; negative reports from the selected live backend remain accepted. An unselected, terminating or ambiguous public backend cannot overwrite current consumer facts. An explicitly signed cell-dns publication in its own neutral scope may instead use a uniquely declared private validation Service, with no external IP, NodePort or host networking. Its exact required member, Pod identity, Service digest and EndpointSlices remain mandatory. A selected public backend in that same authority takes precedence over private candidates. These scoped local receipts can establish capability and local recovery; public runtime-facts and public selection still require the public transport. Kubernetes lookup failure returns 503; binding mismatch returns 403 or 409 without advancing the heartbeat cursor or audit log. A valid DNS Pod that is not selected by an existing managed public Service receives HTTP 409 with code dns_backend_not_selected. This is a standby observation, not a successful heartbeat or an assignment retry; local validation continues and no public receipt is accepted. Other backend validation failures retain their normal error codes. A superseded release or expected consumer set receives code platform_assignment_changed. This check does not change artifacts, serving configuration or local readiness. Independently provisioned non-Kubernetes component identities retain their existing authentication contract.
    */
   trustedPlatformConsumerHeartbeat: {
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["TrustedPlatformConsumerHeartbeatRequest"];
+      };
+    };
+    responses: {
+      /** @description Heartbeat accepted after identity, topology, freshness, and monotonicity verification. */
+      200: {
+        content: {
+          "application/json": components["schemas"]["PlatformConsumerHeartbeatResponse"];
+        };
+      };
+      400: components["responses"]["ErrorResponse"];
+      401: components["responses"]["ErrorResponse"];
+      403: components["responses"]["ErrorResponse"];
+      404: components["responses"]["ErrorResponse"];
+      409: components["responses"]["ErrorResponse"];
+      422: components["responses"]["ErrorResponse"];
+      503: components["responses"]["ErrorResponse"];
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
+  /**
+   * Report Isolated DNS Shadow Observation
+   * @description Validates an explicitly assigned cell-dns shadow with the same live Pod, declared backend, signed artifact, exact expectation, fence, freshness, replay and capability checks as trusted heartbeats. Only staged and shadow_validated observations are accepted. Stores one bounded latest shadow observation and an independent monotonic cursor per consumer, artifact kind and authority scope. It never changes serving observations, serving cursors, configuration or positive LKG. Release selection and latest expectation are rechecked under the publication lock before commit. The normal convergence endpoint selects these observations only for their exact shadow release; serving convergence never reads them. Candidate capability admission can use only the exact currently selected shadow. Existing clients keep their original heartbeat contract.
+   */
+  shadowPlatformConsumerHeartbeat: {
     requestBody: {
       content: {
         "application/json": components["schemas"]["TrustedPlatformConsumerHeartbeatRequest"];
