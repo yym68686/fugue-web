@@ -14213,6 +14213,8 @@ export interface components {
     /** @description Authenticated routing observation and one publication per physical DNS target. This context grants no readiness; readers replay constraints and validate fresh proofs and current selection independently. */
     DNSRuntimeRouteContext: {
       snapshot: components["schemas"]["PlatformDNSRouteSourceSnapshot"];
+      /** @description Optional independently verified positive DNS LKG authorizing the retained artifact's source refresh. Its expiry additionally bounds proofs and never extends the local checkpoint age. */
+      retained_dns_lkg?: components["schemas"]["PlatformLKGSnapshot"];
       selections: {
         [key: string]: string;
       };
@@ -14235,7 +14237,19 @@ export interface components {
       /** Format: date-time */
       checkpoint_valid_until: string;
       ready: boolean;
-      facts: {
+      facts: ({
+          /** @description Bounded diagnostic provenance for the current recovery history. It grants no readiness and is ignored by routing and replay decisions. A new history key does not identify whether it arose from startup or a changed authorization; those inputs must be compared separately. Negative resets preserve the first reason that cleared prior continuity; later failed observations still advance the independent failure barrier. */
+          history_observation?: {
+            key_digest: string;
+            /** @enum {string} */
+            reset_reason: "history_started" | "negative_observation" | "observation_gap";
+            /** Format: date-time */
+            reset_at: string;
+            previous_success_count: number;
+            /** Format: date-time */
+            previous_success_at?: string;
+            observation_reason?: string;
+          };
           /** @description Distinct successful observation timestamps for this exact immutable probe identity, ending at proof.checked_at. Empty after failure or restart. Used only with separately verified current proof, signed recovery policy and bounded continuity; never renews the proof or checkpoint lease. */
           probe_history?: string[];
           probe_id: string;
@@ -14256,7 +14270,7 @@ export interface components {
             /** Format: date-time */
             checked_at: string;
           };
-        }[];
+        })[];
     };
     PlatformConsumerAssignment: {
       expected_consumer_set_id: string;
