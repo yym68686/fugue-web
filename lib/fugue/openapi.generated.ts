@@ -626,6 +626,13 @@ export interface paths {
      */
     get: operations["getPlatformConsumerDNSRouteSources"];
   };
+  "/v1/platform-state/consumers/artifacts/{artifact_id}/retained-route-sources": {
+    /**
+     * Read approved routing sources for the current positive DNS LKG
+     * @description Read-only private observation for the exact signed current positive LKG of a DNS authority, independently of a pending successor assignment. Requires the verified scoped DNS identity to remain in the latest declared expected set of the full release that verified the LKG. The full release may be active or superseded, but never rolled back or unverified. The LKG signature, expiry, parent, child and original source policy are validated, and ownership and the current LKG are rechecked after observing sources. No arbitrary historical artifact, successor source policy, configuration mutation, readiness grant, public transport selection or checkpoint renewal is permitted. Readers must independently verify the returned LKG and recheck both its identity and source selection digest after probing. Existing checkpoint and proof deadlines remain in force and source observations are additionally bounded by the returned LKG expiry. Response encoding is bounded to 16 MiB.
+     */
+    get: operations["getPlatformConsumerRetainedDNSRouteSources"];
+  };
   "/v1/platform-state/consumers/artifacts/{artifact_id}/tls/{hostname}": {
     /**
      * Read a custom-domain certificate authorized by a serving cell publication
@@ -14286,6 +14293,12 @@ export interface components {
       release: components["schemas"]["PlatformArtifactRelease"];
       snapshot: components["schemas"]["PlatformDNSRouteSourceSnapshot"];
     };
+    PlatformConsumerRetainedDNSRouteSourcesResponse: {
+      assignment: components["schemas"]["PlatformConsumerAssignment"];
+      release: components["schemas"]["PlatformArtifactRelease"];
+      snapshot: components["schemas"]["PlatformDNSRouteSourceSnapshot"];
+      retained_lkg: components["schemas"]["PlatformLKGSnapshot"];
+    };
     PlatformDNSRouteSourceSnapshot: {
       dns_artifact_id: string;
       dns_artifact_digest: string;
@@ -17223,6 +17236,35 @@ export interface operations {
       200: {
         content: {
           "application/json": components["schemas"]["PlatformConsumerDNSRouteSourcesResponse"];
+        };
+      };
+      400: components["responses"]["ErrorResponse"];
+      401: components["responses"]["ErrorResponse"];
+      403: components["responses"]["ErrorResponse"];
+      404: components["responses"]["ErrorResponse"];
+      409: components["responses"]["ErrorResponse"];
+      503: components["responses"]["ErrorResponse"];
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
+  /**
+   * Read approved routing sources for the current positive DNS LKG
+   * @description Read-only private observation for the exact signed current positive LKG of a DNS authority, independently of a pending successor assignment. Requires the verified scoped DNS identity to remain in the latest declared expected set of the full release that verified the LKG. The full release may be active or superseded, but never rolled back or unverified. The LKG signature, expiry, parent, child and original source policy are validated, and ownership and the current LKG are rechecked after observing sources. No arbitrary historical artifact, successor source policy, configuration mutation, readiness grant, public transport selection or checkpoint renewal is permitted. Readers must independently verify the returned LKG and recheck both its identity and source selection digest after probing. Existing checkpoint and proof deadlines remain in force and source observations are additionally bounded by the returned LKG expiry. Response encoding is bounded to 16 MiB.
+   */
+  getPlatformConsumerRetainedDNSRouteSources: {
+    parameters: {
+      query: {
+        expected_consumer_set_id: string;
+      };
+      path: {
+        artifact_id: string;
+      };
+    };
+    responses: {
+      /** @description Current LKG-bound source observation; no checkpoint renewal or serving grant. */
+      200: {
+        content: {
+          "application/json": components["schemas"]["PlatformConsumerRetainedDNSRouteSourcesResponse"];
         };
       };
       400: components["responses"]["ErrorResponse"];
