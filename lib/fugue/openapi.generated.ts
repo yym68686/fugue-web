@@ -13816,12 +13816,13 @@ export interface components {
     };
     /** @description Signed operational policy stored as policy_snapshot in platform-config-producer for global, or platform-config-producer:<cell-id> for an independent cell. Activate or pause through the existing artifact shadow release API; a draft has no effect. A cell producer explicitly declares authority_cell_id and pins static intent and projection policy in its exact target scope. */
     PlatformProducerPolicy: ({
+      dns_source?: components["schemas"]["PlatformDNSProducerSource"];
       route_placement_transition?: components["schemas"]["PlatformRoutePlacementTransition"];
       /**
-       * @description Explicit route/TLS-only authority for one neutral cell. Must match intent, policy, producer and consumer topology. It contains exactly edge_route_bundle and caddy_route_config; DNS input, membership and publication are forbidden. Omission retains the complete route/DNS/TLS publication contract. No existing serving authority is converted implicitly.
+       * @description Explicit publication role for one neutral cell. Must match intent, policy, producer and consumer topology. cell-routes contains exactly edge_route_bundle and caddy_route_config and forbids DNS publication. cell-dns requires verified-global-dns and dns_source; it projects only the complete DNS behavior of a current verified global full/LKG from the exact declared producer, retaining signed route/TLS references without publishing or modifying them. Omission retains the complete route/DNS/TLS publication contract. No existing serving authority is converted implicitly.
        * @enum {string}
        */
-      publication_role?: "cell-routes";
+      publication_role?: "cell-routes" | "cell-dns";
       /** @description Required for an independent cell producer and absent for global. Binds producer policy scope, target_scope and both pinned input authorities. */
       authority_cell_id?: string;
       /** @enum {string} */
@@ -13842,11 +13843,11 @@ export interface components {
         rollout_timeout_seconds: number;
       };
       /** @enum {string} */
-      input_source: "business-static-intent";
+      input_source: "business-static-intent" | "verified-global-dns";
       /** @description Required exact immutable platform_intent ID in target_scope. An independent cell input carries the same authority_cell_id and complete declared Edge and DNS topology. */
-      static_intent_artifact_id: string;
+      static_intent_artifact_id?: string;
       /** @description Required exact content_hash of the pinned static intent. */
-      static_intent_digest: string;
+      static_intent_digest?: string;
       /** @description Optional exact validated PolicySnapshot in target_scope holding DNS declarations and optional route defaults. Required for a cell producer, where authority_cell_id and consumer_topology_digest bind the same declared cell membership. Supported fields are publication_role, schema_version, generation, scope, authority_cell_id, consumer_topology_digest, dns_authorities, dns_client_policies, dns_readiness, tls_readiness, traffic_rollout_cohorts, dns_query_policy, dns_placement_mode; the optional route defaults group must include all four of minimum_healthy_edges (1..10000), max_stale_seconds (1..604800), route_constraints and dns_route_state_constraints. Explicit empty arrays are allowed; null, partial groups and unknown fields are rejected. Base route_constraints are defaults by hostname; an explicit business route policy takes precedence. Requires business-static-intent. Complete traffic publications require DNS consumers in the pinned intent. cell-routes uses this same pinned projection-policy reference for route defaults, TLS readiness and cohorts; DNS fields, consumers and templates must be absent, and require_dns_query_policy must be false. */
       dns_policy_artifact_id?: string;
       dns_policy_digest?: string;
@@ -13875,13 +13876,32 @@ export interface components {
       interval_seconds: number;
       /** @description Must be at least interval_seconds; bounds reuse of the previous runtime snapshot when desired intent and policy are unchanged. */
       refresh_seconds: number;
-    }) & OneOf<[unknown, {
+    }) & OneOf<[{
+      /** @enum {string} */
+      input_source?: "business-static-intent";
+    }, {
+      /** @enum {string} */
+      publication_role: "cell-routes";
+      /** @enum {string} */
+      input_source?: "business-static-intent";
       /** @enum {boolean} */
       require_dns_query_policy?: false;
       /** @enum {boolean} */
       require_application_domains?: true;
       /** @enum {boolean} */
       require_route_defaults?: true;
+      hosted_zone_templates?: unknown[];
+    }, {
+      /** @enum {string} */
+      publication_role: "cell-dns";
+      /** @enum {string} */
+      input_source?: "verified-global-dns";
+      /** @enum {boolean} */
+      require_dns_query_policy?: false;
+      /** @enum {boolean} */
+      require_application_domains?: false;
+      /** @enum {boolean} */
+      require_route_defaults?: false;
       hosted_zone_templates?: unknown[];
     }]>;
     PlatformArtifactCreateRequest: {
@@ -13916,6 +13936,12 @@ export interface components {
       release_id: string;
       /** Format: int64 */
       fencing_token: number;
+    };
+    /** @description Explicit transitional DNS source authority. The exact global producer publication must remain selected, signed and continuously serving. Capture requires its current verified full and matching positive unexpired LKG; original input timestamps and all DNS behavior are retained. The DNS worker has its own election and schedule. This mode does not delegate global DNS convergence or select public transport, and cannot make new records available before the source global publication verifies. Failed capture or publication preserves the previous positive DNS LKG. No ambient producer or topology discovery is allowed. */
+    PlatformDNSProducerSource: {
+      producer_policy: components["schemas"]["PlatformPublicationPrecondition"];
+      previous_topology: components["schemas"]["PlatformEdgeTopology"];
+      dns_node_ids: string[];
     };
     /** @description Transactional precondition for an established neutral cell-routes producer or the narrowly scoped physical_dns transition of a continuous global producer. Checks the exact producer publication and unchanged full publication with its unexpired verified positive LKG under producer-before-target scope locks. Each operation has a separate change boundary described below; none directly selects public transport or rewrites serving LKG. The default placement operation only replaces generation and route_placement_transition in shadow mode. Optional for other release operations; when supplied it cannot be combined with overrides or a canary selector. Idempotency key must equal producer-reconfiguration/<digest>, where digest is sha256 of canonical sorted-key JSON {artifact_id,content_hash,precondition}; precondition is this object including operation when present. A retry succeeds only while this exact successor remains current with the same serving baseline. Changed, frozen, expired or superseded state conflicts without writes. Rollback APIs retain their separate recovery contract. */
     PlatformProducerReconfiguration: {
