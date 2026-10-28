@@ -5894,14 +5894,23 @@ export interface components {
       shadow_reason?: string;
     };
     /** @description Explicit availability authorization, not measured quality. The pool intersects the current signed endpoint/route/TLS constraints. Independent fresh observations gate initial admission and readmission. For explicitly approved dynamic routing sources, recovery continuity is scoped to the same DNS artifact, immutable producer authorization, source scope, relevant record/target availability constraints, physical endpoint and route behavior; advancing a routing publication or changing unrelated records or quality ranking alone does not reset it. The complete current signed source policy still constrains eligibility and quorum. Each success still requires a fresh proof matching the exact currently approved publication. Changed configuration, producer, relevant availability constraints, endpoint or route behavior starts a separate history. Explicit eligibility removal retires its history; later readmission requires fresh recovery. A failed observation resets recovery; unobserved or cached facts cannot count as successes. Recovery history is volatile and is not restored as positive readiness after restart. Every original proof deadline remains enforced. Quality primary resumes only after passing the same recovery gate. */
-    DNSAvailabilityPolicy: {
+    DNSAvailabilityPolicy: ({
       /** @enum {string} */
-      version: "dns-availability-v1";
+      version: "dns-availability-v1" | "dns-availability-redundant-v2";
+      /** @description Required only for dns-availability-redundant-v2; must not exceed the signed pool size. Returns up to this many distinct ready physical edges in one address RRset so caching clients can retry another address without a DNS refresh. The signed pool, fresh route/TLS proofs and recovery gates still apply. DNS does not guarantee address preference order. Incompatible with business traffic allocation. V1 remains single-answer and forbids this field. */
+      max_answers?: number;
       ordered_edge_ids: string[];
       recovery_successes: number;
       /** @description Must not exceed fifteen declared DNS probe intervals. */
       recovery_min_seconds: number;
-    };
+    }) & OneOf<[{
+      /** @enum {unknown} */
+      version?: "dns-availability-v1";
+    }, {
+      /** @enum {unknown} */
+      version?: "dns-availability-redundant-v2";
+      ordered_edge_ids?: unknown;
+    }]>;
     PlatformDNSAvailabilityRoute: {
       hostname: string;
       policy: components["schemas"]["DNSAvailabilityPolicy"];
