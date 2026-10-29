@@ -6749,6 +6749,11 @@ export interface components {
       /** Format: int32 */
       replicas?: number;
       resources?: components["schemas"]["ResourceSpec"];
+      /**
+       * Format: int64
+       * @description Server-owned CPU request in the current immutable deployment template. When present, resources.cpu_millicores is the verified in-place runtime target. The next normal deployment uses that target and clears this snapshot.
+       */
+      cpu_request_template_millicores?: number;
       right_sizing?: components["schemas"]["AppRightSizingSpec"];
       runtime_id?: string;
       files?: components["schemas"]["AppFile"][];
@@ -20874,7 +20879,7 @@ export interface operations {
           "application/json": components["schemas"]["AppResourceRecommendationApplyResponse"];
         };
       };
-      /** @description Deploy operation queued with recommended resources */
+      /** @description Resource operation queued. Eligible CPU request changes use app-cpu-resize without replacing Pods; other changes use a deploy operation. */
       202: {
         content: {
           "application/json": components["schemas"]["AppResourceRecommendationApplyResponse"];
