@@ -1265,6 +1265,11 @@ export async function getAppDomains(
 
 export type AppMailResponse = FugueAPIComponents["schemas"]["AppMailResponse"];
 export type AppMailState = FugueAPIComponents["schemas"]["AppMailBinding"]["state"];
+export type AppMailDNSObservation = FugueAPIComponents["schemas"]["AppMailDNSObservation"];
+
+export function getAppMailDNS(key: string, id: string) {
+  return fugueGet<AppMailDNSObservation>(key, appPath(id, "/mail/dns"));
+}
 
 export async function getAppMail(key: string, id: string): Promise<AppMailResponse | null> {
   try { return await fugueGet<AppMailResponse>(key, appPath(id, "/mail")); }

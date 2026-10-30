@@ -1182,6 +1182,18 @@ export interface paths {
       };
     };
   };
+  "/v1/apps/{id}/mail/dns": {
+    /**
+     * Observe application mail DNS without changing serving configuration
+     * @description Queries the system recursive resolver for the exact current application's configured public mail records. Results are bounded and time-limited, are not global propagation or delivery proofs, and never alter DNS artifacts, binding state or provider readiness. Inactive, transferred or mismatched bindings are not queried.
+     */
+    get: operations["getAppMailDNS"];
+    parameters: {
+      path: {
+        id: string;
+      };
+    };
+  };
   "/v1/apps/{id}/mail/credentials": {
     /** Create a mailbox-scoped API and JMAP credential */
     post: operations["createAppMailCredential"];
@@ -6901,7 +6913,30 @@ export interface components {
       binding: components["schemas"]["AppMailBinding"];
       reconciled: boolean;
       provider?: components["schemas"]["AppMailProviderStatus"];
+      /**
+       * Format: uri
+       * @description Validated public HTTPS origin of the configured mail service. No credentials are included.
+       */
+      service_url?: string;
       error?: string;
+    };
+    AppMailDNSObservation: {
+      app_id: string;
+      generation: number;
+      hostname: string;
+      /** Format: date-time */
+      checked_at: string;
+      /** @enum {string} */
+      status: "verified" | "pending" | "unconfigured" | "inactive";
+      records: ({
+          hostname: string;
+          /** @enum {string} */
+          type: "MX" | "TXT" | "CNAME";
+          expected: string[];
+          observed: string[];
+          /** @enum {string} */
+          status: "match" | "mismatch" | "unknown";
+        })[];
     };
     AppSpec: {
       image?: string;
@@ -20217,6 +20252,26 @@ export interface operations {
       200: {
         content: {
           "application/json": components["schemas"]["AppMailResponse"];
+        };
+      };
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
+  /**
+   * Observe application mail DNS without changing serving configuration
+   * @description Queries the system recursive resolver for the exact current application's configured public mail records. Results are bounded and time-limited, are not global propagation or delivery proofs, and never alter DNS artifacts, binding state or provider readiness. Inactive, transferred or mismatched bindings are not queried.
+   */
+  getAppMailDNS: {
+    parameters: {
+      path: {
+        id: string;
+      };
+    };
+    responses: {
+      /** @description Current recursive DNS observation for this application only */
+      200: {
+        content: {
+          "application/json": components["schemas"]["AppMailDNSObservation"];
         };
       };
       default: components["responses"]["ErrorResponse"];
