@@ -1352,6 +1352,9 @@ export interface paths {
      * destination is gracefully stopped, all data claims and attempt identities
      * are retained, and a new seed is copied from the still-stopped unchanged source.
      * Other intent changes, activated destinations and reused attempt classes are rejected.
+     * New recovery attempts populate and physically verify a separate destination primary
+     * claim before handing it to CNPG's retained-volume restoration. This does not require
+     * CSI volume cloning. Prepared or activated primary claims are never recopied.
      * Source storage is never expanded. Durable phase records
      * prevent recopying an activated destination. Dry run describes intent only;
      * live preflight occurs before each mutation.
@@ -20789,6 +20792,9 @@ export interface operations {
    * destination is gracefully stopped, all data claims and attempt identities
    * are retained, and a new seed is copied from the still-stopped unchanged source.
    * Other intent changes, activated destinations and reused attempt classes are rejected.
+   * New recovery attempts populate and physically verify a separate destination primary
+   * claim before handing it to CNPG's retained-volume restoration. This does not require
+   * CSI volume cloning. Prepared or activated primary claims are never recopied.
    * Source storage is never expanded. Durable phase records
    * prevent recopying an activated destination. Dry run describes intent only;
    * live preflight occurs before each mutation.
