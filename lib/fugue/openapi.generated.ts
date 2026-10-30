@@ -1310,7 +1310,14 @@ export interface paths {
     post: operations["resizeBackingService"];
   };
   "/v1/backing-services/{id}/migrate": {
-    /** Migrate Backing Service */
+    /**
+     * Migrate Backing Service
+     * @description An explicit platform-administrator migration takes precedence over tenant
+     * placement and zero-downtime preferences for this operation only. Source
+     * preservation, replication catch-up, writable-primary verification and
+     * verified rollback remain mandatory; configured placement is not proof
+     * of the currently serving primary.
+     */
     post: operations["migrateBackingService"];
   };
   "/v1/backing-services/{id}/move-project": {
@@ -1318,7 +1325,12 @@ export interface paths {
     post: operations["moveBackingServiceProject"];
   };
   "/v1/backing-services/{id}/localize": {
-    /** Localize Backing Service */
+    /**
+     * Localize Backing Service
+     * @description Explicit platform-administrator placement takes precedence over tenant
+     * placement and zero-downtime preferences without weakening data integrity,
+     * source preservation or destination verification.
+     */
     post: operations["localizeBackingService"];
   };
   "/v1/backing-services/{id}/recover": {
@@ -1653,7 +1665,14 @@ export interface paths {
     post: operations["disableApp"];
   };
   "/v1/apps/{id}/migrate": {
-    /** Migrate App */
+    /**
+     * Migrate App
+     * @description An explicit platform-administrator migration takes precedence over tenant
+     * zero-downtime and source placement preferences for this operation only.
+     * It does not change those preferences. Tenant isolation, destination
+     * capacity, image integrity, single-writer storage and data verification
+     * remain mandatory. Ordinary scoped migrations retain tenant policies.
+     */
     post: operations["migrateApp"];
   };
   "/v1/apps/{id}/move-project": {
@@ -1673,7 +1692,12 @@ export interface paths {
     get: operations["getAppDatabaseStatus"];
   };
   "/v1/apps/{id}/database/localize": {
-    /** Localize App Database */
+    /**
+     * Localize App Database
+     * @description Explicit platform-administrator placement takes precedence over tenant
+     * placement and zero-downtime preferences without weakening data integrity,
+     * source preservation or destination verification.
+     */
     post: operations["localizeAppDatabase"];
   };
   "/v1/apps/{id}/database/recover": {
@@ -20648,7 +20672,14 @@ export interface operations {
       default: components["responses"]["ErrorResponse"];
     };
   };
-  /** Migrate Backing Service */
+  /**
+   * Migrate Backing Service
+   * @description An explicit platform-administrator migration takes precedence over tenant
+   * placement and zero-downtime preferences for this operation only. Source
+   * preservation, replication catch-up, writable-primary verification and
+   * verified rollback remain mandatory; configured placement is not proof
+   * of the currently serving primary.
+   */
   migrateBackingService: {
     parameters: {
       path: {
@@ -20701,7 +20732,12 @@ export interface operations {
       default: components["responses"]["ErrorResponse"];
     };
   };
-  /** Localize Backing Service */
+  /**
+   * Localize Backing Service
+   * @description Explicit platform-administrator placement takes precedence over tenant
+   * placement and zero-downtime preferences without weakening data integrity,
+   * source preservation or destination verification.
+   */
   localizeBackingService: {
     parameters: {
       path: {
@@ -22425,7 +22461,14 @@ export interface operations {
       default: components["responses"]["ErrorResponse"];
     };
   };
-  /** Migrate App */
+  /**
+   * Migrate App
+   * @description An explicit platform-administrator migration takes precedence over tenant
+   * zero-downtime and source placement preferences for this operation only.
+   * It does not change those preferences. Tenant isolation, destination
+   * capacity, image integrity, single-writer storage and data verification
+   * remain mandatory. Ordinary scoped migrations retain tenant policies.
+   */
   migrateApp: {
     parameters: {
       path: {
@@ -22536,7 +22579,12 @@ export interface operations {
       default: components["responses"]["ErrorResponse"];
     };
   };
-  /** Localize App Database */
+  /**
+   * Localize App Database
+   * @description Explicit platform-administrator placement takes precedence over tenant
+   * placement and zero-downtime preferences without weakening data integrity,
+   * source preservation or destination verification.
+   */
   localizeAppDatabase: {
     parameters: {
       path: {
