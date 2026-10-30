@@ -1383,11 +1383,17 @@ export interface paths {
     delete: operations["deleteAppBinding"];
   };
   "/v1/apps/{id}/resources/recommendation": {
-    /** Get App Resource Recommendation */
+    /**
+     * Get App Resource Recommendation
+     * @description Returns historical capacity and request targets. Automatic application CPU request changes require both a 5 millicore change and a 5 percent change; memory thresholds are independent. In-place CPU adjustment includes verified app-owned candidate and retained revision Pods as well as the serving workload.
+     */
     get: operations["getAppResourceRecommendation"];
   };
   "/v1/apps/{id}/resources/apply-recommendation": {
-    /** Apply App Resource Recommendation */
+    /**
+     * Apply App Resource Recommendation
+     * @description Eligible in-place CPU request operations include verified app-owned candidate and retained revision Pods. Each Pod retains its identity, limits, memory, and immutable Deployment template. Unsafe or unobservable revision Pods are deferred with evidence; they do not prevent eligible Pods from adjusting.
+     */
     post: operations["applyAppResourceRecommendation"];
   };
   "/v1/apps/{id}/build-logs": {
@@ -20998,7 +21004,10 @@ export interface operations {
       default: components["responses"]["ErrorResponse"];
     };
   };
-  /** Get App Resource Recommendation */
+  /**
+   * Get App Resource Recommendation
+   * @description Returns historical capacity and request targets. Automatic application CPU request changes require both a 5 millicore change and a 5 percent change; memory thresholds are independent. In-place CPU adjustment includes verified app-owned candidate and retained revision Pods as well as the serving workload.
+   */
   getAppResourceRecommendation: {
     parameters: {
       query?: {
@@ -21019,7 +21028,10 @@ export interface operations {
       default: components["responses"]["ErrorResponse"];
     };
   };
-  /** Apply App Resource Recommendation */
+  /**
+   * Apply App Resource Recommendation
+   * @description Eligible in-place CPU request operations include verified app-owned candidate and retained revision Pods. Each Pod retains its identity, limits, memory, and immutable Deployment template. Unsafe or unobservable revision Pods are deferred with evidence; they do not prevent eligible Pods from adjusting.
+   */
   applyAppResourceRecommendation: {
     parameters: {
       path: {
