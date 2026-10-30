@@ -1063,7 +1063,7 @@ export interface paths {
   "/v1/backing-services/orphans": {
     /**
      * List Adoptable Managed Postgres Orphans
-     * @description Platform-administrator inventory of retained managed PostgreSQL resources whose app record is missing. Only ManagedApps with a current controller proof that the app Deployment and all matching Pods are at zero are listed.
+     * @description Platform-administrator inventory of retained managed PostgreSQL resources whose app record is missing. Only ManagedApps with a current controller proof that the app Deployment and all matching Pods are at zero are listed. After five minutes of verified zero app workload, the controller defaults retained app-owned databases to hibernation, preserving their PVCs. An explicit administrator lifecycle request overrides that default for the current orphan episode.
      */
     get: operations["listManagedPostgresOrphans"];
   };
@@ -1077,14 +1077,14 @@ export interface paths {
   "/v1/backing-services/orphans/{app_id}/suspend": {
     /**
      * Suspend A Retained Managed Postgres Orphan
-     * @description Platform-administrator lifecycle intent update for a retained orphan. The request is applied atomically to the ManagedApp spec and the controller performs the CNPG hibernation transition; no Fugue store record is created.
+     * @description Platform-administrator lifecycle intent update for a retained orphan. The request is applied atomically to the ManagedApp spec and the controller performs the CNPG hibernation transition; no Fugue store record is created. Explicit lifecycle intent is retained for the current orphan episode, including requests whose suspension state is already current.
      */
     post: operations["suspendManagedPostgresOrphan"];
   };
   "/v1/backing-services/orphans/{app_id}/resume": {
     /**
      * Resume A Retained Managed Postgres Orphan
-     * @description Platform-administrator lifecycle intent update for a retained orphan. The request is applied atomically to the ManagedApp spec and the controller performs the CNPG resume transition; no Fugue store record is created.
+     * @description Platform-administrator lifecycle intent update for a retained orphan. The request is applied atomically to the ManagedApp spec and the controller performs the CNPG resume transition; no Fugue store record is created. Explicit resume intent overrides automatic orphan hibernation for the current orphan episode, including an already-resumed request.
      */
     post: operations["resumeManagedPostgresOrphan"];
   };
@@ -19388,7 +19388,7 @@ export interface operations {
   };
   /**
    * List Adoptable Managed Postgres Orphans
-   * @description Platform-administrator inventory of retained managed PostgreSQL resources whose app record is missing. Only ManagedApps with a current controller proof that the app Deployment and all matching Pods are at zero are listed.
+   * @description Platform-administrator inventory of retained managed PostgreSQL resources whose app record is missing. Only ManagedApps with a current controller proof that the app Deployment and all matching Pods are at zero are listed. After five minutes of verified zero app workload, the controller defaults retained app-owned databases to hibernation, preserving their PVCs. An explicit administrator lifecycle request overrides that default for the current orphan episode.
    */
   listManagedPostgresOrphans: {
     responses: {
@@ -19447,7 +19447,7 @@ export interface operations {
   };
   /**
    * Suspend A Retained Managed Postgres Orphan
-   * @description Platform-administrator lifecycle intent update for a retained orphan. The request is applied atomically to the ManagedApp spec and the controller performs the CNPG hibernation transition; no Fugue store record is created.
+   * @description Platform-administrator lifecycle intent update for a retained orphan. The request is applied atomically to the ManagedApp spec and the controller performs the CNPG hibernation transition; no Fugue store record is created. Explicit lifecycle intent is retained for the current orphan episode, including requests whose suspension state is already current.
    */
   suspendManagedPostgresOrphan: {
     parameters: {
@@ -19473,7 +19473,7 @@ export interface operations {
   };
   /**
    * Resume A Retained Managed Postgres Orphan
-   * @description Platform-administrator lifecycle intent update for a retained orphan. The request is applied atomically to the ManagedApp spec and the controller performs the CNPG resume transition; no Fugue store record is created.
+   * @description Platform-administrator lifecycle intent update for a retained orphan. The request is applied atomically to the ManagedApp spec and the controller performs the CNPG resume transition; no Fugue store record is created. Explicit resume intent overrides automatic orphan hibernation for the current orphan episode, including an already-resumed request.
    */
   resumeManagedPostgresOrphan: {
     parameters: {
