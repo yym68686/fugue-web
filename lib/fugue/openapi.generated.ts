@@ -6823,6 +6823,10 @@ export interface components {
       enabled: boolean;
       /** @description Public relay/MX policy, projected only beneath enabled applications; never the platform root. */
       dns_records?: components["schemas"]["AppMailDNSRecord"][];
+      /** @description Administrator-owned public DNS additions keyed by exact application ID, for domain-specific relay DKIM and return-path records. Projected only under that application's active, ownership-matched binding; never copied to other applications. Combined with dns_records, each application is limited to 12 records. */
+      app_dns_records?: {
+        [key: string]: components["schemas"]["AppMailDNSRecord"][];
+      };
     };
     AppMailDNSRecord: {
       /** @description Relative owner beneath the application hostname; @ means the application hostname. */
