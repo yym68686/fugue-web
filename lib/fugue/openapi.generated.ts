@@ -952,6 +952,13 @@ export interface paths {
      */
     get: operations["getDiscoveryBundle"];
   };
+  "/v1/cluster/resources": {
+    /**
+     * Report per-service resource requests, live usage and right-sizing on one node
+     * @description Platform administrators only. Includes all nonterminal pods, grouped by managed workload or Kubernetes controller. Recommended totals retain sidecars, init-container peaks and pod overhead. Usage sums all available fresh container observations independently for CPU and memory; incomplete totals are marked partial with container coverage. A usage dimension is null only when it has no observations. Unsupported recommendations are null.
+     */
+    get: operations["getClusterResourceReport"];
+  };
   "/v1/cluster/pods": {
     /** List Cluster Pods */
     get: operations["listClusterPods"];
@@ -1355,6 +1362,10 @@ export interface paths {
      * New recovery attempts populate and physically verify a separate destination primary
      * claim before handing it to CNPG's retained-volume restoration. This does not require
      * CSI volume cloning. Prepared or activated primary claims are never recopied.
+     * Effective managed database connection hosts, including the retained endpoint's
+     * legacy -rw alias, follow the stable endpoint after replacement. URL credentials,
+     * database, port and options are preserved; external and other-namespace hosts
+     * are not rebound. Persisted application environment intent is not rewritten.
      * Source storage is never expanded. Durable phase records
      * prevent recopying an activated destination. Dry run describes intent only;
      * live preflight occurs before each mutation.
@@ -1372,11 +1383,17 @@ export interface paths {
     delete: operations["deleteAppBinding"];
   };
   "/v1/apps/{id}/resources/recommendation": {
-    /** Get App Resource Recommendation */
+    /**
+     * Get App Resource Recommendation
+     * @description Returns historical capacity and request targets. Automatic application CPU request changes require both a 5 millicore change and a 5 percent change; memory thresholds are independent. In-place CPU adjustment includes verified app-owned candidate and retained revision Pods as well as the serving workload.
+     */
     get: operations["getAppResourceRecommendation"];
   };
   "/v1/apps/{id}/resources/apply-recommendation": {
-    /** Apply App Resource Recommendation */
+    /**
+     * Apply App Resource Recommendation
+     * @description Eligible in-place CPU request operations include verified app-owned candidate and retained revision Pods. Each Pod retains its identity, limits, memory, and immutable Deployment template. Unsafe or unobservable revision Pods are deferred with evidence; they do not prevent eligible Pods from adjusting.
+     */
     post: operations["applyAppResourceRecommendation"];
   };
   "/v1/apps/{id}/build-logs": {
@@ -9964,6 +9981,63 @@ export interface components {
       /** Format: date-time */
       start_time?: string;
       containers: components["schemas"]["ClusterPodContainer"][];
+    };
+    ClusterResourceReport: {
+      node: string;
+      /** Format: date-time */
+      observed_at: string;
+      window_hours: number;
+      min_samples: number;
+      total_services: number;
+      total_pods: number;
+      /** Format: int64 */
+      cpu_request_millicores: number;
+      /** Format: int64 */
+      memory_request_bytes: number;
+      warnings?: string[];
+      services: components["schemas"]["ClusterServiceResources"][];
+    };
+    ClusterServiceResources: {
+      kind: string;
+      id: string;
+      name: string;
+      namespace: string;
+      pod_count: number;
+      /** @description Pods with fresh CPU and memory observations for every expected regular container and restartable init sidecar. Other observed containers still contribute to usage sums. */
+      measured_pods: number;
+      container_count: number;
+      cpu_measured_containers: number;
+      memory_measured_containers: number;
+      /**
+       * @description Complete means all expected containers have CPU and memory observations; partial retains the available observations; unavailable means neither dimension has any fresh observations.
+       * @enum {string}
+       */
+      usage_status: "complete" | "partial" | "unavailable";
+      /** Format: int64 */
+      cpu_request_millicores: number;
+      /** Format: int64 */
+      memory_request_bytes: number;
+      /** @description Sum of available fresh CPU observations, including containers in partially measured pods. Partial sums are lower bounds; null means no CPU observations. */
+      cpu_usage_millicores: number | null;
+      /**
+       * Format: int64
+       * @description Sum of available fresh memory working sets, including containers in partially measured pods. Partial sums are lower bounds; null means no memory observations.
+       */
+      memory_usage_bytes: number | null;
+      /**
+       * Format: int64
+       * @description Total pod reservation if each managed main container uses the right-sizing request target; other reservations retained.
+       */
+      cpu_recommended_millicores: number | null;
+      /**
+       * Format: int64
+       * @description Total with evidence-based CPU capacity in place of managed main-container requests; not a request target.
+       */
+      cpu_capacity_millicores: number | null;
+      /** Format: int64 */
+      memory_recommended_bytes: number | null;
+      recommendation_reason: string;
+      recommendation?: components["schemas"]["ResourceRightSizingRecommendation"];
     };
     ClusterPodListResponse: {
       cluster_pods: components["schemas"]["ClusterPod"][];
@@ -18822,6 +18896,28 @@ export interface operations {
       default: components["responses"]["ErrorResponse"];
     };
   };
+  /**
+   * Report per-service resource requests, live usage and right-sizing on one node
+   * @description Platform administrators only. Includes all nonterminal pods, grouped by managed workload or Kubernetes controller. Recommended totals retain sidecars, init-container peaks and pod overhead. Usage sums all available fresh container observations independently for CPU and memory; incomplete totals are marked partial with container coverage. A usage dimension is null only when it has no observations. Unsupported recommendations are null.
+   */
+  getClusterResourceReport: {
+    parameters: {
+      query: {
+        node: string;
+        window_hours?: number;
+        min_samples?: number;
+      };
+    };
+    responses: {
+      /** @description Node resource report; usage is CPU in millicores and memory working set in bytes */
+      200: {
+        content: {
+          "application/json": components["schemas"]["ClusterResourceReport"];
+        };
+      };
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
   /** List Cluster Pods */
   listClusterPods: {
     parameters: {
@@ -20795,6 +20891,10 @@ export interface operations {
    * New recovery attempts populate and physically verify a separate destination primary
    * claim before handing it to CNPG's retained-volume restoration. This does not require
    * CSI volume cloning. Prepared or activated primary claims are never recopied.
+   * Effective managed database connection hosts, including the retained endpoint's
+   * legacy -rw alias, follow the stable endpoint after replacement. URL credentials,
+   * database, port and options are preserved; external and other-namespace hosts
+   * are not rebound. Persisted application environment intent is not rewritten.
    * Source storage is never expanded. Durable phase records
    * prevent recopying an activated destination. Dry run describes intent only;
    * live preflight occurs before each mutation.
@@ -20904,7 +21004,10 @@ export interface operations {
       default: components["responses"]["ErrorResponse"];
     };
   };
-  /** Get App Resource Recommendation */
+  /**
+   * Get App Resource Recommendation
+   * @description Returns historical capacity and request targets. Automatic application CPU request changes require both a 5 millicore change and a 5 percent change; memory thresholds are independent. In-place CPU adjustment includes verified app-owned candidate and retained revision Pods as well as the serving workload.
+   */
   getAppResourceRecommendation: {
     parameters: {
       query?: {
@@ -20925,7 +21028,10 @@ export interface operations {
       default: components["responses"]["ErrorResponse"];
     };
   };
-  /** Apply App Resource Recommendation */
+  /**
+   * Apply App Resource Recommendation
+   * @description Eligible in-place CPU request operations include verified app-owned candidate and retained revision Pods. Each Pod retains its identity, limits, memory, and immutable Deployment template. Unsafe or unobservable revision Pods are deferred with evidence; they do not prevent eligible Pods from adjusting.
+   */
   applyAppResourceRecommendation: {
     parameters: {
       path: {

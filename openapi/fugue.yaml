@@ -6497,6 +6497,35 @@ paths:
               schema: {$ref: "#/components/schemas/ErrorResponse"}
         default:
           $ref: "#/components/responses/ErrorResponse"
+  /v1/cluster/resources:
+    get:
+      operationId: getClusterResourceReport
+      summary: Report per-service resource requests, live usage and right-sizing on one node
+      description: Platform administrators only. Includes all nonterminal pods, grouped by managed workload or Kubernetes controller. Recommended totals retain sidecars, init-container peaks and pod overhead. Usage sums all available fresh container observations independently for CPU and memory; incomplete totals are marked partial with container coverage. A usage dimension is null only when it has no observations. Unsupported recommendations are null.
+      tags: [Cluster]
+      x-fugue-handler: handleGetClusterResourceReport
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: query
+          name: node
+          required: true
+          schema: {type: string, minLength: 1}
+        - in: query
+          name: window_hours
+          schema: {type: integer, minimum: 1, maximum: 168, default: 168}
+        - in: query
+          name: min_samples
+          schema: {type: integer, minimum: 1, default: 12}
+      responses:
+        '200':
+          description: Node resource report; usage is CPU in millicores and memory working set in bytes
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClusterResourceReport"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
   /v1/cluster/pods:
     get:
       operationId: listClusterPods
@@ -8957,6 +8986,10 @@ paths:
         New recovery attempts populate and physically verify a separate destination primary
         claim before handing it to CNPG's retained-volume restoration. This does not require
         CSI volume cloning. Prepared or activated primary claims are never recopied.
+        Effective managed database connection hosts, including the retained endpoint's
+        legacy -rw alias, follow the stable endpoint after replacement. URL credentials,
+        database, port and options are preserved; external and other-namespace hosts
+        are not rebound. Persisted application environment intent is not rewritten.
         Source storage is never expanded. Durable phase records
         prevent recopying an activated destination. Dry run describes intent only;
         live preflight occurs before each mutation.
@@ -9081,6 +9114,11 @@ paths:
     get:
       operationId: getAppResourceRecommendation
       summary: Get App Resource Recommendation
+      description: >-
+        Returns historical capacity and request targets. Automatic application CPU
+        request changes require both a 5 millicore change and a 5 percent change;
+        memory thresholds are independent. In-place CPU adjustment includes verified
+        app-owned candidate and retained revision Pods as well as the serving workload.
       tags: [Apps]
       x-fugue-handler: handleGetAppResourceRecommendation
       security:
@@ -9112,6 +9150,11 @@ paths:
     post:
       operationId: applyAppResourceRecommendation
       summary: Apply App Resource Recommendation
+      description: >-
+        Eligible in-place CPU request operations include verified app-owned candidate
+        and retained revision Pods. Each Pod retains its identity, limits, memory,
+        and immutable Deployment template. Unsafe or unobservable revision Pods are
+        deferred with evidence; they do not prevent eligible Pods from adjusting.
       tags: [Apps]
       x-fugue-handler: handleApplyAppResourceRecommendation
       security:
@@ -29592,6 +29635,71 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/ClusterPodContainer"
+    ClusterResourceReport:
+      type: object
+      additionalProperties: false
+      required: [node, observed_at, window_hours, min_samples, total_services, total_pods, cpu_request_millicores, memory_request_bytes, services]
+      properties:
+        node: {type: string}
+        observed_at: {type: string, format: date-time}
+        window_hours: {type: integer}
+        min_samples: {type: integer}
+        total_services: {type: integer}
+        total_pods: {type: integer}
+        cpu_request_millicores: {type: integer, format: int64}
+        memory_request_bytes: {type: integer, format: int64}
+        warnings:
+          type: array
+          items: {type: string}
+        services:
+          type: array
+          items:
+            $ref: "#/components/schemas/ClusterServiceResources"
+    ClusterServiceResources:
+      type: object
+      additionalProperties: false
+      required: [kind, id, name, namespace, pod_count, measured_pods, container_count, cpu_measured_containers, memory_measured_containers, usage_status, cpu_request_millicores, memory_request_bytes, cpu_usage_millicores, memory_usage_bytes, cpu_recommended_millicores, cpu_capacity_millicores, memory_recommended_bytes, recommendation_reason]
+      properties:
+        kind: {type: string}
+        id: {type: string}
+        name: {type: string}
+        namespace: {type: string}
+        pod_count: {type: integer}
+        measured_pods:
+          type: integer
+          description: Pods with fresh CPU and memory observations for every expected regular container and restartable init sidecar. Other observed containers still contribute to usage sums.
+        container_count: {type: integer, minimum: 0}
+        cpu_measured_containers: {type: integer, minimum: 0}
+        memory_measured_containers: {type: integer, minimum: 0}
+        usage_status:
+          type: string
+          enum: [complete, partial, unavailable]
+          description: Complete means all expected containers have CPU and memory observations; partial retains the available observations; unavailable means neither dimension has any fresh observations.
+        cpu_request_millicores: {type: integer, format: int64}
+        memory_request_bytes: {type: integer, format: int64}
+        cpu_usage_millicores:
+          type: number
+          nullable: true
+          description: Sum of available fresh CPU observations, including containers in partially measured pods. Partial sums are lower bounds; null means no CPU observations.
+        memory_usage_bytes:
+          type: integer
+          format: int64
+          nullable: true
+          description: Sum of available fresh memory working sets, including containers in partially measured pods. Partial sums are lower bounds; null means no memory observations.
+        cpu_recommended_millicores:
+          type: integer
+          format: int64
+          nullable: true
+          description: Total pod reservation if each managed main container uses the right-sizing request target; other reservations retained.
+        cpu_capacity_millicores:
+          type: integer
+          format: int64
+          nullable: true
+          description: Total with evidence-based CPU capacity in place of managed main-container requests; not a request target.
+        memory_recommended_bytes: {type: integer, format: int64, nullable: true}
+        recommendation_reason: {type: string}
+        recommendation:
+          $ref: "#/components/schemas/ResourceRightSizingRecommendation"
     ClusterPodListResponse:
       type: object
       additionalProperties: false
