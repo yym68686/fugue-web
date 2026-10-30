@@ -1165,6 +1165,34 @@ export interface paths {
     /** Patch App */
     patch: operations["patchApp"];
   };
+  "/v1/admin/mail": {
+    /** Read platform mail service configuration */
+    get: operations["getMailPlatformConfig"];
+    /** Configure an explicitly selected Mailflare application */
+    put: operations["putMailPlatformConfig"];
+  };
+  "/v1/apps/{id}/mail": {
+    /** Read an application mail binding and current provider status */
+    get: operations["getAppMail"];
+    /** Enable, suspend or revoke application subdomain mail */
+    put: operations["putAppMail"];
+    parameters: {
+      path: {
+        id: string;
+      };
+    };
+  };
+  "/v1/apps/{id}/mail/credentials": {
+    /** Create a mailbox-scoped API and JMAP credential */
+    post: operations["createAppMailCredential"];
+    /** Revoke one credential belonging to this application */
+    delete: operations["revokeAppMailCredential"];
+    parameters: {
+      path: {
+        id: string;
+      };
+    };
+  };
   "/v1/apps/{id}/source": {
     /** Patch App Source Ownership */
     patch: operations["patchAppSource"];
@@ -6789,6 +6817,73 @@ export interface components {
       manifest_path?: string;
       message?: string;
       migration_ledger?: components["schemas"]["AppMigrationLedger"];
+    };
+    MailPlatformConfig: {
+      mailflare_app_id: string;
+      enabled: boolean;
+      /** @description Public relay/MX policy, projected only beneath enabled applications; never the platform root. */
+      dns_records?: components["schemas"]["AppMailDNSRecord"][];
+    };
+    AppMailDNSRecord: {
+      /** @description Relative owner beneath the application hostname; @ means the application hostname. */
+      name: string;
+      /** @enum {string} */
+      type: "MX" | "TXT" | "CNAME";
+      values: string[];
+      ttl: number;
+    };
+    AppMailBinding: {
+      app_id: string;
+      tenant_id: string;
+      project_id: string;
+      hostname: string;
+      local_part: string;
+      generation: number;
+      /** @enum {string} */
+      state: "active" | "suspended" | "revoked";
+      /** Format: date-time */
+      created_at: string;
+      /** Format: date-time */
+      updated_at: string;
+    };
+    AppMailProviderStatus: {
+      bindingId: string;
+      tenantId: string;
+      projectId: string;
+      appId: string;
+      generation: number;
+      /** @enum {string} */
+      state: "active" | "suspended" | "revoked";
+      hostname: string;
+      sendingReady: boolean;
+      receivingReady: boolean;
+      mxHost?: string | null;
+      credentials?: ({
+          id: string;
+          prefix: string;
+          /** Format: date-time */
+          createdAt: string;
+          /** Format: date-time */
+          lastUsedAt?: string | null;
+        })[];
+      mailboxes: {
+          id: string;
+          address: string;
+        }[];
+      usage: {
+        messageCount: number;
+        attachmentBytes: number;
+        outbound: {
+            status: string;
+            count: number;
+          }[];
+      };
+    };
+    AppMailResponse: {
+      binding: components["schemas"]["AppMailBinding"];
+      reconciled: boolean;
+      provider?: components["schemas"]["AppMailProviderStatus"];
+      error?: string;
     };
     AppSpec: {
       image?: string;
@@ -20030,6 +20125,136 @@ export interface operations {
       400: {
         content: {
           "application/json": components["schemas"]["ErrorResponse"];
+        };
+      };
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
+  /** Read platform mail service configuration */
+  getMailPlatformConfig: {
+    responses: {
+      /** @description Public mail configuration; service credentials stay in the managed application */
+      200: {
+        content: {
+          "application/json": components["schemas"]["MailPlatformConfig"];
+        };
+      };
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
+  /** Configure an explicitly selected Mailflare application */
+  putMailPlatformConfig: {
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["MailPlatformConfig"];
+      };
+    };
+    responses: {
+      /** @description Saved configuration */
+      200: {
+        content: {
+          "application/json": components["schemas"]["MailPlatformConfig"];
+        };
+      };
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
+  /** Read an application mail binding and current provider status */
+  getAppMail: {
+    parameters: {
+      path: {
+        id: string;
+      };
+    };
+    responses: {
+      /** @description Binding intent and provider observation; credentials are never returned */
+      200: {
+        content: {
+          "application/json": components["schemas"]["AppMailResponse"];
+        };
+      };
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
+  /** Enable, suspend or revoke application subdomain mail */
+  putAppMail: {
+    parameters: {
+      path: {
+        id: string;
+      };
+    };
+    requestBody: {
+      content: {
+        "application/json": {
+          /** @enum {string} */
+          state: "active" | "suspended" | "revoked";
+          expected_generation: number;
+          /** @default support */
+          local_part?: string;
+        };
+      };
+    };
+    responses: {
+      /** @description Durable desired state and current provider observation */
+      200: {
+        content: {
+          "application/json": components["schemas"]["AppMailResponse"];
+        };
+      };
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
+  /** Create a mailbox-scoped API and JMAP credential */
+  createAppMailCredential: {
+    parameters: {
+      path: {
+        id: string;
+      };
+    };
+    requestBody: {
+      content: {
+        "application/json": {
+          generation: number;
+          mailbox_id: string;
+        };
+      };
+    };
+    responses: {
+      /** @description Secret is shown exactly once */
+      201: {
+        content: {
+          "application/json": {
+            id: string;
+            /** Format: password */
+            key: string;
+            mailboxId: string;
+          };
+        };
+      };
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
+  /** Revoke one credential belonging to this application */
+  revokeAppMailCredential: {
+    parameters: {
+      path: {
+        id: string;
+      };
+    };
+    requestBody: {
+      content: {
+        "application/json": {
+          id: string;
+        };
+      };
+    };
+    responses: {
+      /** @description Credential revoked */
+      200: {
+        content: {
+          "application/json": {
+            ok: boolean;
+          };
         };
       };
       default: components["responses"]["ErrorResponse"];

@@ -5,6 +5,22 @@ import type { MessageCatalog } from "@/lib/i18n/translate";
 // falls back to its English source. Grouped loosely by area; kept flat so
 // lookups stay O(1).
 export const zhCN = {
+  // --- application-scoped mail ---
+  "Application mail": "应用邮件",
+  "Mail is limited to this application's own subdomain. Platform-root addresses and catch-all routing are unavailable.": "邮件仅限本应用的子域名，不提供平台根域地址或全域收件。",
+  "Mailbox name": "邮箱名称",
+  "Pending reconciliation": "等待应用配置",
+  "Transport": "邮件传输",
+  "Transport configuration is not proof of DNS propagation or external delivery.": "传输已配置不代表 DNS 已生效或外部邮件已送达。",
+  "Create scoped API/JMAP key": "创建受限 API/JMAP 密钥",
+  "Revoke this mail credential?": "撤销此邮件凭据？",
+  "Copy this key now. It is shown once and is limited to the selected mailbox.": "请立即复制密钥。它仅显示一次，且只能访问所选邮箱。",
+  "New mail credential": "新邮件凭据",
+  "Enable mail": "启用邮件",
+  "Suspend mail and revoke all existing mail credentials?": "暂停邮件并撤销全部现有邮件凭据？",
+  "Suspend mail": "暂停邮件",
+  "Permanently revoke this mail binding? It cannot be reactivated and retained mail will not transfer to a new owner.": "永久撤销此邮件绑定？撤销后无法重新激活，保留的邮件也不会转移给新所有者。",
+  "Revoke mail": "撤销邮件",
   "Global DNS intent": "全局 DNS 配置意图",
   "DNS intent not configured": "尚未配置 DNS 意图",
   "No planned DNS suspension": "无计划停用限制",

@@ -299,7 +299,7 @@ export type ClusterNode = {
   created_at?: string;
 };
 
-class FugueApiError extends Error {
+export class FugueApiError extends Error {
   readonly status: number;
   constructor(status: number, message: string) {
     super(message);
@@ -1261,6 +1261,23 @@ export async function getAppDomains(
     appPath(appId, "/domains"),
   );
   return Array.isArray(data.domains) ? data.domains : [];
+}
+
+export type AppMailResponse = FugueAPIComponents["schemas"]["AppMailResponse"];
+export type AppMailState = FugueAPIComponents["schemas"]["AppMailBinding"]["state"];
+
+export async function getAppMail(key: string, id: string): Promise<AppMailResponse | null> {
+  try { return await fugueGet<AppMailResponse>(key, appPath(id, "/mail")); }
+  catch (error) { if (error instanceof FugueApiError && error.status === 404) return null; throw error; }
+}
+export function putAppMail(key: string, id: string, input: { state: AppMailState; expected_generation: number; local_part: string }) {
+  return fugueSend<AppMailResponse>(key, "PUT", appPath(id, "/mail"), input);
+}
+export function createAppMailCredential(key: string, id: string, input: { generation: number; mailbox_id: string }) {
+  return fugueSend<{ id: string; key: string; mailboxId: string }>(key, "POST", appPath(id, "/mail/credentials"), input);
+}
+export function revokeAppMailCredential(key: string, id: string, input: { id: string }) {
+  return fugueSend<{ ok: boolean }>(key, "DELETE", appPath(id, "/mail/credentials"), input);
 }
 
 export async function getAppObservabilityMetrics(

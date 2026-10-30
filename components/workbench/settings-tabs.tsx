@@ -10,6 +10,7 @@ import { ActionButton, callConsole, ConfirmDialog } from "./shared";
 
 import AppMigrationPanel from "@/components/servers/AppMigrationPanel";
 import { SourceSyncStatus } from './SourceSyncStatus';
+import AppMailPanel from './AppMailPanel';
 
 const APP = (id: string) => `/apps/${encodeURIComponent(id)}`;
 
@@ -47,6 +48,7 @@ export function SettingsTab({
   return (
     <>
       <AppMigrationPanel key={app.id} appId={app.id} currentRuntimeId={app.status?.current_runtime_id || spec.runtime_id} />
+      <AppMailPanel key={`mail-${app.id}`} appId={app.id} />
       <div className="panel">
         <div className="panel-h">
           <h3>{t("Runtime settings")}</h3>
