@@ -952,6 +952,13 @@ export interface paths {
      */
     get: operations["getDiscoveryBundle"];
   };
+  "/v1/cluster/resources": {
+    /**
+     * Report per-service resource requests, live usage and right-sizing on one node
+     * @description Platform administrators only. Includes all nonterminal pods, grouped by managed workload or Kubernetes controller. Recommended totals retain sidecars, init-container peaks and pod overhead. Missing or incomplete metrics and unsupported recommendations are null.
+     */
+    get: operations["getClusterResourceReport"];
+  };
   "/v1/cluster/pods": {
     /** List Cluster Pods */
     get: operations["listClusterPods"];
@@ -9965,6 +9972,50 @@ export interface components {
       start_time?: string;
       containers: components["schemas"]["ClusterPodContainer"][];
     };
+    ClusterResourceReport: {
+      node: string;
+      /** Format: date-time */
+      observed_at: string;
+      window_hours: number;
+      min_samples: number;
+      total_services: number;
+      total_pods: number;
+      /** Format: int64 */
+      cpu_request_millicores: number;
+      /** Format: int64 */
+      memory_request_bytes: number;
+      warnings?: string[];
+      services: components["schemas"]["ClusterServiceResources"][];
+    };
+    ClusterServiceResources: {
+      kind: string;
+      id: string;
+      name: string;
+      namespace: string;
+      pod_count: number;
+      measured_pods: number;
+      /** Format: int64 */
+      cpu_request_millicores: number;
+      /** Format: int64 */
+      memory_request_bytes: number;
+      cpu_usage_millicores: number | null;
+      /** Format: int64 */
+      memory_usage_bytes: number | null;
+      /**
+       * Format: int64
+       * @description Total pod reservation if each managed main container uses the right-sizing request target; other reservations retained.
+       */
+      cpu_recommended_millicores: number | null;
+      /**
+       * Format: int64
+       * @description Total with evidence-based CPU capacity in place of managed main-container requests; not a request target.
+       */
+      cpu_capacity_millicores: number | null;
+      /** Format: int64 */
+      memory_recommended_bytes: number | null;
+      recommendation_reason: string;
+      recommendation?: components["schemas"]["ResourceRightSizingRecommendation"];
+    };
     ClusterPodListResponse: {
       cluster_pods: components["schemas"]["ClusterPod"][];
     };
@@ -18817,6 +18868,28 @@ export interface operations {
       503: {
         content: {
           "application/json": components["schemas"]["ErrorResponse"];
+        };
+      };
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
+  /**
+   * Report per-service resource requests, live usage and right-sizing on one node
+   * @description Platform administrators only. Includes all nonterminal pods, grouped by managed workload or Kubernetes controller. Recommended totals retain sidecars, init-container peaks and pod overhead. Missing or incomplete metrics and unsupported recommendations are null.
+   */
+  getClusterResourceReport: {
+    parameters: {
+      query: {
+        node: string;
+        window_hours?: number;
+        min_samples?: number;
+      };
+    };
+    responses: {
+      /** @description Node resource report; usage is CPU in millicores and memory working set in bytes */
+      200: {
+        content: {
+          "application/json": components["schemas"]["ClusterResourceReport"];
         };
       };
       default: components["responses"]["ErrorResponse"];
