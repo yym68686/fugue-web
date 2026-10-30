@@ -1214,7 +1214,7 @@ export interface paths {
     get: operations["getAppTrafficPolicy"];
     /**
      * Patch App Traffic Policy
-     * @description Retired releases cannot be referenced by a traffic policy, including at zero weight. A conflicting retirement returns 409 and leaves the policy unchanged.
+     * @description Retired releases cannot be referenced by a traffic policy, including at zero weight. A conflicting retirement returns 409 and leaves the policy unchanged. Reapplying identical normalized routing intent is idempotent and preserves updated_at and the original updating actor, so reconciliation retries do not restart release retirement grace periods.
      */
     patch: operations["patchAppTrafficPolicy"];
   };
@@ -8543,6 +8543,7 @@ export interface components {
       /** Format: date-time */
       bound_at: string;
     };
+    /** @description Routing intent and its last semantic change. Identical normalized intent preserves the existing update timestamp and actor. */
     AppTrafficPolicy: {
       id: string;
       tenant_id: string;
@@ -20202,7 +20203,7 @@ export interface operations {
   };
   /**
    * Patch App Traffic Policy
-   * @description Retired releases cannot be referenced by a traffic policy, including at zero weight. A conflicting retirement returns 409 and leaves the policy unchanged.
+   * @description Retired releases cannot be referenced by a traffic policy, including at zero weight. A conflicting retirement returns 409 and leaves the policy unchanged. Reapplying identical normalized routing intent is idempotent and preserves updated_at and the original updating actor, so reconciliation retries do not restart release retirement grace periods.
    */
   patchAppTrafficPolicy: {
     parameters: {
