@@ -955,7 +955,7 @@ export interface paths {
   "/v1/cluster/resources": {
     /**
      * Report per-service resource requests, live usage and right-sizing on one node
-     * @description Platform administrators only. Includes all nonterminal pods, grouped by managed workload or Kubernetes controller. Recommended totals retain sidecars, init-container peaks and pod overhead. Missing or incomplete metrics and unsupported recommendations are null.
+     * @description Platform administrators only. Includes all nonterminal pods, grouped by managed workload or Kubernetes controller. Recommended totals retain sidecars, init-container peaks and pod overhead. Usage sums all available fresh container observations independently for CPU and memory; incomplete totals are marked partial with container coverage. A usage dimension is null only when it has no observations. Unsupported recommendations are null.
      */
     get: operations["getClusterResourceReport"];
   };
@@ -9997,13 +9997,26 @@ export interface components {
       name: string;
       namespace: string;
       pod_count: number;
+      /** @description Pods with fresh CPU and memory observations for every expected regular container and restartable init sidecar. Other observed containers still contribute to usage sums. */
       measured_pods: number;
+      container_count: number;
+      cpu_measured_containers: number;
+      memory_measured_containers: number;
+      /**
+       * @description Complete means all expected containers have CPU and memory observations; partial retains the available observations; unavailable means neither dimension has any fresh observations.
+       * @enum {string}
+       */
+      usage_status: "complete" | "partial" | "unavailable";
       /** Format: int64 */
       cpu_request_millicores: number;
       /** Format: int64 */
       memory_request_bytes: number;
+      /** @description Sum of available fresh CPU observations, including containers in partially measured pods. Partial sums are lower bounds; null means no CPU observations. */
       cpu_usage_millicores: number | null;
-      /** Format: int64 */
+      /**
+       * Format: int64
+       * @description Sum of available fresh memory working sets, including containers in partially measured pods. Partial sums are lower bounds; null means no memory observations.
+       */
       memory_usage_bytes: number | null;
       /**
        * Format: int64
@@ -18879,7 +18892,7 @@ export interface operations {
   };
   /**
    * Report per-service resource requests, live usage and right-sizing on one node
-   * @description Platform administrators only. Includes all nonterminal pods, grouped by managed workload or Kubernetes controller. Recommended totals retain sidecars, init-container peaks and pod overhead. Missing or incomplete metrics and unsupported recommendations are null.
+   * @description Platform administrators only. Includes all nonterminal pods, grouped by managed workload or Kubernetes controller. Recommended totals retain sidecars, init-container peaks and pod overhead. Usage sums all available fresh container observations independently for CPU and memory; incomplete totals are marked partial with container coverage. A usage dimension is null only when it has no observations. Unsupported recommendations are null.
    */
   getClusterResourceReport: {
     parameters: {
