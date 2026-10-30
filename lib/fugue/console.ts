@@ -1280,6 +1280,10 @@ export function revokeAppMailCredential(key: string, id: string, input: { id: st
   return fugueSend<{ ok: boolean }>(key, "DELETE", appPath(id, "/mail/credentials"), input);
 }
 
+export function setAppMailboxLogin(key: string, id: string, input: { generation: number; mailbox_id: string; enabled: boolean }) {
+  return fugueSend<{ mailboxId: string; email: string; enabled: boolean; password?: string }>(key, "POST", appPath(id, "/mail/login"), input);
+}
+
 export async function getAppObservabilityMetrics(
   adminKey: string,
   appId: string,

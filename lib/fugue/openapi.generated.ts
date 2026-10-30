@@ -1193,6 +1193,18 @@ export interface paths {
       };
     };
   };
+  "/v1/apps/{id}/mail/login": {
+    /**
+     * Rotate or disable an independent mailbox Web password
+     * @description Requires app.write and exact active binding ownership/generation. Rotation returns a new password once; both actions invalidate mailbox sessions and device keys, independently of API/JMAP credentials. No platform account is created or entered.
+     */
+    post: operations["setAppMailboxLogin"];
+    parameters: {
+      path: {
+        id: string;
+      };
+    };
+  };
   "/v1/apps/{id}/source": {
     /** Patch App Source Ownership */
     patch: operations["patchAppSource"];
@@ -6873,6 +6885,8 @@ export interface components {
       mailboxes: {
           id: string;
           address: string;
+          /** @description Independent mailbox password is enabled; inactive bindings always report false. */
+          loginEnabled?: boolean;
         }[];
       usage: {
         messageCount: number;
@@ -20258,6 +20272,42 @@ export interface operations {
         content: {
           "application/json": {
             ok: boolean;
+          };
+        };
+      };
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
+  /**
+   * Rotate or disable an independent mailbox Web password
+   * @description Requires app.write and exact active binding ownership/generation. Rotation returns a new password once; both actions invalidate mailbox sessions and device keys, independently of API/JMAP credentials. No platform account is created or entered.
+   */
+  setAppMailboxLogin: {
+    parameters: {
+      path: {
+        id: string;
+      };
+    };
+    requestBody: {
+      content: {
+        "application/json": {
+          generation: number;
+          mailbox_id: string;
+          enabled: boolean;
+        };
+      };
+    };
+    responses: {
+      /** @description Login updated; secret is returned only for an explicit rotation. Never cache or log this response. */
+      200: {
+        content: {
+          "application/json": {
+            mailboxId: string;
+            /** Format: email */
+            email: string;
+            enabled: boolean;
+            /** Format: password */
+            password?: string;
           };
         };
       };

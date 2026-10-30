@@ -7,6 +7,12 @@ import type { MessageCatalog } from "@/lib/i18n/translate";
 export const zhCN = {
   // --- application-scoped mail ---
   "Application mail": "应用邮件",
+  "Rotate the mailbox password and sign out its Web sessions and devices?": "重置邮箱密码并退出该邮箱的网页登录和设备？",
+  "Rotate mailbox Web password": "重置邮箱网页登录密码",
+  "Disable mailbox Web login and sign out its sessions and devices?": "禁用邮箱网页登录并退出该邮箱的登录会话和设备？",
+  "Disable mailbox Web login": "禁用邮箱网页登录",
+  "Copy this mailbox password now. It is shown once. Sign in using the mailbox address and Mailbox account type, not a platform account.": "请立即复制邮箱密码，它仅显示一次。使用邮箱地址，并选择邮箱账户类型登录，不是平台账户。",
+  "New mailbox Web password": "新邮箱网页登录密码",
   "Mail is limited to this application's own subdomain. Platform-root addresses and catch-all routing are unavailable.": "邮件仅限本应用的子域名，不提供平台根域地址或全域收件。",
   "Mailbox name": "邮箱名称",
   "Pending reconciliation": "等待应用配置",

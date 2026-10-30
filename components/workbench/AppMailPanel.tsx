@@ -13,6 +13,7 @@ export default function AppMailPanel({ appId }: { appId: string }) {
   const [error, setError] = useState("");
   const [localPart, setLocalPart] = useState("support");
   const [secret, setSecret] = useState("");
+  const [mailboxPassword, setMailboxPassword] = useState("");
   const [tick, setTick] = useState(0);
   const refresh = () => setTick(n => n + 1);
   useEffect(() => {
@@ -22,11 +23,12 @@ export default function AppMailPanel({ appId }: { appId: string }) {
     return () => { stale = true; };
   }, [path, tick]);
   useEffect(() => { if (!secret) return; const timer = setTimeout(() => setSecret(""), 5 * 60_000); return () => clearTimeout(timer); }, [secret]);
+  useEffect(() => { if (!mailboxPassword) return; const timer = setTimeout(() => setMailboxPassword(""), 5 * 60_000); return () => clearTimeout(timer); }, [mailboxPassword]);
 
   const state = data?.binding.state;
   async function update(next: AppMailState) {
     const result = await callConsole<AppMailResponse>(path, { method: "PUT", body: { state: next, expected_generation: data?.binding.generation ?? 0, local_part: data?.binding.local_part ?? localPart } });
-    setData(result); setSecret(""); refresh();
+    setData(result); setSecret(""); setMailboxPassword(""); refresh();
   }
   return <section className="panel" aria-label={t("Application mail")}>
     <div className="panel-h"><h3>{t("Application mail")}</h3><button type="button" className="btn ghost" onClick={refresh}>{t("Refresh")}</button></div>
@@ -43,11 +45,16 @@ export default function AppMailPanel({ appId }: { appId: string }) {
           <p className="sub">{t("Transport configuration is not proof of DNS propagation or external delivery.")}</p>
           {data.provider.mxHost && <div className="form-row"><label>MX</label><span className="mono">{data.provider.mxHost}</span></div>}
           <div className="form-row"><label>{t("Messages")}</label><span>{data.provider.usage.messageCount} · {data.provider.usage.attachmentBytes} B</span></div>
-          {data.provider.mailboxes.map(box => <div className="form-row" key={box.id}><span className="mono">{box.address}</span>{state === "active" && <ActionButton onAction={async () => { const result = await callConsole<{ key: string }>(`${path}/credentials`, { body: { generation: data.binding.generation, mailbox_id: box.id } }); setSecret(result.key); refresh(); }}>{t("Create scoped API/JMAP key")}</ActionButton>}</div>)}
+          {data.provider.mailboxes.map(box => <div className="form-row" key={box.id}><span className="mono">{box.address}</span>{state === "active" && <>
+            <ActionButton onAction={async () => { const result = await callConsole<{ key: string }>(`${path}/credentials`, { body: { generation: data.binding.generation, mailbox_id: box.id } }); setSecret(result.key); refresh(); }}>{t("Create scoped API/JMAP key")}</ActionButton>
+            <ActionButton confirm={t("Rotate the mailbox password and sign out its Web sessions and devices?")} onAction={async () => { setMailboxPassword(""); const result = await callConsole<{ password?: string }>(`${path}/login`, { body: { generation: data.binding.generation, mailbox_id: box.id, enabled: true } }); setMailboxPassword(result.password ?? ""); refresh(); }}>{t("Rotate mailbox Web password")}</ActionButton>
+            {box.loginEnabled && <ActionButton confirm={t("Disable mailbox Web login and sign out its sessions and devices?")} onAction={async () => { await callConsole(`${path}/login`, { body: { generation: data.binding.generation, mailbox_id: box.id, enabled: false } }); setMailboxPassword(""); refresh(); }}>{t("Disable mailbox Web login")}</ActionButton>}
+          </>}</div>)}
           {(data.provider.credentials ?? []).map(key => <div className="form-row" key={key.id}><span className="mono">{key.prefix}…</span><span>{key.lastUsedAt ?? t("Never used")}</span><ActionButton className="btn danger" confirm={t("Revoke this mail credential?")} onAction={() => callConsole(`${path}/credentials`, { method: "DELETE", body: { id: key.id } })} onDone={refresh}>{t("Revoke")}</ActionButton></div>)}
         </>}
       </>}
       {secret && <div role="status"><p>{t("Copy this key now. It is shown once and is limited to the selected mailbox.")}</p><input aria-label={t("New mail credential")} className="input mono" value={secret} readOnly autoComplete="off" spellCheck={false} /><button className="btn ghost" type="button" onClick={() => setSecret("")}>{t("Dismiss")}</button></div>}
+      {mailboxPassword && <div role="status"><p>{t("Copy this mailbox password now. It is shown once. Sign in using the mailbox address and Mailbox account type, not a platform account.")}</p><input aria-label={t("New mailbox Web password")} type="password" className="input mono" value={mailboxPassword} readOnly autoComplete="off" spellCheck={false} /><button className="btn ghost" type="button" onClick={() => navigator.clipboard.writeText(mailboxPassword)}>{t("Copy")}</button><button className="btn ghost" type="button" onClick={() => setMailboxPassword("")}>{t("Dismiss")}</button></div>}
     </div>
     {!loading && !error && state !== "revoked" && <div className="form-foot">
       {state !== "active" && <ActionButton className="btn primary" onAction={() => update("active")}>{t("Enable mail")}</ActionButton>}
