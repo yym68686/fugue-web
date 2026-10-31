@@ -8074,6 +8074,7 @@ export interface components {
         [key: string]: unknown;
       };
     };
+    /** @description Release lifecycle evidence. A rollout awaiting edge traffic confirmation remains rolling_out without finished_at; workload application or a local observation timeout alone never confirms a deployed digest. */
     ReleaseAttempt: {
       id: string;
       tenant_id: string;
@@ -13962,6 +13963,63 @@ export interface components {
       route: components["schemas"]["PlatformArtifact"];
       tls: components["schemas"]["PlatformArtifact"];
     };
+    /** @description Exact immutable compiled HTTP route, including desired route fields and fixed runtime placement. Not a mutable routing instruction. */
+    PlatformCompiledTrafficRoute: {
+      hostname: string;
+      app_id?: string;
+      tenant_id?: string;
+      runtime_id?: string;
+      origin_ref?: string;
+      path_prefix?: string;
+      upstream_url: string;
+      service_port?: number;
+      streaming?: boolean;
+      cache_policy_id?: string;
+      cache_namespace?: string;
+      deployment_generation?: string;
+      request_body_policies?: components["schemas"]["EdgeRequestBodyPolicy"][];
+      upstreams?: components["schemas"]["PlatformConfigUpstreamIntent"][];
+      enabled: boolean;
+      edge_group_id?: string;
+      kind?: string;
+      upstream_kind?: string;
+      upstream_scope?: string;
+      tls_policy?: string;
+      /** @enum {string} */
+      route_policy?: "route_a_only" | "edge_canary" | "edge_enabled";
+      /** @enum {string} */
+      edge_group_mode?: "all_healthy" | "region_aware" | "pinned";
+      /** @enum {string} */
+      status?: "active" | "disabled" | "unavailable";
+      status_reason?: string;
+      /** Format: int32 */
+      ttl?: number;
+      runtime_type?: string;
+      runtime_edge_group_id?: string;
+      runtime_cluster_node?: string;
+      dns_placement_edge_group_id?: string;
+      excluded_edge_ids?: string[];
+      excluded_edge_group_ids?: string[];
+      exclusion_reason?: string;
+      /** Format: date-time */
+      exclusion_expires_at?: string;
+      exclusion_lifecycle?: string;
+      min_healthy_edge_nodes?: number;
+    };
+    PlatformRetainedTrafficPartition: {
+      app_id: string;
+      tenant_id: string;
+      input_digest: string;
+      source: components["schemas"]["PlatformPublicationPrecondition"];
+      route_artifact_id: string;
+      route_artifact_digest: string;
+      /** Format: date-time */
+      observed_at: string;
+      /** Format: date-time */
+      expires_at: string;
+      /** @description Exact compiled routes from the pinned signed route artifact, including immutable desired fields, runtime placement, weighted targets and exclusion evidence. Admission compares the entire partition with the source artifact; callers cannot substitute route content. */
+      routes: components["schemas"]["PlatformCompiledTrafficRoute"][];
+    };
     PlatformRuntimeSnapshot: {
       dns_selections?: components["schemas"]["PlatformDNSSelectionObservation"][];
       dns_edge_endpoints?: components["schemas"]["PlatformDNSEdgeEndpoint"][];
@@ -13976,6 +14034,10 @@ export interface components {
       captured_at?: string;
       origins?: components["schemas"]["PlatformOriginObservation"][];
       releases?: components["schemas"]["PlatformReleaseObservation"][];
+      /** @description Fixed references to unchanged application partitions in a verified full publication. Capture and admission check the exact signed source, positive LKG, current consumer convergence, expiry, and unchanged application configuration. These facts never declare an unavailable new release ready. Invalid or stale references refuse compilation. */
+      retained_traffic_partitions?: components["schemas"]["PlatformRetainedTrafficPartition"][];
+      /** @description Compiler capture capability for application availability isolation, not serving authorization. A matching trusted retained partition may preserve unchanged routes; otherwise only unavailable application routes close. Ownership, malformed or ambiguous evidence still rejects compilation. Omission preserves strict legacy compilation. This field is not emitted into consumer policy payloads. */
+      isolate_traffic_availability?: boolean;
       dns_flatten?: components["schemas"]["PlatformDNSFlattenObservation"][];
       intent_generation: string;
       policy_generation: string;
