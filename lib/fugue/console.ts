@@ -2096,6 +2096,10 @@ export async function deleteProject(
 
 // Object storage types come from the authoritative Fugue API contract.
 export type ObjectStore = import("./openapi.generated").components["schemas"]["ObjectStore"];
+export type AdminStorageOverview = FugueAPIComponents["schemas"]["AdminStorageOverview"];
+export async function getAdminStorageOverview(): Promise<AdminStorageOverview> {
+  return fugueGet<AdminStorageOverview>(readBootstrapKey(), "/v1/admin/storage");
+}
 export type ObjectStorageCredential = import("./openapi.generated").components["schemas"]["ObjectStorageCredential"];
 export async function listObjectStores(key: string) {
   return fugueGet<{stores: ObjectStore[]}>(key, "/v1/object-stores");

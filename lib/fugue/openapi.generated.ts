@@ -2191,6 +2191,13 @@ export interface paths {
     /** Create App Backup Run */
     post: operations["createAppBackupRun"];
   };
+  "/v1/admin/storage": {
+    /**
+     * Inspect platform object storage
+     * @description Platform administrators only. Read-only inventory of configured namespaces, provider buckets, cached usage and bounded Longhorn reconciliation. Never scans S3 objects or deletes data. Unknown metrics and billing remain unavailable, not zero. Provider or Kubernetes failures are explicit partial-result warnings.
+     */
+    get: operations["getAdminStorageOverview"];
+  };
   "/v1/admin/object-storage": {
     /**
      * getObjectStorageConfig
@@ -3309,6 +3316,60 @@ export interface components {
       enabled?: boolean;
       /** Format: int64 */
       quota_bytes?: number;
+    };
+    AdminStorageNamespace: {
+      kind: string;
+      resource_id: string;
+      name: string;
+      bucket: string;
+      prefix: string;
+      tenant_id: string;
+      project_id: string;
+      status: string;
+      /** Format: int64 */
+      used_bytes?: number;
+      /** Format: int64 */
+      object_count?: number;
+      /** Format: date-time */
+      measured_at?: string;
+      stale?: boolean;
+    };
+    AdminStorageBucket: {
+      name: string;
+      /** @enum {string} */
+      source: "provider" | "configured";
+    };
+    AdminStorageLonghornEntry: {
+      artifact_id: string;
+      run_id: string;
+      status: string;
+      backup_name: string;
+      volume_name: string;
+      target_name: string;
+      /** @enum {string} */
+      cleanup_state: "active" | "protected" | "grace" | "blocked" | "pending" | "deleting" | "legacy_receipt" | "confirmed" | "missing" | "unavailable";
+      remote_state?: string;
+      protected: boolean;
+      /** Format: date-time */
+      physical_deleted_at?: string;
+      /** Format: date-time */
+      attempted_at?: string;
+      error?: string;
+    };
+    AdminStorageOverview: {
+      /** Format: date-time */
+      observed_at: string;
+      configured: boolean;
+      account_id?: string;
+      buckets_complete: boolean;
+      longhorn_complete: boolean;
+      metrics_status: string;
+      billing_status: string;
+      warnings: string[];
+      buckets: components["schemas"]["AdminStorageBucket"][];
+      namespaces: components["schemas"]["AdminStorageNamespace"][];
+      longhorn: components["schemas"]["AdminStorageLonghornEntry"][];
+      backup_usage?: components["schemas"]["BackupUsage"];
     };
     ObjectStore: {
       id: string;
@@ -24962,6 +25023,21 @@ export interface operations {
       409: {
         content: {
           "application/json": components["schemas"]["ErrorResponse"];
+        };
+      };
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
+  /**
+   * Inspect platform object storage
+   * @description Platform administrators only. Read-only inventory of configured namespaces, provider buckets, cached usage and bounded Longhorn reconciliation. Never scans S3 objects or deletes data. Unknown metrics and billing remain unavailable, not zero. Provider or Kubernetes failures are explicit partial-result warnings.
+   */
+  getAdminStorageOverview: {
+    responses: {
+      /** @description Inventory with per-source completeness and observation timestamps */
+      200: {
+        content: {
+          "application/json": components["schemas"]["AdminStorageOverview"];
         };
       };
       default: components["responses"]["ErrorResponse"];
