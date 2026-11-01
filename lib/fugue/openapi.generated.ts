@@ -7937,23 +7937,38 @@ export interface components {
       node_mode?: string;
       ready: boolean;
       disk_pressure: boolean;
+      /** @description Current node policy, statistics, and minimum resource admission checks all pass. Active locks are reported separately. */
       eligible: boolean;
       rank?: number;
       reasons?: string[];
       allocatable?: components["schemas"]["BuilderResourceSnapshot"];
       used?: components["schemas"]["BuilderResourceSnapshot"];
+      requested?: components["schemas"]["BuilderResourceSnapshot"];
       reserved?: components["schemas"]["BuilderResourceSnapshot"];
       safety_buffer?: components["schemas"]["BuilderResourceSnapshot"];
       available?: components["schemas"]["BuilderResourceSnapshot"];
       remaining?: components["schemas"]["BuilderResourceSnapshot"];
+      /** @description Prospective per-build allocation for an eligible node, bounded by live headroom and policy. This inspection does not reserve capacity. */
+      allocation?: components["schemas"]["BuilderResourceSnapshot"];
     };
     BuilderPlacementInspection: {
+      /**
+       * Format: date-time
+       * @description Time of this live inspection, not a reconstruction of the failed operation's historical node state.
+       */
+      observed_at?: string;
       profile?: string;
       build_strategy?: string;
       required_node_labels?: {
         [key: string]: string;
       };
+      /** @description Minimum resources required for admission. Heavy memory allocation is calculated separately from live node headroom. */
       demand: components["schemas"]["BuilderResourceSnapshot"];
+      /**
+       * Format: int64
+       * @description Maximum memory allocated to one heavy build.
+       */
+      memory_ceiling_bytes?: number;
       reservations?: components["schemas"]["BuilderPlacementReservationInspection"][];
       locks?: components["schemas"]["BuilderPlacementLockInspection"][];
       nodes?: components["schemas"]["BuilderPlacementNodeInspection"][];
