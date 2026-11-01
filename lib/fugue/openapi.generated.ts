@@ -14058,6 +14058,13 @@ export interface components {
       policy_generation: string;
       /** @description Runtime diagnostics may include dynamic_quality_coverage. Its hostname states distinguish inactive_route_constraint (the current DNS route-state policy excludes the owner), learning_no_eligible_query (no projected query exists), learning_address_family_evidence_required (only unsupported address-family queries exist), and learning_queued (at least one supported query is actually scheduled for observation). These diagnostics do not authorize serving or override route policy; current usable evidence is separately classified during capture. */
       facts?: {
+        /** @description Bounded continuity observations for a managed in-place deployment. These facts never mark the desired origin or release ready. Admission independently rechecks the durable deploying operation, unchanged per-application HTTP authority (apart from the operation-derived deployment/cache epoch), exact signed positive LKG route, consumer convergence and original evidence expiry. Only the exact current_image_mismatch transition may retain that old route while independent DNS or peer configuration advances. Disabled routes, maintenance, other origin failures and explicit authority changes still win. */
+        managed_serving_handoffs?: {
+            tenant_id: string;
+            app_id: string;
+            release_id: string;
+            operation_id: string;
+          }[];
         /** @description Independent managed-release readiness from one cluster observation window. EndpointSlice membership is checked through Pod and ReplicaSet controller UIDs to the exact Deployment, including addresses, workload labels, executable release key and Pod readiness. These facts may authorize compilation but never replace actual consumer serving proof. */
         release_readiness?: {
           /** @enum {string} */
