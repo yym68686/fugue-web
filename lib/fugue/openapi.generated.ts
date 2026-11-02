@@ -2214,6 +2214,13 @@ export interface paths {
      */
     post: operations["cleanupAdminOrphanManifest"];
   };
+  "/v1/admin/storage/orphan-manifests/adopt": {
+    /**
+     * Reconcile a completed unregistered control-plane Longhorn backup
+     * @description Platform administrators only. Preview by default. Execution requires the reviewed manifest and repository config ETags. Creates a protected artifact for a failed or canceled run with no artifacts, preserving the run failure and the remote objects. Repository identity is verified; this does not perform or certify a database restore. The artifact records restore_verification=not_run and is excluded from automatic retention.
+     */
+    post: operations["adoptAdminOrphanManifest"];
+  };
   "/v1/admin/object-storage": {
     /**
      * getObjectStorageConfig
@@ -3453,6 +3460,36 @@ export interface components {
     };
     AdminOrphanManifestCleanupResponse: {
       cleanup: components["schemas"]["AdminOrphanManifestCleanup"];
+    };
+    AdminOrphanManifestAdoptRequest: {
+      run_id: string;
+      object_key: string;
+      /** @description Manifest ETag from preview; required for execution. */
+      expected_etag?: string;
+      /** @description Longhorn repository config ETag from preview; required for execution. */
+      expected_config_etag?: string;
+      /** @default false */
+      execute?: boolean;
+    };
+    AdminOrphanManifestAdopt: {
+      run_id: string;
+      object_key: string;
+      run_status: string;
+      etag?: string;
+      config_etag?: string;
+      remote_state?: string;
+      can_adopt: boolean;
+      executed: boolean;
+      artifact_id?: string;
+      protected: boolean;
+      /** @enum {string} */
+      restore_verification: "not_run";
+      block_mapping_count?: number;
+      blockers: string[];
+      message?: string;
+    };
+    AdminOrphanManifestAdoptResponse: {
+      adoption: components["schemas"]["AdminOrphanManifestAdopt"];
     };
     ObjectStore: {
       id: string;
@@ -25307,6 +25344,32 @@ export interface operations {
       409: {
         content: {
           "application/json": components["schemas"]["AdminOrphanManifestCleanupResponse"] | components["schemas"]["ErrorResponse"];
+        };
+      };
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
+  /**
+   * Reconcile a completed unregistered control-plane Longhorn backup
+   * @description Platform administrators only. Preview by default. Execution requires the reviewed manifest and repository config ETags. Creates a protected artifact for a failed or canceled run with no artifacts, preserving the run failure and the remote objects. Repository identity is verified; this does not perform or certify a database restore. The artifact records restore_verification=not_run and is excluded from automatic retention.
+   */
+  adoptAdminOrphanManifest: {
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["AdminOrphanManifestAdoptRequest"];
+      };
+    };
+    responses: {
+      /** @description Reconciliation preview or completed protected registration */
+      200: {
+        content: {
+          "application/json": components["schemas"]["AdminOrphanManifestAdoptResponse"];
+        };
+      };
+      /** @description Reconciliation checks failed or another reconciliation is in progress */
+      409: {
+        content: {
+          "application/json": components["schemas"]["AdminOrphanManifestAdoptResponse"] | components["schemas"]["ErrorResponse"];
         };
       };
       default: components["responses"]["ErrorResponse"];
