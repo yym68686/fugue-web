@@ -2207,6 +2207,13 @@ export interface paths {
      */
     get: operations["getAdminStorageOverview"];
   };
+  "/v1/admin/storage/orphan-manifests/cleanup": {
+    /**
+     * Preview or safely remove one orphan backup manifest
+     * @description Platform administrators only. The server re-runs reconciliation and deletes at most the exact requested manifest, only when the failed run has no registered artifact, no persisted bytes, no remaining run objects, no recoverable Longhorn remote backup, and the object ETag still matches. Send execute=true only after reviewing the preview.
+     */
+    post: operations["cleanupAdminOrphanManifest"];
+  };
   "/v1/admin/object-storage": {
     /**
      * getObjectStorageConfig
@@ -2238,10 +2245,22 @@ export interface paths {
      */
     get: operations["getObjectStore"];
     /**
+     * deleteObjectStore
+     * @description Permanently deletes ALL objects and unfinished uploads in this managed bucket. Requires storage.admin or data.admin, a target digest from deletion-plan, exact bucket confirmation and acknowledgement that external writers have been stopped. Each request performs a bounded batch; repeat while deleted=false. Deleting stores cannot be enabled or issued credentials. All Fugue credentials are revoked first; metadata is removed only after provider bucket deletion succeeds. Interrupted requests can be resumed. Progress counters are lower bounds after interruptions.
+     */
+    delete: operations["deleteObjectStore"];
+    /**
      * updateObjectStore
      * @description Requires storage.admin or the existing tenant data.admin scope. Disabling revokes all issued credentials before marking disabled and retains every object. Enabling does not restore revoked credentials. Quota is a measured soft budget.
      */
     patch: operations["updateObjectStore"];
+  };
+  "/v1/object-stores/{store_id}/deletion-plan": {
+    /**
+     * createObjectStoreDeletionPlan
+     * @description Returns the immutable target digest and cached usage for a destructive deletion of ALL bucket contents. Usage is explicitly incomplete and may be stale; the digest pins bucket identity, not an object snapshot. Does not contact the provider or mutate state. Requires storage.admin or data.admin.
+     */
+    post: operations["createObjectStoreDeletionPlan"];
   };
   "/v1/object-stores/{store_id}/credentials": {
     /**
@@ -3326,6 +3345,37 @@ export interface components {
       /** Format: int64 */
       quota_bytes?: number;
     };
+    ObjectStoreDeleteRequest: {
+      confirm_bucket: string;
+      plan_sha256: string;
+      /** @enum {boolean} */
+      ack_no_external_writers: true;
+    };
+    ObjectStoreDeleteResponse: {
+      deleted: boolean;
+      store: components["schemas"]["ObjectStore"];
+      inventory: {
+        /** Format: int64 */
+        object_count: number;
+        /** Format: int64 */
+        bytes: number;
+        /** @enum {string} */
+        source: "cached";
+        /** @enum {boolean} */
+        complete: false;
+        /** Format: date-time */
+        measured_at?: string;
+        plan_sha256: string;
+      };
+    };
+    ObjectStoreDeletionProgress: {
+      /** Format: date-time */
+      started_at: string;
+      /** Format: int64 */
+      deleted_objects: number;
+      /** Format: int64 */
+      aborted_multipart_uploads: number;
+    };
     AdminStorageNamespace: {
       kind: string;
       resource_id: string;
@@ -3380,6 +3430,30 @@ export interface components {
       longhorn: components["schemas"]["AdminStorageLonghornEntry"][];
       backup_usage?: components["schemas"]["BackupUsage"];
     };
+    AdminOrphanManifestCleanupRequest: {
+      run_id: string;
+      object_key: string;
+      /** @description Required for execution; must match the reviewed preview. */
+      expected_etag?: string;
+      /** @default false */
+      execute?: boolean;
+    };
+    AdminOrphanManifestCleanup: {
+      run_id: string;
+      object_key: string;
+      /** Format: int64 */
+      size_bytes?: number;
+      etag?: string;
+      run_status: string;
+      remote_state?: string;
+      can_delete: boolean;
+      executed: boolean;
+      blockers: string[];
+      message?: string;
+    };
+    AdminOrphanManifestCleanupResponse: {
+      cleanup: components["schemas"]["AdminOrphanManifestCleanup"];
+    };
     ObjectStore: {
       id: string;
       tenant_id: string;
@@ -3391,7 +3465,8 @@ export interface components {
       endpoint: string;
       region: string;
       /** @enum {string} */
-      status: "provisioning" | "active" | "disabling" | "disabled";
+      status: "provisioning" | "active" | "disabling" | "disabled" | "deleting";
+      deletion?: components["schemas"]["ObjectStoreDeletionProgress"];
       /** Format: int64 */
       quota_bytes: number;
       /** Format: int64 */
@@ -25212,6 +25287,32 @@ export interface operations {
     };
   };
   /**
+   * Preview or safely remove one orphan backup manifest
+   * @description Platform administrators only. The server re-runs reconciliation and deletes at most the exact requested manifest, only when the failed run has no registered artifact, no persisted bytes, no remaining run objects, no recoverable Longhorn remote backup, and the object ETag still matches. Send execute=true only after reviewing the preview.
+   */
+  cleanupAdminOrphanManifest: {
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["AdminOrphanManifestCleanupRequest"];
+      };
+    };
+    responses: {
+      /** @description Preview or completed conditional deletion */
+      200: {
+        content: {
+          "application/json": components["schemas"]["AdminOrphanManifestCleanupResponse"];
+        };
+      };
+      /** @description Safety checks failed or another cleanup is in progress */
+      409: {
+        content: {
+          "application/json": components["schemas"]["AdminOrphanManifestCleanupResponse"] | components["schemas"]["ErrorResponse"];
+        };
+      };
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
+  /**
    * getObjectStorageConfig
    * @description Platform administrators only. Returns configuration status without credentials.
    */
@@ -25310,6 +25411,38 @@ export interface operations {
     };
   };
   /**
+   * deleteObjectStore
+   * @description Permanently deletes ALL objects and unfinished uploads in this managed bucket. Requires storage.admin or data.admin, a target digest from deletion-plan, exact bucket confirmation and acknowledgement that external writers have been stopped. Each request performs a bounded batch; repeat while deleted=false. Deleting stores cannot be enabled or issued credentials. All Fugue credentials are revoked first; metadata is removed only after provider bucket deletion succeeds. Interrupted requests can be resumed. Progress counters are lower bounds after interruptions.
+   */
+  deleteObjectStore: {
+    parameters: {
+      path: {
+        store_id: string;
+      };
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ObjectStoreDeleteRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["ObjectStoreDeleteResponse"];
+        };
+      };
+      /** @description Deletion is incomplete; repeat the same confirmed request to continue */
+      202: {
+        content: {
+          "application/json": components["schemas"]["ObjectStoreDeleteResponse"];
+        };
+      };
+      409: components["responses"]["ObjectStorageBusy"];
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
+  /**
    * updateObjectStore
    * @description Requires storage.admin or the existing tenant data.admin scope. Disabling revokes all issued credentials before marking disabled and retains every object. Enabling does not restore revoked credentials. Quota is a measured soft budget.
    */
@@ -25329,6 +25462,27 @@ export interface operations {
       200: {
         content: {
           "application/json": components["schemas"]["ObjectStoreEnvelope"];
+        };
+      };
+      409: components["responses"]["ObjectStorageBusy"];
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
+  /**
+   * createObjectStoreDeletionPlan
+   * @description Returns the immutable target digest and cached usage for a destructive deletion of ALL bucket contents. Usage is explicitly incomplete and may be stale; the digest pins bucket identity, not an object snapshot. Does not contact the provider or mutate state. Requires storage.admin or data.admin.
+   */
+  createObjectStoreDeletionPlan: {
+    parameters: {
+      path: {
+        store_id: string;
+      };
+    };
+    responses: {
+      /** @description Successful response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["ObjectStoreDeleteResponse"];
         };
       };
       409: components["responses"]["ObjectStorageBusy"];
