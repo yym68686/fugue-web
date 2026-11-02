@@ -3433,8 +3433,6 @@ export interface components {
     AdminOrphanManifestCleanupRequest: {
       run_id: string;
       object_key: string;
-      /** @description Required for execution; must match the reviewed preview. */
-      expected_etag?: string;
       /** @default false */
       execute?: boolean;
     };
