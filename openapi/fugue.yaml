@@ -17539,6 +17539,7 @@ components:
       properties:
         run_id: {type: string}
         object_key: {type: string}
+        expected_etag: {type: string, description: Required for execution; must match the reviewed preview.}
         execute: {type: boolean, default: false}
     AdminOrphanManifestCleanup:
       type: object
