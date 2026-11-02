@@ -1328,6 +1328,15 @@ export interface paths {
      */
     put: operations["importAppDomainCertificate"];
   };
+  "/v1/apps/{id}/route/static-edge": {
+    /** Inspect independent static edge DNS routing for the primary platform hostname */
+    get: operations["getAppStaticEdgeRouting"];
+    /**
+     * Configure independent static edge DNS candidates and explicit fallback order
+     * @description Requires platform admin. Binds only the app's sole root route in the platform namespace. Uses a compare-and-swap revision. Registered edges remain independently operated; no manager credentials, processes or binaries are changed. The signed DNS publication probes each static address directly with public TLS, a nonce and exact route identity before answering. This operation changes desired configuration; normal consumer admission and positive serving verification remain required.
+     */
+    put: operations["putAppStaticEdgeRouting"];
+  };
   "/v1/apps/{id}/domains/availability": {
     /** Get App Domain Availability */
     get: operations["getAppDomainAvailability"];
@@ -4061,6 +4070,7 @@ export interface components {
       source?: string;
     };
     AppRoute: {
+      dns_routing?: components["schemas"]["AppStaticEdgeRouting"];
       hostname?: string;
       path_prefix?: string;
       base_domain?: string;
@@ -10966,6 +10976,31 @@ export interface components {
       app: components["schemas"]["App"];
       operation: components["schemas"]["Operation"];
     };
+    StaticEdgeDNSCandidate: {
+      registration_id: string;
+      edge_id: string;
+      addresses: string[];
+      probe_path: string;
+      route_digest: string;
+      status_code: number;
+    };
+    AppStaticEdgeRouting: {
+      /** @enum {string} */
+      version: "static-edge-dns-v1";
+      candidates: components["schemas"]["StaticEdgeDNSCandidate"][];
+      availability: components["schemas"]["DNSAvailabilityPolicy"];
+    };
+    AppStaticEdgeRoutingResponse: {
+      app_id: string;
+      hostname: string;
+      revision: string;
+      routing?: components["schemas"]["AppStaticEdgeRouting"];
+    };
+    PutAppStaticEdgeRoutingRequest: {
+      expected_revision: string;
+      /** @description Omit to restore the ordinary Fugue DNS strategy. */
+      routing?: components["schemas"]["AppStaticEdgeRouting"];
+    };
     AppDomainResponse: {
       domain: components["schemas"]["AppDomain"];
     };
@@ -13609,6 +13644,13 @@ export interface components {
       edge_group_ids: string[];
     };
     PlatformConfigPolicySnapshot: ({
+      /** @description Explicit independent static endpoints for sole-owner app root hostnames. Requires consumer readiness; never grants platform lifecycle authority over these processes. Unsupported for Cell publications. */
+      static_edge_routes?: {
+          app_id: string;
+          tenant_id: string;
+          hostname: string;
+          routing: components["schemas"]["AppStaticEdgeRouting"];
+        }[];
       /** @description Pinned global producer input only. Suspends exact endpoint identities. An optional recovery policy authorizes bounded low-frequency probes and automatic reevaluation on consecutive success, independent of estimated dates. Current serving artifacts remain unchanged until normal signed rollout and fresh per-route proofs succeed. Runtime observations never mutate the signed input. Historical membership uses the parent's signed recovery evidence. Holds without recovery require explicit configuration removal. */
       offline_edges?: ({
           edge_id: string;
@@ -14058,6 +14100,13 @@ export interface components {
       policy_generation: string;
       /** @description Runtime diagnostics may include dynamic_quality_coverage. Its hostname states distinguish inactive_route_constraint (the current DNS route-state policy excludes the owner), learning_no_eligible_query (no projected query exists), learning_address_family_evidence_required (only unsupported address-family queries exist), and learning_queued (at least one supported query is actually scheduled for observation). These diagnostics do not authorize serving or override route policy; current usable evidence is separately classified during capture. */
       facts?: {
+        /** @description Bounded continuity observations for a managed in-place deployment. These facts never mark the desired origin or release ready. Admission independently rechecks the durable deploying operation, unchanged per-application HTTP authority (apart from the operation-derived deployment/cache epoch), exact signed positive LKG route, consumer convergence and original evidence expiry. Only the exact current_image_mismatch transition may retain that old route while independent DNS or peer configuration advances. Disabled routes, maintenance, other origin failures and explicit authority changes still win. */
+        managed_serving_handoffs?: {
+            tenant_id: string;
+            app_id: string;
+            release_id: string;
+            operation_id: string;
+          }[];
         /** @description Independent managed-release readiness from one cluster observation window. EndpointSlice membership is checked through Pod and ReplicaSet controller UIDs to the exact Deployment, including addresses, workload labels, executable release key and Pod readiness. These facts may authorize compilation but never replace actual consumer serving proof. */
         release_readiness?: {
           /** @enum {string} */
@@ -21083,6 +21132,48 @@ export interface operations {
       200: {
         content: {
           "application/json": components["schemas"]["AppDomainCertificateMetadata"];
+        };
+      };
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
+  /** Inspect independent static edge DNS routing for the primary platform hostname */
+  getAppStaticEdgeRouting: {
+    parameters: {
+      path: {
+        id: components["parameters"]["IdPathParam"];
+      };
+    };
+    responses: {
+      /** @description Desired routing and revision; configuration is not serving readiness */
+      200: {
+        content: {
+          "application/json": components["schemas"]["AppStaticEdgeRoutingResponse"];
+        };
+      };
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
+  /**
+   * Configure independent static edge DNS candidates and explicit fallback order
+   * @description Requires platform admin. Binds only the app's sole root route in the platform namespace. Uses a compare-and-swap revision. Registered edges remain independently operated; no manager credentials, processes or binaries are changed. The signed DNS publication probes each static address directly with public TLS, a nonce and exact route identity before answering. This operation changes desired configuration; normal consumer admission and positive serving verification remain required.
+   */
+  putAppStaticEdgeRouting: {
+    parameters: {
+      path: {
+        id: components["parameters"]["IdPathParam"];
+      };
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["PutAppStaticEdgeRoutingRequest"];
+      };
+    };
+    responses: {
+      /** @description Desired routing accepted, pending normal signed DNS publication */
+      200: {
+        content: {
+          "application/json": components["schemas"]["AppStaticEdgeRoutingResponse"];
         };
       };
       default: components["responses"]["ErrorResponse"];
