@@ -104,18 +104,20 @@ export function ActionButton({
   className = "btn",
   confirm,
   onDone,
+  disabled = false,
 }: {
   onAction: () => Promise<unknown>;
   children: React.ReactNode;
   className?: string;
   confirm?: string;
   onDone?: () => void;
+  disabled?: boolean;
 }) {
   const t = useT();
   const [busy, setBusy] = useState(false);
 
   async function run() {
-    if (busy) return;
+    if (busy || disabled) return;
     if (confirm && !window.confirm(confirm)) return;
     setBusy(true);
     try {
@@ -129,7 +131,7 @@ export function ActionButton({
   }
 
   return (
-    <button type="button" className={className} disabled={busy} onClick={run}>
+    <button type="button" className={className} disabled={busy || disabled} onClick={run}>
       {busy ? t("Working…") : children}
     </button>
   );

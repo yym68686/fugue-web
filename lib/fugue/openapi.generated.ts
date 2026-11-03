@@ -6769,6 +6769,19 @@ export interface components {
       /** @description Cron schedule used when mode is scheduled. Defaults to every five minutes. */
       schedule?: string;
     };
+    /** @description Lifecycle of application Pods when their node becomes not-ready or unreachable. New apps default to wait; omission on existing apps preserves their prior Kubernetes eviction behavior. This policy does not purchase standby capacity, change replicas or placement, or enable app/database failover. An explicit policy change is applied through a normal user-requested deployment and may replace Pods; it cannot undo a Pod deletion already in progress. Database instances retain their independently configured lifecycle and failover policy. */
+    AppNodeLossPolicy: {
+      /**
+       * @description wait retains Pods on a disconnected node until it recovers or the user acts. replace permits native Kubernetes eviction after the configured toleration; replacement still requires eligible authorized capacity and does not guarantee availability or exclusive execution on a partitioned node. legacy leaves Kubernetes tolerations unchanged.
+       * @enum {string}
+       */
+      mode: "wait" | "replace" | "legacy";
+      /**
+       * Format: int64
+       * @description Only valid with replace. Defaults to 300; explicit 0 permits immediate eviction. No timeout is used with wait.
+       */
+      toleration_seconds?: number;
+    };
     AppFailoverSpec: {
       target_runtime_id?: string;
       auto?: boolean;
@@ -7155,6 +7168,7 @@ export interface components {
       volume_replication?: components["schemas"]["AppVolumeReplicationSpec"];
       postgres?: components["schemas"]["AppPostgresSpec"];
       failover?: components["schemas"]["AppFailoverSpec"];
+      node_loss?: components["schemas"]["AppNodeLossPolicy"];
       continuity?: components["schemas"]["AppContinuityPolicy"];
       /** Format: int32 */
       image_mirror_limit?: number;
@@ -9235,6 +9249,7 @@ export interface components {
       mode?: "exclusive";
     };
     PatchAppRequest: {
+      node_loss?: components["schemas"]["AppNodeLossPolicy"];
       /** Format: int32 */
       image_mirror_limit?: number;
       startup_command?: string;

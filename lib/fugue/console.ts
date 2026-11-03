@@ -856,6 +856,7 @@ export type AppSpec = {
   replicas?: number;
   command?: string;
   failover?: unknown;
+  node_loss?: FugueAPIComponents["schemas"]["AppNodeLossPolicy"];
   persistent_storage?: unknown;
   resources?: unknown;
 };
@@ -1362,6 +1363,7 @@ export async function patchApp(
     image_mirror_limit?: number;
     startup_command?: string;
     persistent_storage?: unknown;
+    node_loss?: FugueAPIComponents["schemas"]["AppNodeLossPolicy"];
   },
 ) {
   return fugueSend<OperationResult>(adminKey, "PATCH", appPath(appId), patch);

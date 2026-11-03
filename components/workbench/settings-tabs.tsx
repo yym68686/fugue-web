@@ -49,6 +49,7 @@ export function SettingsTab({
     <>
       <AppMigrationPanel key={app.id} appId={app.id} currentRuntimeId={app.status?.current_runtime_id || spec.runtime_id} />
       <AppMailPanel key={`mail-${app.id}`} appId={app.id} />
+      <NodeLossSettings key={`node-loss-${app.id}-${JSON.stringify(spec.node_loss)}`} app={app} />
       <div className="panel">
         <div className="panel-h">
           <h3>{t("Runtime settings")}</h3>
@@ -224,6 +225,48 @@ export function SettingsTab({
         />
       )}
     </>
+  );
+}
+
+function NodeLossSettings({ app }: { app: ConsoleAppDetail }) {
+  const t = useT();
+  const router = useRouter();
+  const configured = app.spec?.node_loss;
+  const [mode, setMode] = useState(configured?.mode ?? "legacy");
+  const [seconds, setSeconds] = useState(String(configured?.toleration_seconds ?? 300));
+  const changed = mode !== (configured?.mode ?? "legacy") ||
+    (mode === "replace" && Number(seconds) !== (configured?.toleration_seconds ?? 300));
+  return (
+    <div className="panel">
+      <div className="panel-h"><h3>{t("Node loss policy")}</h3></div>
+      <div className="form">
+        <div className="form-row">
+          <label>{t("Configured policy")}</label>
+          <span>{configured?.mode === "wait" ? t("Wait for the original node") : configured?.mode === "replace" ? t("Allow replacement") : t("Legacy Kubernetes behavior")}</span>
+        </div>
+        <div className="form-row">
+          <label>{t("On node loss")}</label>
+          <select className="input" value={mode} onChange={(e) => setMode(e.target.value as typeof mode)}>
+            <option value="wait">{t("Wait for the original node")}</option>
+            <option value="replace">{t("Allow replacement")}</option>
+            <option value="legacy">{t("Legacy Kubernetes behavior")}</option>
+          </select>
+        </div>
+        {mode === "replace" && <div className="form-row">
+          <label>{t("Replacement delay (seconds)")}</label>
+          <input className="input mono" type="number" min={0} max={86400} step={1} value={seconds} onChange={(e) => setSeconds(e.target.value)} />
+        </div>}
+        <p className="muted">{t("Wait keeps the original Pod during a node outage. Replacement permits eviction within existing placement and replica limits; it cannot guarantee that the old process has stopped.")}</p>
+        <p className="muted">{t("Applying this policy deploys the app and may replace Pods. It does not add replicas, standby resources, or failover. Authorized resource consumption is billed normally. Existing Pod deletions cannot be undone.")}</p>
+      </div>
+      <div className="form-foot">
+        <ActionButton className="btn primary" disabled={!changed} onAction={() => {
+          const delay = Number(seconds);
+          if (mode === "replace" && (!seconds.trim() || !Number.isInteger(delay) || delay < 0 || delay > 86400)) throw new Error(t("Replacement delay must be an integer from 0 to 86400."));
+          return callConsole(APP(app.id), { method: "PATCH", body: { node_loss: { mode, ...(mode === "replace" ? { toleration_seconds: delay } : {}) } } });
+        }} onDone={() => router.refresh()}>{t("Deploy node loss policy")}</ActionButton>
+      </div>
+    </div>
   );
 }
 
