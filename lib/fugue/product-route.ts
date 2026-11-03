@@ -13,7 +13,7 @@ import {
 import { getCachedWorkspaceAccessByEmail } from "@/lib/server/session-state-cache";
 
 export type RouteContextWithParams<T extends string> = {
-  params: Promise<Record<T, string>> | Record<T, string>;
+  params: Promise<Record<T, string>>;
 };
 
 export function jsonError(status: number, message: string) {

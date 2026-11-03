@@ -12,7 +12,8 @@ WORKDIR /app
 ENV NEXT_TELEMETRY_DISABLED=1
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-RUN npm run build
+# Keep the compiler heap bounded; the standalone runtime keeps its own defaults.
+RUN NODE_OPTIONS=--max-old-space-size=512 npm run build -- --webpack
 
 # ---- runner: minimal standalone runtime ----
 FROM node:24.22.1-alpine@sha256:06d7adf3e0ef61a13f1d28682726366f97a15aa1888c934d3ecec86c33918b53 AS runner
