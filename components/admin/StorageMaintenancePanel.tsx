@@ -19,7 +19,7 @@ export default function StorageMaintenancePanel() {
       const response = await fetch('/api/admin/storage/jobs', { cache: 'no-store' });
       if (!response.ok) throw new Error();
       const body: { jobs: StorageMaintenanceJob[] } = await response.json();
-      setJobs(body.jobs); setError('');
+      setJobs(body.jobs);
     } catch { setError(t('Storage maintenance unavailable.')); }
   }
   useEffect(() => {

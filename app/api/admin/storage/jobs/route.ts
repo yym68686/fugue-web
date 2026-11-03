@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { requireAdminRoute } from '@/lib/admin/route';
 import { createStorageMaintenanceJob, getStorageMaintenanceJobs, type StorageMaintenanceJob } from '@/lib/fugue/console';
 import { jsonError, readErrorStatus } from '@/lib/fugue/product-route';
+import { readRequestOrigin } from '@/lib/auth/origin';
 
 export const dynamic = 'force-dynamic';
 function noStore(response: NextResponse) {
@@ -18,10 +19,10 @@ export async function GET() {
 export async function POST(request: Request) {
   const access = await requireAdminRoute();
   if (access.response) return noStore(access.response);
-  if (request.headers.get('origin') !== new URL(request.url).origin) {
-    return noStore(jsonError(403, 'Same-origin request required.'));
-  }
   try {
+    if (request.headers.get('origin') !== readRequestOrigin(request)) {
+      return noStore(jsonError(403, 'Same-origin request required.'));
+    }
     const body: unknown = await request.json();
     if (!body || typeof body !== 'object') return noStore(jsonError(400, 'Invalid maintenance request.'));
     const input = body as Record<string, unknown>;
