@@ -5,6 +5,7 @@ import type { AdminStorageOverview } from '@/lib/fugue/console';
 import { measuredStorageBytes, storageBytes } from '@/lib/admin/storage';
 import { useI18n } from '@/lib/i18n/client';
 import './admin-storage.css';
+import StorageMaintenancePanel from './StorageMaintenancePanel';
 
 export default function AdminStoragePanel({ initial }: { initial: AdminStorageOverview | null }) {
   const { t, locale } = useI18n();
@@ -31,8 +32,9 @@ export default function AdminStoragePanel({ initial }: { initial: AdminStorageOv
   const states = [...new Set(data?.longhorn.map(row => row.cleanup_state) ?? [])].sort();
 
   return <div className="page admin-storage-page">
-    <div className="phead"><div><div className="eyebrow">PLATFORM · R2 / S3</div><h1>{t('Platform object storage')}</h1><p className="muted">{t('Read-only account inventory, namespace ownership and engine cleanup reconciliation.')}</p></div><button className="btn" disabled={busy} onClick={() => void refresh()}>{t(busy ? 'Loading…' : 'Refresh inventory')}</button></div>
+    <div className="phead"><div><div className="eyebrow">PLATFORM · R2 / S3</div><h1>{t('Platform object storage')}</h1><p className="muted">{t('Account inventory, namespace ownership and safe maintenance jobs.')}</p></div><button className="btn" disabled={busy} onClick={() => void refresh()}>{t(busy ? 'Loading…' : 'Refresh inventory')}</button></div>
     {error && <div className="panel storage-warning" role="alert">{t(error)}</div>}
+    <StorageMaintenancePanel />
     {data && <>
       <p className="muted">{t('Observed at')} {date(data.observed_at)} (UTC+8) · {t('Account')} {data.account_id || '—'}</p>
       <div className="admin-storage-summary">

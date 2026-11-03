@@ -2213,6 +2213,19 @@ export interface paths {
      */
     get: operations["getAdminStorageOverview"];
   };
+  "/v1/admin/storage/jobs": {
+    /** List durable storage maintenance jobs */
+    get: operations["listStorageMaintenanceJobs"];
+    /**
+     * Queue storage reconciliation or cleanup
+     * @description Platform administrators only. Preview by default. Execution rechecks current references; it never directly removes Longhorn shared blocks. Global retention checks enabled policies only; an explicit policy scope also permits disabled-policy retention. Data GC covers the physical namespace shared by all workspaces, with a seven-day object grace period. Idle transfer retirement uses a thirty-day inactivity window in addition to expired authorization.
+     */
+    post: operations["createStorageMaintenanceJob"];
+  };
+  "/v1/admin/storage/jobs/{job_id}": {
+    /** Inspect a storage maintenance job */
+    get: operations["getStorageMaintenanceJob"];
+  };
   "/v1/admin/storage/orphan-manifests/cleanup": {
     /**
      * Preview or safely remove one orphan backup manifest
@@ -2380,7 +2393,10 @@ export interface paths {
     post: operations["createDataGrant"];
   };
   "/v1/data/workspaces/{workspace_id}/gc/sweep": {
-    /** Sweep Data Workspace GC */
+    /**
+     * Sweep Data Workspace GC
+     * @description Platform administrators only. Scans a shared physical storage namespace and preserves references across every tenant, workspace and active transfer. Preview by default; seven-day object grace by default.
+     */
     post: operations["sweepDataWorkspaceGC"];
   };
   "/v1/data/workspaces/{workspace_id}/backend-migrations": {
@@ -3388,6 +3404,26 @@ export interface components {
       deleted_objects: number;
       /** Format: int64 */
       aborted_multipart_uploads: number;
+    };
+    StorageMaintenanceJob: {
+      id: string;
+      /** @enum {string} */
+      kind: "retention" | "longhorn-reconcile" | "backup-cleanup" | "data-gc" | "transfer-expiry";
+      scope_id?: string;
+      execute: boolean;
+      /** @enum {string} */
+      status: "queued" | "running" | "retrying" | "succeeded" | "failed";
+      attempts: number;
+      /** Format: date-time */
+      created_at: string;
+      /** Format: date-time */
+      updated_at: string;
+      /** Format: date-time */
+      retry_at?: string;
+      error?: string;
+      result?: {
+        [key: string]: unknown;
+      };
     };
     AdminStorageNamespace: {
       kind: string;
@@ -25350,6 +25386,64 @@ export interface operations {
       default: components["responses"]["ErrorResponse"];
     };
   };
+  /** List durable storage maintenance jobs */
+  listStorageMaintenanceJobs: {
+    responses: {
+      /** @description Recent history and all actionable jobs; platform administrators only */
+      200: {
+        content: {
+          "application/json": {
+            jobs: components["schemas"]["StorageMaintenanceJob"][];
+          };
+        };
+      };
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
+  /**
+   * Queue storage reconciliation or cleanup
+   * @description Platform administrators only. Preview by default. Execution rechecks current references; it never directly removes Longhorn shared blocks. Global retention checks enabled policies only; an explicit policy scope also permits disabled-policy retention. Data GC covers the physical namespace shared by all workspaces, with a seven-day object grace period. Idle transfer retirement uses a thirty-day inactivity window in addition to expired authorization.
+   */
+  createStorageMaintenanceJob: {
+    requestBody: {
+      content: {
+        "application/json": {
+          /** @enum {string} */
+          kind: "retention" | "longhorn-reconcile" | "backup-cleanup" | "data-gc" | "transfer-expiry";
+          /** @description Policy ID for retention; workspace ID for data-gc */
+          scope_id?: string;
+          /** @default false */
+          execute?: boolean;
+        };
+      };
+    };
+    responses: {
+      /** @description Persisted job; poll its resource for completion */
+      202: {
+        content: {
+          "application/json": components["schemas"]["StorageMaintenanceJob"];
+        };
+      };
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
+  /** Inspect a storage maintenance job */
+  getStorageMaintenanceJob: {
+    parameters: {
+      path: {
+        job_id: string;
+      };
+    };
+    responses: {
+      /** @description Persisted progress, errors and retry time */
+      200: {
+        content: {
+          "application/json": components["schemas"]["StorageMaintenanceJob"];
+        };
+      };
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
   /**
    * Preview or safely remove one orphan backup manifest
    * @description Platform administrators only. The server re-runs reconciliation and deletes at most the exact requested manifest, only when the failed run has no registered artifact, no persisted bytes, no remaining run objects, no recoverable Longhorn remote backup, and the object ETag still matches. Send execute=true only after reviewing the preview.
@@ -26175,7 +26269,10 @@ export interface operations {
       default: components["responses"]["ErrorResponse"];
     };
   };
-  /** Sweep Data Workspace GC */
+  /**
+   * Sweep Data Workspace GC
+   * @description Platform administrators only. Scans a shared physical storage namespace and preserves references across every tenant, workspace and active transfer. Preview by default; seven-day object grace by default.
+   */
   sweepDataWorkspaceGC: {
     parameters: {
       path: {

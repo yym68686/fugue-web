@@ -2102,6 +2102,13 @@ export type AdminStorageOverview = FugueAPIComponents["schemas"]["AdminStorageOv
 export async function getAdminStorageOverview(): Promise<AdminStorageOverview> {
   return fugueGet<AdminStorageOverview>(readBootstrapKey(), "/v1/admin/storage");
 }
+export type StorageMaintenanceJob = FugueAPIComponents["schemas"]["StorageMaintenanceJob"];
+export async function getStorageMaintenanceJobs() {
+  return fugueGet<{ jobs: StorageMaintenanceJob[] }>(readBootstrapKey(), "/v1/admin/storage/jobs");
+}
+export async function createStorageMaintenanceJob(body: { kind: StorageMaintenanceJob["kind"]; scope_id?: string; execute: boolean }) {
+  return fugueSend<StorageMaintenanceJob>(readBootstrapKey(), "POST", "/v1/admin/storage/jobs", body);
+}
 export type ObjectStorageCredential = import("./openapi.generated").components["schemas"]["ObjectStorageCredential"];
 export async function listObjectStores(key: string) {
   return fugueGet<{stores: ObjectStore[]}>(key, "/v1/object-stores");

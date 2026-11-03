@@ -21,3 +21,14 @@ test('platform storage is guarded before bootstrap access and exposes no mutatio
   assert.match(route, /private, no-store/);
   assert.doesNotMatch(route, /export async function (POST|DELETE|PUT|PATCH)/);
 });
+
+test('maintenance mutations require an admin session and the same browser origin', async () => {
+  const route = await readFile('app/api/admin/storage/jobs/route.ts', 'utf8');
+  const panel = await readFile('components/admin/StorageMaintenancePanel.tsx', 'utf8');
+  const post = route.slice(route.indexOf('export async function POST'));
+  assert.ok(post.indexOf('await requireAdminRoute()') < post.indexOf('await createStorageMaintenanceJob('));
+  assert.ok(post.indexOf("request.headers.get('origin')") < post.indexOf('await createStorageMaintenanceJob('));
+  assert.match(route, /private, no-store/);
+  assert.doesNotMatch(route, /jsonError\([^\n]*error\.message/);
+  assert.match(panel, /\[confirm, setConfirm\] = useState\(false\)/);
+});
