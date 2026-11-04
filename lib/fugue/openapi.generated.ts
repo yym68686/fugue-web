@@ -2213,6 +2213,15 @@ export interface paths {
      */
     get: operations["getAdminStorageOverview"];
   };
+  "/v1/admin/storage/compiler-input-archive": {
+    /** Inspect the control plane archive backend without secrets */
+    get: operations["getCompilerInputArchiveBackend"];
+    /**
+     * Provision an isolated control plane R2 archive
+     * @description Platform administrators only. Preview unless execute is true. Uses existing platform R2 management to create a private dedicated bucket, indefinite object lock and separate encrypted bucket-scoped reader and writer credentials. Resumable; does not migrate or route any input. Existing identities cannot be replaced or disabled through this endpoint.
+     */
+    post: operations["enableCompilerInputArchiveBackend"];
+  };
   "/v1/admin/storage/jobs": {
     /** List durable storage maintenance jobs */
     get: operations["listStorageMaintenanceJobs"];
@@ -3351,6 +3360,20 @@ export interface components {
     DataMultipartPartsResponse: {
       transfer: components["schemas"]["DataTransferSummary"];
       parts: components["schemas"]["DataTransferPart"][];
+    };
+    CompilerInputArchiveBackendStatus: {
+      configured: boolean;
+      executed: boolean;
+      /** @enum {string} */
+      state: "unconfigured" | "provisioning" | "active";
+      bucket?: string;
+      endpoint?: string;
+      prefix?: string;
+      reader_configured?: boolean;
+      writer_configured?: boolean;
+      retention_policy_sha256?: string;
+      /** Format: date-time */
+      protection_verified_at?: string;
     };
     ObjectStorageConfigRequest: {
       account_id: string;
@@ -25381,6 +25404,41 @@ export interface operations {
       200: {
         content: {
           "application/json": components["schemas"]["AdminStorageOverview"];
+        };
+      };
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
+  /** Inspect the control plane archive backend without secrets */
+  getCompilerInputArchiveBackend: {
+    responses: {
+      /** @description Platform administrators only; configuration is not a migration receipt */
+      200: {
+        content: {
+          "application/json": components["schemas"]["CompilerInputArchiveBackendStatus"];
+        };
+      };
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
+  /**
+   * Provision an isolated control plane R2 archive
+   * @description Platform administrators only. Preview unless execute is true. Uses existing platform R2 management to create a private dedicated bucket, indefinite object lock and separate encrypted bucket-scoped reader and writer credentials. Resumable; does not migrate or route any input. Existing identities cannot be replaced or disabled through this endpoint.
+   */
+  enableCompilerInputArchiveBackend: {
+    requestBody: {
+      content: {
+        "application/json": {
+          /** @default false */
+          execute?: boolean;
+        };
+      };
+    };
+    responses: {
+      /** @description Preview or persisted provisioning result; credentials are never returned */
+      200: {
+        content: {
+          "application/json": components["schemas"]["CompilerInputArchiveBackendStatus"];
         };
       };
       default: components["responses"]["ErrorResponse"];
