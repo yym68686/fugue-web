@@ -8167,7 +8167,7 @@ export interface components {
     BuilderPlacementInspection: {
       /**
        * Format: date-time
-       * @description Time of this live inspection, not a reconstruction of the failed operation's historical node state.
+       * @description Time the node inputs were observed. In a failed operation diagnosis this is the persisted admission snapshot, never a reconstruction from current live state.
        */
       observed_at?: string;
       profile?: string;
@@ -8193,6 +8193,7 @@ export interface components {
       app_name?: string;
       service?: string;
       evidence?: string[];
+      /** @description Persisted inputs from the failed builder admission decision. Omitted with missing_evidence when the historical configuration or snapshot was not captured. */
       builder_placement?: components["schemas"]["BuilderPlacementInspection"];
       dependency_chain?: string[];
       blocked_by?: components["schemas"]["OperationDiagnosisBlocker"][];
@@ -8247,8 +8248,9 @@ export interface components {
       /** @description Optional durable evidence. Builder attempt records use build_attempt and retain every retry independently; user-facing consumers must not render arbitrary diagnostic payloads as deployment errors. */
       payload?: {
         build_attempt?: components["schemas"]["BuilderAttemptEvidence"];
-        /** @description Bounded build snapshots and redacted log tails. Returned only to platform administrators with include_payload; never included in public CLI deployment results. */
+        /** @description Bounded build snapshots, effective retry policy, admission inputs and redacted log tails. Returned only to platform administrators with include_payload; never included in public CLI deployment results. */
         builder_diagnostics?: {
+          builder_placement?: components["schemas"]["BuilderPlacementInspection"];
           [key: string]: unknown;
         };
         [key: string]: unknown;
