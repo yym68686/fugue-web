@@ -4,11 +4,10 @@ import AppLayout from '@/components/AppLayout';
 import NewKeyButton from '@/components/keys/NewKeyButton';
 import KeyRowActions from '@/components/keys/KeyRowActions';
 import CopyKeyButton from '@/components/keys/CopyKeyButton';
-import MailPermissions from '@/components/keys/MailPermissions';
 import { ApiKey } from '@/lib/types';
 import { requireActivePageSession } from '@/lib/auth/page-access';
 import { getAuthContext } from '@/lib/fugue/console';
-import { sortFugueScopes, WORKSPACE_ADMIN_SCOPES } from '@/lib/fugue/scopes';
+import { grantableWorkspaceScopes } from '@/lib/workspace/api-key-scopes';
 import { getWorkspaceAccessByEmail } from '@/lib/workspace/store';
 import { getRequestI18n } from '@/lib/i18n/server';
 import type { TranslateFn } from '@/lib/i18n/translate';
@@ -19,21 +18,15 @@ export const dynamic = 'force-dynamic';
 // workspace admin key itself holds — the backend rejects the rest with "cannot
 // mint scopes you do not hold". Workspaces provisioned before WORKSPACE_ADMIN_SCOPES
 // grew have admin keys with a subset (e.g. 8-11 of 18), so offering the full
-// constant made the all-selected default fail. Offer only the live held scopes
-// intersected with the supported set; unavailable evidence grants nothing.
+// constant made the all-selected default fail. app.read can also be granted
+// during key creation/editing by upgrading the owner's legacy primary key.
 async function resolveGrantableScopes(email: string): Promise<string[]> {
-  const supported = sortFugueScopes(WORKSPACE_ADMIN_SCOPES);
   try {
     const workspace = await getWorkspaceAccessByEmail(email);
     if (!workspace?.adminKeySecret) return [];
 
     const ctx = await getAuthContext(workspace.adminKeySecret);
-    // Platform-admin principals bypass the subset check entirely.
-    if (ctx.platformAdmin) return supported;
-
-    const held = new Set(ctx.scopes);
-    const grantable = supported.filter((scope) => held.has(scope));
-    return grantable;
+    return grantableWorkspaceScopes(ctx, workspace);
   } catch {
     return [];
   }
@@ -131,7 +124,6 @@ export default withPageTiming('/keys', async function KeysPage() {
           </div>
         </div>
 
-        <MailPermissions canEnable={!grantableScopes.includes('app.read') && grantableScopes.includes('app.write') && grantableScopes.includes('apikey.write')} />
         {grantableScopes.length === 0 && <p role="alert">{t('Workspace permissions are unavailable. Refresh before creating or editing keys.')}</p>}
 
         <div className="panel">

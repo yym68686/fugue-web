@@ -792,7 +792,7 @@ export async function repairWorkspaceAdminScopes(
       [workspace.email, JSON.stringify(scopes), updatedAt],
     );
     await upsertWorkspaceAdminKey(client, { ...workspace, adminKeyScopes: scopes, updatedAt });
-    return scopes;
+    return { ...workspace, adminKeyScopes: scopes, updatedAt };
   });
 }
 

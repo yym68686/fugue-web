@@ -10,6 +10,8 @@ import {
   type RouteContextWithParams,
 } from "@/lib/fugue/product-route";
 import { WORKSPACE_ADMIN_SCOPES, sortFugueScopes } from "@/lib/fugue/scopes";
+import { prepareWorkspaceForKeyScopes } from "@/lib/workspace/api-key-scopes";
+import { readMailMutation } from "@/lib/fugue/mail-route";
 import {
   updateManagedApiKeyMeta,
   updateManagedApiKeyStatus,
@@ -25,16 +27,19 @@ export async function PATCH(
   request: Request,
   context: RouteContextWithParams<"id">,
 ) {
+  try {
+    return await handlePatchKey(request, context);
+  } catch (error) {
+    return jsonError(readErrorStatus(error), readErrorMessage(error));
+  }
+}
+
+async function handlePatchKey(request: Request, context: RouteContextWithParams<"id">) {
   const id = await readRouteParam(context, "id");
   const owned = await resolveOwnedKey(id);
   if (owned.response) return owned.response;
 
-  let body: { label?: unknown; scopes?: unknown };
-  try {
-    body = await request.json();
-  } catch {
-    return jsonError(400, "Invalid request body.");
-  }
+  const body = await readMailMutation(request);
 
   const patch: { label?: string; scopes?: string[] } = {};
 
@@ -71,7 +76,8 @@ export async function PATCH(
   }
 
   try {
-    const updated = await updateApiKey(owned.adminKeySecret, id, patch);
+    const workspace = await prepareWorkspaceForKeyScopes(owned.workspace, patch.scopes ?? []);
+    const updated = await updateApiKey(workspace.adminKeySecret, id, patch);
     const apiKey = updated.api_key;
 
     // Mirror what the backend actually stored where available, else the request.

@@ -2,7 +2,7 @@ import "server-only";
 
 import { FugueApiError, getAuthContext, type AuthContext } from "@/lib/fugue/console";
 import { updateFugueApiKeyScopes } from "@/lib/fugue/platform-admin";
-import { sortFugueScopes } from "@/lib/fugue/scopes";
+import { sortFugueScopes, WORKSPACE_ADMIN_SCOPES } from "@/lib/fugue/scopes";
 import { invalidateCachedWorkspaceAccessByEmail } from "@/lib/server/session-state-cache";
 import { repairWorkspaceAdminScopes, type WorkspaceAccess } from "@/lib/workspace/store";
 
@@ -13,13 +13,30 @@ function verifyIdentity(context: AuthContext, workspace: WorkspaceAccess) {
     throw new FugueApiError(403, "Workspace key identity could not be verified.");
   }
   if (!context.scopes.includes("app.write") || !context.scopes.includes("apikey.write")) {
-    throw new FugueApiError(403, "The workspace key needs app.write and apikey.write before enabling mail access.");
+    throw new FugueApiError(403, "The workspace key needs app.write and apikey.write before granting app.read.");
   }
 }
 
-/** Only adds app.read after an explicit owner action; child keys remain unchanged. */
-export async function enableWorkspaceMailRead(email: string) {
-  const scopes = await repairWorkspaceAdminScopes(email, async (workspace) => {
+export function grantableWorkspaceScopes(context: AuthContext, workspace: WorkspaceAccess) {
+  const supported = sortFugueScopes(WORKSPACE_ADMIN_SCOPES);
+  if (context.platformAdmin) return supported;
+  const held = new Set(context.scopes);
+  try {
+    verifyIdentity(context, workspace);
+    held.add("app.read");
+  } catch {
+    // An unverified or restricted primary key cannot acquire additional scopes.
+  }
+  return supported.filter((scope) => held.has(scope));
+}
+
+/** Prepare the current primary key only when an owner requests app.read on a child key. */
+export async function prepareWorkspaceForKeyScopes(target: WorkspaceAccess, requested: readonly string[]) {
+  if (!requested.includes("app.read")) return target;
+  const updated = await repairWorkspaceAdminScopes(target.email, async (workspace) => {
+    if (workspace.tenantId !== target.tenantId) {
+      throw new FugueApiError(409, "Workspace key ownership changed. Refresh and try again.");
+    }
     const before = await getAuthContext(workspace.adminKeySecret);
     verifyIdentity(before, workspace); // Also rejects disabled/revoked credentials.
     const expected = sortFugueScopes([...before.scopes, "app.read"]);
@@ -37,6 +54,6 @@ export async function enableWorkspaceMailRead(email: string) {
     }
     return expected;
   });
-  invalidateCachedWorkspaceAccessByEmail(email);
-  return { scopes };
+  invalidateCachedWorkspaceAccessByEmail(target.email);
+  return updated;
 }

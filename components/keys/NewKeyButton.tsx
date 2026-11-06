@@ -85,7 +85,7 @@ export default function NewKeyButton({
       });
       setCreated(result);
     } catch (err) {
-      setError(err instanceof Error ? err.message : t("Failed to create key"));
+      setError(t(err instanceof Error ? err.message : "Failed to create key"));
     } finally {
       setBusy(false);
     }

@@ -10,6 +10,8 @@ import {
 } from "@/lib/fugue/product-route";
 import { WORKSPACE_ADMIN_SCOPES, sortFugueScopes } from "@/lib/fugue/scopes";
 import { persistManagedApiKey } from "@/lib/workspace/store";
+import { prepareWorkspaceForKeyScopes } from "@/lib/workspace/api-key-scopes";
+import { readMailMutation } from "@/lib/fugue/mail-route";
 
 /**
  * Mint a new API key in the caller's workspace, then mirror its metadata into
@@ -22,18 +24,21 @@ import { persistManagedApiKey } from "@/lib/workspace/store";
  * enforces that a key can only mint scopes its own key holds.
  */
 export async function POST(request: Request) {
+  try {
+    return await handleCreateKey(request);
+  } catch (error) {
+    return jsonError(readErrorStatus(error), readErrorMessage(error));
+  }
+}
+
+async function handleCreateKey(request: Request) {
   const auth = await requireActiveSessionUser();
   if (auth.response) return auth.response;
 
   const ws = await requireWorkspaceForSession(auth.session);
   if (ws.response) return ws.response;
 
-  let body: { label?: unknown; scopes?: unknown };
-  try {
-    body = await request.json();
-  } catch {
-    return jsonError(400, "Invalid request body.");
-  }
+  const body = await readMailMutation(request);
 
   const label = typeof body.label === "string" ? body.label.trim() : "";
   if (!label) {
@@ -58,7 +63,8 @@ export async function POST(request: Request) {
   }
 
   try {
-    const created = await createApiKey(ws.workspace.adminKeySecret, {
+    const workspace = await prepareWorkspaceForKeyScopes(ws.workspace, requested);
+    const created = await createApiKey(workspace.adminKeySecret, {
       label,
       scopes: requested,
     });

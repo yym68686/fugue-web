@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import { test, type TestContext } from "node:test";
 import type { Pool } from "pg";
-import { enableWorkspaceMailRead } from "@/lib/workspace/mail-permissions";
+import { prepareWorkspaceForKeyScopes, grantableWorkspaceScopes } from "@/lib/workspace/api-key-scopes";
+import type { WorkspaceAccess } from "@/lib/workspace/store";
 import { sealText } from "@/lib/security/seal";
 import { WORKSPACE_ADMIN_SCOPES } from "@/lib/fugue/scopes";
 import { getCachedWorkspaceAccessByEmail, invalidateCachedWorkspaceAccessByEmail } from "@/lib/server/session-state-cache";
@@ -10,6 +11,18 @@ import { fugueApiEnv } from "./fixtures/fugue-api-env";
 fugueApiEnv();
 const email = "owner@example.test";
 const baseScopes = ["app.write", "apikey.write", "app.deploy", "custom.read"];
+const workspace: WorkspaceAccess = {
+  email, tenantId: "tenant-owner", tenantName: "Owner workspace",
+  adminKeyId: "key-owner", adminKeyLabel: "workspace-admin", adminKeyPrefix: "synthetic",
+  adminKeySecret: "synthetic-owner-key", adminKeyScopes: baseScopes,
+  createdAt: "2026-01-01T00:00:00Z", updatedAt: "2026-01-01T00:00:00Z",
+  defaultProjectId: "project-preserved", defaultProjectName: "Project", firstAppId: "app-preserved",
+};
+
+async function requestReadScope(ownerEmail = email) {
+  const prepared = await prepareWorkspaceForKeyScopes({ ...workspace, email: ownerEmail }, ["app.read", "app.write"]);
+  return { scopes: prepared.adminKeyScopes };
+}
 
 function fixture(t: TestContext) {
   const oldPool = globalThis.__fuguePgPool;
@@ -90,7 +103,7 @@ test("an old workspace adds only app.read, verifies it and updates both mirrors 
   const { queries, calls, row } = fixture(t);
   const cached = await getCachedWorkspaceAccessByEmail(email);
   assert.equal(cached?.adminKeyScopes.includes("app.read"), false);
-  const result = await enableWorkspaceMailRead("Owner@Example.test");
+  const result = await requestReadScope("Owner@Example.test");
   assert.deepEqual(result.scopes, [...baseScopes, "app.read"].sort());
   assert.deepEqual(calls.map((call) => call.method), ["GET", "PATCH", "GET"]);
   assert.deepEqual(calls[1].body, { scopes: result.scopes });
@@ -98,7 +111,6 @@ test("an old workspace adds only app.read, verifies it and updates both mirrors 
   const mirror = queries.find((q) => q.sql.includes("INSERT INTO app_api_keys"));
   assert.equal(mirror?.values[0], "key-owner");
   assert.deepEqual(JSON.parse(mirror!.values[5] as string), result.scopes);
-  assert.equal(JSON.stringify(result).includes("synthetic-owner-key"), false);
   assert.equal(row.default_project_id, "project-preserved");
   assert.equal(row.first_app_id, "app-preserved");
   assert.equal(queries.at(-1)?.sql, "COMMIT");
@@ -108,7 +120,7 @@ test("an old workspace adds only app.read, verifies it and updates both mirrors 
 test("repeating a completed repair writes no further backend permissions", async (t) => {
   const { state, calls } = fixture(t);
   state.scopes.push("app.read");
-  await enableWorkspaceMailRead(email);
+  await requestReadScope();
   assert.deepEqual(calls.map((call) => call.method), ["GET", "GET"]);
 });
 
@@ -127,7 +139,7 @@ for (const [name, alter] of [
   test(`${name} cannot trigger a privileged scope update`, async (t) => {
     const { state, calls, queries } = fixture(t);
     alter(state);
-    await assert.rejects(enableWorkspaceMailRead(email));
+    await assert.rejects(requestReadScope());
     assert.equal(calls.some((call) => call.method === "PATCH"), false);
     assert.equal(queries.some((q) => q.sql.startsWith("UPDATE") || q.sql.includes("INSERT INTO")), false);
     assert.equal(queries.at(-1)?.sql, "ROLLBACK");
@@ -137,27 +149,51 @@ for (const [name, alter] of [
 test("an ambiguous response can be retried without a second permission update", async (t) => {
   const { state, calls, queries } = fixture(t);
   state.failVerify = true;
-  await assert.rejects(enableWorkspaceMailRead(email));
+  await assert.rejects(requestReadScope());
   assert.equal(queries.at(-1)?.sql, "ROLLBACK");
   assert.equal(queries.some((q) => q.sql.startsWith("UPDATE")), false);
   state.failVerify = false;
-  await enableWorkspaceMailRead(email);
+  await requestReadScope();
   assert.equal(calls.filter((call) => call.method === "PATCH").length, 1);
 });
 
 test("backend rejection, mismatched evidence and database failure never claim success", async (t) => {
   const { state, queries } = fixture(t);
   state.patchStatus = 503;
-  await assert.rejects(enableWorkspaceMailRead(email));
+  await assert.rejects(requestReadScope());
   assert.equal(queries.at(-1)?.sql, "ROLLBACK");
   state.patchStatus = 200;
   state.patchMismatch = true;
-  await assert.rejects(enableWorkspaceMailRead(email), { status: 409 });
+  await assert.rejects(requestReadScope(), { status: 409 });
   state.patchMismatch = false;
   state.failMirror = true;
-  await assert.rejects(enableWorkspaceMailRead(email));
+  await assert.rejects(requestReadScope());
   assert.equal(queries.at(-1)?.sql, "ROLLBACK");
   state.failMirror = false;
-  await enableWorkspaceMailRead(email);
+  await requestReadScope();
   assert.equal(queries.at(-1)?.sql, "COMMIT");
+});
+
+test("ordinary key creation and label-only edits do not upgrade workspace scopes", async (t) => {
+  const { calls, queries } = fixture(t);
+  assert.equal(await prepareWorkspaceForKeyScopes(workspace, ["app.write"]), workspace);
+  assert.equal(await prepareWorkspaceForKeyScopes(workspace, []), workspace);
+  assert.equal(calls.length, 0);
+  assert.equal(queries.length, 0);
+});
+
+test("a verified legacy owner can select app.read immediately without granting other missing scopes", () => {
+  const context = { scopes: baseScopes, platformAdmin: false, tenantId: workspace.tenantId, actorType: "api-key", actorId: workspace.adminKeyId };
+  const offered = grantableWorkspaceScopes(context, workspace);
+  assert.ok(offered.includes("app.read"));
+  assert.ok(offered.includes("app.write"));
+  assert.equal(offered.includes("storage.admin"), false);
+  assert.equal(grantableWorkspaceScopes({ ...context, actorId: "key-other" }, workspace).includes("app.read"), false);
+  assert.equal(grantableWorkspaceScopes({ ...context, scopes: ["app.write"] }, workspace).includes("app.read"), false);
+});
+
+test("a workspace tenant change aborts before updating either the primary or child key", async (t) => {
+  const { calls } = fixture(t);
+  await assert.rejects(prepareWorkspaceForKeyScopes({ ...workspace, tenantId: "tenant-changed" }, ["app.read"]), { status: 409 });
+  assert.equal(calls.length, 0);
 });

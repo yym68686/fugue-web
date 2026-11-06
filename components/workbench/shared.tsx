@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { useT } from "@/lib/i18n/client";
+import { readConsoleResult } from "@/lib/console/response";
 
 /* ---- console API client (browser → /api/console/*) ---- */
 
@@ -18,12 +19,7 @@ export async function callConsole<T = unknown>(
     headers: init?.body !== undefined ? { "Content-Type": "application/json" } : undefined,
     body: init?.body !== undefined ? JSON.stringify(init.body) : undefined,
   });
-  const text = await res.text();
-  const data = text ? (JSON.parse(text) as ApiResult<T> & { error?: string }) : null;
-  if (!res.ok) {
-    throw new Error(data?.error || `Request failed (${res.status})`);
-  }
-  return (data as { result: T }).result;
+  return readConsoleResult<T>(res);
 }
 
 /* ---- read hook: fetch-once + manual refresh, with abort ---- */

@@ -95,7 +95,7 @@ export default function KeyRowActions({
       setEditing(false);
       router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : t("Action failed."));
+      setError(t(err instanceof Error ? err.message : "Action failed."));
     } finally {
       setBusy(false);
     }
@@ -134,7 +134,7 @@ export default function KeyRowActions({
       setConfirming(null);
       router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : t("Action failed."));
+      setError(t(err instanceof Error ? err.message : "Action failed."));
     } finally {
       setBusy(false);
     }

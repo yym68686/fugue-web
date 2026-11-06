@@ -1,9 +1,10 @@
 import "server-only";
 import { FugueApiError } from "./console";
+import { readRequestOrigin } from "@/lib/auth/origin";
 
 /** Cookie-authenticated mutations require an exact browser origin. */
 export async function readMailMutation(request: Request): Promise<Record<string, unknown>> {
-  if (request.headers.get("origin") !== new URL(request.url).origin) throw new FugueApiError(403, "Invalid origin.");
+  if (request.headers.get("origin") !== readRequestOrigin(request)) throw new FugueApiError(403, "Invalid origin.");
   const reader = request.body?.getReader();
   if (!reader) throw new FugueApiError(400, "JSON body required.");
   const chunks: Uint8Array[] = [];

@@ -29,7 +29,7 @@ export async function resolveOwnedKey(id: string) {
   if (ws.response) return { response: ws.response } as const;
 
   const key = await getManagedApiKeyForUser(auth.session.email, id);
-  if (!key) {
+  if (!key || key.tenant_id !== ws.workspace.tenantId) {
     return { response: jsonError(404, "Key not found.") } as const;
   }
   if (key.is_workspace_admin) {
@@ -45,6 +45,7 @@ export async function resolveOwnedKey(id: string) {
     response: null,
     email: auth.session.email,
     adminKeySecret: ws.workspace.adminKeySecret,
+    workspace: ws.workspace,
     key,
   } as const;
 }
