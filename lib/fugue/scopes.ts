@@ -12,6 +12,7 @@ export const WORKSPACE_ADMIN_SCOPES = [
   "runtime.write",
   "runtime.reserve",
   "billing.write",
+  "app.read",
   "app.write",
   "app.deploy",
   "app.scale",

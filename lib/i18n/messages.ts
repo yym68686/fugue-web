@@ -5,6 +5,20 @@ import type { MessageCatalog } from "@/lib/i18n/translate";
 // falls back to its English source. Grouped loosely by area; kept flat so
 // lookups stay O(1).
 export const zhCN = {
+  "Connect an app to Mailflare": "将应用接入 Mailflare",
+  "Continue in Mailflare": "前往 Mailflare 接入应用",
+  "Mailflare requires both app.read and app.write. Select both when creating or editing your integration key.": "Mailflare 需要 app.read 和 app.write 权限。创建或编辑接入密钥时，请同时勾选这两项。",
+  "This older workspace is missing app.read. Enable it for the workspace admin key, then choose it for your integration key. Existing integration keys keep their current permissions.": "此旧工作区缺少 app.read。请先为工作区管理员密钥启用该权限，再为接入密钥勾选授权。已有接入密钥的权限保持不变。",
+  "Enable mail read permission": "启用邮件读取权限",
+  "Enabling mail permissions…": "正在启用邮件权限…",
+  "Could not enable mail permissions.": "无法启用邮件权限。",
+  "Workspace permissions are unavailable. Refresh before creating or editing keys.": "暂时无法确认工作区权限，请刷新后再创建或编辑密钥。",
+  "Mail read permission enabled. Create or edit a key with app.read and app.write.": "邮件读取权限已启用。请创建或编辑密钥，勾选 app.read 和 app.write。",
+  "Workspace key identity could not be verified.": "无法确认工作区密钥的身份，请刷新后重试。",
+  "The workspace key needs app.write and apikey.write before enabling mail access.": "工作区密钥需要先具备 app.write 和 apikey.write 权限，才能启用邮件读取权限。",
+  "Workspace permissions could not be confirmed. Refresh before retrying.": "无法确认工作区权限，请刷新后重试。",
+  "Workspace permissions changed. Refresh before retrying.": "工作区权限发生了变化，请刷新后重试。",
+  "Workspace key ownership changed. Refresh and try again.": "工作区密钥归属发生了变化，请刷新后重试。",
   "Storage maintenance jobs": "存储维护任务",
   "Preview first. Execution checks current references again. Longhorn shared blocks are reclaimed only by its engine.": "先预览再执行。执行时会重新检查当前引用；Longhorn 共享块仅由引擎回收。",
   "Policy ID (empty: enabled policies)": "策略 ID（留空：已启用的策略）",

@@ -93,7 +93,7 @@ export default function NewKeyButton({
 
   return (
     <>
-      <button type="button" className="btn primary" onClick={openModal}>
+      <button type="button" className="btn primary" disabled={availableScopes.length === 0} onClick={openModal}>
         {PLUS_ICON}
         {t("New key")}
       </button>

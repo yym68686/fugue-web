@@ -8,6 +8,7 @@ import { normalizeEmail } from "@/lib/auth/validation";
 import { ensureDbSchema, withDbSchemaRetry } from "@/lib/db/schema";
 import { queryDb, requireQueryRow, withDbTransaction } from "@/lib/db/pool";
 import { sealText, unsealText } from "@/lib/security/seal";
+import { FugueApiError } from "@/lib/fugue/console";
 
 type WorkspaceRow = {
   admin_key_id: string;
@@ -762,6 +763,37 @@ export async function getWorkspaceAccessByEmail(email: string) {
 export async function getWorkspaceBootstrapStateByEmail(email: string) {
   const row = await getWorkspaceRowByEmail(email);
   return row ? bootstrapStateFromRow(row) : null;
+}
+
+/** Serialize explicit repairs against the owner's current primary key only. */
+export async function repairWorkspaceAdminScopes(
+  email: string,
+  repair: (workspace: WorkspaceAccess) => Promise<string[]>,
+) {
+  await ensureDbSchema();
+  return withDbTransaction(async (client) => {
+    const result = await client.query<WorkspaceRow>(
+      "SELECT * FROM app_workspaces WHERE user_email = $1 FOR UPDATE",
+      [normalizeEmail(email)],
+    );
+    if (!result.rows[0]) throw new FugueApiError(409, "Create a workspace first.");
+    const workspace = accessFromRow(result.rows[0]);
+    const mirror = await client.query<{ user_email: string; tenant_id: string }>(
+      "SELECT user_email, tenant_id FROM app_api_keys WHERE fugue_key_id = $1 FOR UPDATE",
+      [workspace.adminKeyId],
+    );
+    if (mirror.rows.some((row) => row.user_email !== workspace.email || row.tenant_id !== workspace.tenantId)) {
+      throw new FugueApiError(409, "Workspace key ownership changed. Refresh and try again.");
+    }
+    const scopes = await repair(workspace);
+    const updatedAt = new Date().toISOString();
+    await client.query(
+      "UPDATE app_workspaces SET admin_key_scopes = $2::jsonb, updated_at = $3 WHERE user_email = $1",
+      [workspace.email, JSON.stringify(scopes), updatedAt],
+    );
+    await upsertWorkspaceAdminKey(client, { ...workspace, adminKeyScopes: scopes, updatedAt });
+    return scopes;
+  });
 }
 
 export async function saveWorkspaceAccess(record: WorkspaceAccess) {

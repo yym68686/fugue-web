@@ -2,7 +2,7 @@ import "server-only";
 import { apiTimingName, measurePageDependency, recordPageBackendTiming } from "@/lib/server/page-timing";
 
 /**
- * Platform-admin backend calls used only during workspace provisioning.
+ * Platform-admin backend calls for workspace provisioning and verified repairs.
  *
  * Unlike lib/fugue/console.ts (which acts on behalf of a tenant using that
  * tenant's scoped admin key), these calls use the server-only
@@ -216,6 +216,15 @@ export async function enableFugueApiKey(id: string): Promise<FugueApiKey> {
   if (!data.api_key?.id) {
     throw new Error("Enabling api key returned no key.");
   }
+  return mapApiKey(data.api_key);
+}
+
+/** Update scopes of an already verified workspace key; never rotate or enable it. */
+export async function updateFugueApiKeyScopes(id: string, scopes: readonly string[]): Promise<FugueApiKey> {
+  const data = await adminSend<{ api_key?: RawApiKey }>(
+    "PATCH", `/v1/api-keys/${encodeURIComponent(id)}`, { scopes: [...scopes] },
+  );
+  if (!data.api_key?.id) throw new Error("Updating api key returned no key.");
   return mapApiKey(data.api_key);
 }
 

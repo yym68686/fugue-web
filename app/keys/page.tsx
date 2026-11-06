@@ -4,6 +4,7 @@ import AppLayout from '@/components/AppLayout';
 import NewKeyButton from '@/components/keys/NewKeyButton';
 import KeyRowActions from '@/components/keys/KeyRowActions';
 import CopyKeyButton from '@/components/keys/CopyKeyButton';
+import MailPermissions from '@/components/keys/MailPermissions';
 import { ApiKey } from '@/lib/types';
 import { requireActivePageSession } from '@/lib/auth/page-access';
 import { getAuthContext } from '@/lib/fugue/console';
@@ -18,15 +19,13 @@ export const dynamic = 'force-dynamic';
 // workspace admin key itself holds — the backend rejects the rest with "cannot
 // mint scopes you do not hold". Workspaces provisioned before WORKSPACE_ADMIN_SCOPES
 // grew have admin keys with a subset (e.g. 8-11 of 18), so offering the full
-// constant made the all-selected default fail. Ask the backend what this key
-// actually holds and offer only that (∩ the supported set). Falls back to the
-// full constant if the workspace/backend can't be reached, preserving prior
-// behavior rather than blocking key creation.
+// constant made the all-selected default fail. Offer only the live held scopes
+// intersected with the supported set; unavailable evidence grants nothing.
 async function resolveGrantableScopes(email: string): Promise<string[]> {
   const supported = sortFugueScopes(WORKSPACE_ADMIN_SCOPES);
   try {
     const workspace = await getWorkspaceAccessByEmail(email);
-    if (!workspace?.adminKeySecret) return supported;
+    if (!workspace?.adminKeySecret) return [];
 
     const ctx = await getAuthContext(workspace.adminKeySecret);
     // Platform-admin principals bypass the subset check entirely.
@@ -34,9 +33,9 @@ async function resolveGrantableScopes(email: string): Promise<string[]> {
 
     const held = new Set(ctx.scopes);
     const grantable = supported.filter((scope) => held.has(scope));
-    return grantable.length > 0 ? grantable : supported;
+    return grantable;
   } catch {
-    return supported;
+    return [];
   }
 }
 
@@ -131,6 +130,9 @@ export default withPageTiming('/keys', async function KeysPage() {
             <NewKeyButton availableScopes={grantableScopes} />
           </div>
         </div>
+
+        <MailPermissions canEnable={!grantableScopes.includes('app.read') && grantableScopes.includes('app.write') && grantableScopes.includes('apikey.write')} />
+        {grantableScopes.length === 0 && <p role="alert">{t('Workspace permissions are unavailable. Refresh before creating or editing keys.')}</p>}
 
         <div className="panel">
           <div className="panel-h">

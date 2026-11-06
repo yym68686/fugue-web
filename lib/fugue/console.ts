@@ -1683,6 +1683,8 @@ export type AuthContext = {
   scopes: string[];
   platformAdmin: boolean;
   tenantId: string;
+  actorType: string;
+  actorId: string;
 };
 
 /**
@@ -1699,6 +1701,8 @@ export async function getAuthContext(adminKey: string): Promise<AuthContext> {
       scopes?: unknown;
       platform_admin?: unknown;
       tenant_id?: unknown;
+      actor_type?: unknown;
+      actor_id?: unknown;
     };
   }>(adminKey, "/v1/auth/context");
 
@@ -1713,6 +1717,8 @@ export async function getAuthContext(adminKey: string): Promise<AuthContext> {
     scopes,
     platformAdmin: principal.platform_admin === true,
     tenantId: typeof principal.tenant_id === "string" ? principal.tenant_id : "",
+    actorType: typeof principal.actor_type === "string" ? principal.actor_type : "",
+    actorId: typeof principal.actor_id === "string" ? principal.actor_id : "",
   };
 }
 
