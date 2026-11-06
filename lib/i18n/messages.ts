@@ -38,6 +38,13 @@ export const zhCN = {
   "Attempts": "尝试次数",
   "Execution": "执行",
   // --- application-scoped mail ---
+  "Mail DNS and sending authorization are verified.": "邮件 DNS 与发信授权已验证。",
+  "The platform mail provider reached a quota or rate limit. Setup will retry without creating duplicate domains.": "平台邮件服务达到额度或速率限制，配置将延后重试，不会重复创建域名。",
+  "Mail DNS is being published and checked automatically. Refresh later; do not enable mail again.": "正在自动发布并核验邮件 DNS，请稍后刷新，无需再次开通。",
+  "Mail DNS matches. Waiting for the sending provider to verify the domain.": "邮件 DNS 已匹配，正在等待发信服务商验证域名。",
+  "The platform mail provider needs a domain-management credential. Your application key does not need more permissions.": "平台邮件服务缺少域名管理凭据，需要平台补齐；你的应用密钥无需增加权限。",
+  "The platform mail provider key cannot manage domains. The platform operator must replace it.": "平台邮件服务的凭据无权管理域名，需要平台更换。",
+  "The mail provider is unavailable or rejected setup. Automatic retries are backed off; existing mail is retained.": "邮件服务商暂不可用或拒绝配置，平台会延后自动重试，现有邮件保留。",
   "Application mail": "应用邮件",
   "Outbound delivery jobs": "出站投递任务",
   "Check mail DNS": "检查邮件 DNS",

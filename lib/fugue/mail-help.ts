@@ -1,5 +1,18 @@
 import type { AppMailDNSObservation, AppMailResponse } from "./console";
 
+export function mailSetupMessage(code: string | undefined): string | null {
+  switch (code) {
+    case "ready": return "Mail DNS and sending authorization are verified.";
+    case "dns_pending": return "Mail DNS is being published and checked automatically. Refresh later; do not enable mail again.";
+    case "provider_pending": return "Mail DNS matches. Waiting for the sending provider to verify the domain.";
+    case "provider_credentials_required": return "The platform mail provider needs a domain-management credential. Your application key does not need more permissions.";
+    case "provider_key_restricted": return "The platform mail provider key cannot manage domains. The platform operator must replace it.";
+    case "provider_unavailable": return "The mail provider is unavailable or rejected setup. Automatic retries are backed off; existing mail is retained.";
+    case "provider_limit": return "The platform mail provider reached a quota or rate limit. Setup will retry without creating duplicate domains.";
+    default: return null;
+  }
+}
+
 /** Never turn an arbitrary provider string into a clickable login/API URL. */
 export function mailServiceOrigin(value: string | undefined): string | null {
   if (!value) return null;

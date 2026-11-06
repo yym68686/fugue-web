@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { AppMailResponse, AppMailState, AppMailDNSObservation } from "@/lib/fugue/console";
-import { mailAPIExample, mailDNSBelongsToBinding, mailServiceOrigin } from "@/lib/fugue/mail-help";
+import { mailAPIExample, mailDNSBelongsToBinding, mailServiceOrigin, mailSetupMessage } from "@/lib/fugue/mail-help";
 import { useT } from "@/lib/i18n/client";
 import { ActionButton, callConsole } from "./shared";
 
@@ -30,6 +30,7 @@ export default function AppMailPanel({ appId }: { appId: string }) {
   const state = data?.binding.state;
   const serviceOrigin = mailServiceOrigin(data?.service_url);
   const currentDNS = data && mailDNSBelongsToBinding(dns, data.binding) ? dns : null;
+  const setupMessage = mailSetupMessage(data?.provider?.setup?.code);
   async function update(next: AppMailState) {
     const result = await callConsole<AppMailResponse>(path, { method: "PUT", body: { state: next, expected_generation: data?.binding.generation ?? 0, local_part: data?.binding.local_part ?? localPart } });
     setData(result); setSecret(""); setMailboxPassword(""); setDNS(null); refresh();
@@ -46,6 +47,7 @@ export default function AppMailPanel({ appId }: { appId: string }) {
         {data.error && <p className="wb-alert err" role="status">{data.error}</p>}
         {data.provider && <>
           <div className="form-row"><label>{t("Transport")}</label><span>{t("Send")}: {data.provider.sendingReady ? t("Configured") : t("Pending")} / {t("Receive")}: {data.provider.receivingReady ? t("Configured") : t("Pending")}</span></div>
+          {setupMessage && <p className="sub" role="status">{t(setupMessage)}</p>}
           <p className="sub">{t("Transport configuration is not proof of DNS propagation or external delivery.")}</p>
           {data.provider.mxHost && <div className="form-row"><label>MX</label><span className="mono">{data.provider.mxHost}</span></div>}
           <div className="form-row"><label>{t("Messages")}</label><span>{data.provider.usage.messageCount} · {data.provider.usage.attachmentBytes} B</span></div>

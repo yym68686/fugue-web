@@ -1,11 +1,17 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { mailAPIExample, mailDNSBelongsToBinding, mailServiceOrigin } from "../lib/fugue/mail-help";
+import { mailAPIExample, mailDNSBelongsToBinding, mailServiceOrigin, mailSetupMessage } from "../lib/fugue/mail-help";
 import type { AppMailDNSObservation, AppMailResponse } from "../lib/fugue/console";
 
 test("mail instructions accept only a credential-free HTTPS origin", () => {
   assert.equal(mailServiceOrigin("https://mail.example.test"), "https://mail.example.test");
   for (const value of [undefined, "javascript:alert(1)", "http://mail.example.test", "https://user:secret@mail.example.test", "https://mail.example.test/?token=private", "https://mail.example.test/#private", "https://mail.example.test/other"]) assert.equal(mailServiceOrigin(value), null);
+});
+test("mail setup distinguishes provider authority from tenant key permissions", () => {
+  assert.match(mailSetupMessage("provider_credentials_required")!, /application key does not need more permissions/);
+  assert.match(mailSetupMessage("dns_pending")!, /do not enable mail again/);
+  assert.match(mailSetupMessage("provider_limit")!, /quota or rate limit/);
+  assert.equal(mailSetupMessage("future-code"),null);
 });
 test("mail DNS observations are bound to the exact app, host, generation and active intent", () => {
   const binding = { app_id: "fixture-app", hostname: "app.example.test", generation: 4, state: "active" } as AppMailResponse["binding"];

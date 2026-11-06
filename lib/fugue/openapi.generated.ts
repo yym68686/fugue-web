@@ -7134,6 +7134,8 @@ export interface components {
       created_at: string;
       /** Format: date-time */
       updated_at: string;
+      /** @description Public DNS requirements reconciled from the authenticated mail provider for this exact binding. Published by the normal signed DNS producer; not caller supplied. */
+      provider_dns_records?: readonly components["schemas"]["AppMailDNSRecord"][];
     };
     AppMailProviderStatus: {
       bindingId: string;
@@ -7147,6 +7149,16 @@ export interface components {
       sendingReady: boolean;
       receivingReady: boolean;
       mxHost?: string | null;
+      /** @description Public relative mail DNS requirements for this exact application; credentials are never included. */
+      dnsRecords?: components["schemas"]["AppMailDNSRecord"][];
+      setup?: {
+        /** @enum {string} */
+        code: "ready" | "dns_pending" | "provider_pending" | "provider_credentials_required" | "provider_key_restricted" | "provider_limit" | "provider_unavailable" | "inactive";
+        /** Format: date-time */
+        checkedAt: string | null;
+        /** Format: date-time */
+        nextCheckAt: string | null;
+      };
       credentials?: ({
           id: string;
           prefix: string;
