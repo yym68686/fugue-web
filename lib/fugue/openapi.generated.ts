@@ -45,7 +45,7 @@ export interface paths {
   "/v1/edge/route-intents": {
     /**
      * Edge Route Intents
-     * @description Returns Core's inventory-independent desired-route projection. Only the edge-control component identity with edge_route_intent capability is accepted; tenant and platform-admin API keys are not accepted. A canonical cell-* query additionally requires a signed authority_id equal to that cell. A scoped Control identity cannot read another cell or a legacy group. Legacy unscoped identities retain only legacy group access. Neutral identities are exchanged from a live, operator-authorized Pod token; Core signing keys are never returned to Control processes. A neutral Control may use its explicit authority-cell:<authority_id> publication scope; a global credential stays confined to the legacy global publication scope. Selection and the final authority recheck use only the signed credential's scope, with no fallback between scopes. Returns only the newest applicable published gray/full TrafficReleaseSet projection for the required edge_group_id. Gray applies only to its signed cohort; a newer full supersedes an older gray lane. The selected release must have immutable expected topology for the group and verified parent/child integrity and lineage. Missing, invalid or unprepared releases return 503 so Edge Control retains its current serving artifact. This serving endpoint never reads mutable business tables or standalone route LKGs to synthesize configuration. Shadow releases never select serving content. Group projections retain traffic_release provenance; signatures include cache policies. Cache references resolve case-insensitively to the declared policy ID; disabled cache policies are not materialized as active bindings.
+     * @description Returns Core's inventory-independent desired-route projection. Only the edge-control component identity with edge_route_intent capability is accepted; tenant and platform-admin API keys are not accepted. A canonical cell-* query additionally requires a signed authority_id equal to that cell. A scoped Control identity cannot read another cell or a legacy group. Legacy unscoped identities retain only legacy group access. Neutral identities are exchanged from a live, operator-authorized Pod token; Core signing keys are never returned to Control processes. A neutral Control may use its explicit authority-cell:<authority_id> publication scope; a global credential stays confined to the legacy global publication scope. Selection and the final authority recheck use only the signed credential's scope, with no fallback between scopes. Returns only the newest applicable published gray/full TrafficReleaseSet projection for the required edge_group_id. Gray applies only to its signed cohort; a newer full supersedes an older gray lane. The selected release must have immutable expected topology for the group and verified parent/child integrity and lineage. Its complete signed compiler-input dependency closure must, under enforced PostgreSQL history admission, be locally available with current durable full-readback pins in PostgreSQL, or actual verified original inputs in file storage. The selected publication and expected topology are rechecked before returning; this read never restores cold inputs or falls back to unrelated shadow or historical publications. Missing, invalid, cold or unprepared releases return 503 so Edge Control retains its current serving artifact. This serving endpoint never reads mutable business tables or standalone route LKGs to synthesize configuration. Shadow releases never select serving content. Group projections retain traffic_release provenance; signatures include cache policies. Cache references resolve case-insensitively to the declared policy ID; disabled cache policies are not materialized as active bindings.
      */
     get: operations["edgeRouteIntents"];
   };
@@ -488,7 +488,7 @@ export interface paths {
   "/v1/admin/artifacts/{artifact_id}/compiler-input": {
     /**
      * Read Frozen Compiler Runtime Input
-     * @description Platform administrators with artifact.read can retrieve the exact normalized runtime snapshot bound by a trusted artifact's input_snapshot_digest. Recomputes the digest and checks intent/policy generation binding. The optional dns_configuration view returns only frozen DNS inputs and omits bulky physical replay evidence; it retains original observation times and selection identities, reports its own projection digest, and never claims that projected bytes match the original input digest. Older artifacts without a retained snapshot return 404; missing or corrupt input never falls back to live business data.
+     * @description Platform administrators with artifact.read can retrieve the exact normalized runtime snapshot bound by a trusted artifact's input_snapshot_digest. Verifies the complete signed dependency closure and current durable full-readback input pins in PostgreSQL, or actual canonical original input SHA and size in file storage, then rechecks the original artifact before disclosure. Historical artifacts remain readable under the same administrative authority without becoming active. Recomputes the digest and checks intent/policy generation binding. The optional dns_configuration view returns only frozen DNS inputs and omits bulky physical replay evidence; it retains original observation times and selection identities, reports its own projection digest, and never claims that projected bytes match the original input digest. Older artifacts without a retained snapshot return 404; cold or changed dependency proof returns 503, and missing or corrupt input never falls back to live business data or initiates archive restoration.
      */
     get: operations["getPlatformArtifactCompilerInput"];
   };
@@ -506,19 +506,22 @@ export interface paths {
   "/v1/admin/artifacts/{artifact_id}/release": {
     /**
      * Release Platform Artifact
-     * @description Platform administrators may use the normal artifact release policy. DNS artifacts containing per-value expiration and ReleaseSets containing them are restricted to shadow until DNS consumers support absolute value leases. Soft overrides cannot bypass this compatibility restriction.
+     * @description Platform administrators may use the normal artifact release policy. Enforced PostgreSQL history admission requires the complete signed candidate and current rollback-baseline dependency closures with current durable full-readback input pins. Cold or changed dependencies reject without advancing the lane; this endpoint does not restore them or enable input retirement. DNS artifacts containing per-value expiration and ReleaseSets containing them are restricted to shadow until DNS consumers support absolute value leases. Soft overrides cannot bypass this compatibility restriction.
      */
     post: operations["releasePlatformArtifact"];
   };
   "/v1/admin/artifacts/{artifact_id}/rollback": {
     /**
      * Roll Back Platform Artifact
-     * @description Rollback targets containing leased DNS values remain restricted to shadow until DNS consumer expiration support is available.
+     * @description Enforced PostgreSQL history admission requires the complete signed exact rollback target and current rollback-baseline dependency closures with current durable full-readback input pins. Missing, cold or changed dependencies reject without modifying the lane. The failed candidate is identity-bound but its input bytes are not reactivated. This endpoint does not restore cold inputs or enable input retirement. Rollback targets containing leased DNS values remain restricted to shadow until DNS consumer expiration support is available.
      */
     post: operations["rollbackPlatformArtifact"];
   };
   "/v1/admin/artifact-releases/{release_id}/verify-lkg": {
-    /** Verify Platform Artifact Release And Promote LKG */
+    /**
+     * Verify Platform Artifact Release And Promote LKG
+     * @description Enforced PostgreSQL history admission requires the complete signed dependency closure of the release, including its rollback generations. Input dependencies must already have current durable full-readback pins; promotion does not fetch or restore cold inputs. Missing, changed or unprepared dependencies reject without modifying the release or LKG. This does not enable input retirement.
+     */
     post: operations["verifyPlatformArtifactReleaseLKG"];
   };
   "/v1/admin/artifacts/{artifact_id}/consumers": {
@@ -593,14 +596,14 @@ export interface paths {
   "/v1/platform-state/consumers/trusted-heartbeat": {
     /**
      * Report Trusted Platform State Consumer Heartbeat
-     * @description Kubernetes-bound DNS identities must still match a live authorized Pod on the claimed node and the unique backend of that node's managed public DNS Service (UDP/TCP port 53). Service ownership, node-local transport, EndpointSlice ownership, Pod UID and endpoint addresses are rechecked. Positive applied/passed reports require both Pod and endpoint readiness; negative reports from the selected live backend remain accepted. An unselected, terminating or ambiguous public backend cannot overwrite current consumer facts. An explicitly signed cell-dns publication in its own neutral scope may instead use a uniquely declared private validation Service, with no external IP, NodePort or host networking. Its exact required member, Pod identity, Service digest and EndpointSlices remain mandatory. A selected public backend in that same authority takes precedence over private candidates. These scoped local receipts can establish capability and local recovery; public runtime-facts and public selection still require the public transport. Kubernetes lookup failure returns 503; binding mismatch returns 403 or 409 without advancing the heartbeat cursor or audit log. A valid DNS Pod that is not selected by an existing managed public Service receives HTTP 409 with code dns_backend_not_selected. This is a standby observation, not a successful heartbeat or an assignment retry; local validation continues and no public receipt is accepted. Other backend validation failures retain their normal error codes. A superseded release or expected consumer set receives code platform_assignment_changed. This check does not change artifacts, serving configuration or local readiness. Independently provisioned non-Kubernetes component identities retain their existing authentication contract.
+     * @description Kubernetes-bound DNS identities must still match a live authorized Pod on the claimed node and the unique backend of that node's managed public DNS Service (UDP/TCP port 53). Service ownership, node-local transport, EndpointSlice ownership, Pod UID and endpoint addresses are rechecked. Positive applied/passed reports require both Pod and endpoint readiness; negative reports from the selected live backend remain accepted. An unselected, terminating or ambiguous public backend cannot overwrite current consumer facts. An explicitly signed cell-dns publication in its own neutral scope may instead use a uniquely declared private validation Service, with no external IP, NodePort or host networking. Its exact required member, Pod identity, Service digest and EndpointSlices remain mandatory. A selected public backend in that same authority takes precedence over private candidates. These scoped local receipts can establish capability and local recovery; public runtime-facts and public selection still require the public transport. Kubernetes lookup failure returns 503; binding mismatch returns 403 or 409 without advancing the heartbeat cursor or audit log. A valid DNS Pod that is not selected by an existing managed public Service receives HTTP 409 with code dns_backend_not_selected. This is a standby observation, not a successful heartbeat or an assignment retry; local validation continues and no public receipt is accepted. Other backend validation failures retain their normal error codes. A superseded release or expected consumer set receives code platform_assignment_changed. This check does not change artifacts, serving configuration or local readiness. Independently provisioned non-Kubernetes component identities retain their existing authentication contract. Enforced PostgreSQL history admission also requires the complete signed dependency closure of the selected expectation and every reported desired, actual, candidate and LKG generation to have current durable verified local input pins. Missing, cold or changed dependencies return a conflict without advancing the consumer cursor or audit chain. Heartbeats do not restore inputs.
      */
     post: operations["trustedPlatformConsumerHeartbeat"];
   };
   "/v1/platform-state/consumers/shadow-heartbeat": {
     /**
      * Report Isolated DNS Shadow Observation
-     * @description Validates an explicitly assigned cell-dns shadow with the same live Pod, declared backend, signed artifact, exact expectation, fence, freshness, replay and capability checks as trusted heartbeats. Only staged and shadow_validated observations are accepted. Stores one bounded latest shadow observation and an independent monotonic cursor per consumer, artifact kind and authority scope. It never changes serving observations, serving cursors, configuration or positive LKG. Release selection and latest expectation are rechecked under the publication lock before commit. The normal convergence endpoint selects these observations only for their exact shadow release; serving convergence never reads them. Candidate capability admission can use only the exact currently selected shadow. Existing clients keep their original heartbeat contract.
+     * @description Validates an explicitly assigned cell-dns shadow with the same live Pod, declared backend, signed artifact, exact expectation, fence, freshness, replay and capability checks as trusted heartbeats. Only staged and shadow_validated observations are accepted. Stores one bounded latest shadow observation and an independent monotonic cursor per consumer, artifact kind and authority scope. It never changes serving observations, serving cursors, configuration or positive LKG. Release selection and latest expectation are rechecked under the publication lock before commit. The normal convergence endpoint selects these observations only for their exact shadow release; serving convergence never reads them. Candidate capability admission can use only the exact currently selected shadow. Existing clients keep their original heartbeat contract. PostgreSQL acceptance additionally rechecks the complete signed input closure and current durable verified local pins before committing the shadow observation and audit event. Cold or changed dependencies refuse the observation; this endpoint never restores inputs.
      */
     post: operations["shadowPlatformConsumerHeartbeat"];
   };
@@ -614,35 +617,35 @@ export interface paths {
   "/v1/platform-state/consumers/assignment": {
     /**
      * Get the expected ReleaseSet assignments for a trusted consumer
-     * @description Returns the latest expected set revision for each authorized artifact kind in each active ReleaseSet channel. Assignments are bound to the signed child artifact and the active release fencing token. Shadow assignments authorize validation only and must not replace serving state. Superseded releases and unrelated topology are excluded. Serving-only selection honors the signed publication role; cell-dns requires its prepared DNS membership and selected parent/fence without requiring a route child.
+     * @description Returns the latest expected set revision for each authorized artifact kind in each active ReleaseSet channel. Assignments are bound to the signed child artifact and the active release fencing token. Shadow assignments authorize validation only and must not replace serving state. Superseded releases and unrelated topology are excluded. Serving-only selection honors the signed publication role; cell-dns requires its prepared DNS membership and selected parent/fence without requiring a route child. After selection, each returned publication requires its complete signed input dependency closure and current durable full-readback pins in PostgreSQL, or verified original input content in file mode. Cold, missing or changed dependencies return 503 without restoration or fallback. Unselected shadow publications do not add a serving-only dependency. Assignment authority is independently rechecked before disclosure.
      */
     get: operations["getPlatformConsumerAssignment"];
   };
   "/v1/platform-state/consumers/artifacts/{artifact_id}": {
     /**
      * Pull an artifact assigned to a trusted consumer
-     * @description Returns a validated signed child artifact or its exact signed ReleaseSet parent only when the verified component identity is currently present in that child assignment. Parent reads require the same expected_consumer_set_id and retain the child assignment and release envelope; arbitrary parents and nonselected canary members are denied. The endpoint is read-only and never records runtime facts.
+     * @description Returns a validated signed child artifact or its exact signed ReleaseSet parent only when the verified component identity is currently present in that child assignment. Parent reads require the same expected_consumer_set_id and retain the child assignment and release envelope; arbitrary parents and nonselected canary members are denied. The selected publication requires its complete signed input dependency closure and current durable full-readback pins in PostgreSQL, or verified original input content in file mode; cold, missing or changed dependencies return 503 without restoration or fallback. Assignment authority is independently rechecked before disclosure. The endpoint is read-only and never records runtime facts.
      */
     get: operations["getPlatformConsumerArtifact"];
   };
   "/v1/platform-state/consumers/artifacts/{artifact_id}/route-sources": {
     /**
      * Read approved routing publications for an assigned DNS artifact
-     * @description Read-only private observation for a trusted cell DNS identity in the exact current artifact and expected consumer set. Only immutable producer policies approved by dns_route_sources can supply route/TLS publications. Each scope includes its current gray/full lane cursors and approved selected publications, plus the unexpired verified full LKG when available. Failed or rolled-back publications and arbitrary history are excluded. The API authenticates all artifacts and producer activation bindings in one coherent source snapshot, then rechecks the DNS assignment before disclosure. The selection digest excludes observation time and changes when any returned authority binding changes. Readers must re-read and compare it after probing; neither this response nor a matching digest grants readiness, renews a proof deadline or selects public transport. Response encoding is bounded to 16 MiB. A source update cannot widen the signed DNS record, owner, candidate or failure-domain policy.
+     * @description Read-only private observation for a trusted cell DNS identity in the exact current artifact and expected consumer set. Only immutable producer policies approved by dns_route_sources can supply route/TLS publications. Each scope includes its current gray/full lane cursors and approved selected publications, plus the unexpired verified full LKG when available. Failed or rolled-back publications and arbitrary history are excluded. The API authenticates all artifacts and producer activation bindings in one coherent source snapshot. The exact DNS owner and every returned source publication require complete signed input closures and current verified local evidence. The source selection digest and original DNS ownership are rechecked after admission. Cold, missing or changed dependencies fail closed without restoration, fallback or runtime facts. The selection digest excludes observation time and changes when any returned authority binding changes. Readers must re-read and compare it after probing; neither this response nor a matching digest grants readiness, renews a proof deadline or selects public transport. Response encoding is bounded to 16 MiB. A source update cannot widen the signed DNS record, owner, candidate or failure-domain policy.
      */
     get: operations["getPlatformConsumerDNSRouteSources"];
   };
   "/v1/platform-state/consumers/artifacts/{artifact_id}/retained-route-sources": {
     /**
      * Read approved routing sources for the current positive DNS LKG
-     * @description Read-only private observation for the exact signed current positive LKG of a DNS authority, independently of a pending successor assignment. Requires the verified scoped DNS identity to remain in the latest declared expected set of the full release that verified the LKG. The full release may be active or superseded, but never rolled back or unverified. The LKG signature, expiry, parent, child and original source policy are validated, and ownership and the current LKG are rechecked after observing sources. No arbitrary historical artifact, successor source policy, configuration mutation, readiness grant, public transport selection or checkpoint renewal is permitted. Readers must independently verify the returned LKG and recheck both its identity and source selection digest after probing. Existing checkpoint and proof deadlines remain in force and source observations are additionally bounded by the returned LKG expiry. Response encoding is bounded to 16 MiB.
+     * @description Read-only private observation for the exact signed current positive LKG of a DNS authority, independently of a pending successor assignment. Requires the verified scoped DNS identity to remain in the latest declared expected set of the full release that verified the LKG. The full release may be active or superseded, but never rolled back or unverified. The positive LKG selector, its exact DNS owner and every returned source publication require complete signed input closures and current verified local evidence. The original LKG ownership and source selection digest are rechecked after admission independently of successor lanes. Cold, missing or changed dependencies fail closed without restoration or checkpoint renewal. The LKG signature, expiry, parent, child and original source policy are validated, and ownership and the current LKG are rechecked after observing sources. No arbitrary historical artifact, successor source policy, configuration mutation, readiness grant, public transport selection or checkpoint renewal is permitted. Readers must independently verify the returned LKG and recheck both its identity and source selection digest after probing. Existing checkpoint and proof deadlines remain in force and source observations are additionally bounded by the returned LKG expiry. Response encoding is bounded to 16 MiB.
      */
     get: operations["getPlatformConsumerRetainedDNSRouteSources"];
   };
   "/v1/platform-state/consumers/artifacts/{artifact_id}/tls/{hostname}": {
     /**
      * Read a custom-domain certificate authorized by a serving cell publication
-     * @description A verified Edge Worker identity can read one existing certificate only when its exact current gray or full cell assignment includes the signed TLS reference and locally owned route for that hostname. The expected set, authority, route/TLS parent, publication fence, tenant and app ownership are rechecked before disclosure. Shadow, foreign cells, stale assignments, unverified domains and missing certificates are denied. This read never issues certificates, modifies domain status, reports readiness or changes LKG. Responses are private and no-store.
+     * @description A verified Edge Worker identity can read one existing certificate only when its exact current gray or full cell assignment includes the signed TLS reference and locally owned route for that hostname. The exact serving publication requires its complete signed input closure and current verified local evidence before credentials can be disclosed. Cold, missing or changed dependencies return 503 without restoration, fallback or credential authority delegation. The expected set, authority, route/TLS parent, publication fence, tenant and app ownership are independently rechecked before disclosure. Shadow, foreign cells, stale assignments, unverified domains and missing certificates are denied. This read never issues certificates, modifies domain status, reports readiness or changes LKG. Responses are private and no-store.
      */
     get: operations["getPlatformConsumerTLSCertificate"];
   };
@@ -954,7 +957,7 @@ export interface paths {
   "/v1/discovery/bundle": {
     /**
      * Get Discovery Bundle
-     * @description Public bootstrap topology with a summary of explicitly declared static platform entry routes from the verified global TrafficReleaseSet LKG. The signed parent, all member signatures and lineage, and pinned base intent identity/digest are verified. Application-owned and non-root routes are excluded; weighted targets are never flattened to one origin. Group modes, TTL, disabled state and route policy retain artifact semantics. Missing initial LKG returns topology without platform routes. Invalid or changing verified configuration returns 503 without a signed bundle. Environment routes and mutable business policies are not fallback sources.
+     * @description Public bootstrap topology with a summary of explicitly declared static platform entry routes from the verified global TrafficReleaseSet LKG. The signed parent, all member signatures and lineage, and pinned base intent identity/digest are verified. Application-owned and non-root routes are excluded; weighted targets are never flattened to one origin. Group modes, TTL, disabled state and route policy retain artifact semantics. The exact selected LKG requires its complete signed input dependency closure and current durable full-readback pins in PostgreSQL, or verified original input content in file mode, including when a node reselects configuration after claiming a task. This read never restores cold inputs or falls back to disposable history. LKG selection, including initial absence, is checked again with the input proof before disclosure. Missing initial LKG returns topology without platform routes. Invalid or changing verified configuration returns 503 without a signed bundle. Environment routes and mutable business policies are not fallback sources.
      */
     get: operations["getDiscoveryBundle"];
   };
@@ -1921,7 +1924,24 @@ export interface paths {
   "/v1/node-update-tasks": {
     /** List Node Update Tasks */
     get: operations["listNodeUpdateTasks"];
-    /** Create Node Update Task */
+    /**
+     * Create Node Update Task
+     * @description Under enforced PostgreSQL history admission, a task declaring compiler-input dependencies, including structured
+     * *_json arguments, requires a complete signed dependency closure before
+     * the pending retention root is atomically inserted under the input
+     * admission barrier. Configuration-fetching or reader-restarting tasks also
+     * bind the current global verified ReleaseSet selector. Missing,
+     * changed, or over-budget dependency metadata returns 409 without
+     * creating a task. In PostgreSQL, cold inputs may be queued and remain
+     * protected; claim still requires current durable full-readback pins
+     * after bounded preparation. File storage verifies actual original
+     * input size and canonical full SHA with the complete signed closure
+     * and current LKG in the same locked state before creating or claiming
+     * a dependent task; missing or corrupt originals return 409.
+     * Creation never restores archives or claims the task.
+     * Maintenance tasks with no such dependencies remain independent of
+     * compiler-input archive admission.
+     */
     post: operations["createNodeUpdateTask"];
   };
   "/v1/node-updater/enroll": {
@@ -1966,7 +1986,10 @@ export interface paths {
     get: operations["nodeUpdaterTasks"];
   };
   "/v1/node-updater/tasks/{id}/claim": {
-    /** Node Updater Claim Task */
+    /**
+     * Node Updater Claim Task
+     * @description Claims an authorized pending or running task only after the server has verified its complete declared artifact and input dependency closure. In PostgreSQL, referenced compiler inputs must have an independent local representation protected by durable verified pins produced by complete local readback. File storage instead verifies actual original size and canonical full SHA, complete signatures and the current LKG together with the task under one state lock before changing its status. A missing, cold, changed, unsigned, or unprepared dependency returns a conflict without changing task state; restore and verify dependencies before claiming again. This endpoint does not restore cold archives or weaken existing task authorization, expiry, or execution checks. Unrelated maintenance tasks require no archive infrastructure in either backend.
+     */
     post: operations["nodeUpdaterClaimTask"];
   };
   "/v1/node-updater/tasks/{id}/log": {
@@ -15489,7 +15512,7 @@ export interface operations {
   };
   /**
    * Edge Route Intents
-   * @description Returns Core's inventory-independent desired-route projection. Only the edge-control component identity with edge_route_intent capability is accepted; tenant and platform-admin API keys are not accepted. A canonical cell-* query additionally requires a signed authority_id equal to that cell. A scoped Control identity cannot read another cell or a legacy group. Legacy unscoped identities retain only legacy group access. Neutral identities are exchanged from a live, operator-authorized Pod token; Core signing keys are never returned to Control processes. A neutral Control may use its explicit authority-cell:<authority_id> publication scope; a global credential stays confined to the legacy global publication scope. Selection and the final authority recheck use only the signed credential's scope, with no fallback between scopes. Returns only the newest applicable published gray/full TrafficReleaseSet projection for the required edge_group_id. Gray applies only to its signed cohort; a newer full supersedes an older gray lane. The selected release must have immutable expected topology for the group and verified parent/child integrity and lineage. Missing, invalid or unprepared releases return 503 so Edge Control retains its current serving artifact. This serving endpoint never reads mutable business tables or standalone route LKGs to synthesize configuration. Shadow releases never select serving content. Group projections retain traffic_release provenance; signatures include cache policies. Cache references resolve case-insensitively to the declared policy ID; disabled cache policies are not materialized as active bindings.
+   * @description Returns Core's inventory-independent desired-route projection. Only the edge-control component identity with edge_route_intent capability is accepted; tenant and platform-admin API keys are not accepted. A canonical cell-* query additionally requires a signed authority_id equal to that cell. A scoped Control identity cannot read another cell or a legacy group. Legacy unscoped identities retain only legacy group access. Neutral identities are exchanged from a live, operator-authorized Pod token; Core signing keys are never returned to Control processes. A neutral Control may use its explicit authority-cell:<authority_id> publication scope; a global credential stays confined to the legacy global publication scope. Selection and the final authority recheck use only the signed credential's scope, with no fallback between scopes. Returns only the newest applicable published gray/full TrafficReleaseSet projection for the required edge_group_id. Gray applies only to its signed cohort; a newer full supersedes an older gray lane. The selected release must have immutable expected topology for the group and verified parent/child integrity and lineage. Its complete signed compiler-input dependency closure must, under enforced PostgreSQL history admission, be locally available with current durable full-readback pins in PostgreSQL, or actual verified original inputs in file storage. The selected publication and expected topology are rechecked before returning; this read never restores cold inputs or falls back to unrelated shadow or historical publications. Missing, invalid, cold or unprepared releases return 503 so Edge Control retains its current serving artifact. This serving endpoint never reads mutable business tables or standalone route LKGs to synthesize configuration. Shadow releases never select serving content. Group projections retain traffic_release provenance; signatures include cache policies. Cache references resolve case-insensitively to the declared policy ID; disabled cache policies are not materialized as active bindings.
    */
   edgeRouteIntents: {
     parameters: {
@@ -17361,7 +17384,7 @@ export interface operations {
   };
   /**
    * Read Frozen Compiler Runtime Input
-   * @description Platform administrators with artifact.read can retrieve the exact normalized runtime snapshot bound by a trusted artifact's input_snapshot_digest. Recomputes the digest and checks intent/policy generation binding. The optional dns_configuration view returns only frozen DNS inputs and omits bulky physical replay evidence; it retains original observation times and selection identities, reports its own projection digest, and never claims that projected bytes match the original input digest. Older artifacts without a retained snapshot return 404; missing or corrupt input never falls back to live business data.
+   * @description Platform administrators with artifact.read can retrieve the exact normalized runtime snapshot bound by a trusted artifact's input_snapshot_digest. Verifies the complete signed dependency closure and current durable full-readback input pins in PostgreSQL, or actual canonical original input SHA and size in file storage, then rechecks the original artifact before disclosure. Historical artifacts remain readable under the same administrative authority without becoming active. Recomputes the digest and checks intent/policy generation binding. The optional dns_configuration view returns only frozen DNS inputs and omits bulky physical replay evidence; it retains original observation times and selection identities, reports its own projection digest, and never claims that projected bytes match the original input digest. Older artifacts without a retained snapshot return 404; cold or changed dependency proof returns 503, and missing or corrupt input never falls back to live business data or initiates archive restoration.
    */
   getPlatformArtifactCompilerInput: {
     parameters: {
@@ -17384,6 +17407,12 @@ export interface operations {
             input_snapshot_digest: string;
             runtime_snapshot: components["schemas"]["PlatformRuntimeSnapshot"];
           };
+        };
+      };
+      /** @description Complete original input dependency proof is unavailable or changed; no runtime snapshot or projection is disclosed. */
+      503: {
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"];
         };
       };
       default: components["responses"]["ErrorResponse"];
@@ -17433,7 +17462,7 @@ export interface operations {
   };
   /**
    * Release Platform Artifact
-   * @description Platform administrators may use the normal artifact release policy. DNS artifacts containing per-value expiration and ReleaseSets containing them are restricted to shadow until DNS consumers support absolute value leases. Soft overrides cannot bypass this compatibility restriction.
+   * @description Platform administrators may use the normal artifact release policy. Enforced PostgreSQL history admission requires the complete signed candidate and current rollback-baseline dependency closures with current durable full-readback input pins. Cold or changed dependencies reject without advancing the lane; this endpoint does not restore them or enable input retirement. DNS artifacts containing per-value expiration and ReleaseSets containing them are restricted to shadow until DNS consumers support absolute value leases. Soft overrides cannot bypass this compatibility restriction.
    */
   releasePlatformArtifact: {
     parameters: {
@@ -17458,7 +17487,7 @@ export interface operations {
   };
   /**
    * Roll Back Platform Artifact
-   * @description Rollback targets containing leased DNS values remain restricted to shadow until DNS consumer expiration support is available.
+   * @description Enforced PostgreSQL history admission requires the complete signed exact rollback target and current rollback-baseline dependency closures with current durable full-readback input pins. Missing, cold or changed dependencies reject without modifying the lane. The failed candidate is identity-bound but its input bytes are not reactivated. This endpoint does not restore cold inputs or enable input retirement. Rollback targets containing leased DNS values remain restricted to shadow until DNS consumer expiration support is available.
    */
   rollbackPlatformArtifact: {
     parameters: {
@@ -17481,7 +17510,10 @@ export interface operations {
       default: components["responses"]["ErrorResponse"];
     };
   };
-  /** Verify Platform Artifact Release And Promote LKG */
+  /**
+   * Verify Platform Artifact Release And Promote LKG
+   * @description Enforced PostgreSQL history admission requires the complete signed dependency closure of the release, including its rollback generations. Input dependencies must already have current durable full-readback pins; promotion does not fetch or restore cold inputs. Missing, changed or unprepared dependencies reject without modifying the release or LKG. This does not enable input retirement.
+   */
   verifyPlatformArtifactReleaseLKG: {
     parameters: {
       path: {
@@ -17785,7 +17817,7 @@ export interface operations {
   };
   /**
    * Report Trusted Platform State Consumer Heartbeat
-   * @description Kubernetes-bound DNS identities must still match a live authorized Pod on the claimed node and the unique backend of that node's managed public DNS Service (UDP/TCP port 53). Service ownership, node-local transport, EndpointSlice ownership, Pod UID and endpoint addresses are rechecked. Positive applied/passed reports require both Pod and endpoint readiness; negative reports from the selected live backend remain accepted. An unselected, terminating or ambiguous public backend cannot overwrite current consumer facts. An explicitly signed cell-dns publication in its own neutral scope may instead use a uniquely declared private validation Service, with no external IP, NodePort or host networking. Its exact required member, Pod identity, Service digest and EndpointSlices remain mandatory. A selected public backend in that same authority takes precedence over private candidates. These scoped local receipts can establish capability and local recovery; public runtime-facts and public selection still require the public transport. Kubernetes lookup failure returns 503; binding mismatch returns 403 or 409 without advancing the heartbeat cursor or audit log. A valid DNS Pod that is not selected by an existing managed public Service receives HTTP 409 with code dns_backend_not_selected. This is a standby observation, not a successful heartbeat or an assignment retry; local validation continues and no public receipt is accepted. Other backend validation failures retain their normal error codes. A superseded release or expected consumer set receives code platform_assignment_changed. This check does not change artifacts, serving configuration or local readiness. Independently provisioned non-Kubernetes component identities retain their existing authentication contract.
+   * @description Kubernetes-bound DNS identities must still match a live authorized Pod on the claimed node and the unique backend of that node's managed public DNS Service (UDP/TCP port 53). Service ownership, node-local transport, EndpointSlice ownership, Pod UID and endpoint addresses are rechecked. Positive applied/passed reports require both Pod and endpoint readiness; negative reports from the selected live backend remain accepted. An unselected, terminating or ambiguous public backend cannot overwrite current consumer facts. An explicitly signed cell-dns publication in its own neutral scope may instead use a uniquely declared private validation Service, with no external IP, NodePort or host networking. Its exact required member, Pod identity, Service digest and EndpointSlices remain mandatory. A selected public backend in that same authority takes precedence over private candidates. These scoped local receipts can establish capability and local recovery; public runtime-facts and public selection still require the public transport. Kubernetes lookup failure returns 503; binding mismatch returns 403 or 409 without advancing the heartbeat cursor or audit log. A valid DNS Pod that is not selected by an existing managed public Service receives HTTP 409 with code dns_backend_not_selected. This is a standby observation, not a successful heartbeat or an assignment retry; local validation continues and no public receipt is accepted. Other backend validation failures retain their normal error codes. A superseded release or expected consumer set receives code platform_assignment_changed. This check does not change artifacts, serving configuration or local readiness. Independently provisioned non-Kubernetes component identities retain their existing authentication contract. Enforced PostgreSQL history admission also requires the complete signed dependency closure of the selected expectation and every reported desired, actual, candidate and LKG generation to have current durable verified local input pins. Missing, cold or changed dependencies return a conflict without advancing the consumer cursor or audit chain. Heartbeats do not restore inputs.
    */
   trustedPlatformConsumerHeartbeat: {
     requestBody: {
@@ -17812,7 +17844,7 @@ export interface operations {
   };
   /**
    * Report Isolated DNS Shadow Observation
-   * @description Validates an explicitly assigned cell-dns shadow with the same live Pod, declared backend, signed artifact, exact expectation, fence, freshness, replay and capability checks as trusted heartbeats. Only staged and shadow_validated observations are accepted. Stores one bounded latest shadow observation and an independent monotonic cursor per consumer, artifact kind and authority scope. It never changes serving observations, serving cursors, configuration or positive LKG. Release selection and latest expectation are rechecked under the publication lock before commit. The normal convergence endpoint selects these observations only for their exact shadow release; serving convergence never reads them. Candidate capability admission can use only the exact currently selected shadow. Existing clients keep their original heartbeat contract.
+   * @description Validates an explicitly assigned cell-dns shadow with the same live Pod, declared backend, signed artifact, exact expectation, fence, freshness, replay and capability checks as trusted heartbeats. Only staged and shadow_validated observations are accepted. Stores one bounded latest shadow observation and an independent monotonic cursor per consumer, artifact kind and authority scope. It never changes serving observations, serving cursors, configuration or positive LKG. Release selection and latest expectation are rechecked under the publication lock before commit. The normal convergence endpoint selects these observations only for their exact shadow release; serving convergence never reads them. Candidate capability admission can use only the exact currently selected shadow. Existing clients keep their original heartbeat contract. PostgreSQL acceptance additionally rechecks the complete signed input closure and current durable verified local pins before committing the shadow observation and audit event. Cold or changed dependencies refuse the observation; this endpoint never restores inputs.
    */
   shadowPlatformConsumerHeartbeat: {
     requestBody: {
@@ -17857,7 +17889,7 @@ export interface operations {
   };
   /**
    * Get the expected ReleaseSet assignments for a trusted consumer
-   * @description Returns the latest expected set revision for each authorized artifact kind in each active ReleaseSet channel. Assignments are bound to the signed child artifact and the active release fencing token. Shadow assignments authorize validation only and must not replace serving state. Superseded releases and unrelated topology are excluded. Serving-only selection honors the signed publication role; cell-dns requires its prepared DNS membership and selected parent/fence without requiring a route child.
+   * @description Returns the latest expected set revision for each authorized artifact kind in each active ReleaseSet channel. Assignments are bound to the signed child artifact and the active release fencing token. Shadow assignments authorize validation only and must not replace serving state. Superseded releases and unrelated topology are excluded. Serving-only selection honors the signed publication role; cell-dns requires its prepared DNS membership and selected parent/fence without requiring a route child. After selection, each returned publication requires its complete signed input dependency closure and current durable full-readback pins in PostgreSQL, or verified original input content in file mode. Cold, missing or changed dependencies return 503 without restoration or fallback. Unselected shadow publications do not add a serving-only dependency. Assignment authority is independently rechecked before disclosure.
    */
   getPlatformConsumerAssignment: {
     parameters: {
@@ -17881,7 +17913,7 @@ export interface operations {
   };
   /**
    * Pull an artifact assigned to a trusted consumer
-   * @description Returns a validated signed child artifact or its exact signed ReleaseSet parent only when the verified component identity is currently present in that child assignment. Parent reads require the same expected_consumer_set_id and retain the child assignment and release envelope; arbitrary parents and nonselected canary members are denied. The endpoint is read-only and never records runtime facts.
+   * @description Returns a validated signed child artifact or its exact signed ReleaseSet parent only when the verified component identity is currently present in that child assignment. Parent reads require the same expected_consumer_set_id and retain the child assignment and release envelope; arbitrary parents and nonselected canary members are denied. The selected publication requires its complete signed input dependency closure and current durable full-readback pins in PostgreSQL, or verified original input content in file mode; cold, missing or changed dependencies return 503 without restoration or fallback. Assignment authority is independently rechecked before disclosure. The endpoint is read-only and never records runtime facts.
    */
   getPlatformConsumerArtifact: {
     parameters: {
@@ -17908,7 +17940,7 @@ export interface operations {
   };
   /**
    * Read approved routing publications for an assigned DNS artifact
-   * @description Read-only private observation for a trusted cell DNS identity in the exact current artifact and expected consumer set. Only immutable producer policies approved by dns_route_sources can supply route/TLS publications. Each scope includes its current gray/full lane cursors and approved selected publications, plus the unexpired verified full LKG when available. Failed or rolled-back publications and arbitrary history are excluded. The API authenticates all artifacts and producer activation bindings in one coherent source snapshot, then rechecks the DNS assignment before disclosure. The selection digest excludes observation time and changes when any returned authority binding changes. Readers must re-read and compare it after probing; neither this response nor a matching digest grants readiness, renews a proof deadline or selects public transport. Response encoding is bounded to 16 MiB. A source update cannot widen the signed DNS record, owner, candidate or failure-domain policy.
+   * @description Read-only private observation for a trusted cell DNS identity in the exact current artifact and expected consumer set. Only immutable producer policies approved by dns_route_sources can supply route/TLS publications. Each scope includes its current gray/full lane cursors and approved selected publications, plus the unexpired verified full LKG when available. Failed or rolled-back publications and arbitrary history are excluded. The API authenticates all artifacts and producer activation bindings in one coherent source snapshot. The exact DNS owner and every returned source publication require complete signed input closures and current verified local evidence. The source selection digest and original DNS ownership are rechecked after admission. Cold, missing or changed dependencies fail closed without restoration, fallback or runtime facts. The selection digest excludes observation time and changes when any returned authority binding changes. Readers must re-read and compare it after probing; neither this response nor a matching digest grants readiness, renews a proof deadline or selects public transport. Response encoding is bounded to 16 MiB. A source update cannot widen the signed DNS record, owner, candidate or failure-domain policy.
    */
   getPlatformConsumerDNSRouteSources: {
     parameters: {
@@ -17937,7 +17969,7 @@ export interface operations {
   };
   /**
    * Read approved routing sources for the current positive DNS LKG
-   * @description Read-only private observation for the exact signed current positive LKG of a DNS authority, independently of a pending successor assignment. Requires the verified scoped DNS identity to remain in the latest declared expected set of the full release that verified the LKG. The full release may be active or superseded, but never rolled back or unverified. The LKG signature, expiry, parent, child and original source policy are validated, and ownership and the current LKG are rechecked after observing sources. No arbitrary historical artifact, successor source policy, configuration mutation, readiness grant, public transport selection or checkpoint renewal is permitted. Readers must independently verify the returned LKG and recheck both its identity and source selection digest after probing. Existing checkpoint and proof deadlines remain in force and source observations are additionally bounded by the returned LKG expiry. Response encoding is bounded to 16 MiB.
+   * @description Read-only private observation for the exact signed current positive LKG of a DNS authority, independently of a pending successor assignment. Requires the verified scoped DNS identity to remain in the latest declared expected set of the full release that verified the LKG. The full release may be active or superseded, but never rolled back or unverified. The positive LKG selector, its exact DNS owner and every returned source publication require complete signed input closures and current verified local evidence. The original LKG ownership and source selection digest are rechecked after admission independently of successor lanes. Cold, missing or changed dependencies fail closed without restoration or checkpoint renewal. The LKG signature, expiry, parent, child and original source policy are validated, and ownership and the current LKG are rechecked after observing sources. No arbitrary historical artifact, successor source policy, configuration mutation, readiness grant, public transport selection or checkpoint renewal is permitted. Readers must independently verify the returned LKG and recheck both its identity and source selection digest after probing. Existing checkpoint and proof deadlines remain in force and source observations are additionally bounded by the returned LKG expiry. Response encoding is bounded to 16 MiB.
    */
   getPlatformConsumerRetainedDNSRouteSources: {
     parameters: {
@@ -17966,7 +17998,7 @@ export interface operations {
   };
   /**
    * Read a custom-domain certificate authorized by a serving cell publication
-   * @description A verified Edge Worker identity can read one existing certificate only when its exact current gray or full cell assignment includes the signed TLS reference and locally owned route for that hostname. The expected set, authority, route/TLS parent, publication fence, tenant and app ownership are rechecked before disclosure. Shadow, foreign cells, stale assignments, unverified domains and missing certificates are denied. This read never issues certificates, modifies domain status, reports readiness or changes LKG. Responses are private and no-store.
+   * @description A verified Edge Worker identity can read one existing certificate only when its exact current gray or full cell assignment includes the signed TLS reference and locally owned route for that hostname. The exact serving publication requires its complete signed input closure and current verified local evidence before credentials can be disclosed. Cold, missing or changed dependencies return 503 without restoration, fallback or credential authority delegation. The expected set, authority, route/TLS parent, publication fence, tenant and app ownership are independently rechecked before disclosure. Shadow, foreign cells, stale assignments, unverified domains and missing certificates are denied. This read never issues certificates, modifies domain status, reports readiness or changes LKG. Responses are private and no-store.
    */
   getPlatformConsumerTLSCertificate: {
     parameters: {
@@ -19416,7 +19448,7 @@ export interface operations {
   };
   /**
    * Get Discovery Bundle
-   * @description Public bootstrap topology with a summary of explicitly declared static platform entry routes from the verified global TrafficReleaseSet LKG. The signed parent, all member signatures and lineage, and pinned base intent identity/digest are verified. Application-owned and non-root routes are excluded; weighted targets are never flattened to one origin. Group modes, TTL, disabled state and route policy retain artifact semantics. Missing initial LKG returns topology without platform routes. Invalid or changing verified configuration returns 503 without a signed bundle. Environment routes and mutable business policies are not fallback sources.
+   * @description Public bootstrap topology with a summary of explicitly declared static platform entry routes from the verified global TrafficReleaseSet LKG. The signed parent, all member signatures and lineage, and pinned base intent identity/digest are verified. Application-owned and non-root routes are excluded; weighted targets are never flattened to one origin. Group modes, TTL, disabled state and route policy retain artifact semantics. The exact selected LKG requires its complete signed input dependency closure and current durable full-readback pins in PostgreSQL, or verified original input content in file mode, including when a node reselects configuration after claiming a task. This read never restores cold inputs or falls back to disposable history. LKG selection, including initial absence, is checked again with the input proof before disclosure. Missing initial LKG returns topology without platform routes. Invalid or changing verified configuration returns 503 without a signed bundle. Environment routes and mutable business policies are not fallback sources.
    */
   getDiscoveryBundle: {
     responses: {
@@ -24130,7 +24162,24 @@ export interface operations {
       default: components["responses"]["ErrorResponse"];
     };
   };
-  /** Create Node Update Task */
+  /**
+   * Create Node Update Task
+   * @description Under enforced PostgreSQL history admission, a task declaring compiler-input dependencies, including structured
+   * *_json arguments, requires a complete signed dependency closure before
+   * the pending retention root is atomically inserted under the input
+   * admission barrier. Configuration-fetching or reader-restarting tasks also
+   * bind the current global verified ReleaseSet selector. Missing,
+   * changed, or over-budget dependency metadata returns 409 without
+   * creating a task. In PostgreSQL, cold inputs may be queued and remain
+   * protected; claim still requires current durable full-readback pins
+   * after bounded preparation. File storage verifies actual original
+   * input size and canonical full SHA with the complete signed closure
+   * and current LKG in the same locked state before creating or claiming
+   * a dependent task; missing or corrupt originals return 409.
+   * Creation never restores archives or claims the task.
+   * Maintenance tasks with no such dependencies remain independent of
+   * compiler-input archive admission.
+   */
   createNodeUpdateTask: {
     requestBody?: {
       content: {
@@ -24142,6 +24191,12 @@ export interface operations {
       201: {
         content: {
           "application/json": components["schemas"]["NodeUpdateTaskResponse"];
+        };
+      };
+      /** @description Task dependency metadata unavailable, changed, or over budget, or required file-backed original input missing or corrupt; no task created. */
+      409: {
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"];
         };
       };
       default: components["responses"]["ErrorResponse"];
@@ -24342,7 +24397,10 @@ export interface operations {
       default: components["responses"]["ErrorResponse"];
     };
   };
-  /** Node Updater Claim Task */
+  /**
+   * Node Updater Claim Task
+   * @description Claims an authorized pending or running task only after the server has verified its complete declared artifact and input dependency closure. In PostgreSQL, referenced compiler inputs must have an independent local representation protected by durable verified pins produced by complete local readback. File storage instead verifies actual original size and canonical full SHA, complete signatures and the current LKG together with the task under one state lock before changing its status. A missing, cold, changed, unsigned, or unprepared dependency returns a conflict without changing task state; restore and verify dependencies before claiming again. This endpoint does not restore cold archives or weaken existing task authorization, expiry, or execution checks. Unrelated maintenance tasks require no archive infrastructure in either backend.
+   */
   nodeUpdaterClaimTask: {
     parameters: {
       path: {
@@ -24354,6 +24412,12 @@ export interface operations {
       200: {
         content: {
           "application/json": components["schemas"]["NodeUpdateTaskResponse"];
+        };
+      };
+      /** @description Task or its complete local dependency admission is unavailable */
+      409: {
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"];
         };
       };
       default: components["responses"]["ErrorResponse"];
