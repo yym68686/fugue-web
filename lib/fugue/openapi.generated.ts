@@ -4253,6 +4253,7 @@ export interface components {
       /** Format: int64 */
       archive_size_bytes?: number;
       source_dir?: string;
+      /** @description Build strategy (auto, workers, static-site, dockerfile, buildpacks, or nixpacks). Workers runs HTTP/WebSocket Workers on a pinned workerd runtime; unsupported Cloudflare bindings fail validation. */
       build_strategy?: string;
       commit_sha?: string;
       commit_committed_at?: string;
@@ -8546,6 +8547,7 @@ export interface components {
       source_dir?: string;
       dockerfile_path?: string;
       build_context_dir?: string;
+      /** @description Build strategy override (auto, workers, static-site, dockerfile, buildpacks, or nixpacks). */
       build_strategy?: string;
       compose_service?: string;
       clear_files?: boolean;
@@ -11003,6 +11005,7 @@ export interface components {
       source_dir?: string;
       name?: string;
       description?: string;
+      /** @description Build strategy override (auto, workers, static-site, dockerfile, buildpacks, or nixpacks). Auto detects Wrangler projects and unambiguous standalone Workers; environment secrets are supplied separately. */
       build_strategy?: string;
       runtime_id?: string;
       /** Format: int32 */
@@ -11089,6 +11092,7 @@ export interface components {
       source_dir?: string;
       name?: string;
       description?: string;
+      /** @description Build strategy override (auto, workers, static-site, dockerfile, buildpacks, or nixpacks). Auto detects Wrangler projects and unambiguous standalone Workers; environment secrets are supplied separately. */
       build_strategy?: string;
       runtime_id?: string;
       /** Format: int32 */
