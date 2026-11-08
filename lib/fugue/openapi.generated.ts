@@ -488,7 +488,7 @@ export interface paths {
   "/v1/admin/artifacts/{artifact_id}/compiler-input": {
     /**
      * Read Frozen Compiler Runtime Input
-     * @description Platform administrators with artifact.read can retrieve the exact normalized runtime snapshot bound by a trusted artifact's input_snapshot_digest. Verifies the complete signed dependency closure and current durable full-readback input pins in PostgreSQL, or actual canonical original input SHA and size in file storage, then rechecks the original artifact before disclosure. Historical artifacts remain readable under the same administrative authority without becoming active. Recomputes the digest and checks intent/policy generation binding. The optional dns_configuration view returns only frozen DNS inputs and omits bulky physical replay evidence; it retains original observation times and selection identities, reports its own projection digest, and never claims that projected bytes match the original input digest. Older artifacts without a retained snapshot return 404; cold or changed dependency proof returns 503, and missing or corrupt input never falls back to live business data or initiates archive restoration.
+     * @description Platform administrators with artifact.read can retrieve the exact normalized runtime snapshot bound by a trusted artifact's input_snapshot_digest. Verifies the complete signed operational dependency closure and current durable full-readback input pins in PostgreSQL, or actual canonical input SHA and size in file storage, then rechecks the original artifact before disclosure. Historical artifacts remain readable under the same administrative authority without becoming active. Recomputes the digest and checks intent/policy generation binding. The optional dns_configuration view returns only frozen DNS inputs and omits bulky physical replay evidence. For an explicitly opted-in configuration-v1 policy, this view reads the separately persisted runtime_input_digest signed in the new artifact lineage; full still reads the original input_snapshot_digest. Both retain original observation times and selection identities. The DNS view reports its own projection digest and never claims projected bytes match the original input digest. Unavailable or corrupt runtime input never falls back to original history or live business data. Older artifacts without a retained snapshot return 404; cold or changed dependency proof returns 503, and reads never initiate archive restoration. This contract does not cancel original retention or rollback obligations.
      */
     get: operations["getPlatformArtifactCompilerInput"];
   };
@@ -13877,6 +13877,11 @@ export interface components {
       edge_group_ids: string[];
     };
     PlatformConfigPolicySnapshot: ({
+      /**
+       * @description Explicitly opts new compilations into a separately persisted minimal operational snapshot, bound by runtime_input_digest in the signed lineage and a new compiler generation. Requires compatible readers before activation. Full original input remains audit provenance with unchanged retention obligations. Does not renew observations, relax freshness, replace physical quality proofs, or rewrite old artifacts.
+       * @enum {string}
+       */
+      runtime_input_mode?: "configuration-v1";
       /** @description Explicit independent static endpoints for sole-owner app root hostnames. Requires consumer readiness; never grants platform lifecycle authority over these processes. Unsupported for Cell publications. */
       static_edge_routes?: {
           app_id: string;
@@ -14042,6 +14047,8 @@ export interface components {
       intent_digest: string;
       policy_digest: string;
       input_snapshot_digest?: string;
+      /** @description Optional configuration-v1 operational input, distinct from original full-input audit provenance. Must agree with signed metadata, compiler version, policy and artifact generation; missing or invalid operational input fails closed. */
+      runtime_input_digest?: string;
       compiler_version: string;
     };
     /** @description Immutable execution membership for one neutral cell. Arrays contain sorted unique physical Kubernetes node IDs. Each Edge requires its own route and TLS receipt; each DNS process requires its own DNS receipt. DNS membership must be empty for cell-routes and nonempty otherwise; Edge membership must be empty for cell-dns and nonempty otherwise. Every member remains required while silent, unready or absent from legacy inventory. All child artifacts bind the topology digest in signed metadata and their policy. */
@@ -14550,7 +14557,7 @@ export interface components {
       static_intent_artifact_id?: string;
       /** @description Required exact content_hash of the pinned static intent. */
       static_intent_digest?: string;
-      /** @description Optional exact validated PolicySnapshot in target_scope holding DNS declarations and optional route defaults. Required for a cell producer, where authority_cell_id and consumer_topology_digest bind the same declared cell membership. Supported fields are publication_role, schema_version, generation, scope, authority_cell_id, consumer_topology_digest, dns_authorities, dns_client_policies, dns_readiness, tls_readiness, traffic_rollout_cohorts, dns_query_policy, dns_placement_mode; the optional route defaults group must include all four of minimum_healthy_edges (1..10000), max_stale_seconds (1..604800), route_constraints and dns_route_state_constraints. Explicit empty arrays are allowed; null, partial groups and unknown fields are rejected. Base route_constraints are defaults by hostname; an explicit business route policy takes precedence. Requires business-static-intent. Complete traffic publications require DNS consumers in the pinned intent. cell-routes uses this same pinned projection-policy reference for route defaults, TLS readiness and cohorts; DNS fields, consumers and templates must be absent, and require_dns_query_policy must be false. */
+      /** @description Optional exact validated PolicySnapshot in target_scope holding DNS declarations and optional route defaults. Required for a cell producer, where authority_cell_id and consumer_topology_digest bind the same declared cell membership. Supported fields are publication_role, schema_version, generation, scope, authority_cell_id, consumer_topology_digest, dns_authorities, dns_client_policies, dns_readiness, tls_readiness, traffic_rollout_cohorts, dns_query_policy, dns_placement_mode and optional runtime_input_mode; the optional route defaults group must include all four of minimum_healthy_edges (1..10000), max_stale_seconds (1..604800), route_constraints and dns_route_state_constraints. Explicit empty arrays are allowed; null, partial groups and unknown fields are rejected. Base route_constraints are defaults by hostname; an explicit business route policy takes precedence. Requires business-static-intent. Complete traffic publications require DNS consumers in the pinned intent. cell-routes uses this same pinned projection-policy reference for route defaults, TLS readiness and cohorts; DNS fields, consumers and templates must be absent, and require_dns_query_policy must be false. */
       dns_policy_artifact_id?: string;
       dns_policy_digest?: string;
       /**
@@ -17388,7 +17395,7 @@ export interface operations {
   };
   /**
    * Read Frozen Compiler Runtime Input
-   * @description Platform administrators with artifact.read can retrieve the exact normalized runtime snapshot bound by a trusted artifact's input_snapshot_digest. Verifies the complete signed dependency closure and current durable full-readback input pins in PostgreSQL, or actual canonical original input SHA and size in file storage, then rechecks the original artifact before disclosure. Historical artifacts remain readable under the same administrative authority without becoming active. Recomputes the digest and checks intent/policy generation binding. The optional dns_configuration view returns only frozen DNS inputs and omits bulky physical replay evidence; it retains original observation times and selection identities, reports its own projection digest, and never claims that projected bytes match the original input digest. Older artifacts without a retained snapshot return 404; cold or changed dependency proof returns 503, and missing or corrupt input never falls back to live business data or initiates archive restoration.
+   * @description Platform administrators with artifact.read can retrieve the exact normalized runtime snapshot bound by a trusted artifact's input_snapshot_digest. Verifies the complete signed operational dependency closure and current durable full-readback input pins in PostgreSQL, or actual canonical input SHA and size in file storage, then rechecks the original artifact before disclosure. Historical artifacts remain readable under the same administrative authority without becoming active. Recomputes the digest and checks intent/policy generation binding. The optional dns_configuration view returns only frozen DNS inputs and omits bulky physical replay evidence. For an explicitly opted-in configuration-v1 policy, this view reads the separately persisted runtime_input_digest signed in the new artifact lineage; full still reads the original input_snapshot_digest. Both retain original observation times and selection identities. The DNS view reports its own projection digest and never claims projected bytes match the original input digest. Unavailable or corrupt runtime input never falls back to original history or live business data. Older artifacts without a retained snapshot return 404; cold or changed dependency proof returns 503, and reads never initiate archive restoration. This contract does not cancel original retention or rollback obligations.
    */
   getPlatformArtifactCompilerInput: {
     parameters: {
@@ -17409,6 +17416,8 @@ export interface operations {
             projection_digest?: string;
             artifact_id: string;
             input_snapshot_digest: string;
+            /** @description Separately signed operational input used by the DNS view for the configuration-v1 contract; absent for full and legacy views. */
+            runtime_input_digest?: string;
             runtime_snapshot: components["schemas"]["PlatformRuntimeSnapshot"];
           };
         };
