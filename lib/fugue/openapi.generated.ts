@@ -14712,6 +14712,16 @@ export interface components {
       require_route_defaults?: false;
       hosted_zone_templates?: unknown[];
     }]>;
+    /** @description Signed policy_snapshot in exact scope platform-config-input-deferral, shadow only, maximum encoded content 32768 bytes. The request's absolute interval is at most 1800 seconds. generation equals operation_id for defer, or operation_id followed by :release for release. Release requires platform.admin and producer_capture.control. Idempotency key is producer-input-deferral:<action>:<operation_id>; no override or rollback publication is allowed. Exact current signed producer authorities must match when enabling. An unexpired operation cannot be replaced or extended; release preserves the identical original request and digest. Every new-input admission reads the durable selection under the same short transaction barrier as publication, without allocating tickets or installing tables. Unknown reads do not admit new input. A successful read grants only one attempt; it is not proof that existing work ended. Deadlines use database wall time; this protocol does not establish clock synchronization or a persistent clock high-water mark. A terminal release stays off during clock uncertainty. Secret scanning permits only the positive exact numeric fencing_token in the completely decoded authority references, at most 9007199254740991; other secret-like keys stay rejected. */
+    PlatformProducerInputDeferral: {
+      /** @enum {string} */
+      schema_version: "fugue.platform.producer.input-deferral/v1";
+      generation: string;
+      /** @enum {string} */
+      action: "defer" | "release";
+      request: components["schemas"]["ProducerCaptureDeferralOriginalRequest"];
+      request_digest: string;
+    };
     PlatformArtifactCreateRequest: {
       artifact_kind: string;
       scope?: components["schemas"]["PlatformArtifactScope"];
