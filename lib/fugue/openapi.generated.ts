@@ -283,6 +283,13 @@ export interface paths {
     /** Run Platform Failure Drill */
     post: operations["runPlatformFailureDrill"];
   };
+  "/v1/admin/platform/producer-capture-deferrals/control": {
+    /**
+     * Observe or release an existing producer capture deferral
+     * @description Requires platform.admin and the explicit producer_capture.control scope (or the bootstrap recovery identity). Targets the immutable original operation ID and request digest. Observe may persist drain, expiry or invalidation; release removes only this optional new-input gate. Neither action creates, enables, extends or renews a deferral, installs storage, enrolls a runtime, approves work or changes signed policy/TTL. Missing optional storage refuses. A successful response describes the committed native transaction, not fleet coverage or business success. An uncertain commit returns no receipt; a later explicit request must use the same target, never a new operation or deadline. The request accepts one strict JSON object of at most 2048 bytes, no duplicate keys or query parameters.
+     */
+    post: operations["updateProducerCaptureDeferral"];
+  };
   "/v1/admin/invariants": {
     /** List Invariant Definitions */
     get: operations["listInvariantDefinitions"];
@@ -602,8 +609,8 @@ export interface paths {
   };
   "/v1/platform-state/consumers/shadow-heartbeat": {
     /**
-     * Report Isolated DNS Shadow Observation
-     * @description Validates an explicitly assigned cell-dns shadow with the same live Pod, declared backend, signed artifact, exact expectation, fence, freshness, replay and capability checks as trusted heartbeats. Only staged and shadow_validated observations are accepted. Stores one bounded latest shadow observation and an independent monotonic cursor per consumer, artifact kind and authority scope. It never changes serving observations, serving cursors, configuration or positive LKG. Release selection and latest expectation are rechecked under the publication lock before commit. The normal convergence endpoint selects these observations only for their exact shadow release; serving convergence never reads them. Candidate capability admission can use only the exact currently selected shadow. Existing clients keep their original heartbeat contract. PostgreSQL acceptance additionally rechecks the complete signed input closure and current durable verified local pins before committing the shadow observation and audit event. Cold or changed dependencies refuse the observation; this endpoint never restores inputs. A bounded admission lock refusal returns retryable HTTP 503 with Retry-After: 1 without committing the observation or audit event.
+     * Report Isolated Traffic Shadow Observation
+     * @description Validates an explicitly assigned edge route/TLS or cell-dns shadow with the same component identity, signed ReleaseSet membership, exact expectation, fence, freshness, replay and capability checks as trusted heartbeats. DNS retains its live Pod and declared backend checks. Edge shadow reports must leave actual_generation and lkg_generation empty and must not claim serving_lkg or lkg_expired. A staged candidate does not establish an applied or recoverable generation. Only staged and shadow_validated observations are accepted. Stores one bounded latest shadow observation and an independent monotonic cursor per consumer, artifact kind and authority scope. It never changes serving observations, serving cursors, configuration or positive LKG. Release selection and latest expectation are rechecked under the publication lock before commit. The normal convergence endpoint selects these observations only for their exact shadow release; serving convergence never reads them. Candidate capability admission can use only the exact currently selected shadow. Serving edge reports use the verified route or TLS member generation in the reported artifact kind and scope, never the enclosing group bundle generation. Existing serving registrations are not rewritten by shadow observations, including their retained LKG roots. PostgreSQL acceptance additionally rechecks the complete signed input closure and current durable verified local pins before committing the shadow observation and audit event. Cold or changed dependencies refuse the observation; this endpoint never restores inputs. A bounded admission lock refusal returns retryable HTTP 503 with Retry-After: 1 without committing the observation or audit event.
      */
     post: operations["shadowPlatformConsumerHeartbeat"];
   };
@@ -13161,6 +13168,54 @@ export interface components {
     PlatformControlInventoryResponse: {
       inventory: components["schemas"]["PlatformControlInventory"];
     };
+    ProducerCaptureDeferralControlRequest: {
+      /** @enum {string} */
+      schema_version: "fugue.platform.producer.capture-deferral-control/v1";
+      operation_id: string;
+      request_digest: string;
+      /** @enum {string} */
+      action: "observe" | "release";
+    };
+    ProducerCaptureDeferralOriginalRequest: {
+      /** @enum {string} */
+      schema_version: "fugue.platform.producer.capture-deferral/v1";
+      operation_id: string;
+      /** Format: date-time */
+      requested_at: string;
+      /**
+       * Format: date-time
+       * @description Original absolute deadline, at most 30 minutes after requested_at, including drain time.
+       */
+      expires_at: string;
+      authorities: {
+          scope: string;
+          policy: components["schemas"]["PlatformPublicationPrecondition"];
+        }[];
+    };
+    ProducerCaptureDeferralRecord: {
+      request: components["schemas"]["ProducerCaptureDeferralOriginalRequest"];
+      request_digest: string;
+      /** @enum {string} */
+      phase: "draining" | "active" | "expired" | "released" | "invalidated";
+      /**
+       * Format: date-time
+       * @description Persisted observation floor; unchanged polling does not renew it.
+       */
+      observed_at: string;
+      /** Format: date-time */
+      activated_at?: string;
+      /** Format: date-time */
+      ended_at?: string;
+    };
+    ProducerCaptureDeferralControlReceipt: {
+      control: components["schemas"]["ProducerCaptureDeferralControlRequest"];
+      record: components["schemas"]["ProducerCaptureDeferralRecord"];
+      /** Format: int64 */
+      version: number;
+      changed: boolean;
+      actor_type: string;
+      actor_id: string;
+    };
     ResilienceInventoryItem: {
       category: string;
       subject: string;
@@ -16613,6 +16668,61 @@ export interface operations {
       default: components["responses"]["ErrorResponse"];
     };
   };
+  /**
+   * Observe or release an existing producer capture deferral
+   * @description Requires platform.admin and the explicit producer_capture.control scope (or the bootstrap recovery identity). Targets the immutable original operation ID and request digest. Observe may persist drain, expiry or invalidation; release removes only this optional new-input gate. Neither action creates, enables, extends or renews a deferral, installs storage, enrolls a runtime, approves work or changes signed policy/TTL. Missing optional storage refuses. A successful response describes the committed native transaction, not fleet coverage or business success. An uncertain commit returns no receipt; a later explicit request must use the same target, never a new operation or deadline. The request accepts one strict JSON object of at most 2048 bytes, no duplicate keys or query parameters.
+   */
+  updateProducerCaptureDeferral: {
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ProducerCaptureDeferralControlRequest"];
+      };
+    };
+    responses: {
+      /** @description Committed control transaction or retained terminal replay; no deadline renewal. */
+      200: {
+        headers: {
+          "Cache-Control"?: "private, no-store";
+        };
+        content: {
+          "application/json": components["schemas"]["ProducerCaptureDeferralControlReceipt"];
+        };
+      };
+      /** @description Invalid, ambiguous, unsupported or noncanonical control request. */
+      400: {
+        content: never;
+      };
+      /** @description Authentication required. */
+      401: {
+        content: never;
+      };
+      /** @description Platform administrator with explicit producer_capture.control permission required. */
+      403: {
+        content: never;
+      };
+      /** @description No retained operation with this ID. */
+      404: {
+        content: never;
+      };
+      /** @description Exact original request digest or durable record conflict. */
+      409: {
+        content: never;
+      };
+      /** @description Request body exceeds 2048 bytes. */
+      413: {
+        content: never;
+      };
+      /** @description application/json content type required. */
+      415: {
+        content: never;
+      };
+      /** @description Optional storage unavailable, transaction failed or commit outcome uncertain; no receipt. */
+      503: {
+        content: never;
+      };
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
   /** List Invariant Definitions */
   listInvariantDefinitions: {
     responses: {
@@ -17900,8 +18010,8 @@ export interface operations {
     };
   };
   /**
-   * Report Isolated DNS Shadow Observation
-   * @description Validates an explicitly assigned cell-dns shadow with the same live Pod, declared backend, signed artifact, exact expectation, fence, freshness, replay and capability checks as trusted heartbeats. Only staged and shadow_validated observations are accepted. Stores one bounded latest shadow observation and an independent monotonic cursor per consumer, artifact kind and authority scope. It never changes serving observations, serving cursors, configuration or positive LKG. Release selection and latest expectation are rechecked under the publication lock before commit. The normal convergence endpoint selects these observations only for their exact shadow release; serving convergence never reads them. Candidate capability admission can use only the exact currently selected shadow. Existing clients keep their original heartbeat contract. PostgreSQL acceptance additionally rechecks the complete signed input closure and current durable verified local pins before committing the shadow observation and audit event. Cold or changed dependencies refuse the observation; this endpoint never restores inputs. A bounded admission lock refusal returns retryable HTTP 503 with Retry-After: 1 without committing the observation or audit event.
+   * Report Isolated Traffic Shadow Observation
+   * @description Validates an explicitly assigned edge route/TLS or cell-dns shadow with the same component identity, signed ReleaseSet membership, exact expectation, fence, freshness, replay and capability checks as trusted heartbeats. DNS retains its live Pod and declared backend checks. Edge shadow reports must leave actual_generation and lkg_generation empty and must not claim serving_lkg or lkg_expired. A staged candidate does not establish an applied or recoverable generation. Only staged and shadow_validated observations are accepted. Stores one bounded latest shadow observation and an independent monotonic cursor per consumer, artifact kind and authority scope. It never changes serving observations, serving cursors, configuration or positive LKG. Release selection and latest expectation are rechecked under the publication lock before commit. The normal convergence endpoint selects these observations only for their exact shadow release; serving convergence never reads them. Candidate capability admission can use only the exact currently selected shadow. Serving edge reports use the verified route or TLS member generation in the reported artifact kind and scope, never the enclosing group bundle generation. Existing serving registrations are not rewritten by shadow observations, including their retained LKG roots. PostgreSQL acceptance additionally rechecks the complete signed input closure and current durable verified local pins before committing the shadow observation and audit event. Cold or changed dependencies refuse the observation; this endpoint never restores inputs. A bounded admission lock refusal returns retryable HTTP 503 with Retry-After: 1 without committing the observation or audit event.
    */
   shadowPlatformConsumerHeartbeat: {
     requestBody: {
@@ -18033,6 +18143,10 @@ export interface operations {
       query: {
         expected_consumer_set_id: string;
       };
+      header?: {
+        /** @description Optional validator of the complete prior response excluding only snapshot.observed_at. All current authorization, signatures, publication bindings and input admission still run before a 304. */
+        "If-None-Match"?: string;
+      };
       path: {
         artifact_id: string;
       };
@@ -18043,6 +18157,14 @@ export interface operations {
         content: {
           "application/json": components["schemas"]["PlatformConsumerDNSRouteSourcesResponse"];
         };
+      };
+      /** @description Complete source response is unchanged except observation time after fresh validation; reuse prior content only with the returned fresh X-Fugue-Observed-At. This does not extend readiness, checkpoint age, LKG expiry or proof deadlines. */
+      304: {
+        headers: {
+          ETag?: string;
+          "X-Fugue-Observed-At"?: string;
+        };
+        content: never;
       };
       400: components["responses"]["ErrorResponse"];
       401: components["responses"]["ErrorResponse"];
@@ -18062,6 +18184,10 @@ export interface operations {
       query: {
         expected_consumer_set_id: string;
       };
+      header?: {
+        /** @description Optional validator of the complete prior response excluding only snapshot.observed_at. All current authorization, signatures, publication bindings and input admission still run before a 304. */
+        "If-None-Match"?: string;
+      };
       path: {
         artifact_id: string;
       };
@@ -18072,6 +18198,14 @@ export interface operations {
         content: {
           "application/json": components["schemas"]["PlatformConsumerRetainedDNSRouteSourcesResponse"];
         };
+      };
+      /** @description Complete source response is unchanged except observation time after fresh validation; reuse prior content only with the returned fresh X-Fugue-Observed-At. This does not extend readiness, checkpoint age, LKG expiry or proof deadlines. */
+      304: {
+        headers: {
+          ETag?: string;
+          "X-Fugue-Observed-At"?: string;
+        };
+        content: never;
       };
       400: components["responses"]["ErrorResponse"];
       401: components["responses"]["ErrorResponse"];
