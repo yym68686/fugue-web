@@ -103,6 +103,20 @@ export interface paths {
      */
     post: operations["reportEdgeClientProbeRound"];
   };
+  "/v1/admin/edge-recovery/client-probes": {
+    /**
+     * Claim one due capacity recovery round for an external observer
+     * @description Requires explicit edge.quality.observe authority and configured external capacity observation. Uses only the active signed recovery policy, its exact held physical edge and a permitted healthy reference. Captures current code and route identities before issuing a single-use paired plan. One claim per configured probe interval; no request body or caller supplied target is accepted. Does not change serving authority.
+     */
+    post: operations["issueEdgeRecoveryClientProbePlan"];
+  };
+  "/v1/admin/edge-recovery/client-probes/report": {
+    /**
+     * Verify and retain an external capacity recovery round
+     * @description Requires the same explicit observer authority and exact unconsumed plan. Revalidates the active signed recovery policy, public Front attestations, identical payloads and physical code identity after measurement. Records at most one result for the claimed interval. Uses the measurement protocol's two-second client clock allowance while checking the complete request duration and transfer rate. Only existing consecutive success, stable duration and publication gates can admit a recovered edge; this endpoint does not publish DNS or remove code release holds.
+     */
+    post: operations["reportEdgeRecoveryClientProbeRound"];
+  };
   "/v1/edge/quality-rank/{hostname}": {
     /**
      * Retired Composite Edge Quality Rank
@@ -15879,6 +15893,56 @@ export interface operations {
       400: components["responses"]["ErrorResponse"];
       401: components["responses"]["ErrorResponse"];
       403: components["responses"]["ErrorResponse"];
+      503: components["responses"]["ErrorResponse"];
+    };
+  };
+  /**
+   * Claim one due capacity recovery round for an external observer
+   * @description Requires explicit edge.quality.observe authority and configured external capacity observation. Uses only the active signed recovery policy, its exact held physical edge and a permitted healthy reference. Captures current code and route identities before issuing a single-use paired plan. One claim per configured probe interval; no request body or caller supplied target is accepted. Does not change serving authority.
+   */
+  issueEdgeRecoveryClientProbePlan: {
+    responses: {
+      /** @description Signed paired measurement plan bound to the current policy and observer. */
+      200: {
+        content: {
+          "application/json": components["schemas"]["EdgeClientProbePlan"];
+        };
+      };
+      /** @description No due recoverable capacity round. */
+      204: {
+        content: never;
+      };
+      400: components["responses"]["ErrorResponse"];
+      401: components["responses"]["ErrorResponse"];
+      403: components["responses"]["ErrorResponse"];
+      503: components["responses"]["ErrorResponse"];
+    };
+  };
+  /**
+   * Verify and retain an external capacity recovery round
+   * @description Requires the same explicit observer authority and exact unconsumed plan. Revalidates the active signed recovery policy, public Front attestations, identical payloads and physical code identity after measurement. Records at most one result for the claimed interval. Uses the measurement protocol's two-second client clock allowance while checking the complete request duration and transfer rate. Only existing consecutive success, stable duration and publication gates can admit a recovered edge; this endpoint does not publish DNS or remove code release holds.
+   */
+  reportEdgeRecoveryClientProbeRound: {
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["EdgeClientProbeReport"];
+      };
+    };
+    responses: {
+      /** @description Verified recovery observation recorded, without direct routing authorization. */
+      200: {
+        content: {
+          "application/json": {
+            /** @enum {boolean} */
+            accepted: true;
+            recovery_result: string;
+          };
+        };
+      };
+      400: components["responses"]["ErrorResponse"];
+      401: components["responses"]["ErrorResponse"];
+      403: components["responses"]["ErrorResponse"];
+      409: components["responses"]["ErrorResponse"];
       503: components["responses"]["ErrorResponse"];
     };
   };
