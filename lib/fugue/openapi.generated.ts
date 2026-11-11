@@ -199,7 +199,7 @@ export interface paths {
   "/v1/edge/network-observation": {
     /**
      * Read an exact live connection from the transport-selected public Front
-     * @description Read-only bounded diagnostic for a node-scoped Edge credential. Resolves the actual public Service and EndpointSlice owner, rechecks runtime identities, and returns only one coarse peer sample. Does not probe applications or change routing. Raw peer endpoints are transient and are not persisted in the result.
+     * @description Read-only bounded diagnostic for a node-scoped Edge credential. Resolves the actual public Service and EndpointSlice owner, rechecks runtime identities, and returns only one coarse peer sample. Each API process admits at most one observation per node per second, with at most one reserved waiter per node for at most one second within the existing two-second request deadline. Further contention returns 429. Does not probe applications or change routing. Raw peer endpoints are transient and are not persisted in the result.
      */
     post: operations["readEdgePublicNetworkObservation"];
   };
@@ -16303,7 +16303,7 @@ export interface operations {
   };
   /**
    * Read an exact live connection from the transport-selected public Front
-   * @description Read-only bounded diagnostic for a node-scoped Edge credential. Resolves the actual public Service and EndpointSlice owner, rechecks runtime identities, and returns only one coarse peer sample. Does not probe applications or change routing. Raw peer endpoints are transient and are not persisted in the result.
+   * @description Read-only bounded diagnostic for a node-scoped Edge credential. Resolves the actual public Service and EndpointSlice owner, rechecks runtime identities, and returns only one coarse peer sample. Each API process admits at most one observation per node per second, with at most one reserved waiter per node for at most one second within the existing two-second request deadline. Further contention returns 429. Does not probe applications or change routing. Raw peer endpoints are transient and are not persisted in the result.
    */
   readEdgePublicNetworkObservation: {
     requestBody: {
