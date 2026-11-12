@@ -5448,6 +5448,8 @@ export interface components {
       probe_budget_per_interval: number;
     };
     PhysicalEdgeQualityCandidate: {
+      /** @description V7 serving admission blocker. Independent route, capacity and client measurements may still be collected, but the candidate cannot enter a published order until admission recovers. */
+      serving_blocked_reason?: string;
       edge_id: string;
       edge_group_id: string;
       route_generation: string;
