@@ -4905,7 +4905,9 @@ export interface components {
     /** @description Opt-in capacity recovery gate for the explicitly pinned static platform route (streaming class), in addition to route/TLS proof. Each round transfers the same signed, nonce-bound, uncompressed 1 MiB payload from the held Edge and one available declared reference. Full round elapsed time includes connection, TLS, headers and body. Both responses and socket attestations must verify. The held member's physical Front and Worker must match current group code authority before and after measurement. This grants only candidate eligibility; code-release holds, configuration publication, DNS proofs and LKG remain separate. Missing or unsupported evidence keeps the member held. No provider billing date is treated as capacity evidence. */
     EdgeCapacityRecoveryPolicy: {
       /** @enum {string} */
-      version: "edge-capacity-recovery-v1";
+      version: "edge-capacity-recovery-v1" | "edge-capacity-recovery-continuity-v2";
+      /** @description Required only for continuity-v2 and at least freshness_seconds. Bounds reuse of a fully recovered checkpoint during missing or inconclusive observations. Does not extend route/TLS proofs, suppress confirmed failures, or admit an incomplete recovery streak. V1 must omit it. */
+      retain_admission_seconds?: number;
       /** @enum {string} */
       traffic_class: "streaming";
       reference_edge_ids: string[];
@@ -4941,7 +4943,11 @@ export interface components {
       /** @enum {string} */
       state: "not_configured" | "allowed" | "suspended" | "unavailable" | "identity_conflict";
       /** @enum {string} */
-      recovery_state?: "probing" | "ready" | "unavailable";
+      recovery_state?: "probing" | "ready" | "review_overdue" | "retention_expired" | "unavailable";
+      /** Format: date-time */
+      recovery_last_success_at?: string;
+      /** Format: date-time */
+      recovery_retain_until?: string;
       /** Format: date-time */
       recovery_last_probe_at?: string;
       /**
@@ -5415,8 +5421,10 @@ export interface components {
       sources?: components["schemas"]["PhysicalEdgeQualityReceipt"][];
       evaluation: components["schemas"]["BusinessEdgeExplorationReceipt"];
     };
-    /** @description V6 preserves historical V4/V5 replay. With comparable completed downloads or explicit excess incumbent transfer failures, a retransmission metric observed on only one edge is excluded from both comparison costs and adds one configured uncertainty budget to the challenger. Raw observations remain intact. Missing optional packet counters cannot veto otherwise sufficient delivery evidence. Every sufficiently sampled cohort must still show sustained advantage, and capacity, cooldown and route readiness gates remain mandatory. */
+    /** @description V7 preserves historical V2-V6 replay. A new quality switch requires authenticated paired rounds from the same public peer network across completed windows; passive traffic or service RTT alone cannot establish a client winner. Explicit connection and transfer failures remain comparable even without RTT or a completed download. Candidate measurement membership is independent of serving DNS membership, with fresh exact route/TLS witnesses mandatory. Missing optional metrics stay unknown; asymmetric retransmission costs are excluded with bounded uncertainty. An earlier verified order can be retained for explicitly bounded time without renewing its original evidence timestamp or promoting a new winner. Current admission, capacity and cooldown gates remain mandatory. */
     PhysicalEdgeQualityPolicy: {
+      /** @description Required for physical-network-paired-continuity-v7 only. Bounds retaining a previously measured order while comparable quality observations are unavailable; original quality_observed_at is preserved. Fresh route/TLS and current admission remain required. Never authorizes a new promotion using stale samples. */
+      retain_order_seconds?: number;
       /** @description Explicit v2 node CPU/memory headroom gate. Does not declare link or application capacity. */
       maximum_node_utilization?: number;
       version: string;
@@ -5456,7 +5464,7 @@ export interface components {
       client_cohort?: string;
       /** @description Explicit capacity provenance; node capacity is not inferred from application concurrency. */
       capacity_source?: string;
-      /** @description Exact captured TLS witness used to bind a historical measurement or node-capacity observation. Replay requires the original raw facts; never a substitute for fresh current DNS route proof. */
+      /** @description Exact captured TLS witness used to bind a historical measurement or node-capacity observation. Replay requires the original raw facts. V7 also accepts fresh exact independent candidate witnesses; current route readiness remains mandatory. */
       route_witness_id?: string;
       /** @description Exact separately captured physical-node capacity observation. Mutually exclusive with route_witness_id; never fills historical network buckets or invents RTT. */
       node_capacity_id?: string;
@@ -5482,7 +5490,7 @@ export interface components {
         [key: string]: number;
       };
     };
-    /** @description Read-only authenticated node facts, independent of business traffic or route witness scheduling. Address and physical identity must match the actual DNS candidate; Kubernetes node UID, limits and pressure are checked before and after collection. Current facts cannot replace missing historical capacity observations. */
+    /** @description Read-only authenticated node facts, independent of business traffic. Address and physical identity must match a proven candidate, including a fresh independent candidate in V7; Kubernetes node UID, limits and pressure are checked before and after collection. Current facts cannot replace missing historical capacity observations. */
     PhysicalNodeCapacitySample: {
       id: string;
       edge_id: string;
@@ -5491,6 +5499,7 @@ export interface components {
       capacity: components["schemas"]["EdgeNetworkNodeCapacity"];
     };
     PhysicalEdgeQualitySnapshot: {
+      previous_selection?: components["schemas"]["DNSPhysicalSelection"];
       /** @description Complete single-level receipts for every declared service and path sharing one DNS answer. A normal switch requires all routes to independently approve the same candidate; failures use a common eligible fallback. Child receipts retain their traffic class, exact actual DNS binding and raw network evidence. */
       service_receipts?: components["schemas"]["PhysicalEdgeQualityReceipt"][];
       /** @description Exact declared service path measured by this receipt. When present, evidence from another path or traffic class cannot replace it. Omitted for historical single-route receipts and consensus roots. */
@@ -5525,6 +5534,13 @@ export interface components {
       state: "observed" | "unknown";
       value: number;
       records: number;
+      /**
+       * Format: date-time
+       * @description Original latest observation time, including stale observations whose state is unknown. V7 only.
+       */
+      last_observed_at?: string;
+      /** @description Contribution of this observed metric to the raw assessment score. Omitted for unknown metrics; comparison exclusions and uncertainty are reported separately. */
+      score_cost_ms?: number;
     };
     PhysicalEdgeQualityAssessment: {
       edge_id: string;
@@ -5542,6 +5558,10 @@ export interface components {
       bucket_count: number;
     };
     PhysicalEdgeQualityResult: {
+      /** @enum {string} */
+      quality_state?: "learning" | "measured" | "retained";
+      /** Format: date-time */
+      quality_observed_at?: string;
       comparisons?: components["schemas"]["PhysicalEdgeQualityComparison"][];
       /** @enum {string} */
       mode: "shadow";
@@ -5564,6 +5584,14 @@ export interface components {
     };
     /** @description Comparison within one actually observed common TCP peer network. Bands combine observed variation and a configured uncertainty budget, not a statistical confidence interval or a worst-case bound for unobserved terminals. */
     PhysicalEdgeQualityComparison: {
+      /** @description V7 metrics for the incumbent in this exact paired client cohort. Unknown values and original observation times remain explicit. */
+      incumbent_metrics?: {
+        [key: string]: components["schemas"]["PhysicalEdgeQualityMetric"];
+      };
+      /** @description V7 metrics for the challenger in the same paired client cohort. Costs are raw metric contributions before the separately reported comparison exclusions. */
+      challenger_metrics?: {
+        [key: string]: components["schemas"]["PhysicalEdgeQualityMetric"];
+      };
       /** @description V6 optional metrics excluded from both comparison costs because only one side observed them; raw observations are preserved. */
       excluded_metric_costs?: string[];
       /** @description Additional configured uncertainty for a V6 comparison with an excluded optional metric; not a statistical confidence bound. */
@@ -6363,6 +6391,11 @@ export interface components {
     DNSPhysicalOrder: {
       /**
        * Format: date-time
+       * @description Optional original quality timestamp carried from a verified dynamic order. V7 fallback may retain its filtered order only within retain_order_seconds; this timestamp never renews during fallback and does not assert fresh measured quality.
+       */
+      quality_observed_at?: string;
+      /**
+       * Format: date-time
        * @description Optional preserved primary assignment epoch from verified quality publication; never inferred from process start or sample time.
        */
       primary_since?: string;
@@ -6373,10 +6406,15 @@ export interface components {
     /** @description Immutable physical-edge order compiled from verified evidence. The historical physical-edge-network-v1 version never explores. Explicit physical-edge-business-v1 may execute only its embedded signed allocation until that allocation expires; it then preserves the declared baseline order. Both versions filter by current route/TLS readiness without legacy ranking. Allocation expiry does not invalidate a positive serving artifact. */
     DNSPhysicalSelection: {
       /**
-       * @description V4 distinguishes preserving a fresh route-ready current primary while collecting evidence from a measured quality selection. Learning never fabricates network metrics.
+       * @description Measured uses comparable fresh client evidence in V7; retained preserves the prior verified order and original quality_observed_at within explicit policy bounds; learning claims no quality winner.
        * @enum {string}
        */
-      quality_state?: "learning" | "measured";
+      quality_state?: "learning" | "measured" | "retained";
+      /**
+       * Format: date-time
+       * @description Original comparable quality evidence time. Retained orders never renew it.
+       */
+      quality_observed_at?: string;
       /** @enum {string} */
       version: "physical-edge-network-v1" | "physical-edge-business-v1";
       business_allocation?: components["schemas"]["DNSBusinessAllocation"];
@@ -13851,7 +13889,7 @@ export interface components {
       mode: "all_dynamic";
       policy: components["schemas"]["PhysicalEdgeQualityPolicy"] & ({
         /** @enum {string} */
-        version?: "physical-network-delivery-v4" | "physical-network-failure-aware-v5" | "physical-network-comparable-delivery-v6";
+        version?: "physical-network-delivery-v4" | "physical-network-failure-aware-v5" | "physical-network-comparable-delivery-v6" | "physical-network-paired-continuity-v7";
       });
       refresh_queries_per_cycle: number;
       refresh_concurrency: number;
@@ -13865,7 +13903,7 @@ export interface components {
       traffic_class: "large_body_api" | "small_api" | "dynamic_api" | "static_cacheable" | "streaming" | "sse" | "websocket" | "html_dynamic";
       policy: components["schemas"]["PhysicalEdgeQualityPolicy"] & ({
         /** @enum {string} */
-        version?: "physical-network-cohort-v2" | "physical-network-bounded-v3" | "physical-network-delivery-v4" | "physical-network-failure-aware-v5" | "physical-network-comparable-delivery-v6";
+        version?: "physical-network-cohort-v2" | "physical-network-bounded-v3" | "physical-network-delivery-v4" | "physical-network-failure-aware-v5" | "physical-network-comparable-delivery-v6" | "physical-network-paired-continuity-v7";
       });
     };
     PlatformDNSAuthorityPolicy: {
