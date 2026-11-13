@@ -5459,6 +5459,7 @@ export interface components {
       capacity: components["schemas"]["EdgeNetworkNodeCapacity"];
     };
     PhysicalEdgeQualitySnapshot: {
+      historical_order?: components["schemas"]["PhysicalEdgeQualityPublishedOrder"];
       historical_evidence?: components["schemas"]["PhysicalEdgeQualityHistory"];
       previous_selection?: components["schemas"]["DNSPhysicalSelection"];
       /** @description Complete single-level receipts for every declared service and path sharing one DNS answer. A normal switch requires all routes to independently approve the same candidate; failures use a common eligible fallback. Child receipts retain their traffic class, exact actual DNS binding and raw network evidence. */
@@ -5557,6 +5558,11 @@ export interface components {
     };
     /** @description Auditable historical ranking fallback, not fresh client measurement or serving authorization. Fresh comparable evidence takes precedence; lack of new evidence alone does not erase this order. */
     PhysicalEdgeQualityHistoryUse: {
+      /**
+       * @description Diagnostic receipt only. When present only a verified published order was reused, not missing raw measurements. Omitted from compiled serving selections for strict existing V7 readers; reason and policy_version retain this distinction there.
+       * @enum {string}
+       */
+      evidence_kind?: "published_order";
       source_artifact_id: string;
       input_digest: string;
       evidence_digest: string;
@@ -6378,7 +6384,7 @@ export interface components {
     DNSPhysicalOrder: {
       /**
        * Format: date-time
-       * @description Optional original quality timestamp carried from a verified dynamic order. V7 fallback may retain its filtered order only within retain_order_seconds; this timestamp never renews during fallback and does not assert fresh measured quality.
+       * @description Optional original quality timestamp carried from a verified dynamic order. An independently verified positive publication preserves this timestamp and its filtered order without new measurements; otherwise retain_order_seconds bounds predecessor retention. The timestamp never renews during fallback and does not assert fresh measured quality.
        */
       quality_observed_at?: string;
       /**
@@ -6389,6 +6395,13 @@ export interface components {
       /** @enum {string} */
       version: "physical-order-v1";
       ordered_edge_ids: string[];
+    };
+    /** @description Independently verified positive publication order matching the actual DNS predecessor. Reuses ordering only, not missing raw measurements or a claim of network superiority. Original quality time is preserved; current admission, capacity and route/TLS checks remain mandatory. Cannot restore a different primary. */
+    PhysicalEdgeQualityPublishedOrder: {
+      source_artifact_id: string;
+      input_digest: string;
+      evidence_digest: string;
+      selection: components["schemas"]["DNSPhysicalSelection"];
     };
     /** @description Immutable physical-edge order compiled from verified evidence. The historical physical-edge-network-v1 version never explores. Explicit physical-edge-business-v1 may execute only its embedded signed allocation until that allocation expires; it then preserves the declared baseline order. Both versions filter by current route/TLS readiness without legacy ranking. Allocation expiry does not invalidate a positive serving artifact. */
     DNSPhysicalSelection: {
