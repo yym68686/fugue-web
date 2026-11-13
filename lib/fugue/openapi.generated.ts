@@ -628,17 +628,10 @@ export interface paths {
      */
     post: operations["shadowPlatformConsumerHeartbeat"];
   };
-  "/v1/platform-state/compiler-inputs/pending-roots": {
-    /**
-     * Register an authenticated producer's append-only retention root
-     * @description Private TLS only, with exact fugue-api-tls.<control-plane-namespace>.svc Host and SNI, no query or forwarded identity. Requires a Pod-bound ServiceAccount token for the exclusive audience fugue.compiler-input.pending-root.v1, verified by Kubernetes TokenReview. The server independently matches the live ServiceAccount, Pod, controlling ReplicaSet and Deployment UIDs, immutable image and source against explicitly configured owner authority. Existing RouteIntent, consumer, tenant and administrator credentials grant no access. Disabled unless trusted owner/source and allocation providers are explicitly configured. No production configuration is enabled by this contract. Authentication precedes body decoding and registration. source_base64 preserves the exact canonical original native source JSON; it does not assert signature verification, custody or current policy. The server derives the registration from the original input MAC and primary publication signature. Native transaction checks and current source/allocation/configuration witnesses must pass before commit. A complete native authorization policy must contain an unexpired lease for the exact authenticated owner, Pod, ServiceAccount, Deployment, source, immutable image and configured policy revision. Its singleton revision and the complete append-only pending-root registry are bound in the preparation snapshot and rechecked under native locks before insertion; a committed revocation invalidates stale API configuration. Missing policy, registry drift or expired authority refuses the entire transaction, including exact retries of an earlier acknowledgement. The single 60-second request budget includes authentication, decoding, closure preparation and native commit; private TLS body/write deadlines use that same deadline only for this path. Timeout or a lost response does not prove the registration was uncommitted and never releases a root or reservation. An exact retry is idempotent; no replacement, deletion, expiry, serving, activation, pin or retirement is authorized. Kubernetes observations are bounded preflight, not an atomic lease across Kubernetes and PostgreSQL or complete external retention custody.
-     */
-    post: operations["retainPendingCompilerInputRoot"];
-  };
   "/v1/platform-state/consumers/identity": {
     /**
      * Exchange a bound Kubernetes Pod token for a short-lived consumer identity
-     * @description Requires a Pod-bound ServiceAccount token accepted by the Kubernetes API. Kubernetes SelfSubjectReview and a live Pod lookup determine the node identity. Only Pods in the configured control-plane namespace with an operator-managed typed fugue.pro/consumer-identity annotation may exchange credentials. Edge Worker, DNS Server and Edge Control identities may explicitly declare a canonical cell-* authority_id in that annotation, matching the Pod's fugue.io/edge-group-id label. The server then binds consumer_id to component:authority_id:node_id. A Worker or DNS Server identity can read and report only an exact authority-bound expected member; it cannot overwrite the legacy component:node_id consumer or another cell. An absent authority_id retains the legacy identity. Neither form grants a new assignment or copies observations, fences, or LKG across authorities. DNS node_id remains the physical process owner; zone aliases are collapsed only within the same authority. Neutral DNS identities require a live Pod binding, and their current Pod policy and authority label must match the signed claim. Heartbeats and runtime-fact reads remain fenced by the exact selected public DNS Service and EndpointSlice backend. Issuing a candidate identity never selects that backend or permits public serving. An authority-cell:<id> scope requires authority_id equal to that cell. Edge Control exchange requires an explicit authority_id and either its exact authority-cell scope or the retained global compatibility scope, and exactly the edge_route_intent capability; it uses the independent RouteIntent signing keyring. The private RouteIntent TLS listener admits this exact POST identity-exchange path without query parameters as well as the existing GET route-intents path. Host, SNI and Kubernetes Pod authentication remain mandatory. The separate pending-root POST path is disabled by default and requires its own exclusive-purpose Pod token; identity exchange grants no pending-root registration permission. The signed identity expires after two minutes. This operation does not report consumer health or change serving state.
+     * @description Requires a Pod-bound ServiceAccount token accepted by the Kubernetes API. Kubernetes SelfSubjectReview and a live Pod lookup determine the node identity. Only Pods in the configured control-plane namespace with an operator-managed typed fugue.pro/consumer-identity annotation may exchange credentials. Edge Worker, DNS Server and Edge Control identities may explicitly declare a canonical cell-* authority_id in that annotation, matching the Pod's fugue.io/edge-group-id label. The server then binds consumer_id to component:authority_id:node_id. A Worker or DNS Server identity can read and report only an exact authority-bound expected member; it cannot overwrite the legacy component:node_id consumer or another cell. An absent authority_id retains the legacy identity. Neither form grants a new assignment or copies observations, fences, or LKG across authorities. DNS node_id remains the physical process owner; zone aliases are collapsed only within the same authority. Neutral DNS identities require a live Pod binding, and their current Pod policy and authority label must match the signed claim. Heartbeats and runtime-fact reads remain fenced by the exact selected public DNS Service and EndpointSlice backend. Issuing a candidate identity never selects that backend or permits public serving. An authority-cell:<id> scope requires authority_id equal to that cell. Edge Control exchange requires an explicit authority_id and either its exact authority-cell scope or the retained global compatibility scope, and exactly the edge_route_intent capability; it uses the independent RouteIntent signing keyring. The private RouteIntent TLS listener admits this exact POST identity-exchange path without query parameters as well as the existing GET route-intents path. Host, SNI and Kubernetes Pod authentication remain mandatory. The signed identity expires after two minutes. This operation does not report consumer health or change serving state.
      */
     post: operations["exchangePlatformConsumerIdentity"];
   };
@@ -2536,41 +2529,6 @@ export type webhooks = Record<string, never>;
 
 export interface components {
   schemas: {
-    PendingCompilerInputRootRequest: {
-      /** @enum {string} */
-      schema: "fugue.compiler-input.pending-root-request.v1";
-      registration: components["schemas"]["PendingCompilerInputRootRegistration"];
-      /** @enum {string} */
-      source_schema: "fugue.edge-control.pending-root-source.v1";
-      /**
-       * Format: byte
-       * @description Canonical padded standard base64 of the unmodified original native source JSON, at most 16 MiB after decoding.
-       */
-      source_base64: string;
-    };
-    PendingCompilerInputRootRegistration: {
-      /** @enum {string} */
-      schema: "fugue.compiler-input.pending-root.v1";
-      /** @description Must exactly equal the independently authenticated server-selected owner. */
-      owner: string;
-      generation: string;
-      source_digest: string;
-      /** @description Exact unique typed identities in canonical kind/NUL/id order, independently derived by the source verifier. */
-      references: ({
-          /** @enum {string} */
-          kind: "artifact" | "release" | "input";
-          id: string;
-          /** @description Required for artifact/input, forbidden for release; input id must equal this hash. */
-          expected_hash?: string;
-        })[];
-    };
-    PendingCompilerInputRootReceipt: {
-      registration_sha256: string;
-      /** Format: int64 */
-      registry_revision: number;
-      /** Format: int64 */
-      source_epoch: number;
-    };
     ImageOrphanPolicy: {
       /** Format: int64 */
       generation: number;
@@ -18179,37 +18137,8 @@ export interface operations {
     };
   };
   /**
-   * Register an authenticated producer's append-only retention root
-   * @description Private TLS only, with exact fugue-api-tls.<control-plane-namespace>.svc Host and SNI, no query or forwarded identity. Requires a Pod-bound ServiceAccount token for the exclusive audience fugue.compiler-input.pending-root.v1, verified by Kubernetes TokenReview. The server independently matches the live ServiceAccount, Pod, controlling ReplicaSet and Deployment UIDs, immutable image and source against explicitly configured owner authority. Existing RouteIntent, consumer, tenant and administrator credentials grant no access. Disabled unless trusted owner/source and allocation providers are explicitly configured. No production configuration is enabled by this contract. Authentication precedes body decoding and registration. source_base64 preserves the exact canonical original native source JSON; it does not assert signature verification, custody or current policy. The server derives the registration from the original input MAC and primary publication signature. Native transaction checks and current source/allocation/configuration witnesses must pass before commit. A complete native authorization policy must contain an unexpired lease for the exact authenticated owner, Pod, ServiceAccount, Deployment, source, immutable image and configured policy revision. Its singleton revision and the complete append-only pending-root registry are bound in the preparation snapshot and rechecked under native locks before insertion; a committed revocation invalidates stale API configuration. Missing policy, registry drift or expired authority refuses the entire transaction, including exact retries of an earlier acknowledgement. The single 60-second request budget includes authentication, decoding, closure preparation and native commit; private TLS body/write deadlines use that same deadline only for this path. Timeout or a lost response does not prove the registration was uncommitted and never releases a root or reservation. An exact retry is idempotent; no replacement, deletion, expiry, serving, activation, pin or retirement is authorized. Kubernetes observations are bounded preflight, not an atomic lease across Kubernetes and PostgreSQL or complete external retention custody.
-   */
-  retainPendingCompilerInputRoot: {
-    /** @description At most 24 MiB of canonical compact JSON, without whitespace, duplicate or unknown fields. Object field order is schema, registration, source_schema, source_base64; registration uses schema, owner, generation, source_digest, references; each reference uses kind, id, and expected_hash when required. Strings use Go encoding/json escaping. Decoded source is at most 16 MiB; registration at most 16 KiB and 32 direct typed references. The original source bytes remain unmodified. */
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["PendingCompilerInputRootRequest"];
-      };
-    };
-    responses: {
-      /** @description Exact durable retention acknowledgement; never activation or a verified restore pin. */
-      200: {
-        content: {
-          "application/json": components["schemas"]["PendingCompilerInputRootReceipt"];
-        };
-      };
-      400: components["responses"]["ErrorResponse"];
-      401: components["responses"]["ErrorResponse"];
-      403: components["responses"]["ErrorResponse"];
-      404: components["responses"]["ErrorResponse"];
-      409: components["responses"]["ErrorResponse"];
-      413: components["responses"]["ErrorResponse"];
-      415: components["responses"]["ErrorResponse"];
-      503: components["responses"]["ErrorResponse"];
-      default: components["responses"]["ErrorResponse"];
-    };
-  };
-  /**
    * Exchange a bound Kubernetes Pod token for a short-lived consumer identity
-   * @description Requires a Pod-bound ServiceAccount token accepted by the Kubernetes API. Kubernetes SelfSubjectReview and a live Pod lookup determine the node identity. Only Pods in the configured control-plane namespace with an operator-managed typed fugue.pro/consumer-identity annotation may exchange credentials. Edge Worker, DNS Server and Edge Control identities may explicitly declare a canonical cell-* authority_id in that annotation, matching the Pod's fugue.io/edge-group-id label. The server then binds consumer_id to component:authority_id:node_id. A Worker or DNS Server identity can read and report only an exact authority-bound expected member; it cannot overwrite the legacy component:node_id consumer or another cell. An absent authority_id retains the legacy identity. Neither form grants a new assignment or copies observations, fences, or LKG across authorities. DNS node_id remains the physical process owner; zone aliases are collapsed only within the same authority. Neutral DNS identities require a live Pod binding, and their current Pod policy and authority label must match the signed claim. Heartbeats and runtime-fact reads remain fenced by the exact selected public DNS Service and EndpointSlice backend. Issuing a candidate identity never selects that backend or permits public serving. An authority-cell:<id> scope requires authority_id equal to that cell. Edge Control exchange requires an explicit authority_id and either its exact authority-cell scope or the retained global compatibility scope, and exactly the edge_route_intent capability; it uses the independent RouteIntent signing keyring. The private RouteIntent TLS listener admits this exact POST identity-exchange path without query parameters as well as the existing GET route-intents path. Host, SNI and Kubernetes Pod authentication remain mandatory. The separate pending-root POST path is disabled by default and requires its own exclusive-purpose Pod token; identity exchange grants no pending-root registration permission. The signed identity expires after two minutes. This operation does not report consumer health or change serving state.
+   * @description Requires a Pod-bound ServiceAccount token accepted by the Kubernetes API. Kubernetes SelfSubjectReview and a live Pod lookup determine the node identity. Only Pods in the configured control-plane namespace with an operator-managed typed fugue.pro/consumer-identity annotation may exchange credentials. Edge Worker, DNS Server and Edge Control identities may explicitly declare a canonical cell-* authority_id in that annotation, matching the Pod's fugue.io/edge-group-id label. The server then binds consumer_id to component:authority_id:node_id. A Worker or DNS Server identity can read and report only an exact authority-bound expected member; it cannot overwrite the legacy component:node_id consumer or another cell. An absent authority_id retains the legacy identity. Neither form grants a new assignment or copies observations, fences, or LKG across authorities. DNS node_id remains the physical process owner; zone aliases are collapsed only within the same authority. Neutral DNS identities require a live Pod binding, and their current Pod policy and authority label must match the signed claim. Heartbeats and runtime-fact reads remain fenced by the exact selected public DNS Service and EndpointSlice backend. Issuing a candidate identity never selects that backend or permits public serving. An authority-cell:<id> scope requires authority_id equal to that cell. Edge Control exchange requires an explicit authority_id and either its exact authority-cell scope or the retained global compatibility scope, and exactly the edge_route_intent capability; it uses the independent RouteIntent signing keyring. The private RouteIntent TLS listener admits this exact POST identity-exchange path without query parameters as well as the existing GET route-intents path. Host, SNI and Kubernetes Pod authentication remain mandatory. The signed identity expires after two minutes. This operation does not report consumer health or change serving state.
    */
   exchangePlatformConsumerIdentity: {
     responses: {
