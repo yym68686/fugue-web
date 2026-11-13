@@ -5501,6 +5501,7 @@ export interface components {
       capacity: components["schemas"]["EdgeNetworkNodeCapacity"];
     };
     PhysicalEdgeQualitySnapshot: {
+      historical_evidence?: components["schemas"]["PhysicalEdgeQualityHistory"];
       previous_selection?: components["schemas"]["DNSPhysicalSelection"];
       /** @description Complete single-level receipts for every declared service and path sharing one DNS answer. A normal switch requires all routes to independently approve the same candidate; failures use a common eligible fallback. Child receipts retain their traffic class, exact actual DNS binding and raw network evidence. */
       service_receipts?: components["schemas"]["PhysicalEdgeQualityReceipt"][];
@@ -5560,6 +5561,7 @@ export interface components {
       bucket_count: number;
     };
     PhysicalEdgeQualityResult: {
+      history?: components["schemas"]["PhysicalEdgeQualityHistoryUse"];
       /** @enum {string} */
       quality_state?: "learning" | "measured" | "retained";
       /** Format: date-time */
@@ -5583,6 +5585,31 @@ export interface components {
         [key: string]: number;
       };
       blockers: string[];
+    };
+    /** @description Original verified compiler-input evidence. Replayed at its original clock and under its original policy, never converted into new V7 probe rounds. Nested historical evidence is forbidden. Current admission and route/TLS proofs remain mandatory. */
+    PhysicalEdgeQualityHistory: {
+      source_artifact_id: string;
+      input_digest: string;
+      selection: components["schemas"]["DNSPhysicalSelection"];
+      /**
+       * Format: byte
+       * @description Base64 of the complete original JSON receipt. Preserves byte-order-sensitive legacy embedded DNS evidence across JSON export/import without changing its digest.
+       */
+      receipt: string;
+    };
+    /** @description Auditable historical ranking fallback, not fresh client measurement or serving authorization. Fresh comparable evidence takes precedence; lack of new evidence alone does not erase this order. */
+    PhysicalEdgeQualityHistoryUse: {
+      source_artifact_id: string;
+      input_digest: string;
+      evidence_digest: string;
+      policy_version: string;
+      /** Format: date-time */
+      observed_at: string;
+      /** Format: int64 */
+      age_seconds: number;
+      reason: string;
+      original_order: string[];
+      reused_order: string[];
     };
     /** @description Comparison within one actually observed common TCP peer network. Bands combine observed variation and a configured uncertainty budget, not a statistical confidence interval or a worst-case bound for unobserved terminals. */
     PhysicalEdgeQualityComparison: {
@@ -6407,8 +6434,9 @@ export interface components {
     };
     /** @description Immutable physical-edge order compiled from verified evidence. The historical physical-edge-network-v1 version never explores. Explicit physical-edge-business-v1 may execute only its embedded signed allocation until that allocation expires; it then preserves the declared baseline order. Both versions filter by current route/TLS readiness without legacy ranking. Allocation expiry does not invalidate a positive serving artifact. */
     DNSPhysicalSelection: {
+      history?: components["schemas"]["PhysicalEdgeQualityHistoryUse"];
       /**
-       * @description Measured uses comparable fresh client evidence in V7; retained preserves the prior verified order and original quality_observed_at within explicit policy bounds; learning claims no quality winner.
+       * @description Measured uses comparable fresh client evidence in V7. Retained with history replays original verified evidence without extending its clock; lack of new measurements alone does not erase it. Without history the explicit retain_order_seconds bound still applies. Learning claims no quality winner. Current serving gates always apply.
        * @enum {string}
        */
       quality_state?: "learning" | "measured" | "retained";
