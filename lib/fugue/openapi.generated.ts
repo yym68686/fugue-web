@@ -4,6 +4,9 @@
  */
 
 
+/** WithRequired type helpers */
+type WithRequired<T, K extends keyof T> = T & { [P in K]-?: T[P] };
+
 /** OneOf type helpers */
 type Without<T, U> = { [P in Exclude<keyof T, keyof U>]?: never };
 type XOR<T, U> = (T | U) extends object ? (Without<T, U> & U) | (Without<U, T> & T) : T | U;
@@ -4849,8 +4852,8 @@ export interface components {
       /** @enum {string} */
       route_proof_status: "not_evaluated";
     };
-    /** @description Explicit authorization for low-volume recovery probes of a pinned static platform route. TLS identity, random nonce, exact Edge identity and fresh route proof are required. Recovery only restores candidate eligibility, never claims provider quota or traffic authorization. Consecutive successes must come from distinct scheduled probes; failed or stale observations reset the success streak. No clock date enables admission. */
-    EdgeOfflineRecoveryPolicy: {
+    /** @description Explicit authorization for low-volume recovery probes of a pinned static platform route. TLS identity, random nonce, exact Edge identity and fresh route proof are required. Recovery only restores candidate eligibility, never claims provider quota or traffic authorization. Legacy policies require distinct consecutive successes. Single-v3 requires exactly one complete verified capacity round, success_threshold 1 and failure_threshold 1; collector gaps do not revoke completed recovery. Current health, route/TLS and code-release constraints remain independent. No clock date enables admission. */
+    EdgeOfflineRecoveryPolicy: WithRequired<{
       capacity?: components["schemas"]["EdgeCapacityRecoveryPolicy"];
       hostname: string;
       path: string;
@@ -4859,20 +4862,49 @@ export interface components {
       success_threshold: number;
       failure_threshold: number;
       freshness_seconds: number;
-    };
+    } & (OneOf<[{
+      success_threshold?: unknown;
+      capacity?: {
+        /** @enum {unknown} */
+        version?: "edge-capacity-recovery-v1" | "edge-capacity-recovery-continuity-v2";
+      };
+    }, {
+      /** @enum {unknown} */
+      success_threshold?: 1;
+      /** @enum {unknown} */
+      failure_threshold?: 1;
+      capacity: {
+        /** @enum {unknown} */
+        version?: "edge-capacity-recovery-single-v3";
+      };
+    }]>), "hostname" | "path" | "probe_interval_seconds" | "probe_timeout_seconds" | "success_threshold" | "failure_threshold" | "freshness_seconds">;
     /** @description Opt-in capacity recovery gate for the explicitly pinned static platform route (streaming class), in addition to route/TLS proof. Each round transfers the same signed, nonce-bound, uncompressed 1 MiB payload from the held Edge and one available declared reference. Full round elapsed time includes connection, TLS, headers and body. Both responses and socket attestations must verify. The held member's physical Front and Worker must match current group code authority before and after measurement. This grants only candidate eligibility; code-release holds, configuration publication, DNS proofs and LKG remain separate. Missing or unsupported evidence keeps the member held. No provider billing date is treated as capacity evidence. */
-    EdgeCapacityRecoveryPolicy: {
+    EdgeCapacityRecoveryPolicy: ({
       /** @enum {string} */
-      version: "edge-capacity-recovery-v1" | "edge-capacity-recovery-continuity-v2";
-      /** @description Required only for continuity-v2 and at least freshness_seconds. Bounds reuse of a fully recovered checkpoint during missing or inconclusive observations. Does not extend route/TLS proofs, suppress confirmed failures, or admit an incomplete recovery streak. V1 must omit it. */
+      version: "edge-capacity-recovery-v1" | "edge-capacity-recovery-continuity-v2" | "edge-capacity-recovery-single-v3";
+      /** @description Required only for continuity-v2 and at least freshness_seconds. Bounds reuse of a fully recovered checkpoint during missing or inconclusive observations. V1 and single-v3 must omit it. Single-v3 recovery does not expire by age; a new subject failure or conflicting identity retracts it. No version extends current route/TLS proofs. */
       retain_admission_seconds?: number;
       /** @enum {string} */
       traffic_class: "streaming";
       reference_edge_ids: string[];
       minimum_bytes_per_second: number;
       max_elapsed_milliseconds: number;
+      /** @description Exactly zero for single-v3; 300 through 7200 for older policies. Single-v3 has no hidden multi-round stability requirement. */
       minimum_stable_seconds: number;
-    };
+    }) & OneOf<[{
+      /** @enum {unknown} */
+      version?: "edge-capacity-recovery-v1";
+      minimum_stable_seconds?: unknown;
+    }, {
+      /** @enum {unknown} */
+      version?: "edge-capacity-recovery-continuity-v2";
+      minimum_stable_seconds?: unknown;
+    }, {
+      /** @enum {unknown} */
+      version?: "edge-capacity-recovery-single-v3";
+      /** @enum {unknown} */
+      minimum_stable_seconds?: "";
+    }]>;
     /** @description Advisory code catch-up plan derived only from a verified physical member and the exact current group code authority. A member behind on the same slot needs the retained previous slot before the current slot. Each stage targets an inactive slot and keeps increasing published fences. The plan is not permission to restart, activate, change DNS, remove a hold, or replace a positive LKG; an executor must revalidate live identities, leases, capacity, preparation and route/TLS proofs for every step. */
     EdgeCodeRecoveryPlan: {
       /** @enum {string} */
@@ -5379,9 +5411,9 @@ export interface components {
       sources?: components["schemas"]["PhysicalEdgeQualityReceipt"][];
       evaluation: components["schemas"]["BusinessEdgeExplorationReceipt"];
     };
-    /** @description V7 preserves historical V2-V6 replay. A new quality switch requires authenticated paired rounds from the same public peer network across completed windows; passive traffic or service RTT alone cannot establish a client winner. Explicit connection and transfer failures remain comparable even without RTT or a completed download. Candidate measurement membership is independent of serving DNS membership, with fresh exact route/TLS witnesses mandatory. Missing optional metrics stay unknown; asymmetric retransmission costs are excluded with bounded uncertainty. An earlier verified order can be retained for explicitly bounded time without renewing its original evidence timestamp or promoting a new winner. Current admission, capacity and cooldown gates remain mandatory. */
+    /** @description V7 and physical-network-last-valid-v8 preserve historical policy replay. A new quality comparison requires authenticated paired rounds from the same public peer network across completed windows; passive traffic or service RTT alone cannot establish a client winner. Explicit connection and transfer failures remain comparable even without RTT or a completed download. V8 never expires the last valid comparison or verified published order solely by age. New incomplete or learning captures do not overwrite it; newer complete comparable evidence supersedes it. Original evidence time, source and reuse reason remain visible. Current identity, context, admission, capacity and route/TLS gates always filter historical order. Fresh observation windows still define new comparisons and never renew an old measurement clock. */
     PhysicalEdgeQualityPolicy: {
-      /** @description Required for physical-network-paired-continuity-v7 only. Bounds retaining a previously measured order while comparable quality observations are unavailable; original quality_observed_at is preserved. Fresh route/TLS and current admission remain required. Never authorizes a new promotion using stale samples. */
+      /** @description Required for physical-network-paired-continuity-v7 only; must be omitted for physical-network-last-valid-v8. V7 bounds predecessor retention. V8 has no age-based order expiry. Original quality_observed_at is preserved; current serving gates remain mandatory. */
       retain_order_seconds?: number;
       /** @description Explicit v2 node CPU/memory headroom gate. Does not declare link or application capacity. */
       maximum_node_utilization?: number;
@@ -6407,7 +6439,7 @@ export interface components {
     DNSPhysicalSelection: {
       history?: components["schemas"]["PhysicalEdgeQualityHistoryUse"];
       /**
-       * @description Measured uses comparable fresh client evidence in V7. Retained with history replays original verified evidence without extending its clock; lack of new measurements alone does not erase it. Without history the explicit retain_order_seconds bound still applies. Learning claims no quality winner. Current serving gates always apply.
+       * @description Measured uses comparable fresh client evidence. Retained reuses verified evidence or order without extending its original clock; V8 never expires this solely by age. V7 without history still applies retain_order_seconds. Learning claims no quality winner and must not replace retained comparison evidence. Current serving gates always apply.
        * @enum {string}
        */
       quality_state?: "learning" | "measured" | "retained";
