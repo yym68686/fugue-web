@@ -6828,12 +6828,13 @@ export interface components {
       rollback_delete_records: components["schemas"]["DNSDelegationRecord"][];
       notes?: string[];
     };
+    /** @description Diagnostic messages distinguish unavailable or not-ready selected DNS observations from legacy cache errors. The cache_errors_zero check keeps its stable name but requires current serving and cache readiness for enrolled consumers, not zero historical inventory error counters. */
     DNSDelegationPreflightCheck: {
       name: string;
       pass: boolean;
       message?: string;
     };
-    /** @description For enrolled Kubernetes consumers, serving_observation supplies current serving health. Legacy counters remain historical and cannot independently pass or fail the selected backend cache/readiness gate. */
+    /** @description For enrolled Kubernetes consumers, serving_observation supplies current serving health. Legacy counters remain historical and cannot independently pass or fail the selected backend cache/readiness gate. An unavailable or not-ready serving observation is not evidence of cache write/load errors; diagnostic messages report the missing readiness evidence instead. */
     DNSDelegationNodeCheck: {
       dns_node_id: string;
       serving_observation?: components["schemas"]["DNSNodeServingObservation"];
