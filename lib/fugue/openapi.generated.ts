@@ -1479,7 +1479,7 @@ export interface paths {
   "/v1/apps/{id}/resources/recommendation": {
     /**
      * Get App Resource Recommendation
-     * @description Returns historical capacity and request targets. Automatic application CPU request changes require both a 5 millicore change and a 5 percent change; memory thresholds are independent. In-place CPU adjustment includes verified app-owned candidate and retained revision Pods as well as the serving workload.
+     * @description Returns historical capacity and request targets. Automatic application CPU request changes require both a 5 millicore change and a 5 percent change; automatic application memory request changes require a 5 percent change in either direction, without an absolute MiB threshold or an additional default-allocation floor. Memory targets retain the historical usage policy and downscales remain gradual, subject to OOM, rollout and capacity safety checks. In-place CPU adjustment includes verified app-owned candidate and retained revision Pods as well as the serving workload.
      */
     get: operations["getAppResourceRecommendation"];
   };
@@ -22224,7 +22224,7 @@ export interface operations {
   };
   /**
    * Get App Resource Recommendation
-   * @description Returns historical capacity and request targets. Automatic application CPU request changes require both a 5 millicore change and a 5 percent change; memory thresholds are independent. In-place CPU adjustment includes verified app-owned candidate and retained revision Pods as well as the serving workload.
+   * @description Returns historical capacity and request targets. Automatic application CPU request changes require both a 5 millicore change and a 5 percent change; automatic application memory request changes require a 5 percent change in either direction, without an absolute MiB threshold or an additional default-allocation floor. Memory targets retain the historical usage policy and downscales remain gradual, subject to OOM, rollout and capacity safety checks. In-place CPU adjustment includes verified app-owned candidate and retained revision Pods as well as the serving workload.
    */
   getAppResourceRecommendation: {
     parameters: {
