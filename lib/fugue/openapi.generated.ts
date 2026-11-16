@@ -7391,6 +7391,11 @@ export interface components {
        * @description Server-owned CPU request in the current immutable deployment template. When present, resources.cpu_millicores is the verified in-place runtime target. The next normal deployment uses that target and clears this snapshot.
        */
       cpu_request_template_millicores?: number;
+      /**
+       * Format: int64
+       * @description Server-owned memory request in the current immutable deployment template. When present, resources.memory_mebibytes is the verified in-place runtime target. The next normal deployment uses that target and clears this snapshot. Memory limits and release identity are unchanged.
+       */
+      memory_request_template_mebibytes?: number;
       right_sizing?: components["schemas"]["AppRightSizingSpec"];
       runtime_id?: string;
       files?: components["schemas"]["AppFile"][];
@@ -22268,7 +22273,7 @@ export interface operations {
           "application/json": components["schemas"]["AppResourceRecommendationApplyResponse"];
         };
       };
-      /** @description Resource operation queued. Eligible CPU request changes use app-cpu-resize without replacing Pods; other changes use a deploy operation. */
+      /** @description Resource operation queued. Eligible CPU-only or memory-only request changes use app-cpu-resize or app-memory-resize without replacing Pods; other changes use a deploy operation. Limits remain unchanged during in-place resizing. */
       202: {
         content: {
           "application/json": components["schemas"]["AppResourceRecommendationApplyResponse"];
