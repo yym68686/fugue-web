@@ -8347,6 +8347,69 @@ export interface components {
       locks?: components["schemas"]["BuilderPlacementLockInspection"][];
       nodes?: components["schemas"]["BuilderPlacementNodeInspection"][];
     };
+    SchedulingResources: {
+      /** Format: int64 */
+      cpu_milli: number;
+      /** Format: int64 */
+      memory_bytes: number;
+      /** Format: int64 */
+      ephemeral_bytes: number;
+    };
+    SchedulingRejection: {
+      code: string;
+      /** @description Tenant-safe explanation; no physical node identity, topology values or foreign workload identifiers. */
+      message: string;
+    };
+    SchedulingVolumeDecision: {
+      volume_id: string;
+      bound: boolean;
+      single_node: boolean;
+      /** Format: int64 */
+      requested_bytes: number;
+      node_affinity_required: boolean;
+    };
+    SchedulingVolumeMatch: {
+      volume_id: string;
+      affinity_matches?: boolean;
+      rejections?: components["schemas"]["SchedulingRejection"][];
+    };
+    SchedulingNodeDecision: {
+      /** @description Observation-local alias, not a physical node name. */
+      candidate_id: string;
+      runtime_matches: boolean;
+      eligible: boolean;
+      preserved: boolean;
+      resource_inventory_observed: boolean;
+      allocatable: components["schemas"]["SchedulingResources"];
+      requested: components["schemas"]["SchedulingResources"];
+      existing_app: components["schemas"]["SchedulingResources"];
+      effective_requested: components["schemas"]["SchedulingResources"];
+      budget: components["schemas"]["SchedulingResources"];
+      /** Format: int64 */
+      available_pod_addresses?: number;
+      rejections?: components["schemas"]["SchedulingRejection"][];
+      volumes?: components["schemas"]["SchedulingVolumeMatch"][];
+    };
+    /** @description Durable inputs from the actual operation evaluation, not a reconstruction from current cluster state. CPU is recorded for ranking, not a hard admission gate. Preserved serving placements intentionally bypass new-placement capacity policy. Absent snapshots are never inferred from later observations. */
+    SchedulingDecision: {
+      /** Format: date-time */
+      observed_at: string;
+      /** @enum {string} */
+      stage: "app_placement" | "surge_capacity" | "storage_validation";
+      /** @enum {string} */
+      outcome: "selected" | "rejected" | "preserved" | "delegated" | "skipped" | "observation_failed";
+      demand: components["schemas"]["SchedulingResources"];
+      memory_request_ratio: number;
+      cpu_overcommit_ratio: number;
+      cpu_capacity_enforced: boolean;
+      /** Format: int64 */
+      required_pod_addresses: number;
+      selected_candidate?: string;
+      nodes?: components["schemas"]["SchedulingNodeDecision"][];
+      volumes?: components["schemas"]["SchedulingVolumeDecision"][];
+      missing_evidence?: string[];
+      rejections?: components["schemas"]["SchedulingRejection"][];
+    };
     OperationDiagnosis: {
       category: string;
       summary: string;
@@ -8356,6 +8419,7 @@ export interface components {
       evidence?: string[];
       /** @description Persisted inputs from the failed builder admission decision. Omitted with missing_evidence when the historical configuration or snapshot was not captured. */
       builder_placement?: components["schemas"]["BuilderPlacementInspection"];
+      scheduling_decision?: components["schemas"]["SchedulingDecision"];
       dependency_chain?: string[];
       blocked_by?: components["schemas"]["OperationDiagnosisBlocker"][];
       controller_lane?: components["schemas"]["OperationControllerLane"];
@@ -8408,6 +8472,14 @@ export interface components {
       redaction_status: string;
       /** @description Optional durable evidence. Builder attempt records use build_attempt and retain every retry independently; user-facing consumers must not render arbitrary diagnostic payloads as deployment errors. */
       payload?: {
+        scheduling_decision_id?: string;
+        scheduling_decision_part?: number;
+        scheduling_decision_parts?: number;
+        scheduling_decision?: components["schemas"]["SchedulingDecision"];
+        /** @description Administrator-only mapping of candidate and volume aliases to physical node names, required selectors, taints, PVC/PV names and affinity expressions. Never contains Pod specs, environment, host paths, credentials or foreign workload identities. Omitted from tenant evidence, timelines and debug bundles. */
+        scheduling_diagnostics?: {
+          [key: string]: unknown;
+        };
         build_attempt?: components["schemas"]["BuilderAttemptEvidence"];
         /** @description Bounded build snapshots, effective retry policy, admission inputs and redacted log tails. Returned only to platform administrators with include_payload; never included in public CLI deployment results. */
         builder_diagnostics?: {
