@@ -512,7 +512,7 @@ export interface paths {
   "/v1/admin/artifacts/{artifact_id}/compiler-input": {
     /**
      * Read Frozen Compiler Runtime Input
-     * @description Platform administrators with artifact.read can retrieve the exact normalized runtime snapshot bound by a trusted artifact's input_snapshot_digest. Verifies the complete signed operational dependency closure and current durable full-readback input pins in PostgreSQL, or actual canonical input SHA and size in file storage, then rechecks the original artifact before disclosure. Historical artifacts remain readable under the same administrative authority without becoming active. Recomputes the digest and checks intent/policy generation binding. The optional dns_configuration view returns only frozen DNS inputs and omits bulky physical replay evidence. For an explicitly opted-in configuration-v1 policy, this view reads the separately persisted runtime_input_digest signed in the new artifact lineage; full still reads the original input_snapshot_digest. Both retain original observation times and selection identities. The DNS view reports its own projection digest and never claims projected bytes match the original input digest. Unavailable or corrupt runtime input never falls back to original history or live business data. Older artifacts without a retained snapshot return 404; cold or changed dependency proof returns 503, and reads never initiate archive restoration. This contract does not cancel original retention or rollback obligations.
+     * @description Platform administrators with artifact.read can read frozen compiler inputs without activating or extending a release. Generations v36 and v37 retain and can read the complete normalized input_snapshot_digest body. Generation v38 preserves that digest only as a signed commitment, persists the compact operational runtime_input_digest, and never stores the complete invocation body; its default/full view therefore returns 410 (not corruption), while dns_configuration returns the exact frozen operational projection after verifying the signed dependency closure and current local input pins. v38 separately signs quality_evidence_digest for optional DNS comparison history; that typed evidence pool expires after 14 days and enforces a 1 GiB logical payload cap, a 4096-object cap, and a 64 MiB per-object ceiling using expiry-first FIFO eviction. Missing, expired, or oversized history is unavailable and is never treated as health evidence; live observations must be freshly measured. All views recheck the original artifact before disclosure, never restore cold storage, and never fall back to live business data.
      */
     get: operations["getPlatformArtifactCompilerInput"];
   };
@@ -17774,7 +17774,7 @@ export interface operations {
   };
   /**
    * Read Frozen Compiler Runtime Input
-   * @description Platform administrators with artifact.read can retrieve the exact normalized runtime snapshot bound by a trusted artifact's input_snapshot_digest. Verifies the complete signed operational dependency closure and current durable full-readback input pins in PostgreSQL, or actual canonical input SHA and size in file storage, then rechecks the original artifact before disclosure. Historical artifacts remain readable under the same administrative authority without becoming active. Recomputes the digest and checks intent/policy generation binding. The optional dns_configuration view returns only frozen DNS inputs and omits bulky physical replay evidence. For an explicitly opted-in configuration-v1 policy, this view reads the separately persisted runtime_input_digest signed in the new artifact lineage; full still reads the original input_snapshot_digest. Both retain original observation times and selection identities. The DNS view reports its own projection digest and never claims projected bytes match the original input digest. Unavailable or corrupt runtime input never falls back to original history or live business data. Older artifacts without a retained snapshot return 404; cold or changed dependency proof returns 503, and reads never initiate archive restoration. This contract does not cancel original retention or rollback obligations.
+   * @description Platform administrators with artifact.read can read frozen compiler inputs without activating or extending a release. Generations v36 and v37 retain and can read the complete normalized input_snapshot_digest body. Generation v38 preserves that digest only as a signed commitment, persists the compact operational runtime_input_digest, and never stores the complete invocation body; its default/full view therefore returns 410 (not corruption), while dns_configuration returns the exact frozen operational projection after verifying the signed dependency closure and current local input pins. v38 separately signs quality_evidence_digest for optional DNS comparison history; that typed evidence pool expires after 14 days and enforces a 1 GiB logical payload cap, a 4096-object cap, and a 64 MiB per-object ceiling using expiry-first FIFO eviction. Missing, expired, or oversized history is unavailable and is never treated as health evidence; live observations must be freshly measured. All views recheck the original artifact before disclosure, never restore cold storage, and never fall back to live business data.
    */
   getPlatformArtifactCompilerInput: {
     parameters: {
@@ -17799,6 +17799,12 @@ export interface operations {
             runtime_input_digest?: string;
             runtime_snapshot: components["schemas"]["PlatformRuntimeSnapshot"];
           };
+        };
+      };
+      /** @description The signed v38 contract deliberately did not retain the complete original input. Use dns_configuration for the retained operational projection. This is not corruption and no live reconstruction is attempted. */
+      410: {
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"];
         };
       };
       /** @description Complete original input dependency proof is unavailable or changed; no runtime snapshot or projection is disclosed. */
