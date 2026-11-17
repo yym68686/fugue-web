@@ -1272,6 +1272,26 @@ export interface paths {
     /** Get App Image Tracking Diagnosis */
     get: operations["getAppImageTrackingDiagnosis"];
   };
+  "/v1/apps/{id}/recoveries": {
+    /** List incident recoveries and retained evidence */
+    get: operations["listAppRecoveries"];
+    /**
+     * Start an isolated replacement and retain the original containers
+     * @description Requires app.deploy and explicit authorization for one overlapping replica and fresh storage. Only managed, single replica applications are supported. The running image digest is reused. No live volume is copied or shared. Required business probes must pass before traffic changes. Retained originals are excluded from Fugue replacement and cleanup until explicit release or expiry; node loss and kubelet container restarts are reported as evidence changes. Concurrent app mutations are rejected while the hold is active.
+     */
+    post: operations["startAppRecovery"];
+  };
+  "/v1/apps/{id}/recoveries/{recovery_id}": {
+    /** Inspect a recovery and exact retained container identities */
+    get: operations["getAppRecovery"];
+  };
+  "/v1/apps/{id}/recoveries/{recovery_id}/release": {
+    /**
+     * Release the investigation hold
+     * @description Requires app.deploy. After successful cutover, deletes only the recorded original Pod UIDs, retaining the original persistent volume for separate storage administration. Before cutover, removes the replacement and restores normal source reconciliation. Does not silently delete the serving replacement. The request is idempotent.
+     */
+    post: operations["releaseAppRecovery"];
+  };
   "/v1/apps/{id}/releases": {
     /** List App Releases */
     get: operations["listAppReleases"];
@@ -4333,6 +4353,9 @@ export interface components {
       balance_restricted: boolean;
       managed_cap: components["schemas"]["BillingResourceSpec"];
       managed_committed: components["schemas"]["BillingResourceSpec"];
+      /** @description Authorized recovery overlap reserved for admission. A reservation alone does not activate ledger charges. */
+      managed_recovery_reserved?: components["schemas"]["BillingResourceSpec"];
+      /** @description Capacity remaining after live commitments and authorized recovery reservations. */
       managed_available: components["schemas"]["BillingResourceSpec"];
       current_usage?: components["schemas"]["ResourceUsage"];
       default_app_resources: components["schemas"]["BillingResourceSpec"];
@@ -7224,6 +7247,8 @@ export interface components {
     };
     /** @description Legacy effective status projection. Use stored_status for durable control-plane state and observed_status for fresh runtime decisions. */
     AppStatus: {
+      /** @description Billing capacity projection includes an explicitly authorized incident recovery overlap. This reservation alone does not activate billing. */
+      recovery_capacity_reserved?: boolean;
       phase: string;
       current_runtime_id?: string;
       /** Format: int32 */
@@ -7465,6 +7490,10 @@ export interface components {
         })[];
     };
     AppSpec: {
+      /** @description Server-owned workload identity after incident recovery; preserved by subsequent deployments. */
+      workload_generation?: string;
+      /** @description Absolute paths backed by separate per-Pod emptyDir volumes. */
+      ephemeral_paths?: string[];
       image?: string;
       command?: string[];
       args?: string[];
@@ -9419,6 +9448,66 @@ export interface components {
       app_id: string;
       traffic: components["schemas"]["AppTrafficPolicy"];
       releases?: components["schemas"]["AppRelease"][];
+    };
+    AppRecoveryStartRequest: {
+      /**
+       * @description Authorizes one additional replica with the same resource and placement limits, including metered usage during the hold.
+       * @enum {boolean}
+       */
+      authorize_overlap: true;
+      /**
+       * @description Separate fresh PVC and container filesystem. Existing live data is never copied. Declarative file seeds still apply. Persistent volumes are retained after release.
+       * @enum {string}
+       */
+      storage_strategy: "fresh";
+      /** @description Explicit retention after cutover; zero means manual release only. Failed recoveries require manual release. */
+      retention_seconds: number;
+      /** @default 300 */
+      timeout_seconds?: number;
+      /** @description Optional absolute spool paths mounted on independent emptyDir volumes; must not overlap configured durable mounts. */
+      ephemeral_paths?: string[];
+      /** @description Explicit business requests executed against the isolated replacement before any cutover. Requests may have business effects; use a dedicated audit credential and harmless payload. */
+      probes: components["schemas"]["AppReleaseProbe"][];
+    };
+    AppRecovery: {
+      id: string;
+      app_id: string;
+      /** @enum {string} */
+      phase: "pending" | "preparing" | "probing" | "publishing" | "retained" | "failed" | "releasing" | "released";
+      active: boolean;
+      message?: string;
+      image_ref?: string;
+      namespace?: string;
+      source_deployment?: string;
+      replacement_deployment?: string;
+      source_pvc?: string;
+      replacement_pvc?: string;
+      /** @enum {string} */
+      evidence_status?: "pending" | "intact" | "changed" | "lost" | "released";
+      source_pods?: components["schemas"]["AppRecoveryPod"][];
+      probe_results?: components["schemas"]["AppReleaseProbeResult"][];
+      /** Format: date-time */
+      cutover_at?: string;
+      /** Format: date-time */
+      retention_until?: string;
+      /** Format: date-time */
+      created_at: string;
+      /** Format: date-time */
+      updated_at: string;
+    };
+    AppRecoveryPod: {
+      name: string;
+      uid: string;
+      node: string;
+      containers: {
+          name: string;
+          id: string;
+          restart_count: number;
+        }[];
+    };
+    AppRecoveryListResponse: {
+      app_id: string;
+      recoveries: components["schemas"]["AppRecovery"][];
     };
     AppReleaseProbe: {
       name?: string;
@@ -21528,6 +21617,87 @@ export interface operations {
       200: {
         content: {
           "application/json": components["schemas"]["AppImageTrackingDiagnosisResponse"];
+        };
+      };
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
+  /** List incident recoveries and retained evidence */
+  listAppRecoveries: {
+    parameters: {
+      path: {
+        id: components["parameters"]["IdPathParam"];
+      };
+    };
+    responses: {
+      /** @description Recovery records; probe credentials and application snapshots are omitted */
+      200: {
+        content: {
+          "application/json": components["schemas"]["AppRecoveryListResponse"];
+        };
+      };
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
+  /**
+   * Start an isolated replacement and retain the original containers
+   * @description Requires app.deploy and explicit authorization for one overlapping replica and fresh storage. Only managed, single replica applications are supported. The running image digest is reused. No live volume is copied or shared. Required business probes must pass before traffic changes. Retained originals are excluded from Fugue replacement and cleanup until explicit release or expiry; node loss and kubelet container restarts are reported as evidence changes. Concurrent app mutations are rejected while the hold is active.
+   */
+  startAppRecovery: {
+    parameters: {
+      path: {
+        id: components["parameters"]["IdPathParam"];
+      };
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["AppRecoveryStartRequest"];
+      };
+    };
+    responses: {
+      /** @description Accepted durable recovery intent */
+      202: {
+        content: {
+          "application/json": components["schemas"]["AppRecovery"];
+        };
+      };
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
+  /** Inspect a recovery and exact retained container identities */
+  getAppRecovery: {
+    parameters: {
+      path: {
+        id: components["parameters"]["IdPathParam"];
+        recovery_id: string;
+      };
+    };
+    responses: {
+      /** @description Recovery status */
+      200: {
+        content: {
+          "application/json": components["schemas"]["AppRecovery"];
+        };
+      };
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
+  /**
+   * Release the investigation hold
+   * @description Requires app.deploy. After successful cutover, deletes only the recorded original Pod UIDs, retaining the original persistent volume for separate storage administration. Before cutover, removes the replacement and restores normal source reconciliation. Does not silently delete the serving replacement. The request is idempotent.
+   */
+  releaseAppRecovery: {
+    parameters: {
+      path: {
+        id: components["parameters"]["IdPathParam"];
+        recovery_id: string;
+      };
+    };
+    responses: {
+      /** @description Release requested */
+      202: {
+        content: {
+          "application/json": components["schemas"]["AppRecovery"];
         };
       };
       default: components["responses"]["ErrorResponse"];
