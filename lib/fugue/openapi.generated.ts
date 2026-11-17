@@ -10229,6 +10229,7 @@ export interface components {
       planned_delete_bytes?: number;
       last_seen_at?: string;
     };
+    /** @description Retirement policy v3 reports the actual protection source and exact references. Unknown provenance retains the configured age floor and quarantine requirements. A positively retired generation with a complete graph can use a 15 minute floor; live references, pins, migrations and tasks always take precedence. Execution rechecks current authority. */
     ImageCachePrunePlan: {
       policy_version?: string;
       /** @description Digest of policy, node, budget and classified content identities; execution always revalidates current evidence. */
@@ -10253,6 +10254,7 @@ export interface components {
       planned_delete_bytes?: number;
       /** Format: int64 */
       max_delete_bytes?: number;
+      /** @description Configured age floor for unknown provenance; v3 positively retired complete generations may use a shorter 15 minute floor, explained in candidate skip_details. */
       min_manifest_age?: string;
       protection_summary?: {
         [key: string]: number;
