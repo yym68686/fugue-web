@@ -42,3 +42,32 @@ jobs:
         env:
           FUGUE_OPENAPI_SOURCE: ${{ github.workspace }}/.contract-source/fugue/openapi/openapi.yaml
         run: npm run contract:check
+
+  github-app-postgres:
+    name: GitHub App durable queue
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: github_app_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: synthetic-test-only
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v6.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - name: Verify durable queue and tenant-safe dispatch
+        env:
+          FUGUE_GITHUB_TEST_DATABASE_URL: postgresql://postgres:synthetic-test-only@127.0.0.1:5432/github_app_test
+        run: node --import ./tests/register-alias.mjs --test tests/github-app-postgres.test.ts

@@ -339,11 +339,11 @@ async function readFugueError(
   return new FugueApiError(response.status, message);
 }
 
-export async function fugueGet<T>(adminKey: string, path: string): Promise<T> {
-  return measurePageDependency("api", apiTimingName(path), () => fugueGetUnmeasured<T>(adminKey, path));
+export async function fugueGet<T>(adminKey: string, path: string, options?: { signal?: AbortSignal }): Promise<T> {
+  return measurePageDependency("api", apiTimingName(path), () => fugueGetUnmeasured<T>(adminKey, path, options));
 }
 
-async function fugueGetUnmeasured<T>(adminKey: string, path: string): Promise<T> {
+async function fugueGetUnmeasured<T>(adminKey: string, path: string, options?: { signal?: AbortSignal }): Promise<T> {
   const url = `${readApiBaseUrl()}${path}`;
   const response = await fetch(url, {
     method: "GET",
@@ -352,6 +352,7 @@ async function fugueGetUnmeasured<T>(adminKey: string, path: string): Promise<T>
       Accept: "application/json",
     },
     cache: "no-store",
+    signal: options?.signal,
   });
 
   recordPageBackendTiming(response.headers.get("server-timing"));
@@ -368,6 +369,7 @@ export async function fugueSend<T>(
   method: "POST" | "PUT" | "PATCH" | "DELETE",
   path: string,
   body?: unknown,
+  options?: { signal?: AbortSignal },
 ): Promise<T> {
   const url = `${readApiBaseUrl()}${path}`;
   const response = await fetch(url, {
@@ -379,6 +381,7 @@ export async function fugueSend<T>(
     },
     body: body !== undefined ? JSON.stringify(body) : undefined,
     cache: "no-store",
+    signal: options?.signal,
   });
 
   if (!response.ok) {

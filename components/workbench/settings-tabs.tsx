@@ -11,6 +11,7 @@ import { ActionButton, callConsole, ConfirmDialog } from "./shared";
 import AppMigrationPanel from "@/components/servers/AppMigrationPanel";
 import { SourceSyncStatus } from './SourceSyncStatus';
 import AppMailPanel from './AppMailPanel';
+import GitHubAppPanel from './GitHubAppPanel';
 
 const APP = (id: string) => `/apps/${encodeURIComponent(id)}`;
 
@@ -49,6 +50,7 @@ export function SettingsTab({
     <>
       <AppMigrationPanel key={app.id} appId={app.id} currentRuntimeId={app.status?.current_runtime_id || spec.runtime_id} />
       <AppMailPanel key={`mail-${app.id}`} appId={app.id} />
+      {(app.origin_source?.type?.includes('image') || app.origin_source?.image_ref || app.build_source?.image_ref) && <GitHubAppPanel key={`github-${app.id}`} appId={app.id} />}
       <NodeLossSettings key={`node-loss-${app.id}-${JSON.stringify(spec.node_loss)}`} app={app} />
       <div className="panel">
         <div className="panel-h">
