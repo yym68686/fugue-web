@@ -1403,6 +1403,13 @@ export interface paths {
     /** Patch App Route */
     patch: operations["patchAppRoute"];
   };
+  "/v1/backing-services/{id}/retire-source": {
+    /**
+     * Retire an exact completed PostgreSQL cold-migration source without deleting storage
+     * @description Platform administrators only. Defaults to a fresh, read-only Kubernetes identity plan. Only a completed cold migration whose destination is the current active service is eligible. Apply requires the exact source UID and plan hash. A dedicated exclusive database operation verifies the destination, stable endpoint and stopped source before mutation, protects every source PV with Retain, detaches source PVC ownership/discovery, pauses the source controller, and deletes only the identified source Cluster (Orphan propagation) and its identified Pods with UID preconditions. It never deletes a PVC/PV, Service, secret, Job or destination resource, changes application configuration, or changes routing. Missing identity, unhealthy destination, unexpected storage consumers or unavailable evidence block retirement. Accepted intent is durable and interruption is resumable. Initially supports active single-instance services with exactly one bound consumer in the same tenant/project, preserving independent ownership.
+     */
+    post: operations["retireBackingServicePostgresSource"];
+  };
   "/v1/backing-services/{id}/migrate-image": {
     /**
      * Plan or perform a guarded PostgreSQL baked-manager image migration
@@ -11119,6 +11126,59 @@ export interface components {
       cpu_limit_millicores: number;
       /** Format: int64 */
       memory_limit_mebibytes: number;
+    };
+    PostgresSourceRetirementRequest: {
+      /** @default false */
+      apply?: boolean;
+      /** @description Exact source Cluster UID from the preceding plan; required for apply. */
+      expected_source_uid?: string;
+      /** @description Identity/configuration hash from the preceding plan; required for apply. */
+      expected_plan_hash?: string;
+    };
+    PostgresSourceRetirementResponse: {
+      plan: components["schemas"]["PostgresSourceRetirementPlan"];
+      dry_run: boolean;
+      operation?: components["schemas"]["Operation"];
+    };
+    PostgresSourceRetirementPod: {
+      name: string;
+      uid: string;
+      node: string;
+    };
+    PostgresSourceRetirementVolume: {
+      pvc: string;
+      pvc_uid: string;
+      pv: string;
+      pv_uid: string;
+      pvc_spec_hash: string;
+      pv_spec_hash: string;
+    };
+    PostgresSourceRetirementPlan: {
+      service_id: string;
+      /** @description Exclusive consumer operation anchor, not an ownership reassignment. */
+      app_id: string;
+      namespace: string;
+      source_cluster: string;
+      source_uid: string;
+      source_spec_hash: string;
+      migration_uid: string;
+      migration_hash: string;
+      target_cluster: string;
+      target_uid: string;
+      target_pod: string;
+      target_pod_uid: string;
+      target_node: string;
+      target_spec_hash: string;
+      system_id: string;
+      endpoint: string;
+      endpoint_uid: string;
+      endpoint_spec_hash: string;
+      config_hash: string;
+      plan_hash: string;
+      /** @enum {boolean} */
+      preserve_storage: true;
+      pods: components["schemas"]["PostgresSourceRetirementPod"][];
+      volumes: components["schemas"]["PostgresSourceRetirementVolume"][];
     };
     PostgresImageMigrationRequest: {
       /** @description Approved immutable baked-manager image; omission selects the verified release default. */
@@ -22105,6 +22165,37 @@ export interface operations {
       200: {
         content: {
           "application/json": components["schemas"]["AppRoutePatchResponse"];
+        };
+      };
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
+  /**
+   * Retire an exact completed PostgreSQL cold-migration source without deleting storage
+   * @description Platform administrators only. Defaults to a fresh, read-only Kubernetes identity plan. Only a completed cold migration whose destination is the current active service is eligible. Apply requires the exact source UID and plan hash. A dedicated exclusive database operation verifies the destination, stable endpoint and stopped source before mutation, protects every source PV with Retain, detaches source PVC ownership/discovery, pauses the source controller, and deletes only the identified source Cluster (Orphan propagation) and its identified Pods with UID preconditions. It never deletes a PVC/PV, Service, secret, Job or destination resource, changes application configuration, or changes routing. Missing identity, unhealthy destination, unexpected storage consumers or unavailable evidence block retirement. Accepted intent is durable and interruption is resumable. Initially supports active single-instance services with exactly one bound consumer in the same tenant/project, preserving independent ownership.
+   */
+  retireBackingServicePostgresSource: {
+    parameters: {
+      path: {
+        id: components["parameters"]["IdPathParam"];
+      };
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["PostgresSourceRetirementRequest"];
+      };
+    };
+    responses: {
+      /** @description Fresh read-only identity plan; no runtime or desired-state changes */
+      200: {
+        content: {
+          "application/json": components["schemas"]["PostgresSourceRetirementResponse"];
+        };
+      };
+      /** @description Exclusive storage-preserving source retirement operation accepted */
+      202: {
+        content: {
+          "application/json": components["schemas"]["PostgresSourceRetirementResponse"];
         };
       };
       default: components["responses"]["ErrorResponse"];
