@@ -11153,6 +11153,11 @@ export interface components {
       pvc_spec_hash: string;
       pv_spec_hash: string;
     };
+    /** @description Unowned, unused storage with a colliding source label. Pinned and verified read-only; never patched or deleted by retirement. */
+    PostgresSourceRetirementProtectedVolume: components["schemas"]["PostgresSourceRetirementVolume"] & {
+      /** @description Hash of PVC/PV metadata configuration and the complete PV spec, including reclaim policy. */
+      configuration_hash: string;
+    };
     PostgresSourceRetirementPlan: {
       service_id: string;
       /** @description Exclusive consumer operation anchor, not an ownership reassignment. */
@@ -11179,6 +11184,8 @@ export interface components {
       preserve_storage: true;
       pods: components["schemas"]["PostgresSourceRetirementPod"][];
       volumes: components["schemas"]["PostgresSourceRetirementVolume"][];
+      /** @description Read-only protection inventory, not source-owned storage. Nonempty plans require a CLI that understands this field. */
+      protected_volumes?: components["schemas"]["PostgresSourceRetirementProtectedVolume"][];
     };
     PostgresImageMigrationRequest: {
       /** @description Approved immutable baked-manager image; omission selects the verified release default. */
