@@ -8527,6 +8527,18 @@ export interface components {
       memory_request_bytes?: number;
       /** Format: int64 */
       memory_limit_bytes?: number;
+      /**
+       * Format: int64
+       * @description Conservative peak across all build stages, including init containers. Only present when every stage supplied a valid cgroup high-water mark.
+       */
+      peak_memory_bytes?: number;
+      /** @description True only when every build container supplied a valid whole-stage memory high-water mark. Missing observations never imply zero usage. */
+      memory_peak_complete?: boolean;
+      /**
+       * @description Source of the build memory allocation; learned allocations remain subject to the configured ceiling and OOM admission guard.
+       * @enum {string}
+       */
+      memory_allocation_source?: "cold_start" | "history" | "oom_retry";
       /** Format: int64 */
       ephemeral_request_bytes?: number;
       /** Format: int64 */
