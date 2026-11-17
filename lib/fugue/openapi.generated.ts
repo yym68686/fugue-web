@@ -1406,7 +1406,7 @@ export interface paths {
   "/v1/backing-services/{id}/migrate-image": {
     /**
      * Plan or perform a guarded PostgreSQL baked-manager image migration
-     * @description Defaults to a read-only configuration plan. Apply requires explicit downtime acknowledgement and the configuration hash from that plan. Only an approved, digest-pinned baked-manager image is accepted. This dedicated single-instance database operation preserves its Cluster, PVCs, placement, resource envelope, secrets, and consumer app configuration. It never deploys the consumer app. Fresh live identity, storage, node and SQL checks run before mutation. An accepted image change retains its exclusive mutation lease until verified; failures never trigger deletion, failover, storage copying or automatic rollback.
+     * @description Defaults to a read-only configuration plan. Apply requires explicit downtime acknowledgement and the configuration hash from that plan. Only an approved, digest-pinned baked-manager image is accepted. This dedicated single-instance database operation preserves its Cluster, PVCs, placement, resource envelope, secrets, and consumer app configuration. It never deploys the consumer app. Supports app-owned services and independent services with exactly one bound app in the same tenant and project. The bound app anchors the exclusive lifecycle operation; independent service ownership is never reassigned. Unbound or shared services are rejected without mutation. Fresh live identity, storage, node and SQL checks run before mutation. An accepted image change retains its exclusive mutation lease until verified; failures never trigger deletion, failover, storage copying or automatic rollback.
      */
     post: operations["migrateBackingServiceImage"];
   };
@@ -11130,7 +11130,13 @@ export interface components {
     };
     PostgresImageMigrationPlan: {
       service_id: string;
+      /** @description Exclusive lifecycle operation anchor: the owner app or the independent service's single bound consumer; not an ownership assignment. */
       app_id: string;
+      /**
+       * @description Service ownership preserved throughout migration.
+       * @enum {string}
+       */
+      ownership: "app_owned" | "independent";
       target_image: string;
       config_hash: string;
       requires_downtime: boolean;
@@ -22104,7 +22110,7 @@ export interface operations {
   };
   /**
    * Plan or perform a guarded PostgreSQL baked-manager image migration
-   * @description Defaults to a read-only configuration plan. Apply requires explicit downtime acknowledgement and the configuration hash from that plan. Only an approved, digest-pinned baked-manager image is accepted. This dedicated single-instance database operation preserves its Cluster, PVCs, placement, resource envelope, secrets, and consumer app configuration. It never deploys the consumer app. Fresh live identity, storage, node and SQL checks run before mutation. An accepted image change retains its exclusive mutation lease until verified; failures never trigger deletion, failover, storage copying or automatic rollback.
+   * @description Defaults to a read-only configuration plan. Apply requires explicit downtime acknowledgement and the configuration hash from that plan. Only an approved, digest-pinned baked-manager image is accepted. This dedicated single-instance database operation preserves its Cluster, PVCs, placement, resource envelope, secrets, and consumer app configuration. It never deploys the consumer app. Supports app-owned services and independent services with exactly one bound app in the same tenant and project. The bound app anchors the exclusive lifecycle operation; independent service ownership is never reassigned. Unbound or shared services are rejected without mutation. Fresh live identity, storage, node and SQL checks run before mutation. An accepted image change retains its exclusive mutation lease until verified; failures never trigger deletion, failover, storage copying or automatic rollback.
    */
   migrateBackingServiceImage: {
     parameters: {
