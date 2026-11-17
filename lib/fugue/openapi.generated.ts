@@ -3785,6 +3785,8 @@ export interface components {
       name: string;
       actor_id?: string;
       actor_type?: string;
+      /** @description Original workspace project boundary retained after metadata deletion */
+      project_id?: string;
       options: components["schemas"]["DataWorkspaceRetirementRequest"];
       /** @enum {string} */
       phase: "evicting" | "grace" | "reclaiming" | "completed";
@@ -3803,6 +3805,8 @@ export interface components {
       inventory_digest?: string;
       /** @description Previously shared objects rechecked before final metadata deletion */
       shared_indices?: number[];
+      /** @description Retained namespace identities for background GC even after deleting the last workspace */
+      backend_ids?: string[];
     };
     DataDeletionPlan: {
       /** @enum {integer} */

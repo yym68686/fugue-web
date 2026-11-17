@@ -18379,6 +18379,7 @@ components:
         name: {type: string}
         actor_id: {type: string}
         actor_type: {type: string}
+        project_id: {type: string, description: Original workspace project boundary retained after metadata deletion}
         options: {$ref: '#/components/schemas/DataWorkspaceRetirementRequest'}
         phase: {type: string, enum: [evicting, grace, reclaiming, completed]}
         released_at: {type: string, format: date-time}
@@ -18389,6 +18390,7 @@ components:
         cursor: {type: integer, minimum: 0, description: Checkpoint in the stable manifest-derived object inventory}
         inventory_digest: {type: string, description: Binds checkpoints to immutable object keys and physical backend identities; drift blocks reclamation}
         shared_indices: {type: array, items: {type: integer, minimum: 0}, description: Previously shared objects rechecked before final metadata deletion}
+        backend_ids: {type: array, items: {type: string}, description: Retained namespace identities for background GC even after deleting the last workspace}
     DataDeletionPlan:
       type: object
       additionalProperties: false
