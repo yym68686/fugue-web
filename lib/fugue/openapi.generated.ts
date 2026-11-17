@@ -641,7 +641,7 @@ export interface paths {
   "/v1/platform-state/consumers/assignment": {
     /**
      * Get the expected ReleaseSet assignments for a trusted consumer
-     * @description Returns the latest expected set revision for each authorized artifact kind in each active ReleaseSet channel. Assignments are bound to the signed child artifact and the active release fencing token. Shadow assignments authorize validation only and must not replace serving state. Superseded releases and unrelated topology are excluded. Serving-only selection honors the signed publication role; cell-dns requires its prepared DNS membership and selected parent/fence without requiring a route child. After selection, each returned publication requires its complete signed input dependency closure and current durable full-readback pins in PostgreSQL, or verified original input content in file mode. Cold, missing or changed dependencies return 503 without restoration or fallback. Unselected shadow publications do not add a serving-only dependency. Assignment authority is independently rechecked before disclosure. If that final check observes a changed assignment envelope, discovery, selection, input verification and authority checks are repeated once using a fresh read session; no earlier assignment is returned on failure or continued change.
+     * @description Returns the latest expected set revision for each authorized artifact kind in each active ReleaseSet channel. Assignments are bound to the signed child artifact and the active release fencing token. Shadow assignments authorize validation only and must not replace serving state. Superseded releases and unrelated topology are excluded. Serving-only selection honors the signed publication role; cell-dns requires its prepared DNS membership and selected parent/fence without requiring a route child. After selection, each returned publication requires its complete signed input dependency closure and current durable full-readback pins in PostgreSQL, or verified original input content in file mode. Cold, missing or changed dependencies return 503 without restoration or fallback. Unselected shadow publications do not add a serving-only dependency. Assignment authority is independently rechecked before disclosure.
      */
     get: operations["getPlatformConsumerAssignment"];
   };
@@ -2433,6 +2433,17 @@ export interface paths {
     /** Request cleanup of a runtime prewarm cache */
     delete: operations["deleteDataPrewarmCache"];
   };
+  "/v1/data/workspaces/{workspace_id}/retirement": {
+    /**
+     * Preview or start safe workspace retirement
+     * @description Requires data.delete and workspace admin access. Preview by default. Execution freezes new references, optionally cancels planned transfers, revokes grants and requests cache eviction, then soft-deletes snapshots. A durable task waits at least seven days after reference release and outstanding signed authorization expiry before reclaiming only this workspace's unshared blobs. No force deletion is supported.
+     */
+    post: operations["retireDataWorkspace"];
+  };
+  "/v1/data/workspace-retirements/{job_id}": {
+    /** Inspect a workspace retirement task, including after metadata deletion */
+    get: operations["getDataWorkspaceRetirement"];
+  };
   "/v1/data/workspaces/{workspace_id}/deletion-plan": {
     /** Inspect references and storage reclamation before logical deletion */
     get: operations["getDataDeletionPlan"];
@@ -3487,7 +3498,7 @@ export interface components {
     StorageMaintenanceJob: {
       id: string;
       /** @enum {string} */
-      kind: "retention" | "longhorn-reconcile" | "backup-cleanup" | "data-gc" | "transfer-expiry";
+      kind: "retention" | "longhorn-reconcile" | "backup-cleanup" | "data-gc" | "transfer-expiry" | "workspace-retire";
       scope_id?: string;
       execute: boolean;
       /** @enum {string} */
@@ -3503,6 +3514,7 @@ export interface components {
       result?: {
         [key: string]: unknown;
       };
+      workspace_retirement?: components["schemas"]["DataWorkspaceRetirement"];
     };
     AdminStorageNamespace: {
       kind: string;
@@ -3731,6 +3743,66 @@ export interface components {
     DataDownloadPlanRequest: {
       version?: string;
       assets?: string[];
+    };
+    DataWorkspaceRetirementRequest: {
+      /** @default false */
+      execute?: boolean;
+      /** @default false */
+      cancel_planned_transfers?: boolean;
+      /** @default false */
+      revoke_grants?: boolean;
+      /** @default false */
+      evict_caches?: boolean;
+    };
+    DataWorkspaceRetirementPlan: {
+      workspace_id: string;
+      name: string;
+      allowed: boolean;
+      blockers: components["schemas"]["DataRetirementBlocker"][];
+      /** @description Complete dependency inventory before applying explicitly requested cleanup options */
+      dependencies?: components["schemas"]["DataRetirementBlocker"][];
+      snapshot_count: number;
+      /** @enum {integer} */
+      grace_days: 7;
+      /**
+       * Format: int64
+       * @description Deduplicated manifest estimate, not a measured R2 inventory or a deletion guarantee
+       */
+      estimated_unique_bytes: number;
+      /** Format: int64 */
+      shared_bytes: number;
+      /** @enum {boolean} */
+      estimate_only: true;
+      existing_job_id?: string;
+    };
+    DataRetirementBlocker: {
+      kind: string;
+      id: string;
+      state: string;
+    };
+    DataWorkspaceRetirement: {
+      tenant_id: string;
+      name: string;
+      actor_id?: string;
+      actor_type?: string;
+      options: components["schemas"]["DataWorkspaceRetirementRequest"];
+      /** @enum {string} */
+      phase: "evicting" | "grace" | "reclaiming" | "completed";
+      /** Format: date-time */
+      released_at?: string;
+      /** Format: date-time */
+      reclaim_after?: string;
+      /** Format: int64 */
+      deleted_objects: number;
+      /** Format: int64 */
+      deleted_bytes: number;
+      metadata_deleted?: boolean;
+      /** @description Checkpoint in the stable manifest-derived object inventory */
+      cursor?: number;
+      /** @description Binds checkpoints to immutable object keys and physical backend identities; drift blocks reclamation */
+      inventory_digest?: string;
+      /** @description Previously shared objects rechecked before final metadata deletion */
+      shared_indices?: number[];
     };
     DataDeletionPlan: {
       /** @enum {integer} */
@@ -18332,7 +18404,7 @@ export interface operations {
   };
   /**
    * Get the expected ReleaseSet assignments for a trusted consumer
-   * @description Returns the latest expected set revision for each authorized artifact kind in each active ReleaseSet channel. Assignments are bound to the signed child artifact and the active release fencing token. Shadow assignments authorize validation only and must not replace serving state. Superseded releases and unrelated topology are excluded. Serving-only selection honors the signed publication role; cell-dns requires its prepared DNS membership and selected parent/fence without requiring a route child. After selection, each returned publication requires its complete signed input dependency closure and current durable full-readback pins in PostgreSQL, or verified original input content in file mode. Cold, missing or changed dependencies return 503 without restoration or fallback. Unselected shadow publications do not add a serving-only dependency. Assignment authority is independently rechecked before disclosure. If that final check observes a changed assignment envelope, discovery, selection, input verification and authority checks are repeated once using a fresh read session; no earlier assignment is returned on failure or continued change.
+   * @description Returns the latest expected set revision for each authorized artifact kind in each active ReleaseSet channel. Assignments are bound to the signed child artifact and the active release fencing token. Shadow assignments authorize validation only and must not replace serving state. Superseded releases and unrelated topology are excluded. Serving-only selection honors the signed publication role; cell-dns requires its prepared DNS membership and selected parent/fence without requiring a route child. After selection, each returned publication requires its complete signed input dependency closure and current durable full-readback pins in PostgreSQL, or verified original input content in file mode. Cold, missing or changed dependencies return 503 without restoration or fallback. Unselected shadow publications do not add a serving-only dependency. Assignment authority is independently rechecked before disclosure.
    */
   getPlatformConsumerAssignment: {
     parameters: {
@@ -26751,6 +26823,54 @@ export interface operations {
       409: {
         content: {
           "application/json": components["schemas"]["ErrorResponse"];
+        };
+      };
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
+  /**
+   * Preview or start safe workspace retirement
+   * @description Requires data.delete and workspace admin access. Preview by default. Execution freezes new references, optionally cancels planned transfers, revokes grants and requests cache eviction, then soft-deletes snapshots. A durable task waits at least seven days after reference release and outstanding signed authorization expiry before reclaiming only this workspace's unshared blobs. No force deletion is supported.
+   */
+  retireDataWorkspace: {
+    parameters: {
+      path: {
+        workspace_id: components["parameters"]["DataWorkspaceIdPathParam"];
+      };
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["DataWorkspaceRetirementRequest"];
+      };
+    };
+    responses: {
+      /** @description Advisory preview; execution repeats atomic dependency checks */
+      200: {
+        content: {
+          "application/json": components["schemas"]["DataWorkspaceRetirementPlan"];
+        };
+      };
+      /** @description Durable retirement task, including an existing idempotent task */
+      202: {
+        content: {
+          "application/json": components["schemas"]["StorageMaintenanceJob"];
+        };
+      };
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
+  /** Inspect a workspace retirement task, including after metadata deletion */
+  getDataWorkspaceRetirement: {
+    parameters: {
+      path: {
+        job_id: string;
+      };
+    };
+    responses: {
+      /** @description Tenant-authorized progress and physical reclamation receipts */
+      200: {
+        content: {
+          "application/json": components["schemas"]["StorageMaintenanceJob"];
         };
       };
       default: components["responses"]["ErrorResponse"];
