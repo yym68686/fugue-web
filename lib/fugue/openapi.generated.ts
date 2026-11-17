@@ -1403,6 +1403,13 @@ export interface paths {
     /** Patch App Route */
     patch: operations["patchAppRoute"];
   };
+  "/v1/backing-services/{id}/migrate-image": {
+    /**
+     * Plan or perform a guarded PostgreSQL baked-manager image migration
+     * @description Defaults to a read-only configuration plan. Apply requires explicit downtime acknowledgement and the configuration hash from that plan. Only an approved, digest-pinned baked-manager image is accepted. This dedicated single-instance database operation preserves its Cluster, PVCs, placement, resource envelope, secrets, and consumer app configuration. It never deploys the consumer app. Fresh live identity, storage, node and SQL checks run before mutation. An accepted image change retains its exclusive mutation lease until verified; failures never trigger deletion, failover, storage copying or automatic rollback.
+     */
+    post: operations["migrateBackingServiceImage"];
+  };
   "/v1/backing-services/{id}/resize": {
     /**
      * Resize Managed Postgres Backing Service In Place
@@ -7035,6 +7042,8 @@ export interface components {
     };
     AppPostgresSpec: {
       image?: string;
+      /** @description Operation-only configuration precondition for image migration; never persisted as database configuration. */
+      image_migration_config_hash?: string;
       database?: string;
       user?: string;
       password?: string;
@@ -11020,6 +11029,30 @@ export interface components {
       cpu_limit_millicores: number;
       /** Format: int64 */
       memory_limit_mebibytes: number;
+    };
+    PostgresImageMigrationRequest: {
+      /** @description Approved immutable baked-manager image; omission selects the verified release default. */
+      image?: string;
+      /** @default false */
+      apply?: boolean;
+      /** @default false */
+      acknowledge_downtime?: boolean;
+      /** @description Exact configuration hash returned by a preceding plan. */
+      expected_config_hash?: string;
+    };
+    PostgresImageMigrationPlan: {
+      service_id: string;
+      app_id: string;
+      target_image: string;
+      config_hash: string;
+      requires_downtime: boolean;
+      live_preflight_pending: boolean;
+      stages: string[];
+    };
+    PostgresImageMigrationResponse: {
+      plan: components["schemas"]["PostgresImageMigrationPlan"];
+      dry_run: boolean;
+      operation?: components["schemas"]["Operation"];
     };
     ManagedPostgresResizeRequest: {
       runtime_resources: components["schemas"]["ManagedPostgresResizeResources"];
@@ -21976,6 +22009,37 @@ export interface operations {
       200: {
         content: {
           "application/json": components["schemas"]["AppRoutePatchResponse"];
+        };
+      };
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
+  /**
+   * Plan or perform a guarded PostgreSQL baked-manager image migration
+   * @description Defaults to a read-only configuration plan. Apply requires explicit downtime acknowledgement and the configuration hash from that plan. Only an approved, digest-pinned baked-manager image is accepted. This dedicated single-instance database operation preserves its Cluster, PVCs, placement, resource envelope, secrets, and consumer app configuration. It never deploys the consumer app. Fresh live identity, storage, node and SQL checks run before mutation. An accepted image change retains its exclusive mutation lease until verified; failures never trigger deletion, failover, storage copying or automatic rollback.
+   */
+  migrateBackingServiceImage: {
+    parameters: {
+      path: {
+        id: components["parameters"]["IdPathParam"];
+      };
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["PostgresImageMigrationRequest"];
+      };
+    };
+    responses: {
+      /** @description Read-only configuration plan */
+      200: {
+        content: {
+          "application/json": components["schemas"]["PostgresImageMigrationResponse"];
+        };
+      };
+      /** @description Dedicated database image migration accepted */
+      202: {
+        content: {
+          "application/json": components["schemas"]["PostgresImageMigrationResponse"];
         };
       };
       default: components["responses"]["ErrorResponse"];
