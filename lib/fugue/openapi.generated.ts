@@ -5081,8 +5081,11 @@ export interface components {
       scope: "global";
       /** @enum {string} */
       state: "not_configured" | "allowed" | "suspended" | "unavailable" | "identity_conflict";
-      /** @enum {string} */
-      recovery_state?: "probing" | "ready" | "review_overdue" | "retention_expired" | "unavailable";
+      /**
+       * @description enrollment_retired means the probe passed but the signed global hold remains because a required worker route enrollment was permanently retired.
+       * @enum {string}
+       */
+      recovery_state?: "probing" | "ready" | "review_overdue" | "retention_expired" | "enrollment_retired" | "unavailable";
       /** Format: date-time */
       recovery_last_success_at?: string;
       /** Format: date-time */
@@ -18456,6 +18459,12 @@ export interface operations {
           "application/json": {
             [key: string]: unknown;
           };
+        };
+      };
+      /** @description The release, expectation revision or membership conflicts with current authority. A permanently retired enrollment is rejected rather than reused. */
+      409: {
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"];
         };
       };
       default: components["responses"]["ErrorResponse"];
