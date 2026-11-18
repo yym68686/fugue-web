@@ -662,7 +662,7 @@ export interface paths {
   "/v1/platform-state/consumers/artifacts/{artifact_id}/passive-asn": {
     /**
      * Read a signed passive ASN observation for this DNS release
-     * @description A bounded, short-lived ranking input for the exact currently assigned DNS consumer and artifact. It never authorizes a candidate or renews route, TLS or serving readiness.
+     * @description A bounded, short-lived ranking input for the exact selected full DNS assignment of a Kubernetes-bound global or authority-cell DNS consumer. The signed DNS policy must enable dynamic quality. An active observation requires matching replay evidence from the public DNS backends; an assigned standby can validate a shadow observation without selecting traffic. This operation never authorizes a candidate or renews route, TLS or serving readiness.
      */
     get: operations["getPlatformConsumerPassiveASN"];
   };
@@ -18766,7 +18766,7 @@ export interface operations {
   };
   /**
    * Read a signed passive ASN observation for this DNS release
-   * @description A bounded, short-lived ranking input for the exact currently assigned DNS consumer and artifact. It never authorizes a candidate or renews route, TLS or serving readiness.
+   * @description A bounded, short-lived ranking input for the exact selected full DNS assignment of a Kubernetes-bound global or authority-cell DNS consumer. The signed DNS policy must enable dynamic quality. An active observation requires matching replay evidence from the public DNS backends; an assigned standby can validate a shadow observation without selecting traffic. This operation never authorizes a candidate or renews route, TLS or serving readiness.
    */
   getPlatformConsumerPassiveASN: {
     parameters: {
