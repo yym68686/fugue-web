@@ -659,6 +659,13 @@ export interface paths {
      */
     get: operations["getPlatformConsumerDNSRouteSources"];
   };
+  "/v1/platform-state/consumers/artifacts/{artifact_id}/passive-asn": {
+    /**
+     * Read a signed passive ASN observation for this DNS release
+     * @description A bounded, short-lived ranking input for the exact currently assigned DNS consumer and artifact. It never authorizes a candidate or renews route, TLS or serving readiness.
+     */
+    get: operations["getPlatformConsumerPassiveASN"];
+  };
   "/v1/platform-state/consumers/artifacts/{artifact_id}/retained-route-sources": {
     /**
      * Read approved routing sources for the current positive DNS LKG
@@ -6348,6 +6355,26 @@ export interface components {
       fallback_reason?: string;
     };
     DNSDecisionRecord: {
+      /** @description Scope and evidence for the passive ASN decision. Client and resolver addresses are not recorded. */
+      passive_asn?: {
+        reason: string;
+        /** @enum {string} */
+        mode?: "shadow" | "active";
+        asn?: number;
+        /** @enum {integer} */
+        family?: 4 | 6;
+        observation_digest?: string;
+        /** Format: date-time */
+        evidence_at?: string;
+        /** @enum {string} */
+        evidence_kind?: "recent" | "historical";
+        incumbent_edge_id?: string;
+        /** @description Proposed edge; only active mode may use it. */
+        choice_edge_id?: string;
+        shared_windows?: number;
+        left_win_windows?: number;
+        right_win_windows?: number;
+      };
       /** @description Actual availability decision for explicitly opted-in records. Counts describe the original constrained candidate set and recovered materialization; they do not grant serving authority. */
       availability?: {
         authorized_candidates: number;
@@ -13828,6 +13855,69 @@ export interface components {
       /** Format: date-time */
       signed_at: string;
     };
+    PlatformPassiveASNObservation: {
+      id: string;
+      /** @enum {string} */
+      artifact_kind: "dns_passive_asn_observation";
+      scope: components["schemas"]["PlatformArtifactScope"];
+      scope_key: string;
+      /** @enum {string} */
+      schema_version: "1.0";
+      generation: string;
+      /** Format: int64 */
+      generation_sequence: number;
+      /** @enum {string} */
+      status: "validated";
+      content_hash: string;
+      provenance: components["schemas"]["PlatformArtifactProvenance"];
+      /** Format: date-time */
+      created_at: string;
+      /** Format: date-time */
+      updated_at: string;
+      content: {
+        /** @enum {string} */
+        mode: "shadow" | "active";
+        dns_artifact_id: string;
+        dns_digest: string;
+        release_set_id: string;
+        consumer_set_id: string;
+        /** Format: int64 */
+        fencing_token: number;
+        node_id: string;
+        /** Format: date-time */
+        observed_at: string;
+        /** Format: date-time */
+        expires_at: string;
+        bindings: {
+            prefix: string;
+            /** Format: int64 */
+            asn: number;
+          }[];
+        resolvers: string[];
+        /** Format: date-time */
+        resolver_source_at: string;
+        pairs: ({
+            /** Format: int64 */
+            asn: number;
+            /** @enum {integer} */
+            family: 4 | 6;
+            left: components["schemas"]["PassiveASNEndpoint"];
+            right: components["schemas"]["PassiveASNEndpoint"];
+            preferred?: string;
+            /** Format: date-time */
+            observed_at: string;
+            shared_windows: number;
+            left_win_windows: number;
+            right_win_windows: number;
+            prefixes: string[];
+          })[];
+      };
+    };
+    PassiveASNEndpoint: {
+      edge_id: string;
+      group_id: string;
+      address: string;
+    };
     PlatformArtifact: {
       id: string;
       /** @enum {string} */
@@ -15844,6 +15934,18 @@ export interface components {
     ObjectStorageBusy: {
       headers: {
         /** @description Suggested wait in seconds when the management lock is busy. */
+        "Retry-After"?: number;
+      };
+      content: {
+        "application/json": components["schemas"]["ErrorResponse"];
+      };
+    };
+    /** @description Platform consumer request unavailable. */
+    PlatformConsumerUnavailable: {
+      headers: {
+        /** @description Optional server-generated correlation for a retained DNS consumer failure. Diagnostic only, never authorization, retry, or idempotency evidence. */
+        "X-Fugue-Consumer-Failure-Id"?: string;
+        /** @description Suggested delay in seconds when a trusted heartbeat admission lock is busy. */
         "Retry-After"?: number;
       };
       content: {
@@ -18521,7 +18623,7 @@ export interface operations {
       404: components["responses"]["ErrorResponse"];
       409: components["responses"]["ErrorResponse"];
       422: components["responses"]["ErrorResponse"];
-      503: components["responses"]["ErrorResponse"];
+      503: components["responses"]["PlatformConsumerUnavailable"];
       default: components["responses"]["ErrorResponse"];
     };
   };
@@ -18590,7 +18692,7 @@ export interface operations {
       };
       401: components["responses"]["ErrorResponse"];
       404: components["responses"]["ErrorResponse"];
-      503: components["responses"]["ErrorResponse"];
+      503: components["responses"]["PlatformConsumerUnavailable"];
       default: components["responses"]["ErrorResponse"];
     };
   };
@@ -18660,6 +18762,33 @@ export interface operations {
       409: components["responses"]["ErrorResponse"];
       503: components["responses"]["ErrorResponse"];
       default: components["responses"]["ErrorResponse"];
+    };
+  };
+  /**
+   * Read a signed passive ASN observation for this DNS release
+   * @description A bounded, short-lived ranking input for the exact currently assigned DNS consumer and artifact. It never authorizes a candidate or renews route, TLS or serving readiness.
+   */
+  getPlatformConsumerPassiveASN: {
+    parameters: {
+      query: {
+        expected_consumer_set_id: string;
+      };
+      path: {
+        artifact_id: string;
+      };
+    };
+    responses: {
+      /** @description Signed observation bound to this assignment; private and not cacheable. */
+      200: {
+        content: {
+          "application/json": components["schemas"]["PlatformPassiveASNObservation"];
+        };
+      };
+      400: components["responses"]["ErrorResponse"];
+      401: components["responses"]["ErrorResponse"];
+      403: components["responses"]["ErrorResponse"];
+      404: components["responses"]["ErrorResponse"];
+      503: components["responses"]["ErrorResponse"];
     };
   };
   /**
