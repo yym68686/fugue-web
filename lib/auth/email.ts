@@ -1,4 +1,5 @@
 import { getAuthEnv } from "@/lib/auth/env";
+import { runtimeIntegrationSecret } from "@/lib/admin/external-services";
 import { escapeHtmlAttribute, escapeHtmlText } from "@/lib/auth/html";
 
 type SendVerificationEmailArgs = {
@@ -56,11 +57,12 @@ This link expires in 15 minutes. If you did not request this, you can ignore thi
 
 export async function sendVerificationEmail(args: SendVerificationEmailArgs) {
   const authEnv = getAuthEnv();
+  const apiKey = await runtimeIntegrationSecret("RESEND_API_KEY", authEnv.resendApiKey);
 
   const response = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${authEnv.resendApiKey}`,
+      Authorization: `Bearer ${apiKey}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
@@ -74,7 +76,6 @@ export async function sendVerificationEmail(args: SendVerificationEmailArgs) {
   });
 
   if (!response.ok) {
-    const payload = await response.text();
-    throw new Error(`Failed to send verification email: ${payload}`);
+    throw new Error("Failed to send verification email.");
   }
 }

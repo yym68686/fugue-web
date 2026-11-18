@@ -102,6 +102,7 @@ async function createCreemCheckout(payload: {
   userEmail: string;
 }) {
   const creemEnv = getCreemEnv();
+  const apiKey = await runtimeIntegrationSecret("CREEM_API_KEY", creemEnv.apiKey);
 
   let response: Response;
 
@@ -125,7 +126,7 @@ async function createCreemCheckout(payload: {
       cache: "no-store",
       headers: {
         "content-type": "application/json",
-        "x-api-key": creemEnv.apiKey,
+        "x-api-key": apiKey,
       },
       method: "POST",
       signal: AbortSignal.timeout(20_000),
@@ -306,7 +307,7 @@ export async function processCreemWebhookRequest(
 
   const rawBody = new Uint8Array(await request.arrayBuffer());
 
-  if (!verifyCreemSignature(rawBody, signature)) {
+  if (!await verifyCreemSignature(rawBody, signature)) {
     throw readStatusError(401, "Invalid signature.");
   }
 
@@ -586,3 +587,4 @@ export async function processCreemWebhookRequest(
 
   return NextResponse.json({ ok: true });
 }
+import { runtimeIntegrationSecret } from "@/lib/admin/external-services";

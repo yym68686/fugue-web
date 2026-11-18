@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { test, type TestContext } from "node:test";
 import type { Pool } from "pg";
+import { SCHEMA_VERSION } from "@/lib/db/schema";
 import { prepareWorkspaceForKeyScopes, grantableWorkspaceScopes } from "@/lib/workspace/api-key-scopes";
 import type { WorkspaceAccess } from "@/lib/workspace/store";
 import { sealText } from "@/lib/security/seal";
@@ -33,7 +34,7 @@ function fixture(t: TestContext) {
   process.env.WORKSPACE_STORE_SECRET = "synthetic-workspace-mail-permissions-test";
   process.env.FUGUE_BOOTSTRAP_KEY = "synthetic-bootstrap";
   globalThis.__fugueDbSchemaPromise = Promise.resolve();
-  globalThis.__fugueDbSchemaVersion = "2026-09-12-project-templates";
+  globalThis.__fugueDbSchemaVersion = SCHEMA_VERSION;
   const row = {
     user_email: email, tenant_id: "tenant-owner", tenant_name: "Owner workspace",
     admin_key_id: "key-owner", admin_key_label: "workspace-admin", admin_key_prefix: "synthetic",

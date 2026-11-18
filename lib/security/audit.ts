@@ -19,6 +19,8 @@ export type SecurityAuditAction =
   | "admin.cluster.node-policy.completed"
   | "admin.cluster.node-policy.requested"
   | "admin.control-plane-key.used"
+  | "admin.object-storage.configure.requested"
+  | "admin.integration-credential.updated"
   | "admin.recovered"
   | "admin.user.billing.completed"
   | "admin.user.billing.requested"

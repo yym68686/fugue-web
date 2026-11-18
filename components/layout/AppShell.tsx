@@ -66,6 +66,7 @@ const consoleNav: NavDef[] = [
 ];
 
 const platformNav: NavDef[] = [
+  { href: "/admin/settings", labelKey: "Platform settings", icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M4 6h16M4 12h16M4 18h16M8 3v6m8 0v6m-6 0v6"/></svg> },
   { href: "/admin/storage", labelKey: "Platform object storage", icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 4 16 4 16 0V5M4 12c0 4 16 4 16 0"/></svg> },
   {
     href: "/admin/users",

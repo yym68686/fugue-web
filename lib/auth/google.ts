@@ -1,4 +1,5 @@
 import { getAuthEnv } from "@/lib/auth/env";
+import { runtimeIntegrationSecret } from "@/lib/admin/external-services";
 
 export type GoogleUser = {
   sub: string;
@@ -37,6 +38,7 @@ export function createGoogleAuthorizationUrl(state: string, codeChallenge: strin
 
 export async function exchangeGoogleCode(code: string, codeVerifier: string) {
   const authEnv = getAuthEnv();
+  const clientSecret = await runtimeIntegrationSecret("GOOGLE_CLIENT_SECRET", authEnv.googleClientSecret);
   const response = await fetch("https://oauth2.googleapis.com/token", {
     method: "POST",
     headers: {
@@ -45,7 +47,7 @@ export async function exchangeGoogleCode(code: string, codeVerifier: string) {
     body: new URLSearchParams({
       code,
       client_id: authEnv.googleClientId,
-      client_secret: authEnv.googleClientSecret,
+      client_secret: clientSecret,
       redirect_uri: authEnv.googleRedirectUri,
       grant_type: "authorization_code",
       code_verifier: codeVerifier,

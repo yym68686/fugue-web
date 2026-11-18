@@ -9,6 +9,7 @@ import { dispatchGitHubJob } from "@/lib/github/app-worker";
 import { saveWorkspaceAccess } from "@/lib/workspace/store";
 import { saveGitHubConnection } from "@/lib/github/connection-store";
 import { POST as webhook } from "@/app/api/webhook/github/route";
+import { externalServiceSettings, saveIntegrationCredential } from "@/lib/admin/external-services";
 import { fugueApiEnv } from "./fixtures/fugue-api-env";
 
 fugueApiEnv();
@@ -189,6 +190,42 @@ test("GitHub App durable queue and dispatcher (isolated real PostgreSQL)", { ski
     assert.equal((await webhook(new Request("https://console.example.test/api/webhook/github", { method: "POST", body, headers }))).status, 200);
     assert.equal((await webhook(new Request("https://console.example.test/api/webhook/github", { method: "POST", body: Buffer.concat([body, Buffer.from(" ")]), headers }))).status, 401);
     assert.equal(calls.length, before);
+  });
+
+  await t.test("admin integration rotation is encrypted, audited and used by the webhook", async (t) => {
+    const key = "GITHUB_APP_WEBHOOK_SECRET";
+    const baseline = variables.GITHUB_APP_WEBHOOK_SECRET;
+    const replacement = "synthetic-rotated-webhook-secret";
+    const ping = (secret: string) => {
+      const body = Buffer.from("{}");
+      const headers = { "x-github-event": "ping", "x-github-delivery": "ping-rotation",
+        "x-hub-signature-256": `sha256=${createHmac("sha256", secret).update(body).digest("hex")}` };
+      return webhook(new Request("https://console.example.test/api/webhook/github", { method: "POST", body, headers }));
+    };
+    await saveIntegrationCredential(key, replacement, email);
+    const settings = JSON.stringify(await externalServiceSettings());
+    assert.ok(settings.includes('"overridden":true'));
+    assert.ok(!settings.includes(replacement));
+    assert.ok(!settings.includes(baseline));
+    const row = (await pool.query("SELECT sealed_value FROM app_integration_credentials WHERE integration = $1", [key])).rows[0];
+    assert.ok(row.sealed_value.startsWith("v2."));
+    assert.ok(!row.sealed_value.includes(replacement));
+    const audit = (await pool.query("SELECT actor_email, metadata FROM app_security_audit_events WHERE action = 'admin.integration-credential.updated'")).rows;
+    assert.deepEqual(audit, [{ actor_email: email, metadata: { integration: key, override: true } }]);
+    assert.equal((await ping(baseline)).status, 401);
+    assert.equal((await ping(replacement)).status, 200);
+    const previous = process.env.FUGUE_WEB_INTEGRATIONS_ENV_ONLY;
+    t.after(() => {
+      if (previous === undefined) delete process.env.FUGUE_WEB_INTEGRATIONS_ENV_ONLY;
+      else process.env.FUGUE_WEB_INTEGRATIONS_ENV_ONLY = previous;
+    });
+    process.env.FUGUE_WEB_INTEGRATIONS_ENV_ONLY = "1";
+    assert.equal((await ping(baseline)).status, 200);
+    await assert.rejects(saveIntegrationCredential(key, null, email), /409/);
+    delete process.env.FUGUE_WEB_INTEGRATIONS_ENV_ONLY;
+    await saveIntegrationCredential(key, null, email);
+    assert.equal((await ping(replacement)).status, 401);
+    assert.equal((await ping(baseline)).status, 200);
   });
 
   await t.test("retention removes old finished jobs but preserves pending jobs and deduplication", async () => {

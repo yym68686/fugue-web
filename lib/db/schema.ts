@@ -7,9 +7,14 @@ declare global {
   var __fugueDbSchemaVersion: string | undefined;
 }
 
-const SCHEMA_VERSION = "2026-09-12-project-templates";
+export const SCHEMA_VERSION = "2026-11-19-integration-credentials";
 
 const SCHEMA_SQL = `
+CREATE TABLE IF NOT EXISTS app_integration_credentials (
+  integration TEXT PRIMARY KEY,
+  sealed_value TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS app_users (
   email TEXT PRIMARY KEY,
   name TEXT,

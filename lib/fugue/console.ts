@@ -2107,6 +2107,29 @@ export async function deleteProject(
 
 // Object storage types come from the authoritative Fugue API contract.
 export type ObjectStore = import("./openapi.generated").components["schemas"]["ObjectStore"];
+export type ObjectStoreProvider = NonNullable<FugueAPIComponents["schemas"]["ObjectStoreCreateRequest"]["provider"]>;
+export type ObjectStorageConfigStatus = FugueAPIComponents["schemas"]["ObjectStorageConfigStatus"];
+export type ObjectStorageConfigWrite =
+  | { provider: "cloudflare-r2"; credentials: FugueAPIComponents["schemas"]["ObjectStorageConfigRequest"] }
+  | { provider: "backblaze-b2"; credentials: FugueAPIComponents["schemas"]["BackblazeB2ConfigRequest"] };
+
+function objectStorageSettingsPath(provider: ObjectStoreProvider) {
+  return provider === "backblaze-b2" ? "/v1/admin/object-storage/backblaze-b2" : "/v1/admin/object-storage";
+}
+
+function publicObjectStorageConfig(status: ObjectStorageConfigStatus): ObjectStorageConfigStatus {
+  return { configured: status.configured, account_id: status.account_id, region: status.region, updated_at: status.updated_at };
+}
+
+export async function getObjectStorageConfig(provider: ObjectStoreProvider) {
+  const status = await fugueGet<ObjectStorageConfigStatus>(readBootstrapKey(), objectStorageSettingsPath(provider), { signal: AbortSignal.timeout(8_000) });
+  return publicObjectStorageConfig(status);
+}
+
+export async function configureObjectStorage(input: ObjectStorageConfigWrite) {
+  const status = await fugueSend<ObjectStorageConfigStatus>(readBootstrapKey(), "PUT", objectStorageSettingsPath(input.provider), input.credentials, { signal: AbortSignal.timeout(55_000) });
+  return publicObjectStorageConfig(status);
+}
 export type AdminStorageOverview = FugueAPIComponents["schemas"]["AdminStorageOverview"];
 export async function getAdminStorageOverview(): Promise<AdminStorageOverview> {
   return fugueGet<AdminStorageOverview>(readBootstrapKey(), "/v1/admin/storage");
@@ -2129,7 +2152,7 @@ export async function mutateObjectStore(key: string, action: string, body: Recor
   const id = typeof body.id === "string" ? body.id : "";
   const base = `/v1/object-stores/${encodeURIComponent(id)}`;
   switch (action) {
-    case "create": return fugueSend(key, "POST", "/v1/object-stores", {project_id: body.project_id, name: body.name, quota_bytes: body.quota_bytes ?? 0});
+    case "create": return fugueSend(key, "POST", "/v1/object-stores", {project_id: body.project_id, name: body.name, provider: body.provider, quota_bytes: body.quota_bytes ?? 0});
     case "update": return fugueSend(key, "PATCH", base, {enabled: body.enabled, quota_bytes: body.quota_bytes});
     case "measure": return fugueSend(key, "POST", `${base}/usage`);
     case "revoke": return fugueSend(key, "DELETE", `${base}/credentials/${encodeURIComponent(String(body.credential_id))}`);
