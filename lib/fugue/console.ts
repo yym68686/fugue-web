@@ -2152,7 +2152,19 @@ export async function mutateObjectStore(key: string, action: string, body: Recor
   const id = typeof body.id === "string" ? body.id : "";
   const base = `/v1/object-stores/${encodeURIComponent(id)}`;
   switch (action) {
-    case "create": return fugueSend(key, "POST", "/v1/object-stores", {project_id: body.project_id, name: body.name, provider: body.provider, quota_bytes: body.quota_bytes ?? 0});
+    case "create": {
+      // R2 is the API default; omit the field so pre-B2 replicas also accept it.
+      const provider = body.provider;
+      if (provider !== undefined && provider !== "cloudflare-r2" && provider !== "backblaze-b2") {
+        throw new Error("400 Unsupported object storage provider");
+      }
+      return fugueSend(key, "POST", "/v1/object-stores", {
+        project_id: body.project_id,
+        name: body.name,
+        quota_bytes: body.quota_bytes ?? 0,
+        ...(provider === "backblaze-b2" ? { provider } : {}),
+      });
+    }
     case "update": return fugueSend(key, "PATCH", base, {enabled: body.enabled, quota_bytes: body.quota_bytes});
     case "measure": return fugueSend(key, "POST", `${base}/usage`);
     case "revoke": return fugueSend(key, "DELETE", `${base}/credentials/${encodeURIComponent(String(body.credential_id))}`);
