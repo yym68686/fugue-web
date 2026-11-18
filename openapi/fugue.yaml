@@ -199,6 +199,18 @@ x-fugue-front-network-observation:
     response. No read probes applications, changes routing, persists peer data,
     renews evidence or authorizes serving. Publish the private reader to the actual
     selected Fronts through verified executor replacement before enabling its caller.
+  passive_batch:
+    endpoint: GET /edge/passive-network-samples on the private Front health listener
+    response_schema: '#/components/schemas/EdgeFrontPassiveNetworkBatch'
+    semantics: >-
+      Returns bounded, already-observed HTTPS TCP samples using kernel peers,
+      not HTTP headers or Worker route matches. Retains at most three complete
+      or in-progress five-minute buckets of 128 samples each and limits each
+      coarse prefix to eight per bucket. No exact client address, hostname,
+      or route is returned. The control plane reads only through the authenticated
+      Kubernetes pod proxy, binds evidence to the exact serving Service, Pod,
+      process lifetime and endpoints before persistence, and does not admit this
+      source through Worker heartbeats. Unknown TCP metrics remain unknown.
 x-fugue-dns-readiness:
   endpoint: GET /readyz on the DNS node HTTP listener
   response_schema: '#/components/schemas/DNSListenerReadiness'
@@ -1946,6 +1958,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/EdgePublicNetworkObservationResponse'
+        '404':
+          description: The selected Front reported that the exact connection was absent or changed; no sample was returned.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
         default:
           $ref: '#/components/responses/ErrorResponse'
   /v1/edge/heartbeat:
@@ -4092,6 +4110,12 @@ paths:
           content:
             application/json:
               schema: {type: object, additionalProperties: true}
+        '409':
+          description: The release, expectation revision or membership conflicts with current authority. A permanently retired enrollment is rejected rather than reused.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
         default:
           $ref: "#/components/responses/ErrorResponse"
   /v1/admin/platform-state/convergence:
@@ -4757,7 +4781,7 @@ paths:
     get:
       operationId: getPlatformConsumerPassiveASN
       summary: Read a signed passive ASN observation for this DNS release
-      description: A bounded, short-lived ranking input for the exact selected full DNS assignment of a Kubernetes-bound global or authority-cell DNS consumer. The signed DNS policy must enable dynamic quality. An active observation requires matching replay evidence from the public DNS backends; an assigned standby can validate a shadow observation without selecting traffic. This operation never authorizes a candidate or renews route, TLS or serving readiness.
+      description: A bounded, short-lived ranking input for the exact selected full DNS assignment of a Kubernetes-bound global or authority-cell DNS consumer. The signed DNS policy must enable dynamic quality. An active observation requires replay-verified positive wire answers from the current public DNS backends on their loaded full releases, even if no client subnet has been classified yet. Individual answers still require trusted, classified client subnet evidence for ASN steering. An assigned standby can validate a shadow observation without selecting traffic. This operation never authorizes a candidate or renews route, TLS or serving readiness.
       tags: [Admin]
       x-fugue-handler: handleGetPlatformConsumerPassiveASN
       security:
@@ -10568,6 +10592,67 @@ paths:
                 $ref: "#/components/schemas/AppRolloutTimelineResponse"
         default:
           $ref: "#/components/responses/ErrorResponse"
+  /v1/apps/{id}/storage/unmount:
+    get:
+      operationId: planAppStorageUnmount
+      summary: Preview removal of exactly one persistent storage mount
+      tags: [Apps]
+      x-fugue-handler: handlePlanAppStorageUnmount
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/IdPathParam"
+        - name: path
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Exact absolute container mount path.
+      responses:
+        '200':
+          description: Read-only specification preview. Live admission is checked again before rollout.
+          headers:
+            ETag:
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AppStorageUnmountPlan"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+    post:
+      operationId: executeAppStorageUnmount
+      summary: Queue removal of one mount with a same-node business-gated rollout
+      tags: [Apps]
+      x-fugue-handler: handleExecuteAppStorageUnmount
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/IdPathParam"
+        - name: If-Match
+          in: header
+          required: true
+          schema:
+            type: string
+          description: Quoted specification SHA-256 returned by the preview.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AppStorageUnmountRequest"
+      responses:
+        '202':
+          description: Guarded operation queued. Neither the PVC nor its data are deleted.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OperationResponse"
+        '412':
+          $ref: "#/components/responses/ErrorResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
   /v1/apps/{id}/env:
     get:
       operationId: getAppEnv
@@ -14641,6 +14726,49 @@ paths:
           $ref: "#/components/responses/ObjectStorageBusy"
         default:
           $ref: "#/components/responses/ErrorResponse"
+  /v1/admin/object-storage/backblaze-b2:
+    get:
+      operationId: getBackblazeB2Config
+      summary: Get Backblaze B2 configuration status
+      description: Platform administrators only. Never returns stored credentials.
+      tags: [Object Storage]
+      x-fugue-handler: handleGetBackblazeB2Config
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Configuration status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ObjectStorageConfigStatus"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+    put:
+      operationId: configureBackblazeB2
+      summary: Verify and save Backblaze B2 management credentials
+      description: Platform administrators only. Requires a non-master, unrestricted application key with bucket and key management permissions. Existing account and region cannot change while B2 stores exist.
+      tags: [Object Storage]
+      x-fugue-handler: handleConfigureBackblazeB2
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BackblazeB2ConfigRequest"
+      responses:
+        "200":
+          description: Configuration status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ObjectStorageConfigStatus"
+        "409":
+          $ref: "#/components/responses/ObjectStorageBusy"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
   /v1/object-stores:
     get:
       operationId: listObjectStores
@@ -14669,7 +14797,7 @@ paths:
     post:
       operationId: createObjectStore
       summary: createObjectStore
-      description: Explicitly provision a private independent R2 bucket. Requires storage.admin or the existing tenant data.admin scope. Name is unique within the project; retries resume provisioning. No backup objects are used.
+      description: Explicitly provision a private independent bucket. New stores default to Cloudflare R2 if provider is omitted. Requires storage.admin or the existing tenant data.admin scope. Name is unique within the project; retries resume provisioning and cannot change provider. No backup objects are used.
       tags: [Object Storage]
       x-fugue-handler: handleCreateObjectStore
       security:
@@ -14891,7 +15019,7 @@ paths:
     post:
       operationId: measureObjectStoreUsage
       summary: measureObjectStoreUsage
-      description: Requires storage.read, storage.admin, or the existing tenant data.admin scope. Measures current bucket object bytes and object count, with timestamp. Does not claim real-time hard quotas or exact billable request counts.
+      description: Requires storage.read, storage.admin, or the existing tenant data.admin scope. Measures current R2 objects or all stored B2 object versions (excluding delete markers and unfinished uploads), with timestamp. Does not report exact billable usage or enforce a hard quota.
       tags: [Object Storage]
       x-fugue-handler: handleMeasureObjectStoreUsage
       security:
@@ -18151,12 +18279,20 @@ components:
       properties:
         account_id: {type: string, pattern: '^[a-f0-9]{32}$'}
         api_token: {type: string, minLength: 20, writeOnly: true}
+    BackblazeB2ConfigRequest:
+      type: object
+      additionalProperties: false
+      required: [key_id, application_key]
+      properties:
+        key_id: {type: string, minLength: 12, maxLength: 128, writeOnly: true}
+        application_key: {type: string, minLength: 20, maxLength: 256, writeOnly: true}
     ObjectStorageConfigStatus:
       type: object
       required: [configured]
       properties:
         configured: {type: boolean}
         account_id: {type: string}
+        region: {type: string}
         updated_at: {type: string, format: date-time}
     ObjectStoreCreateRequest:
       type: object
@@ -18166,6 +18302,7 @@ components:
         tenant_id: {type: string}
         project_id: {type: string}
         name: {type: string, pattern: '^[a-z0-9][a-z0-9-]{0,47}$'}
+        provider: {type: string, enum: [cloudflare-r2, backblaze-b2]}
         quota_bytes: {type: integer, format: int64, minimum: 0}
     ObjectStoreUpdateRequest:
       type: object
@@ -18227,6 +18364,7 @@ components:
         kind: {type: string}
         resource_id: {type: string}
         name: {type: string}
+        provider: {type: string}
         bucket: {type: string}
         prefix: {type: string}
         tenant_id: {type: string}
@@ -18265,7 +18403,7 @@ components:
         observed_at: {type: string, format: date-time}
         configured: {type: boolean}
         account_id: {type: string}
-        buckets_complete: {type: boolean}
+        buckets_complete: {type: boolean, description: Whether the Cloudflare R2 account inventory completed. Does not attest completeness for other providers.}
         longhorn_complete: {type: boolean}
         metrics_status: {type: string}
         billing_status: {type: string}
@@ -18343,8 +18481,9 @@ components:
         tenant_id: {type: string}
         project_id: {type: string}
         name: {type: string}
-        provider: {type: string, enum: [cloudflare-r2]}
+        provider: {type: string, enum: [cloudflare-r2, backblaze-b2]}
         bucket: {type: string}
+        bucket_id: {type: string, description: Immutable provider bucket identity for Backblaze B2.}
         endpoint: {type: string}
         region: {type: string}
         status: {type: string, enum: [provisioning, active, disabling, disabled, deleting]}
@@ -20940,7 +21079,10 @@ components:
         evaluated_at: {type: string, format: date-time}
         scope: {type: string, enum: [global]}
         state: {type: string, enum: [not_configured, allowed, suspended, unavailable, identity_conflict]}
-        recovery_state: {type: string, enum: [probing, ready, review_overdue, retention_expired, unavailable]}
+        recovery_state:
+          type: string
+          description: enrollment_retired means the probe passed but the signed global hold remains because a required worker route enrollment was permanently retired.
+          enum: [probing, ready, review_overdue, retention_expired, enrollment_retired, unavailable]
         recovery_last_success_at: {type: string, format: date-time}
         recovery_retain_until: {type: string, format: date-time}
         recovery_last_probe_at: {type: string, format: date-time}
@@ -22495,6 +22637,18 @@ components:
         service_uid: {type: string, maxLength: 128}
         service_version: {type: string, maxLength: 128}
         endpoints_digest: {type: string, pattern: '^sha256:[0-9a-f]{64}$'}
+    EdgeFrontPassiveNetworkBatch:
+      type: object
+      additionalProperties: false
+      required: [schema, edge_id, group_id, samples]
+      properties:
+        schema: {type: string, enum: [public-front-passive-v1]}
+        edge_id: {type: string}
+        group_id: {type: string}
+        samples:
+          type: array
+          maxItems: 384
+          items: {$ref: '#/components/schemas/EdgeClientNetworkSample'}
     EdgeClientNetworkSample:
       type: object
       additionalProperties: false
@@ -22919,7 +23073,7 @@ components:
           type: object
           additionalProperties: false
           required: [reason]
-          description: Scope and evidence for the passive ASN decision. Client and resolver addresses are not recorded.
+          description: Scope and evidence for the passive ASN decision. New ASNs may use a cross-ASN comparison derived from the same signed pairs, with at most one vote per ASN. Client and resolver addresses are not recorded.
           properties:
             reason: {type: string}
             mode: {type: string, enum: [shadow, active]}
@@ -22933,6 +23087,8 @@ components:
             shared_windows: {type: integer, minimum: 3}
             left_win_windows: {type: integer, minimum: 1}
             right_win_windows: {type: integer, minimum: 1}
+            aggregate_asns: {type: integer, minimum: 3, description: "Number of ASNs with comparable evidence for the decisive pair, including ties."}
+            aggregate_supporting_asns: {type: integer, minimum: 3, description: Number of ASNs favoring the chosen edge for that pair.}
         availability:
           type: object
           additionalProperties: false
@@ -28753,6 +28909,66 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/AppRelease"
+    AppStorageUnmountPlan:
+      type: object
+      additionalProperties: false
+      required: [app_id, path, spec_sha256, allowed, reason, retained_mounts, reuse_pvc]
+      properties:
+        app_id:
+          type: string
+        path:
+          type: string
+        spec_sha256:
+          type: string
+        allowed:
+          type: boolean
+          description: Specification is eligible; does not attest to live placement, capacity, or application write safety.
+        reason:
+          type: string
+        retained_mounts:
+          type: array
+          items:
+            type: string
+        reuse_pvc:
+          type: boolean
+        claim_name:
+          type: string
+    AppStorageUnmountRequest:
+      type: object
+      additionalProperties: false
+      required: [path, authorize_overlap, probe]
+      properties:
+        path:
+          type: string
+        authorize_overlap:
+          type: boolean
+          description: Must be true. Confirms one temporary replica and concurrent access to all retained mounts are permitted.
+        probe:
+          $ref: "#/components/schemas/AppStorageUnmountProbe"
+    AppStorageUnmountProbe:
+      type: object
+      additionalProperties: false
+      required: [path, expected_body_contains]
+      properties:
+        path:
+          type: string
+          description: Relative HTTP request path on the candidate's first application port. No external URL, query string or redirects.
+        method:
+          type: string
+          enum: [GET, POST]
+          default: GET
+        body:
+          type: string
+          maxLength: 8192
+          description: Optional JSON for a safe-to-retry POST. Do not include credentials or sensitive data.
+        bearer_env:
+          type: string
+          description: Optional name of an existing application environment variable with the probe bearer token. Never pass the token itself.
+        expected_body_contains:
+          type: string
+          minLength: 1
+          maxLength: 1024
+          description: Text that must appear in the first 64 KiB of a successful 2xx response.
     AppRecoveryStartRequest:
       type: object
       additionalProperties: false
