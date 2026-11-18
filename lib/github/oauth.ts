@@ -1,6 +1,7 @@
 import "server-only";
 
 import { buildAppUrl } from "@/lib/auth/env";
+import { runtimeIntegrationSecret } from "@/lib/admin/external-services";
 
 type GitHubTokenPayload = {
   access_token?: string;
@@ -103,6 +104,7 @@ export async function exchangeGitHubCode(code: string, codeVerifier: string) {
   if (!config) {
     throw new Error("GitHub OAuth is not configured.");
   }
+  const clientSecret = await runtimeIntegrationSecret("GITHUB_OAUTH_CLIENT_SECRET", config.clientSecret);
 
   const response = await fetch("https://github.com/login/oauth/access_token", {
     method: "POST",
@@ -112,7 +114,7 @@ export async function exchangeGitHubCode(code: string, codeVerifier: string) {
     },
     body: JSON.stringify({
       client_id: config.clientId,
-      client_secret: config.clientSecret,
+      client_secret: clientSecret,
       code,
       code_verifier: codeVerifier,
       redirect_uri: config.redirectUri,

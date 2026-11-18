@@ -4,6 +4,7 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 
 import { getAuthEnv } from "@/lib/auth/env";
 import { readConfiguredCanonicalOrigin } from "@/lib/auth/origin";
+import { runtimeIntegrationSecret } from "@/lib/admin/external-services";
 
 type CreemObject = Record<string, unknown>;
 
@@ -55,14 +56,15 @@ export function getCreemEnv(): CreemEnv {
   };
 }
 
-export function verifyCreemSignature(rawBody: Uint8Array, signature: string) {
+export async function verifyCreemSignature(rawBody: Uint8Array, signature: string) {
   const normalizedSignature = signature.trim().toLowerCase();
 
   if (!normalizedSignature) {
     return false;
   }
 
-  const digest = createHmac("sha256", getCreemEnv().webhookSecret)
+  const secret = await runtimeIntegrationSecret("CREEM_WEBHOOK_SECRET", getCreemEnv().webhookSecret);
+  const digest = createHmac("sha256", secret)
     .update(rawBody)
     .digest("hex");
 

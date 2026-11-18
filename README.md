@@ -85,3 +85,19 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### Platform integration credentials
+
+Platform administrators can configure Cloudflare R2 and Backblaze B2 from
+`/admin/settings`. GitHub sign-in/repository OAuth, GitHub App, Google sign-in,
+Resend and Creem also support rotation there after initial environment setup.
+Their overrides are encrypted with the workspace keyring, take effect without
+redeployment, and are never displayed. Initial account, callback, sender and
+product configuration remain deployment-owned. Keep a working environment
+credential while testing a rotation. Verify the integration at its provider;
+saving these overrides does not call the provider, deliver email or charge a card.
+
+Use **Use deployment credential** to clear an override. If login is disrupted,
+deploy with `FUGUE_WEB_INTEGRATIONS_ENV_ONLY=1` and working environment values
+to bypass overrides without deleting them. Restore access, repair the
+deployment credentials as needed, and clear or replace the saved overrides
+before resuming admin-managed operation.

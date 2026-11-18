@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { readPublicErrorStatus, sanitizePublicErrorMessage } from "@/lib/security/public-error.mjs";
 import { githubAppConfiguration } from "@/lib/github/app-config";
+import { runtimeIntegrationSecret } from "@/lib/admin/external-services";
 import { githubObject, githubId, normalizeGitHubRepository, parseGitHubImageEvent, readGitHubWebhookBody, verifyGitHubSignature } from "@/lib/github/app-events";
 import { enqueueGitHubImageEvent, revokeGitHubInstallation } from "@/lib/github/app-store";
 import { startGitHubAppWorker, wakeGitHubAppWorker } from "@/lib/github/app-worker";
@@ -19,7 +20,8 @@ export async function POST(request: Request) {
     const deliveryId = request.headers.get("x-github-delivery") ?? "";
     if (!/^[a-z_]{1,64}$/.test(eventName) || !/^[a-zA-Z0-9-]{1,128}$/.test(deliveryId)) return jsonError(400, "Invalid GitHub webhook headers.");
     const body = await readGitHubWebhookBody(request);
-    if (!verifyGitHubSignature(body, request.headers.get("x-hub-signature-256") ?? "", config.webhookSecret)) return jsonError(401, "Invalid GitHub webhook signature.");
+    const webhookSecret = await runtimeIntegrationSecret("GITHUB_APP_WEBHOOK_SECRET", config.webhookSecret);
+    if (!verifyGitHubSignature(body, request.headers.get("x-hub-signature-256") ?? "", webhookSecret)) return jsonError(401, "Invalid GitHub webhook signature.");
     let payload: Record<string, unknown>;
     try { payload = githubObject(JSON.parse(body.toString("utf8"))); } catch { return jsonError(400, "Invalid GitHub webhook JSON."); }
     if (eventName === "ping") return Response.json({ accepted: true, deliveryId });

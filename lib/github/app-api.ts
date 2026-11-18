@@ -1,6 +1,7 @@
 import "server-only";
 import { sign } from "node:crypto";
 import { requireGitHubAppConfiguration } from "./app-config";
+import { runtimeIntegrationSecret } from "@/lib/admin/external-services";
 import { githubId, githubObject, normalizeGitHubRepository } from "./app-events";
 import { getGitHubConnectionByEmail } from "./connection-store";
 
@@ -24,7 +25,8 @@ async function githubGet(path: string, token: string) {
 
 export async function readRepositoryInstallation(repo: string, eventName?: string) {
   const config = requireGitHubAppConfiguration();
-  const installation = await githubGet(`/repos/${normalizeGitHubRepository(repo)}/installation`, createGitHubAppJWT(config.id, config.privateKey));
+  const privateKey = await runtimeIntegrationSecret("GITHUB_APP_PRIVATE_KEY", config.privateKey);
+  const installation = await githubGet(`/repos/${normalizeGitHubRepository(repo)}/installation`, createGitHubAppJWT(config.id, privateKey));
   const id = githubId(installation.id);
   if (!id || githubId(installation.app_id) !== config.id || installation.suspended_at) {
     throw new Error("409 GitHub App installation is missing or suspended.");

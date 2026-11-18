@@ -662,7 +662,7 @@ export interface paths {
   "/v1/platform-state/consumers/artifacts/{artifact_id}/passive-asn": {
     /**
      * Read a signed passive ASN observation for this DNS release
-     * @description A bounded, short-lived ranking input for the exact selected full DNS assignment of a Kubernetes-bound global or authority-cell DNS consumer. The signed DNS policy must enable dynamic quality. An active observation requires matching replay evidence from the public DNS backends; an assigned standby can validate a shadow observation without selecting traffic. This operation never authorizes a candidate or renews route, TLS or serving readiness.
+     * @description A bounded, short-lived ranking input for the exact selected full DNS assignment of a Kubernetes-bound global or authority-cell DNS consumer. The signed DNS policy must enable dynamic quality. An active observation requires replay-verified positive wire answers from the current public DNS backends on their loaded full releases, even if no client subnet has been classified yet. Individual answers still require trusted, classified client subnet evidence for ASN steering. An assigned standby can validate a shadow observation without selecting traffic. This operation never authorizes a candidate or renews route, TLS or serving readiness.
      */
     get: operations["getPlatformConsumerPassiveASN"];
   };
@@ -1636,6 +1636,12 @@ export interface paths {
     /** Get App Rollout Timeline */
     get: operations["getAppRolloutTimeline"];
   };
+  "/v1/apps/{id}/storage/unmount": {
+    /** Preview removal of exactly one persistent storage mount */
+    get: operations["planAppStorageUnmount"];
+    /** Queue removal of one mount with a same-node business-gated rollout */
+    post: operations["executeAppStorageUnmount"];
+  };
   "/v1/apps/{id}/env": {
     /** Get App Env */
     get: operations["getAppEnv"];
@@ -2351,6 +2357,18 @@ export interface paths {
      */
     put: operations["configureObjectStorage"];
   };
+  "/v1/admin/object-storage/backblaze-b2": {
+    /**
+     * Get Backblaze B2 configuration status
+     * @description Platform administrators only. Never returns stored credentials.
+     */
+    get: operations["getBackblazeB2Config"];
+    /**
+     * Verify and save Backblaze B2 management credentials
+     * @description Platform administrators only. Requires a non-master, unrestricted application key with bucket and key management permissions. Existing account and region cannot change while B2 stores exist.
+     */
+    put: operations["configureBackblazeB2"];
+  };
   "/v1/object-stores": {
     /**
      * listObjectStores
@@ -2359,7 +2377,7 @@ export interface paths {
     get: operations["listObjectStores"];
     /**
      * createObjectStore
-     * @description Explicitly provision a private independent R2 bucket. Requires storage.admin or the existing tenant data.admin scope. Name is unique within the project; retries resume provisioning. No backup objects are used.
+     * @description Explicitly provision a private independent bucket. New stores default to Cloudflare R2 if provider is omitted. Requires storage.admin or the existing tenant data.admin scope. Name is unique within the project; retries resume provisioning and cannot change provider. No backup objects are used.
      */
     post: operations["createObjectStore"];
   };
@@ -2409,7 +2427,7 @@ export interface paths {
   "/v1/object-stores/{store_id}/usage": {
     /**
      * measureObjectStoreUsage
-     * @description Requires storage.read, storage.admin, or the existing tenant data.admin scope. Measures current bucket object bytes and object count, with timestamp. Does not claim real-time hard quotas or exact billable request counts.
+     * @description Requires storage.read, storage.admin, or the existing tenant data.admin scope. Measures current R2 objects or all stored B2 object versions (excluding delete markers and unfinished uploads), with timestamp. Does not report exact billable usage or enforce a hard quota.
      */
     post: operations["measureObjectStoreUsage"];
   };
@@ -3480,9 +3498,14 @@ export interface components {
       account_id: string;
       api_token: string;
     };
+    BackblazeB2ConfigRequest: {
+      key_id: string;
+      application_key: string;
+    };
     ObjectStorageConfigStatus: {
       configured: boolean;
       account_id?: string;
+      region?: string;
       /** Format: date-time */
       updated_at?: string;
     };
@@ -3490,6 +3513,8 @@ export interface components {
       tenant_id?: string;
       project_id: string;
       name: string;
+      /** @enum {string} */
+      provider?: "cloudflare-r2" | "backblaze-b2";
       /** Format: int64 */
       quota_bytes?: number;
     };
@@ -3554,6 +3579,7 @@ export interface components {
       kind: string;
       resource_id: string;
       name: string;
+      provider?: string;
       bucket: string;
       prefix: string;
       tenant_id: string;
@@ -3594,6 +3620,7 @@ export interface components {
       observed_at: string;
       configured: boolean;
       account_id?: string;
+      /** @description Whether the Cloudflare R2 account inventory completed. Does not attest completeness for other providers. */
       buckets_complete: boolean;
       longhorn_complete: boolean;
       metrics_status: string;
@@ -3664,8 +3691,10 @@ export interface components {
       project_id: string;
       name: string;
       /** @enum {string} */
-      provider: "cloudflare-r2";
+      provider: "cloudflare-r2" | "backblaze-b2";
       bucket: string;
+      /** @description Immutable provider bucket identity for Backblaze B2. */
+      bucket_id?: string;
       endpoint: string;
       region: string;
       /** @enum {string} */
@@ -6096,6 +6125,13 @@ export interface components {
       service_version: string;
       endpoints_digest: string;
     };
+    EdgeFrontPassiveNetworkBatch: {
+      /** @enum {string} */
+      schema: "public-front-passive-v1";
+      edge_id: string;
+      group_id: string;
+      samples: components["schemas"]["EdgeClientNetworkSample"][];
+    };
     /** @description Public Front TCP peer measurement joined to an exact live connection over a node-local Unix socket or a fenced read of the transport-selected public Front. Success-conditioned; retransmissions are not connection failure rates. Scope describes the TCP peer prefix, not a DNS resolver, country, or claimed original terminal. No raw client address or port is retained. */
     EdgeClientNetworkSample: {
       delivery?: components["schemas"]["EdgeClientDeliveryCounters"];
@@ -6355,7 +6391,7 @@ export interface components {
       fallback_reason?: string;
     };
     DNSDecisionRecord: {
-      /** @description Scope and evidence for the passive ASN decision. Client and resolver addresses are not recorded. */
+      /** @description Scope and evidence for the passive ASN decision. New ASNs may use a cross-ASN comparison derived from the same signed pairs, with at most one vote per ASN. Client and resolver addresses are not recorded. */
       passive_asn?: {
         reason: string;
         /** @enum {string} */
@@ -6374,6 +6410,10 @@ export interface components {
         shared_windows?: number;
         left_win_windows?: number;
         right_win_windows?: number;
+        /** @description Number of ASNs with comparable evidence for the decisive pair, including ties. */
+        aggregate_asns?: number;
+        /** @description Number of ASNs favoring the chosen edge for that pair. */
+        aggregate_supporting_asns?: number;
       };
       /** @description Actual availability decision for explicitly opted-in records. Counts describe the original constrained candidate set and recovered materialization; they do not grant serving authority. */
       availability?: {
@@ -9475,6 +9515,38 @@ export interface components {
       app_id: string;
       traffic: components["schemas"]["AppTrafficPolicy"];
       releases?: components["schemas"]["AppRelease"][];
+    };
+    AppStorageUnmountPlan: {
+      app_id: string;
+      path: string;
+      spec_sha256: string;
+      /** @description Specification is eligible; does not attest to live placement, capacity, or application write safety. */
+      allowed: boolean;
+      reason: string;
+      retained_mounts: string[];
+      reuse_pvc: boolean;
+      claim_name?: string;
+    };
+    AppStorageUnmountRequest: {
+      path: string;
+      /** @description Must be true. Confirms one temporary replica and concurrent access to all retained mounts are permitted. */
+      authorize_overlap: boolean;
+      probe: components["schemas"]["AppStorageUnmountProbe"];
+    };
+    AppStorageUnmountProbe: {
+      /** @description Relative HTTP request path on the candidate's first application port. No external URL, query string or redirects. */
+      path: string;
+      /**
+       * @default GET
+       * @enum {string}
+       */
+      method?: "GET" | "POST";
+      /** @description Optional JSON for a safe-to-retry POST. Do not include credentials or sensitive data. */
+      body?: string;
+      /** @description Optional name of an existing application environment variable with the probe bearer token. Never pass the token itself. */
+      bearer_env?: string;
+      /** @description Text that must appear in the first 64 KiB of a successful 2xx response. */
+      expected_body_contains: string;
     };
     AppRecoveryStartRequest: {
       /**
@@ -16856,6 +16928,12 @@ export interface operations {
           "application/json": components["schemas"]["EdgePublicNetworkObservationResponse"];
         };
       };
+      /** @description The selected Front reported that the exact connection was absent or changed; no sample was returned. */
+      404: {
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"];
+        };
+      };
       default: components["responses"]["ErrorResponse"];
     };
   };
@@ -18766,7 +18844,7 @@ export interface operations {
   };
   /**
    * Read a signed passive ASN observation for this DNS release
-   * @description A bounded, short-lived ranking input for the exact selected full DNS assignment of a Kubernetes-bound global or authority-cell DNS consumer. The signed DNS policy must enable dynamic quality. An active observation requires matching replay evidence from the public DNS backends; an assigned standby can validate a shadow observation without selecting traffic. This operation never authorizes a candidate or renews route, TLS or serving readiness.
+   * @description A bounded, short-lived ranking input for the exact selected full DNS assignment of a Kubernetes-bound global or authority-cell DNS consumer. The signed DNS policy must enable dynamic quality. An active observation requires replay-verified positive wire answers from the current public DNS backends on their loaded full releases, even if no client subnet has been classified yet. Individual answers still require trusted, classified client subnet evidence for ASN steering. An assigned standby can validate a shadow observation without selecting traffic. This operation never authorizes a candidate or renews route, TLS or serving readiness.
    */
   getPlatformConsumerPassiveASN: {
     parameters: {
@@ -23415,6 +23493,57 @@ export interface operations {
       default: components["responses"]["ErrorResponse"];
     };
   };
+  /** Preview removal of exactly one persistent storage mount */
+  planAppStorageUnmount: {
+    parameters: {
+      query: {
+        /** @description Exact absolute container mount path. */
+        path: string;
+      };
+      path: {
+        id: components["parameters"]["IdPathParam"];
+      };
+    };
+    responses: {
+      /** @description Read-only specification preview. Live admission is checked again before rollout. */
+      200: {
+        headers: {
+          ETag?: string;
+        };
+        content: {
+          "application/json": components["schemas"]["AppStorageUnmountPlan"];
+        };
+      };
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
+  /** Queue removal of one mount with a same-node business-gated rollout */
+  executeAppStorageUnmount: {
+    parameters: {
+      header: {
+        /** @description Quoted specification SHA-256 returned by the preview. */
+        "If-Match": string;
+      };
+      path: {
+        id: components["parameters"]["IdPathParam"];
+      };
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["AppStorageUnmountRequest"];
+      };
+    };
+    responses: {
+      /** @description Guarded operation queued. Neither the PVC nor its data are deleted. */
+      202: {
+        content: {
+          "application/json": components["schemas"]["OperationResponse"];
+        };
+      };
+      412: components["responses"]["ErrorResponse"];
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
   /** Get App Env */
   getAppEnv: {
     parameters: {
@@ -26650,6 +26779,42 @@ export interface operations {
     };
   };
   /**
+   * Get Backblaze B2 configuration status
+   * @description Platform administrators only. Never returns stored credentials.
+   */
+  getBackblazeB2Config: {
+    responses: {
+      /** @description Configuration status */
+      200: {
+        content: {
+          "application/json": components["schemas"]["ObjectStorageConfigStatus"];
+        };
+      };
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
+  /**
+   * Verify and save Backblaze B2 management credentials
+   * @description Platform administrators only. Requires a non-master, unrestricted application key with bucket and key management permissions. Existing account and region cannot change while B2 stores exist.
+   */
+  configureBackblazeB2: {
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["BackblazeB2ConfigRequest"];
+      };
+    };
+    responses: {
+      /** @description Configuration status */
+      200: {
+        content: {
+          "application/json": components["schemas"]["ObjectStorageConfigStatus"];
+        };
+      };
+      409: components["responses"]["ObjectStorageBusy"];
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
+  /**
    * listObjectStores
    * @description List stores belonging to the caller tenant and permitted project. Requires storage.read, storage.admin, or the existing tenant data.admin scope.
    */
@@ -26672,7 +26837,7 @@ export interface operations {
   };
   /**
    * createObjectStore
-   * @description Explicitly provision a private independent R2 bucket. Requires storage.admin or the existing tenant data.admin scope. Name is unique within the project; retries resume provisioning. No backup objects are used.
+   * @description Explicitly provision a private independent bucket. New stores default to Cloudflare R2 if provider is omitted. Requires storage.admin or the existing tenant data.admin scope. Name is unique within the project; retries resume provisioning and cannot change provider. No backup objects are used.
    */
   createObjectStore: {
     requestBody: {
@@ -26860,7 +27025,7 @@ export interface operations {
   };
   /**
    * measureObjectStoreUsage
-   * @description Requires storage.read, storage.admin, or the existing tenant data.admin scope. Measures current bucket object bytes and object count, with timestamp. Does not claim real-time hard quotas or exact billable request counts.
+   * @description Requires storage.read, storage.admin, or the existing tenant data.admin scope. Measures current R2 objects or all stored B2 object versions (excluding delete markers and unfinished uploads), with timestamp. Does not report exact billable usage or enforce a hard quota.
    */
   measureObjectStoreUsage: {
     parameters: {
