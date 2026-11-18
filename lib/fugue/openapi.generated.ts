@@ -1440,7 +1440,7 @@ export interface paths {
   "/v1/backing-services/{id}/migrate-image": {
     /**
      * Plan or perform a guarded PostgreSQL baked-manager image migration
-     * @description Defaults to a read-only configuration plan. Apply requires explicit downtime acknowledgement and the configuration hash from that plan. Only an approved, digest-pinned baked-manager image is accepted. This dedicated single-instance database operation preserves its Cluster, PVCs, placement, resource envelope, secrets, and consumer app configuration. It never deploys the consumer app. Supports app-owned services and independent services with exactly one bound app in the same tenant and project. The bound app anchors the exclusive lifecycle operation; independent service ownership is never reassigned. Unbound or shared services are rejected without mutation. Fresh live identity, storage, node and SQL checks run before mutation. A fully applied, persisted in-place resource target may be carried into the restart template atomically with the image change. Unknown resource drift is rejected; the running request/limit envelope is never changed by migration. An accepted image change retains its exclusive mutation lease until verified; failures never trigger deletion, failover, storage copying or automatic rollback.
+     * @description Defaults to a read-only configuration plan. Apply requires explicit downtime acknowledgement and the configuration hash from that plan. Only an approved, digest-pinned baked-manager image is accepted. This dedicated single-instance database operation preserves its Cluster, PVCs, placement, resource envelope, secrets, and consumer app configuration. It never deploys the consumer app. Supports app-owned services and independent services with exactly one bound app in the same tenant and project. The bound app anchors the exclusive lifecycle operation; independent service ownership is never reassigned. Unbound or shared services are rejected without mutation. Fresh live identity, storage, node and SQL checks run before mutation. A fully applied, persisted in-place resource target may be carried into the restart template atomically with the image change. Unknown resource drift is rejected; the running request/limit envelope is never changed by migration. An optional 10–15 second smart shutdown budget requires a separate acknowledgement of connection termination and uncommitted transaction rollback. Fast plans include a read-only session sample; apply rechecks it on the actual primary. The temporary budget is verified on the old instance and restored before the operation is finalized. The default policy is unchanged. An accepted image change retains its exclusive mutation lease until verified; failures never trigger deletion, failover, storage copying or automatic rollback.
      */
     post: operations["migrateBackingServiceImage"];
   };
@@ -7220,6 +7220,8 @@ export interface components {
       image?: string;
       /** @description Operation-only configuration precondition for image migration; never persisted as database configuration. */
       image_migration_config_hash?: string;
+      /** @description Operation-only CNPG smart shutdown budget; never persisted as database configuration. */
+      image_migration_drain_budget_seconds?: number;
       database?: string;
       user?: string;
       password?: string;
@@ -11387,6 +11389,13 @@ export interface components {
       acknowledge_downtime?: boolean;
       /** @description Exact configuration hash returned by a preceding plan. */
       expected_config_hash?: string;
+      /** @description Optional operation-local CNPG smart shutdown budget; omitted preserves the current policy. */
+      drain_budget_seconds?: number;
+      /**
+       * @description Required to apply a shortened budget; remaining sessions may be disconnected and their uncommitted transactions rolled back.
+       * @default false
+       */
+      acknowledge_connection_termination?: boolean;
     };
     PostgresImageMigrationPlan: {
       service_id: string;
@@ -11402,6 +11411,18 @@ export interface components {
       requires_downtime: boolean;
       live_preflight_pending: boolean;
       stages: string[];
+      drain_budget_seconds?: number;
+      drain?: {
+        /** @enum {string} */
+        status: "eligible" | "blocked" | "unavailable";
+        /** Format: date-time */
+        sampled_at?: string;
+        sessions?: number;
+        active_transactions?: number;
+        idle_in_transaction?: number;
+        oldest_transaction_ms?: number;
+        reason?: string;
+      };
     };
     PostgresImageMigrationResponse: {
       plan: components["schemas"]["PostgresImageMigrationPlan"];
@@ -22596,7 +22617,7 @@ export interface operations {
   };
   /**
    * Plan or perform a guarded PostgreSQL baked-manager image migration
-   * @description Defaults to a read-only configuration plan. Apply requires explicit downtime acknowledgement and the configuration hash from that plan. Only an approved, digest-pinned baked-manager image is accepted. This dedicated single-instance database operation preserves its Cluster, PVCs, placement, resource envelope, secrets, and consumer app configuration. It never deploys the consumer app. Supports app-owned services and independent services with exactly one bound app in the same tenant and project. The bound app anchors the exclusive lifecycle operation; independent service ownership is never reassigned. Unbound or shared services are rejected without mutation. Fresh live identity, storage, node and SQL checks run before mutation. A fully applied, persisted in-place resource target may be carried into the restart template atomically with the image change. Unknown resource drift is rejected; the running request/limit envelope is never changed by migration. An accepted image change retains its exclusive mutation lease until verified; failures never trigger deletion, failover, storage copying or automatic rollback.
+   * @description Defaults to a read-only configuration plan. Apply requires explicit downtime acknowledgement and the configuration hash from that plan. Only an approved, digest-pinned baked-manager image is accepted. This dedicated single-instance database operation preserves its Cluster, PVCs, placement, resource envelope, secrets, and consumer app configuration. It never deploys the consumer app. Supports app-owned services and independent services with exactly one bound app in the same tenant and project. The bound app anchors the exclusive lifecycle operation; independent service ownership is never reassigned. Unbound or shared services are rejected without mutation. Fresh live identity, storage, node and SQL checks run before mutation. A fully applied, persisted in-place resource target may be carried into the restart template atomically with the image change. Unknown resource drift is rejected; the running request/limit envelope is never changed by migration. An optional 10–15 second smart shutdown budget requires a separate acknowledgement of connection termination and uncommitted transaction rollback. Fast plans include a read-only session sample; apply rechecks it on the actual primary. The temporary budget is verified on the old instance and restored before the operation is finalized. The default policy is unchanged. An accepted image change retains its exclusive mutation lease until verified; failures never trigger deletion, failover, storage copying or automatic rollback.
    */
   migrateBackingServiceImage: {
     parameters: {
