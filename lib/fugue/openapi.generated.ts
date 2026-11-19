@@ -634,14 +634,14 @@ export interface paths {
   "/v1/platform-state/consumers/identity": {
     /**
      * Exchange a bound Kubernetes Pod token for a short-lived consumer identity
-     * @description Requires a Pod-bound ServiceAccount token accepted by the Kubernetes API. Kubernetes SelfSubjectReview and a live Pod lookup determine the node identity. Only Pods in the configured control-plane namespace with an operator-managed typed fugue.pro/consumer-identity annotation may exchange credentials. Edge Worker, DNS Server and Edge Control identities may explicitly declare a canonical cell-* authority_id in that annotation, matching the Pod's fugue.io/edge-group-id label. The server then binds consumer_id to component:authority_id:node_id. A Worker or DNS Server identity can read and report only an exact authority-bound expected member; it cannot overwrite the legacy component:node_id consumer or another cell. An absent authority_id retains the legacy identity. Neither form grants a new assignment or copies observations, fences, or LKG across authorities. DNS node_id remains the physical process owner; zone aliases are collapsed only within the same authority. Neutral DNS identities require a live Pod binding, and their current Pod policy and authority label must match the signed claim. Heartbeats and runtime-fact reads remain fenced by the exact selected public DNS Service and EndpointSlice backend. Issuing a candidate identity never selects that backend or permits public serving. An authority-cell:<id> scope requires authority_id equal to that cell. Edge Control exchange requires an explicit authority_id and either its exact authority-cell scope or the retained global compatibility scope, and exactly the edge_route_intent capability; it uses the independent RouteIntent signing keyring. The private RouteIntent TLS listener admits this exact POST identity-exchange path without query parameters as well as the existing GET route-intents path. Host, SNI and Kubernetes Pod authentication remain mandatory. The signed identity expires after two minutes. This operation does not report consumer health or change serving state.
+     * @description Requires a Pod-bound ServiceAccount token accepted by the Kubernetes API. Kubernetes SelfSubjectReview and a live Pod lookup determine the node identity. Only Pods in the configured control-plane namespace with an operator-managed typed fugue.pro/consumer-identity annotation may exchange credentials. Edge Worker, DNS Server and Edge Control identities may explicitly declare a canonical cell-* authority_id in that annotation, matching the Pod's fugue.io/edge-group-id label. The server then binds consumer_id to component:authority_id:node_id. A Worker or DNS Server identity can read and report only an exact authority-bound expected member; it cannot overwrite the legacy component:node_id consumer or another cell. An absent authority_id normally retains the legacy identity. A global Worker with an explicit signed replacement enrollment and a matching live Node UID, ServiceAccount, and current Worker workload can receive component:node_id:enrollment:<id> without changing its physical identity. No form grants an assignment or copies observations, fences, or LKG across consumer identities. A retired identity is not reactivated. DNS node_id remains the physical process owner; zone aliases are collapsed only within the same authority. Neutral DNS identities require a live Pod binding, and their current Pod policy and authority label must match the signed claim. Heartbeats and runtime-fact reads remain fenced by the exact selected public DNS Service and EndpointSlice backend. Issuing a candidate identity never selects that backend or permits public serving. An authority-cell:<id> scope requires authority_id equal to that cell. Edge Control exchange requires an explicit authority_id and either its exact authority-cell scope or the retained global compatibility scope, and exactly the edge_route_intent capability; it uses the independent RouteIntent signing keyring. The private RouteIntent TLS listener admits this exact POST identity-exchange path without query parameters as well as the existing GET route-intents path. Host, SNI and Kubernetes Pod authentication remain mandatory. The signed identity expires after two minutes. This operation does not report consumer health or change serving state.
      */
     post: operations["exchangePlatformConsumerIdentity"];
   };
   "/v1/platform-state/consumers/assignment": {
     /**
      * Get the expected ReleaseSet assignments for a trusted consumer
-     * @description Returns the latest expected set revision for each authorized artifact kind in each active ReleaseSet channel. Assignments are bound to the signed child artifact and the active release fencing token. Shadow assignments authorize validation only and must not replace serving state. Superseded releases and unrelated topology are excluded. Serving-only selection honors the signed publication role; cell-dns requires its prepared DNS membership and selected parent/fence without requiring a route child. After selection, each returned publication requires its complete signed input dependency closure and current durable full-readback pins in PostgreSQL, or verified original input content in file mode. Cold, missing or changed dependencies return 503 without restoration or fallback. Unselected shadow publications do not add a serving-only dependency. Assignment authority is independently rechecked before disclosure. If that final check observes a changed assignment envelope, discovery, selection, input verification and authority checks are repeated once using a fresh read session; no earlier assignment is returned on failure or continued change.
+     * @description Returns the latest expected set revision for each authorized artifact kind in each active ReleaseSet channel. Assignments are bound to the signed child artifact and the active release fencing token. Shadow assignments authorize validation only and must not replace serving state. Superseded releases and unrelated topology are excluded. Serving-only selection honors the signed publication role; cell-dns requires its prepared DNS membership and selected parent/fence without requiring a route child. After selection, each returned publication requires its complete signed input dependency closure and current durable full-readback pins in PostgreSQL, or verified original input content in file mode. Cold, missing or changed dependencies return 503 without restoration or fallback. Unselected shadow publications do not add a serving-only dependency. Assignment authority is independently rechecked before disclosure. If that final check observes a changed assignment envelope or, for a serving-only DNS consumer, successfully selects a different cell-dns publication, discovery, selection, input verification and authority checks are repeated once using a fresh read session; no earlier assignment is returned on failure or continued change.
      */
     get: operations["getPlatformConsumerAssignment"];
   };
@@ -1472,8 +1472,18 @@ export interface paths {
      * @description Explicit platform-administrator placement takes precedence over tenant
      * placement and zero-downtime preferences without weakening data integrity,
      * source preservation or destination verification.
+     * To remove a standby while keeping the current primary in place, use
+     * the dedicated retire-replica endpoint. Localize refuses an implicit
+     * same-placement standby retirement rather than rewriting primary affinity.
      */
     post: operations["localizeBackingService"];
+  };
+  "/v1/backing-services/{id}/retire-replica": {
+    /**
+     * Retire the exact sole PostgreSQL standby without replacing the primary
+     * @description Retires the sole ready standby on replica_node. An optional Pod UID prevents acting on a replaced standby. Refuses relocation and unsupported topology or storage. Waits for the primary to acknowledge disabling synchronous replication before removing a standby. The standby PVC is removed under its volume reclaim policy and failover standby capacity is removed. Completion requires the unchanged primary and healthy stable SQL endpoint.
+     */
+    post: operations["retireBackingServicePostgresReplica"];
   };
   "/v1/backing-services/{id}/recover": {
     /**
@@ -1869,6 +1879,8 @@ export interface paths {
      * @description Explicit platform-administrator placement takes precedence over tenant
      * placement and zero-downtime preferences without weakening data integrity,
      * source preservation or destination verification.
+     * Use the backing-service retire-replica endpoint for same-placement
+     * standby removal; localize refuses that implicit topology change.
      */
     post: operations["localizeAppDatabase"];
   };
@@ -1953,7 +1965,10 @@ export interface paths {
     post: operations["cancelOperation"];
   };
   "/v1/operations/{id}/diagnosis": {
-    /** Get Operation Diagnosis */
+    /**
+     * Get Operation Diagnosis
+     * @description A safe deployment waiting for Edge traffic publication or canonical handoff has already executed. Its diagnosis reports the specific retry stage rather than an unclaimed queue position.
+     */
     get: operations["getOperationDiagnosis"];
   };
   "/v1/operations/{id}/evidence": {
@@ -7325,9 +7340,15 @@ export interface components {
       current_runtime_id?: string;
       /** Format: int32 */
       current_replicas: number;
-      /** Format: date-time */
+      /**
+       * Format: date-time
+       * @description In the effective status, the creation time of the verified serving release when an exact serving release is observed. Otherwise this can reflect legacy stored runtime status.
+       */
       current_release_started_at?: string;
-      /** Format: date-time */
+      /**
+       * Format: date-time
+       * @description In the effective status, the ready timestamp of the same verified serving release, omitted if that release has no recorded ready time. Otherwise this can reflect legacy stored runtime status.
+       */
       current_release_ready_at?: string;
       last_operation_id?: string;
       last_message?: string;
@@ -8430,7 +8451,10 @@ export interface components {
       created_at: string;
       /** Format: date-time */
       updated_at: string;
-      /** Format: date-time */
+      /**
+       * Format: date-time
+       * @description On operation reads, the first recorded deploy execution when release-step evidence exists; otherwise the recorded execution attempt start, if available.
+       */
       started_at?: string;
       /** Format: date-time */
       completed_at?: string;
@@ -8458,7 +8482,10 @@ export interface components {
       created_at: string;
       /** Format: date-time */
       updated_at: string;
-      /** Format: date-time */
+      /**
+       * Format: date-time
+       * @description First recorded deploy execution when release-step evidence exists; otherwise the recorded execution attempt start, if available.
+       */
       started_at?: string;
       /** Format: date-time */
       completed_at?: string;
@@ -8877,6 +8904,10 @@ export interface components {
       target_runtime_id?: string;
       storage_size?: string;
       storage_class_name?: string;
+    };
+    RetirePostgresReplicaRequest: {
+      replica_node: string;
+      expected_replica_pod_uid?: string;
     };
     AppContinuityAppFailoverRequest: {
       enabled: boolean;
@@ -15638,7 +15669,7 @@ export interface components {
       node_id: string;
       /** @description Server-derived neutral Edge Worker, DNS Server or Edge Control authority; omitted for legacy identities. */
       authority_id?: string;
-      /** @description Exact consumer identity derived from the signed component, node and optional authority scope. Legacy responses may omit this field. */
+      /** @description Exact consumer identity derived from signed component and node, with an optional authority scope or global Worker enrollment. Legacy responses may omit this field. */
       consumer_id?: string;
       scope_key: string;
       artifact_kinds: string[];
@@ -16542,8 +16573,12 @@ export interface operations {
           "application/json": components["schemas"]["EdgeClientProbePlan"];
         };
       };
-      /** @description No due recoverable capacity round. */
+      /** @description No signed plan was issued. The absence of a blocking reason means no round was claimed. */
       204: {
+        headers: {
+          /** @description First recorded blocking reason when a due round was claimed but could not be prepared for measurement. */
+          "X-Fugue-Capacity-Recovery-Blocked"?: string;
+        };
         content: never;
       };
       400: components["responses"]["ErrorResponse"];
@@ -18764,7 +18799,7 @@ export interface operations {
   };
   /**
    * Exchange a bound Kubernetes Pod token for a short-lived consumer identity
-   * @description Requires a Pod-bound ServiceAccount token accepted by the Kubernetes API. Kubernetes SelfSubjectReview and a live Pod lookup determine the node identity. Only Pods in the configured control-plane namespace with an operator-managed typed fugue.pro/consumer-identity annotation may exchange credentials. Edge Worker, DNS Server and Edge Control identities may explicitly declare a canonical cell-* authority_id in that annotation, matching the Pod's fugue.io/edge-group-id label. The server then binds consumer_id to component:authority_id:node_id. A Worker or DNS Server identity can read and report only an exact authority-bound expected member; it cannot overwrite the legacy component:node_id consumer or another cell. An absent authority_id retains the legacy identity. Neither form grants a new assignment or copies observations, fences, or LKG across authorities. DNS node_id remains the physical process owner; zone aliases are collapsed only within the same authority. Neutral DNS identities require a live Pod binding, and their current Pod policy and authority label must match the signed claim. Heartbeats and runtime-fact reads remain fenced by the exact selected public DNS Service and EndpointSlice backend. Issuing a candidate identity never selects that backend or permits public serving. An authority-cell:<id> scope requires authority_id equal to that cell. Edge Control exchange requires an explicit authority_id and either its exact authority-cell scope or the retained global compatibility scope, and exactly the edge_route_intent capability; it uses the independent RouteIntent signing keyring. The private RouteIntent TLS listener admits this exact POST identity-exchange path without query parameters as well as the existing GET route-intents path. Host, SNI and Kubernetes Pod authentication remain mandatory. The signed identity expires after two minutes. This operation does not report consumer health or change serving state.
+   * @description Requires a Pod-bound ServiceAccount token accepted by the Kubernetes API. Kubernetes SelfSubjectReview and a live Pod lookup determine the node identity. Only Pods in the configured control-plane namespace with an operator-managed typed fugue.pro/consumer-identity annotation may exchange credentials. Edge Worker, DNS Server and Edge Control identities may explicitly declare a canonical cell-* authority_id in that annotation, matching the Pod's fugue.io/edge-group-id label. The server then binds consumer_id to component:authority_id:node_id. A Worker or DNS Server identity can read and report only an exact authority-bound expected member; it cannot overwrite the legacy component:node_id consumer or another cell. An absent authority_id normally retains the legacy identity. A global Worker with an explicit signed replacement enrollment and a matching live Node UID, ServiceAccount, and current Worker workload can receive component:node_id:enrollment:<id> without changing its physical identity. No form grants an assignment or copies observations, fences, or LKG across consumer identities. A retired identity is not reactivated. DNS node_id remains the physical process owner; zone aliases are collapsed only within the same authority. Neutral DNS identities require a live Pod binding, and their current Pod policy and authority label must match the signed claim. Heartbeats and runtime-fact reads remain fenced by the exact selected public DNS Service and EndpointSlice backend. Issuing a candidate identity never selects that backend or permits public serving. An authority-cell:<id> scope requires authority_id equal to that cell. Edge Control exchange requires an explicit authority_id and either its exact authority-cell scope or the retained global compatibility scope, and exactly the edge_route_intent capability; it uses the independent RouteIntent signing keyring. The private RouteIntent TLS listener admits this exact POST identity-exchange path without query parameters as well as the existing GET route-intents path. Host, SNI and Kubernetes Pod authentication remain mandatory. The signed identity expires after two minutes. This operation does not report consumer health or change serving state.
    */
   exchangePlatformConsumerIdentity: {
     responses: {
@@ -18782,7 +18817,7 @@ export interface operations {
   };
   /**
    * Get the expected ReleaseSet assignments for a trusted consumer
-   * @description Returns the latest expected set revision for each authorized artifact kind in each active ReleaseSet channel. Assignments are bound to the signed child artifact and the active release fencing token. Shadow assignments authorize validation only and must not replace serving state. Superseded releases and unrelated topology are excluded. Serving-only selection honors the signed publication role; cell-dns requires its prepared DNS membership and selected parent/fence without requiring a route child. After selection, each returned publication requires its complete signed input dependency closure and current durable full-readback pins in PostgreSQL, or verified original input content in file mode. Cold, missing or changed dependencies return 503 without restoration or fallback. Unselected shadow publications do not add a serving-only dependency. Assignment authority is independently rechecked before disclosure. If that final check observes a changed assignment envelope, discovery, selection, input verification and authority checks are repeated once using a fresh read session; no earlier assignment is returned on failure or continued change.
+   * @description Returns the latest expected set revision for each authorized artifact kind in each active ReleaseSet channel. Assignments are bound to the signed child artifact and the active release fencing token. Shadow assignments authorize validation only and must not replace serving state. Superseded releases and unrelated topology are excluded. Serving-only selection honors the signed publication role; cell-dns requires its prepared DNS membership and selected parent/fence without requiring a route child. After selection, each returned publication requires its complete signed input dependency closure and current durable full-readback pins in PostgreSQL, or verified original input content in file mode. Cold, missing or changed dependencies return 503 without restoration or fallback. Unselected shadow publications do not add a serving-only dependency. Assignment authority is independently rechecked before disclosure. If that final check observes a changed assignment envelope or, for a serving-only DNS consumer, successfully selects a different cell-dns publication, discovery, selection, input verification and authority checks are repeated once using a fresh read session; no earlier assignment is returned on failure or continued change.
    */
   getPlatformConsumerAssignment: {
     parameters: {
@@ -22742,6 +22777,9 @@ export interface operations {
    * @description Explicit platform-administrator placement takes precedence over tenant
    * placement and zero-downtime preferences without weakening data integrity,
    * source preservation or destination verification.
+   * To remove a standby while keeping the current primary in place, use
+   * the dedicated retire-replica endpoint. Localize refuses an implicit
+   * same-placement standby retirement rather than rewriting primary affinity.
    */
   localizeBackingService: {
     parameters: {
@@ -22760,6 +22798,39 @@ export interface operations {
         content: {
           "application/json": components["schemas"]["BackingServiceMigrateResponse"];
         };
+      };
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
+  /**
+   * Retire the exact sole PostgreSQL standby without replacing the primary
+   * @description Retires the sole ready standby on replica_node. An optional Pod UID prevents acting on a replaced standby. Refuses relocation and unsupported topology or storage. Waits for the primary to acknowledge disabling synchronous replication before removing a standby. The standby PVC is removed under its volume reclaim policy and failover standby capacity is removed. Completion requires the unchanged primary and healthy stable SQL endpoint.
+   */
+  retireBackingServicePostgresReplica: {
+    parameters: {
+      path: {
+        id: string;
+      };
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["RetirePostgresReplicaRequest"];
+      };
+    };
+    responses: {
+      /** @description Guarded replica retirement queued */
+      202: {
+        content: {
+          "application/json": components["schemas"]["BackingServiceMigrateResponse"];
+        };
+      };
+      /** @description Missing or invalid standby identity */
+      400: {
+        content: never;
+      };
+      /** @description Conflicting operation or incompatible service topology */
+      409: {
+        content: never;
       };
       default: components["responses"]["ErrorResponse"];
     };
@@ -24664,6 +24735,8 @@ export interface operations {
    * @description Explicit platform-administrator placement takes precedence over tenant
    * placement and zero-downtime preferences without weakening data integrity,
    * source preservation or destination verification.
+   * Use the backing-service retire-replica endpoint for same-placement
+   * standby removal; localize refuses that implicit topology change.
    */
   localizeAppDatabase: {
     parameters: {
@@ -25110,7 +25183,10 @@ export interface operations {
       default: components["responses"]["ErrorResponse"];
     };
   };
-  /** Get Operation Diagnosis */
+  /**
+   * Get Operation Diagnosis
+   * @description A safe deployment waiting for Edge traffic publication or canonical handoff has already executed. Its diagnosis reports the specific retry stage rather than an unclaimed queue position.
+   */
   getOperationDiagnosis: {
     parameters: {
       path: {

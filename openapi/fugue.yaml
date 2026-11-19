@@ -1398,7 +1398,14 @@ paths:
           content:
             application/json:
               schema: {$ref: '#/components/schemas/EdgeClientProbePlan'}
-        '204': {description: No due recoverable capacity round.}
+        '204':
+          description: No signed plan was issued. The absence of a blocking reason means no round was claimed.
+          headers:
+            X-Fugue-Capacity-Recovery-Blocked:
+              description: First recorded blocking reason when a due round was claimed but could not be prepared for measurement.
+              schema:
+                type: string
+                pattern: '^[a-z_]{1,64}$'
         '400': {$ref: '#/components/responses/ErrorResponse'}
         '401': {$ref: '#/components/responses/ErrorResponse'}
         '403': {$ref: '#/components/responses/ErrorResponse'}
@@ -4631,8 +4638,12 @@ paths:
         server then binds consumer_id to component:authority_id:node_id. A Worker or DNS Server
         identity can read and report only an exact authority-bound expected member;
         it cannot overwrite the legacy component:node_id consumer or another cell.
-        An absent authority_id retains the legacy identity. Neither form grants
-        a new assignment or copies observations, fences, or LKG across authorities.
+        An absent authority_id normally retains the legacy identity. A global
+        Worker with an explicit signed replacement enrollment and a matching
+        live Node UID, ServiceAccount, and current Worker workload can receive
+        component:node_id:enrollment:<id> without changing its physical identity.
+        No form grants an assignment or copies observations, fences, or LKG
+        across consumer identities. A retired identity is not reactivated.
         DNS node_id remains the physical process owner; zone aliases are collapsed
         only within the same authority. Neutral DNS identities require a live
         Pod binding, and their current Pod policy and authority label must match
@@ -4672,7 +4683,7 @@ paths:
     get:
       operationId: getPlatformConsumerAssignment
       summary: Get the expected ReleaseSet assignments for a trusted consumer
-      description: Returns the latest expected set revision for each authorized artifact kind in each active ReleaseSet channel. Assignments are bound to the signed child artifact and the active release fencing token. Shadow assignments authorize validation only and must not replace serving state. Superseded releases and unrelated topology are excluded. Serving-only selection honors the signed publication role; cell-dns requires its prepared DNS membership and selected parent/fence without requiring a route child. After selection, each returned publication requires its complete signed input dependency closure and current durable full-readback pins in PostgreSQL, or verified original input content in file mode. Cold, missing or changed dependencies return 503 without restoration or fallback. Unselected shadow publications do not add a serving-only dependency. Assignment authority is independently rechecked before disclosure. If that final check observes a changed assignment envelope, discovery, selection, input verification and authority checks are repeated once using a fresh read session; no earlier assignment is returned on failure or continued change.
+      description: Returns the latest expected set revision for each authorized artifact kind in each active ReleaseSet channel. Assignments are bound to the signed child artifact and the active release fencing token. Shadow assignments authorize validation only and must not replace serving state. Superseded releases and unrelated topology are excluded. Serving-only selection honors the signed publication role; cell-dns requires its prepared DNS membership and selected parent/fence without requiring a route child. After selection, each returned publication requires its complete signed input dependency closure and current durable full-readback pins in PostgreSQL, or verified original input content in file mode. Cold, missing or changed dependencies return 503 without restoration or fallback. Unselected shadow publications do not add a serving-only dependency. Assignment authority is independently rechecked before disclosure. If that final check observes a changed assignment envelope or, for a serving-only DNS consumer, successfully selects a different cell-dns publication, discovery, selection, input verification and authority checks are repeated once using a fresh read session; no earlier assignment is returned on failure or continued change.
       tags: [Admin]
       x-fugue-handler: handleGetPlatformConsumerAssignment
       security:
@@ -9687,6 +9698,9 @@ paths:
         Explicit platform-administrator placement takes precedence over tenant
         placement and zero-downtime preferences without weakening data integrity,
         source preservation or destination verification.
+        To remove a standby while keeping the current primary in place, use
+        the dedicated retire-replica endpoint. Localize refuses an implicit
+        same-placement standby retirement rather than rewriting primary affinity.
       tags: [Backing Services]
       x-fugue-handler: handleLocalizeBackingService
       security:
@@ -9710,6 +9724,46 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/BackingServiceMigrateResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+  /v1/backing-services/{id}/retire-replica:
+    post:
+      operationId: retireBackingServicePostgresReplica
+      summary: Retire the exact sole PostgreSQL standby without replacing the primary
+      description: >-
+        Retires the sole ready standby on replica_node. An optional
+        Pod UID prevents acting on a replaced standby. Refuses relocation and
+        unsupported topology or storage. Waits for the primary to acknowledge
+        disabling synchronous replication before removing a standby.
+        The standby PVC is removed under
+        its volume reclaim policy and failover standby capacity is removed.
+        Completion requires the unchanged primary and healthy stable SQL endpoint.
+      tags: [Backing Services]
+      x-fugue-handler: handleRetireBackingServicePostgresReplica
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: {type: string}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RetirePostgresReplicaRequest"
+      responses:
+        '202':
+          description: Guarded replica retirement queued
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BackingServiceMigrateResponse"
+        '400':
+          description: Missing or invalid standby identity
+        '409':
+          description: Conflicting operation or incompatible service topology
         default:
           $ref: "#/components/responses/ErrorResponse"
   /v1/backing-services/{id}/recover:
@@ -11887,6 +11941,8 @@ paths:
         Explicit platform-administrator placement takes precedence over tenant
         placement and zero-downtime preferences without weakening data integrity,
         source preservation or destination verification.
+        Use the backing-service retire-replica endpoint for same-placement
+        standby removal; localize refuses that implicit topology change.
       tags: [Apps]
       x-fugue-handler: handleLocalizeAppDatabase
       security:
@@ -12522,6 +12578,7 @@ paths:
     get:
       operationId: getOperationDiagnosis
       summary: Get Operation Diagnosis
+      description: A safe deployment waiting for Edge traffic publication or canonical handoff has already executed. Its diagnosis reports the specific retry stage rather than an unclaimed queue position.
       tags: [Operations]
       x-fugue-handler: handleGetOperationDiagnosis
       security:
@@ -24765,9 +24822,11 @@ components:
         current_release_started_at:
           type: string
           format: date-time
+          description: In the effective status, the creation time of the verified serving release when an exact serving release is observed. Otherwise this can reflect legacy stored runtime status.
         current_release_ready_at:
           type: string
           format: date-time
+          description: In the effective status, the ready timestamp of the same verified serving release, omitted if that release has no recorded ready time. Otherwise this can reflect legacy stored runtime status.
         last_operation_id:
           type: string
         last_message:
@@ -26729,6 +26788,7 @@ components:
         started_at:
           type: string
           format: date-time
+          description: On operation reads, the first recorded deploy execution when release-step evidence exists; otherwise the recorded execution attempt start, if available.
         completed_at:
           type: string
           format: date-time
@@ -26783,6 +26843,7 @@ components:
         started_at:
           type: string
           format: date-time
+          description: First recorded deploy execution when release-step evidence exists; otherwise the recorded execution attempt start, if available.
         completed_at:
           type: string
           format: date-time
@@ -27537,6 +27598,17 @@ components:
           type: string
         storage_class_name:
           type: string
+    RetirePostgresReplicaRequest:
+      type: object
+      additionalProperties: false
+      required: [replica_node]
+      properties:
+        replica_node:
+          type: string
+          minLength: 1
+        expected_replica_pod_uid:
+          type: string
+          minLength: 1
     AppContinuityAppFailoverRequest:
       type: object
       additionalProperties: false
@@ -40656,7 +40728,7 @@ components:
           description: Server-derived neutral Edge Worker, DNS Server or Edge Control authority; omitted for legacy identities.
         consumer_id:
           type: string
-          description: Exact consumer identity derived from the signed component, node and optional authority scope. Legacy responses may omit this field.
+          description: Exact consumer identity derived from signed component and node, with an optional authority scope or global Worker enrollment. Legacy responses may omit this field.
         scope_key:
           type: string
         artifact_kinds:
