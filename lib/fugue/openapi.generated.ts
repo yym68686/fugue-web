@@ -14494,6 +14494,8 @@ export interface components {
           /** @enum {string} */
           type: "A" | "AAAA";
           order: components["schemas"]["DNSPhysicalOrder"];
+          /** @description Source-only marker for all_dynamic policies. Preserves this order as the starting order, not a fixed selection or endpoint allowlist. Only placement-authorized, route/TLS-ready nodes may participate. Omission retains a fixed override. */
+          bootstrap_only?: boolean;
         })[];
     };
     /** @description Applies quality evaluation to every eligible owned dynamic query, including future domains. Static records and explicit pinned placement are preserved. Signed current order remains the safe learning baseline until independently bound evidence authorizes a change; learning failures are isolated per query. Refresh is bounded and rotates fairly, independently of user query volume. */
