@@ -12904,7 +12904,10 @@ export interface components {
       status: components["schemas"]["ControlPlaneStoreStatus"];
     };
     RouteExplainResponse: {
+      /** @description Selected signed traffic publication, not evidence that a request was served by it. */
       traffic_release?: components["schemas"]["TrafficReleaseBinding"];
+      /** @description Targets in the selected signed route bundle before applying live consumer evidence. Does not attest to traffic served. Use route, routes and healthy_edge_groups for the evidence-gated view. */
+      published_routes?: components["schemas"]["PublishedRouteSelection"][];
       hostname?: string;
       /** @enum {string} */
       serving_mode?: "edge" | "route_a_legacy" | "unrouted" | "degraded";
@@ -12918,6 +12921,15 @@ export interface components {
       /** Format: date-time */
       generated_at?: string;
       [key: string]: unknown;
+    };
+    PublishedRouteSelection: {
+      path_prefix: string;
+      status: string;
+      has_upstream: boolean;
+      release_weights?: {
+          release_id: string;
+          weight: number;
+        }[];
     };
     RouteExplainResponseEnvelope: {
       explain: components["schemas"]["RouteExplainResponse"];
