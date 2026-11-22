@@ -4166,7 +4166,7 @@ paths:
             default: 50
       responses:
         '200':
-          description: Current consumer convergence assessments
+          description: Current consumer convergence assessments. Global producer publications preserve replacement Worker identities from the publication's pinned enrollment policy.
           content:
             application/json:
               schema:
@@ -4424,6 +4424,7 @@ paths:
     get:
       operationId: getPlatformStateArtifact
       summary: Pull Platform State Artifact
+      description: By default messages is a bounded recent feed. Set include_current_rollback_message=true with channel=full to request the unique original rollback ledger entry of the selected active full release, independently of feed age or pagination. A missing entry is omitted; ambiguous evidence or a changed selection conflicts. This read does not verify serving or grant traffic authority.
       tags: [Admin]
       x-fugue-handler: handleGetPlatformStateArtifact
       security:
@@ -4450,6 +4451,12 @@ paths:
           required: false
           schema:
             type: string
+        - in: query
+          name: include_current_rollback_message
+          required: false
+          schema:
+            type: boolean
+            default: false
         - in: query
           name: wait_seconds
           required: false
@@ -6118,6 +6125,90 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ProjectRouteTableDeleteResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+  /v1/projects/{id}/routes/host-plan:
+    post:
+      operationId: planProjectHostRoutes
+      summary: Preview a scoped edit to a verified custom hostname
+      tags: [Projects]
+      x-fugue-handler: handlePlanProjectHostRoutes
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/IdPathParam"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProjectHostRouteEdit"
+      responses:
+        '200':
+          description: Read-only plan; no DNS, certificate, or route mutation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProjectHostRoutePlan"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+  /v1/projects/{id}/routes/host-apply:
+    post:
+      operationId: applyProjectHostRoutes
+      summary: Save an unchanged hostname plan as desired configuration
+      description: A managed hostname edit that introduces or retains shared application paths requires both the current authoritative DNS consumers and Edge Workers to attest the required compatibility before the edit is saved. A conflict leaves the existing routes unchanged.
+      tags: [Projects]
+      x-fugue-handler: handleApplyProjectHostRoutes
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/IdPathParam"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProjectHostRoutePlan"
+      responses:
+        '200':
+          description: Intent saved or already current; does not attest production serving
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProjectHostRoutePlan"
+        '409':
+          $ref: "#/components/responses/ErrorResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+  /v1/projects/{id}/routes/host-status:
+    post:
+      operationId: getProjectHostRoutePublicationStatus
+      summary: Check whether the planned hostname routes match the verified global publication (platform admin)
+      tags: [Projects]
+      x-fugue-handler: handleProjectHostRouteStatus
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/IdPathParam"
+        - name: preflight
+          in: query
+          description: Also evaluate the exact unapplied plan's write compatibility gates without committing it. The result is point-in-time; apply rechecks the plan and all gates.
+          schema:
+            type: boolean
+            default: false
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProjectHostRoutePlan"
+      responses:
+        '200':
+          description: A current preview that has not been applied is pending, not superseded. Published requires exact full global publication and fresh consumer evidence; it does not attest independent authoritative DNS or public HTTPS responses.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProjectHostRoutePublicationStatus"
         default:
           $ref: "#/components/responses/ErrorResponse"
   /v1/projects/{id}/split-plan:
@@ -28293,6 +28384,72 @@ components:
         ready:
           type: boolean
           default: true
+    ProjectHostRouteEdit:
+      type: object
+      additionalProperties: false
+      required: [hostname]
+      properties:
+        hostname:
+          type: string
+        paths:
+          type: object
+          description: Map of canonical path prefixes to application IDs in the same project. Unlisted paths are not edited.
+          maxProperties: 64
+          additionalProperties:
+            type: string
+        remove_paths:
+          type: array
+          maxItems: 64
+          items:
+            type: string
+    ProjectHostRoutePlan:
+      type: object
+      additionalProperties: false
+      required: [plan_id, project_id, edit, hostname_owner_app_id, before, after, state]
+      properties:
+        plan_id:
+          type: string
+          description: Opaque precondition over the exact route table and relevant hostname configuration.
+        project_id:
+          type: string
+        edit:
+          $ref: "#/components/schemas/ProjectHostRouteEdit"
+        hostname_owner_app_id:
+          type: string
+          description: DNS and TLS ownership is retained by this app; upstream paths can use other apps.
+        before:
+          type: object
+          additionalProperties:
+            type: string
+        after:
+          type: object
+          additionalProperties:
+            type: string
+        state:
+          type: string
+          enum: [planned, saved, already_current]
+    ProjectHostRoutePublicationStatus:
+      type: object
+      additionalProperties: false
+      required: [state, reason]
+      properties:
+        state:
+          type: string
+          enum: [pending, published, superseded]
+        reason:
+          type: string
+        release_id:
+          type: string
+        apply_preflight:
+          type: object
+          additionalProperties: false
+          required: [state, reason]
+          properties:
+            state:
+              type: string
+              enum: [ready, blocked, not_applicable]
+            reason:
+              type: string
     PutProjectRouteTableRequest:
       type: object
       additionalProperties: false
@@ -40723,6 +40880,8 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/PlatformReleaseMessage"
+        current_rollback_message:
+          $ref: "#/components/schemas/PlatformReleaseMessage"
         lkg:
           $ref: "#/components/schemas/PlatformLKGSnapshot"
         generation:

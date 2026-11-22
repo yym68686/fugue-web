@@ -610,7 +610,10 @@ export interface paths {
     get: operations["getPlatformArtifactLKG"];
   };
   "/v1/platform-state/artifacts/{artifact_kind}": {
-    /** Pull Platform State Artifact */
+    /**
+     * Pull Platform State Artifact
+     * @description By default messages is a bounded recent feed. Set include_current_rollback_message=true with channel=full to request the unique original rollback ledger entry of the selected active full release, independently of feed age or pagination. A missing entry is omitted; ambiguous evidence or a changed selection conflicts. This read does not verify serving or grant traffic authority.
+     */
     get: operations["getPlatformStateArtifact"];
   };
   "/v1/platform-state/consumers/heartbeat": {
@@ -869,6 +872,21 @@ export interface paths {
     put: operations["putProjectRoutes"];
     /** Delete Project Route Table */
     delete: operations["deleteProjectRoutes"];
+  };
+  "/v1/projects/{id}/routes/host-plan": {
+    /** Preview a scoped edit to a verified custom hostname */
+    post: operations["planProjectHostRoutes"];
+  };
+  "/v1/projects/{id}/routes/host-apply": {
+    /**
+     * Save an unchanged hostname plan as desired configuration
+     * @description A managed hostname edit that introduces or retains shared application paths requires both the current authoritative DNS consumers and Edge Workers to attest the required compatibility before the edit is saved. A conflict leaves the existing routes unchanged.
+     */
+    post: operations["applyProjectHostRoutes"];
+  };
+  "/v1/projects/{id}/routes/host-status": {
+    /** Check whether the planned hostname routes match the verified global publication (platform admin) */
+    post: operations["getProjectHostRoutePublicationStatus"];
   };
   "/v1/projects/{id}/split-plan": {
     /** Plan Project Split */
@@ -9233,6 +9251,41 @@ export interface components {
       /** @default true */
       ready?: boolean;
     };
+    ProjectHostRouteEdit: {
+      hostname: string;
+      /** @description Map of canonical path prefixes to application IDs in the same project. Unlisted paths are not edited. */
+      paths?: {
+        [key: string]: string;
+      };
+      remove_paths?: string[];
+    };
+    ProjectHostRoutePlan: {
+      /** @description Opaque precondition over the exact route table and relevant hostname configuration. */
+      plan_id: string;
+      project_id: string;
+      edit: components["schemas"]["ProjectHostRouteEdit"];
+      /** @description DNS and TLS ownership is retained by this app; upstream paths can use other apps. */
+      hostname_owner_app_id: string;
+      before: {
+        [key: string]: string;
+      };
+      after: {
+        [key: string]: string;
+      };
+      /** @enum {string} */
+      state: "planned" | "saved" | "already_current";
+    };
+    ProjectHostRoutePublicationStatus: {
+      /** @enum {string} */
+      state: "pending" | "published" | "superseded";
+      reason: string;
+      release_id?: string;
+      apply_preflight?: {
+        /** @enum {string} */
+        state: "ready" | "blocked" | "not_applicable";
+        reason: string;
+      };
+    };
     PutProjectRouteTableRequest: {
       domains?: components["schemas"]["ProjectRouteDomain"][];
       entrypoints?: components["schemas"]["ProjectRouteEntrypoint"][];
@@ -15667,6 +15720,7 @@ export interface components {
       artifact?: components["schemas"]["PlatformArtifact"];
       release?: components["schemas"]["PlatformArtifactRelease"];
       messages: components["schemas"]["PlatformReleaseMessage"][];
+      current_rollback_message?: components["schemas"]["PlatformReleaseMessage"];
       lkg?: components["schemas"]["PlatformLKGSnapshot"];
       generation?: string;
       waited: boolean;
@@ -18555,7 +18609,7 @@ export interface operations {
       };
     };
     responses: {
-      /** @description Current consumer convergence assessments */
+      /** @description Current consumer convergence assessments. Global producer publications preserve replacement Worker identities from the publication's pinned enrollment policy. */
       200: {
         content: {
           "application/json": {
@@ -18717,13 +18771,17 @@ export interface operations {
       default: components["responses"]["ErrorResponse"];
     };
   };
-  /** Pull Platform State Artifact */
+  /**
+   * Pull Platform State Artifact
+   * @description By default messages is a bounded recent feed. Set include_current_rollback_message=true with channel=full to request the unique original rollback ledger entry of the selected active full release, independently of feed age or pagination. A missing entry is omitted; ambiguous evidence or a changed selection conflicts. This read does not verify serving or grant traffic authority.
+   */
   getPlatformStateArtifact: {
     parameters: {
       query?: {
         scope_key?: string;
         channel?: "shadow" | "gray" | "full";
         current_generation?: string;
+        include_current_rollback_message?: boolean;
         wait_seconds?: number;
       };
       path: {
@@ -19896,6 +19954,80 @@ export interface operations {
       200: {
         content: {
           "application/json": components["schemas"]["ProjectRouteTableDeleteResponse"];
+        };
+      };
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
+  /** Preview a scoped edit to a verified custom hostname */
+  planProjectHostRoutes: {
+    parameters: {
+      path: {
+        id: components["parameters"]["IdPathParam"];
+      };
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ProjectHostRouteEdit"];
+      };
+    };
+    responses: {
+      /** @description Read-only plan; no DNS, certificate, or route mutation */
+      200: {
+        content: {
+          "application/json": components["schemas"]["ProjectHostRoutePlan"];
+        };
+      };
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
+  /**
+   * Save an unchanged hostname plan as desired configuration
+   * @description A managed hostname edit that introduces or retains shared application paths requires both the current authoritative DNS consumers and Edge Workers to attest the required compatibility before the edit is saved. A conflict leaves the existing routes unchanged.
+   */
+  applyProjectHostRoutes: {
+    parameters: {
+      path: {
+        id: components["parameters"]["IdPathParam"];
+      };
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ProjectHostRoutePlan"];
+      };
+    };
+    responses: {
+      /** @description Intent saved or already current; does not attest production serving */
+      200: {
+        content: {
+          "application/json": components["schemas"]["ProjectHostRoutePlan"];
+        };
+      };
+      409: components["responses"]["ErrorResponse"];
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
+  /** Check whether the planned hostname routes match the verified global publication (platform admin) */
+  getProjectHostRoutePublicationStatus: {
+    parameters: {
+      query?: {
+        /** @description Also evaluate the exact unapplied plan's write compatibility gates without committing it. The result is point-in-time; apply rechecks the plan and all gates. */
+        preflight?: boolean;
+      };
+      path: {
+        id: components["parameters"]["IdPathParam"];
+      };
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ProjectHostRoutePlan"];
+      };
+    };
+    responses: {
+      /** @description A current preview that has not been applied is pending, not superseded. Published requires exact full global publication and fresh consumer evidence; it does not attest independent authoritative DNS or public HTTPS responses. */
+      200: {
+        content: {
+          "application/json": components["schemas"]["ProjectHostRoutePublicationStatus"];
         };
       };
       default: components["responses"]["ErrorResponse"];
