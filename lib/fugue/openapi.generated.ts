@@ -18925,8 +18925,14 @@ export interface operations {
       };
     };
     responses: {
-      /** @description Assigned artifact and its release binding. */
+      /** @description Assigned artifact and its release binding. The server may use gzip for an explicitly accepting client reading a signed DNS answer bundle. Decompressed JSON, authorization, signature and assignment rechecks are identical. Other artifacts and errors do not opt into this transport optimization. */
       200: {
+        headers: {
+          /** @description Optional transport coding, only when accepted by the reader. */
+          "Content-Encoding"?: "gzip";
+          /** @description Content negotiation for eligible DNS bundle responses. */
+          Vary?: string;
+        };
         content: {
           "application/json": components["schemas"]["PlatformConsumerArtifactResponse"];
         };
