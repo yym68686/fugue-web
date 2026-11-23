@@ -15150,6 +15150,33 @@ export interface components {
       /** @description Exact compiled routes from the pinned signed route artifact, including immutable desired fields, runtime placement, weighted targets and exclusion evidence. Admission compares the entire partition with the source artifact; callers cannot substitute route content. */
       routes: components["schemas"]["PlatformCompiledTrafficRoute"][];
     };
+    /** @description A physical hosted address roster inherited from an exact verified full. Never a grant of new connection eligibility, a source of readiness proofs, or an alternative static DNS answer. */
+    PlatformHostedAddressReservation: {
+      source: components["schemas"]["PlatformPreviousTrafficPublicationReference"];
+      record: components["schemas"]["PlatformConfigDNSIntent"];
+      physical: {
+        hostname: string;
+        minimum_healthy_edges: number;
+        require_dual_stack: boolean;
+        min_distinct_cells?: number;
+        min_distinct_domains?: {
+          [key: string]: number;
+        };
+        targets: ({
+            edge_id: string;
+            edge_group_id: string;
+            address: string;
+            /** @enum {string} */
+            family: "A" | "AAAA";
+            require_single_publication?: boolean;
+            failure_domains?: {
+              [key: string]: string;
+            };
+            /** @description No predecessor probe may be reused. */
+            probe_ids: string[];
+          })[];
+      };
+    };
     PlatformRuntimeSnapshot: {
       dns_selections?: components["schemas"]["PlatformDNSSelectionObservation"][];
       dns_edge_endpoints?: components["schemas"]["PlatformDNSEdgeEndpoint"][];
@@ -15166,6 +15193,8 @@ export interface components {
       releases?: components["schemas"]["PlatformReleaseObservation"][];
       /** @description Fixed references to unchanged application partitions in a verified full publication. Capture and admission check the exact signed source, positive LKG, current consumer convergence, expiry, and unchanged application configuration. These facts never declare an unavailable new release ready. Invalid or stale references refuse compilation. */
       retained_traffic_partitions?: components["schemas"]["PlatformRetainedTrafficPartition"][];
+      /** @description Reserved physical records only. These do not alter effective DNS targets, DNS selection, tenant configuration, or traffic authority. */
+      hosted_address_reservations?: components["schemas"]["PlatformHostedAddressReservation"][];
       /** @description Compiler capture capability for application availability isolation, not serving authorization. A matching trusted retained partition may preserve unchanged routes; otherwise only unavailable application routes close. Ownership, malformed or ambiguous evidence still rejects compilation. Omission preserves strict legacy compilation. This field is not emitted into consumer policy payloads. */
       isolate_traffic_availability?: boolean;
       dns_flatten?: components["schemas"]["PlatformDNSFlattenObservation"][];
