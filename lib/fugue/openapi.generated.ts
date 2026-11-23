@@ -14112,8 +14112,11 @@ export interface components {
     };
     PlatformArtifact: {
       id: string;
-      /** @enum {string} */
-      artifact_kind: "edge_route_bundle" | "dns_answer_bundle" | "caddy_route_config" | "discovery_bundle" | "node_desired_state" | "runtime_placement_plan" | "runtime_continuity_plan" | "node_guardian_policy" | "release_guard_policy" | "edge_ranking_policy" | "traffic_safety_policy" | "subsystem_failure_contracts" | "gate_policy_registry" | "automatic_action_contracts";
+      /**
+       * @description A hosted_path_proposal is compiler-owned, draft-only, and cannot be activated via an ordinary artifact release.
+       * @enum {string}
+       */
+      artifact_kind: "edge_route_bundle" | "dns_answer_bundle" | "caddy_route_config" | "discovery_bundle" | "node_desired_state" | "runtime_placement_plan" | "runtime_continuity_plan" | "node_guardian_policy" | "release_guard_policy" | "edge_ranking_policy" | "traffic_safety_policy" | "subsystem_failure_contracts" | "gate_policy_registry" | "automatic_action_contracts" | "platform_intent" | "policy_snapshot" | "release_set" | "hosted_path_proposal";
       scope: components["schemas"]["PlatformArtifactScope"];
       scope_key: string;
       /** @enum {string} */
@@ -15486,6 +15489,7 @@ export interface components {
       request_digest: string;
     };
     PlatformArtifactCreateRequest: {
+      /** @description Internal hosted_path_proposal artifacts are not accepted by this operation. */
       artifact_kind: string;
       scope?: components["schemas"]["PlatformArtifactScope"];
       generation?: string;
