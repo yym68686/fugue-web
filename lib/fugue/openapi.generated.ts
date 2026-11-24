@@ -2316,7 +2316,7 @@ export interface paths {
   "/v1/backups/artifacts/{id}/retire-recovered": {
     /**
      * Preview or retire one recovered Longhorn backup artifact
-     * @description Platform administrators only. Applies only to protected recovered control-plane Longhorn backups from failed or canceled runs. Without a confirmation digest this is a read-only preview. Confirmation must match current eligibility and the reviewed replacement and operator restore evidence. Execution atomically marks the artifact deleted, releases its hold and records an audit event. This does not perform a restore, verify the operator's evidence contents, physically remove remote objects or purge the local source snapshot.
+     * @description Platform administrators only. Applies only to protected recovered control-plane Longhorn backups from failed or canceled runs. Without a confirmation digest this is a read-only preview. Confirmation binds the reason, the optional operator receipt reference and the exact retained set, including at least three distinct newer points from successful runs in the same repository and volume. Their completed remote Backup records and configuration objects are checked, not their restorability. Execution atomically marks the specified artifact deleted, releases its hold and records an audit event. It neither physically removes remote objects nor purges the local snapshot.
      */
     post: operations["retireRecoveredBackupArtifact"];
   };
@@ -3324,7 +3324,7 @@ export interface components {
     };
     RecoveredBackupRetirementRequest: {
       replacement_artifact_id: string;
-      /** @description SHA-256 of a real isolated PostgreSQL restore receipt for the replacement. The operator retains and vouches for the receipt. */
+      /** @description Optional SHA-256 reference to a real isolated PostgreSQL restore receipt for the replacement. The operator retains and vouches for the receipt. Omitting it records that no receipt was supplied and does not prevent retirement. */
       restore_evidence_sha256?: string;
       reason?: string;
       confirmation?: string;
@@ -3332,6 +3332,13 @@ export interface components {
     RecoveredBackupRetirementResponse: {
       artifact_id: string;
       replacement_artifact_id: string;
+      /** @description Exact newer recovery points checked for this retirement, including the selected replacement. */
+      retained_artifact_ids: string[];
+      /**
+       * @description Whether an operator supplied a receipt reference, not proof of a successful restore.
+       * @enum {string}
+       */
+      restore_evidence_status: "not_provided" | "operator_attested";
       retired: boolean;
       blockers: string[];
       confirmation?: string;
@@ -26945,7 +26952,7 @@ export interface operations {
   };
   /**
    * Preview or retire one recovered Longhorn backup artifact
-   * @description Platform administrators only. Applies only to protected recovered control-plane Longhorn backups from failed or canceled runs. Without a confirmation digest this is a read-only preview. Confirmation must match current eligibility and the reviewed replacement and operator restore evidence. Execution atomically marks the artifact deleted, releases its hold and records an audit event. This does not perform a restore, verify the operator's evidence contents, physically remove remote objects or purge the local source snapshot.
+   * @description Platform administrators only. Applies only to protected recovered control-plane Longhorn backups from failed or canceled runs. Without a confirmation digest this is a read-only preview. Confirmation binds the reason, the optional operator receipt reference and the exact retained set, including at least three distinct newer points from successful runs in the same repository and volume. Their completed remote Backup records and configuration objects are checked, not their restorability. Execution atomically marks the specified artifact deleted, releases its hold and records an audit event. It neither physically removes remote objects nor purges the local snapshot.
    */
   retireRecoveredBackupArtifact: {
     parameters: {
