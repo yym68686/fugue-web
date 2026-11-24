@@ -4873,6 +4873,88 @@ paths:
         '409': {$ref: "#/components/responses/ErrorResponse"}
         '503': {$ref: "#/components/responses/ErrorResponse"}
         default: {$ref: "#/components/responses/ErrorResponse"}
+  /v1/platform-state/consumers/artifacts/{artifact_id}/host-selections:
+    get:
+      operationId: listPlatformConsumerHostedSelections
+      summary: Discover current host decisions addressed to this enrolled receiver
+      description: Private keyset page of at most 32 hostname and revision hints for the exact authoritative full child and expected set. A hint is not a serving instruction or evidence. Fetch and verify the signed per-host decision separately. Absence never revokes a previous selection.
+      tags: [Edge]
+      x-fugue-handler: handleListPlatformConsumerHostedSelections
+      security:
+        - PlatformComponentBearerAuth: []
+      parameters:
+        - {in: path, name: artifact_id, required: true, schema: {type: string}}
+        - {in: query, name: expected_consumer_set_id, required: true, schema: {type: string}}
+        - {in: query, name: after, schema: {type: string, format: hostname, maxLength: 253}}
+      responses:
+        '200':
+          description: Sorted page. next_after is present only if another page was observed.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [selections]
+                properties:
+                  selections:
+                    type: array
+                    maxItems: 32
+                    items:
+                      type: object
+                      required: [hostname, fence, decision]
+                      properties:
+                        hostname: {type: string, format: hostname}
+                        fence: {type: integer, format: int64, minimum: 1}
+                        decision: {type: string, pattern: '^sha256:[a-f0-9]{64}$'}
+                  next_after: {type: string, format: hostname}
+        '400': {$ref: "#/components/responses/ErrorResponse"}
+        '401': {$ref: "#/components/responses/ErrorResponse"}
+        '403': {$ref: "#/components/responses/ErrorResponse"}
+        '404': {$ref: "#/components/responses/ErrorResponse"}
+        '503': {$ref: "#/components/responses/ErrorResponse"}
+        default: {$ref: "#/components/responses/ErrorResponse"}
+  /v1/platform-state/consumers/artifacts/{artifact_id}/host-selections/{hostname}:
+    post:
+      operationId: recordPlatformConsumerHostedReceipt
+      x-fugue-handler: handleRecordPlatformConsumerHostedReceipt
+      tags: [Edge]
+      summary: Record an enrolled executor's observations for the current host decision
+      description: Acknowledges only this member's exact selected parts. DNS requires every signed query key over UDP and TCP from the serving backend; Worker route requires every path, and TLS requires the selected owner and a fresh verified SNI observation. A failed attempt invalidates this member's earlier success. Never publishes, renews the host lease, or credits global full. Maximum request body 2 MiB.
+      security: [{PlatformComponentBearerAuth: []}]
+      parameters:
+        - {in: path, name: artifact_id, required: true, schema: {type: string}}
+        - {in: path, name: hostname, required: true, schema: {type: string, format: hostname, maxLength: 253}}
+        - {in: query, name: expected_consumer_set_id, required: true, schema: {type: string, minLength: 1}}
+      requestBody:
+        required: true
+        content:
+          application/json: {schema: {$ref: '#/components/schemas/HostedMemberObservation'}}
+      responses:
+        '204': {description: Recorded for the still-current host decision; an exact duplicate does not renew evidence.}
+        default: {$ref: '#/components/responses/ErrorResponse'}
+    get:
+      operationId: getPlatformConsumerHostedSelection
+      summary: Read one selected hostname revision for an enrolled physical recipient
+      description: Requires the authenticated component's exact selected global full child and current expected set. Returns only the signed route, TLS ownership, or DNS zone inputs for this receiver. A staged offer alone is never a selection. Original authority expiry, persisted host fence, business intent and component ownership are checked independently. No state or receipt is written. Responses are private and not cacheable.
+      tags: [Edge]
+      x-fugue-handler: handleGetPlatformConsumerHostedSelection
+      security:
+        - PlatformComponentBearerAuth: []
+      parameters:
+        - {in: path, name: artifact_id, required: true, schema: {type: string}}
+        - {in: path, name: hostname, required: true, schema: {type: string, format: hostname, maxLength: 253}}
+        - {in: query, name: expected_consumer_set_id, required: true, schema: {type: string}}
+      responses:
+        '200':
+          description: Signed host decision for the exact enrolled receiver, not an application acknowledgment.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/PlatformArtifact"}
+        '400': {$ref: "#/components/responses/ErrorResponse"}
+        '401': {$ref: "#/components/responses/ErrorResponse"}
+        '403': {$ref: "#/components/responses/ErrorResponse"}
+        '404': {$ref: "#/components/responses/ErrorResponse"}
+        '503': {$ref: "#/components/responses/ErrorResponse"}
+        default: {$ref: "#/components/responses/ErrorResponse"}
   /v1/platform-state/consumers/artifacts/{artifact_id}/tls/{hostname}:
     get:
       operationId: getPlatformConsumerTLSCertificate
@@ -6190,7 +6272,7 @@ paths:
   /v1/projects/{id}/routes/host-status:
     post:
       operationId: getProjectHostRoutePublicationStatus
-      summary: Check whether the planned hostname routes match the verified global publication (platform admin)
+      summary: Check the selected publication and fresh physical evidence for the planned hostname routes (platform admin)
       tags: [Projects]
       x-fugue-handler: handleProjectHostRouteStatus
       security:
@@ -14464,6 +14546,40 @@ paths:
                 $ref: "#/components/schemas/BackupArtifactResponse"
         default:
           $ref: "#/components/responses/ErrorResponse"
+  /v1/backups/artifacts/{id}/retire-recovered:
+    post:
+      operationId: retireRecoveredBackupArtifact
+      summary: Preview or retire one recovered Longhorn backup artifact
+      description: Platform administrators only. Applies only to protected recovered control-plane Longhorn backups from failed or canceled runs. Without a confirmation digest this is a read-only preview. Confirmation must match current eligibility and the reviewed replacement and operator restore evidence. Execution atomically marks the artifact deleted, releases its hold and records an audit event. This does not perform a restore, verify the operator's evidence contents, physically remove remote objects or purge the local source snapshot.
+      tags: [Backups, Admin]
+      x-fugue-handler: handleRetireRecoveredBackupArtifact
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/IdPathParam"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RecoveredBackupRetirementRequest"
+      responses:
+        '200':
+          description: Preview or committed logical retirement
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RecoveredBackupRetirementResponse"
+        '409':
+          description: Execution blocked; no retirement committed
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: "#/components/schemas/RecoveredBackupRetirementResponse"
+                  - $ref: "#/components/schemas/ErrorResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
   /v1/backups/restore-plans:
     get:
       operationId: listBackupRestorePlans
@@ -17979,6 +18095,31 @@ components:
       properties:
         artifact:
           $ref: "#/components/schemas/BackupArtifact"
+    RecoveredBackupRetirementRequest:
+      type: object
+      additionalProperties: false
+      required: [replacement_artifact_id]
+      properties:
+        replacement_artifact_id: {type: string, minLength: 1, maxLength: 128}
+        restore_evidence_sha256:
+          type: string
+          pattern: '^[0-9a-f]{64}$'
+          description: SHA-256 of a real isolated PostgreSQL restore receipt for the replacement. The operator retains and vouches for the receipt.
+        reason: {type: string, minLength: 1, maxLength: 512}
+        confirmation: {type: string, pattern: '^[0-9a-f]{64}$'}
+    RecoveredBackupRetirementResponse:
+      type: object
+      additionalProperties: false
+      required: [artifact_id, replacement_artifact_id, retired, blockers]
+      properties:
+        artifact_id: {type: string}
+        replacement_artifact_id: {type: string}
+        retired: {type: boolean}
+        blockers:
+          type: array
+          items: {type: string}
+        confirmation: {type: string}
+        audit_id: {type: string}
     BackupArtifactListResponse:
       type: object
       additionalProperties: false
@@ -23197,10 +23338,60 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/EdgeDNSRecord"
+    HostedMemberObservation:
+      type: object
+      additionalProperties: false
+      required: [host, member, decision, fence, started_at]
+      properties:
+        host: {type: string, format: hostname}
+        member: {type: string, minLength: 1}
+        decision: {type: string, pattern: '^sha256:[0-9a-f]{64}$'}
+        fence: {type: integer, format: int64, minimum: 1}
+        started_at: {type: string, format: date-time}
+        failure: {type: string, enum: [local_apply, wire_observation]}
+        samples:
+          type: array
+          minItems: 1
+          maxItems: 8192
+          items: {$ref: '#/components/schemas/HostedObservationSample'}
+      oneOf:
+        - {required: [failure], not: {required: [samples]}}
+        - {required: [samples], not: {required: [failure]}}
+    HostedObservationSample:
+      type: object
+      additionalProperties: false
+      required: [host, decision, member, part, content, fence, nonce, observed_at, valid_until, transport, name]
+      properties:
+        host: {type: string, format: hostname}
+        member: {type: string}
+        part: {type: string, pattern: '^sha256:[0-9a-f]{64}$'}
+        content: {type: string, pattern: '^sha256:[0-9a-f]{64}$'}
+        decision: {type: string, pattern: '^sha256:[0-9a-f]{64}$'}
+        fence: {type: integer, format: int64, minimum: 1}
+        nonce: {type: string, pattern: '^[0-9a-f]{32}$'}
+        observed_at: {type: string, format: date-time}
+        valid_until: {type: string, format: date-time}
+        name: {type: string, format: hostname}
+        transport: {type: string, enum: [udp, tcp, https, tls]}
+        zone: {type: string, format: hostname}
+        family: {type: string, enum: [A, AAAA]}
+        rrset: {type: array, minItems: 1, maxItems: 256, items: {type: string, maxLength: 1024}}
+        path: {type: string}
+        route_digest: {type: string, pattern: '^sha256:[0-9a-f]{64}$'}
+        state: {type: string}
+        edge_id: {type: string}
+        group_id: {type: string}
+        owner_digest: {type: string, pattern: '^sha256:[0-9a-f]{64}$'}
+        certificate_digest: {type: string, pattern: '^sha256:[0-9a-f]{64}$'}
+        certificate_not_before: {type: string, format: date-time}
+        chain_valid_until: {type: string, format: date-time}
     DNSDecisionPublication:
       type: object
       additionalProperties: false
       properties:
+        hosted_hostname: {type: string, format: hostname, description: HTTP hostname that owns a separately selected answer or alias.}
+        hosted_fence: {type: integer, format: int64, minimum: 1}
+        hosted_decision: {type: string, pattern: '^sha256:[0-9a-f]{64}$', description: Independent host decision. The release and child fields identify its membership parent only.}
         release_set_id: {type: string}
         parent_digest: {type: string}
         artifact_id: {type: string}
@@ -28416,7 +28607,7 @@ components:
       properties:
         plan_id:
           type: string
-          description: Opaque precondition over the exact route table and relevant hostname configuration.
+          description: Opaque precondition over this project's target hostname, its resolved route bindings, ownership, and relevant DNS configuration. Independent edits to other hostnames do not invalidate a newly planned edit. Re-plan if an older precondition is rejected.
         project_id:
           type: string
         edit:
@@ -28447,6 +28638,63 @@ components:
           type: string
         release_id:
           type: string
+        host_compile_conflict:
+          description: Recent rejection of this exact saved hostname change on the still-current DNS parent. An observation, not a draft or decision.
+          type: object
+          additionalProperties: false
+          required: [parent_release_id, observed_at, target, record_type, field, expected_addresses, candidate_addresses]
+          properties:
+            parent_release_id: {type: string}
+            observed_at: {type: string, format: date-time}
+            target: {type: string}
+            record_type: {type: string, enum: [A, AAAA]}
+            field: {type: string}
+            expected_addresses: {type: integer}
+            candidate_addresses: {type: integer}
+        host_preparation:
+          description: Read-only evidence for the current signed offer before an independent decision. It does not authorize or prove serving traffic.
+          type: object
+          additionalProperties: false
+          required: [draft_id, sequence, parent_release_id]
+          properties:
+            draft_id: {type: string}
+            sequence: {type: integer, format: int64}
+            parent_release_id: {type: string}
+            blockers:
+              type: array
+              items:
+                type: object
+                additionalProperties: false
+                required: [code]
+                properties:
+                  code: {type: string}
+                  node_id: {type: string}
+                  artifact_kind: {type: string}
+                  capability: {type: string}
+        host_selection:
+          description: Present when this hostname owns an independent decision. Counts and expiry refer only to its current fence and signed member parts.
+          type: object
+          additionalProperties: false
+          required: [decision, fence, phase, required, passing]
+          properties:
+            decision: {type: string}
+            fence: {type: integer, format: int64}
+            phase: {type: string, enum: [prepare, forward, withdraw]}
+            required: {type: integer}
+            passing: {type: integer}
+            evidence_until: {type: string, format: date-time}
+            members:
+              type: array
+              description: Physical recipient parts and current receipt state for the exact decision. A missing receipt is not evidence of success or failure.
+              items:
+                type: object
+                additionalProperties: false
+                required: [node_id, artifact_kind, state]
+                properties:
+                  node_id: {type: string}
+                  artifact_kind: {type: string}
+                  zone: {type: string}
+                  state: {type: string, enum: [waiting, failed, expired, passed]}
         apply_preflight:
           type: object
           additionalProperties: false

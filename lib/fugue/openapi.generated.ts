@@ -676,6 +676,25 @@ export interface paths {
      */
     get: operations["getPlatformConsumerRetainedDNSRouteSources"];
   };
+  "/v1/platform-state/consumers/artifacts/{artifact_id}/host-selections": {
+    /**
+     * Discover current host decisions addressed to this enrolled receiver
+     * @description Private keyset page of at most 32 hostname and revision hints for the exact authoritative full child and expected set. A hint is not a serving instruction or evidence. Fetch and verify the signed per-host decision separately. Absence never revokes a previous selection.
+     */
+    get: operations["listPlatformConsumerHostedSelections"];
+  };
+  "/v1/platform-state/consumers/artifacts/{artifact_id}/host-selections/{hostname}": {
+    /**
+     * Read one selected hostname revision for an enrolled physical recipient
+     * @description Requires the authenticated component's exact selected global full child and current expected set. Returns only the signed route, TLS ownership, or DNS zone inputs for this receiver. A staged offer alone is never a selection. Original authority expiry, persisted host fence, business intent and component ownership are checked independently. No state or receipt is written. Responses are private and not cacheable.
+     */
+    get: operations["getPlatformConsumerHostedSelection"];
+    /**
+     * Record an enrolled executor's observations for the current host decision
+     * @description Acknowledges only this member's exact selected parts. DNS requires every signed query key over UDP and TCP from the serving backend; Worker route requires every path, and TLS requires the selected owner and a fresh verified SNI observation. A failed attempt invalidates this member's earlier success. Never publishes, renews the host lease, or credits global full. Maximum request body 2 MiB.
+     */
+    post: operations["recordPlatformConsumerHostedReceipt"];
+  };
   "/v1/platform-state/consumers/artifacts/{artifact_id}/tls/{hostname}": {
     /**
      * Read a custom-domain certificate authorized by a serving cell publication
@@ -885,7 +904,7 @@ export interface paths {
     post: operations["applyProjectHostRoutes"];
   };
   "/v1/projects/{id}/routes/host-status": {
-    /** Check whether the planned hostname routes match the verified global publication (platform admin) */
+    /** Check the selected publication and fresh physical evidence for the planned hostname routes (platform admin) */
     post: operations["getProjectHostRoutePublicationStatus"];
   };
   "/v1/projects/{id}/split-plan": {
@@ -2294,6 +2313,13 @@ export interface paths {
      */
     delete: operations["deleteBackupArtifact"];
   };
+  "/v1/backups/artifacts/{id}/retire-recovered": {
+    /**
+     * Preview or retire one recovered Longhorn backup artifact
+     * @description Platform administrators only. Applies only to protected recovered control-plane Longhorn backups from failed or canceled runs. Without a confirmation digest this is a read-only preview. Confirmation must match current eligibility and the reviewed replacement and operator restore evidence. Execution atomically marks the artifact deleted, releases its hold and records an audit event. This does not perform a restore, verify the operator's evidence contents, physically remove remote objects or purge the local source snapshot.
+     */
+    post: operations["retireRecoveredBackupArtifact"];
+  };
   "/v1/backups/restore-plans": {
     /**
      * List Backup Restore Plans
@@ -3295,6 +3321,21 @@ export interface components {
     };
     BackupArtifactResponse: {
       artifact?: components["schemas"]["BackupArtifact"];
+    };
+    RecoveredBackupRetirementRequest: {
+      replacement_artifact_id: string;
+      /** @description SHA-256 of a real isolated PostgreSQL restore receipt for the replacement. The operator retains and vouches for the receipt. */
+      restore_evidence_sha256?: string;
+      reason?: string;
+      confirmation?: string;
+    };
+    RecoveredBackupRetirementResponse: {
+      artifact_id: string;
+      replacement_artifact_id: string;
+      retired: boolean;
+      blockers: string[];
+      confirmation?: string;
+      audit_id?: string;
     };
     BackupArtifactListResponse: {
       artifacts: components["schemas"]["BackupArtifact"][];
@@ -6402,7 +6443,64 @@ export interface components {
       hosted_zones?: string[];
       records: components["schemas"]["EdgeDNSRecord"][];
     };
+    HostedMemberObservation: {
+      /** Format: hostname */
+      host: string;
+      member: string;
+      decision: string;
+      /** Format: int64 */
+      fence: number;
+      /** Format: date-time */
+      started_at: string;
+      /** @enum {string} */
+      failure?: "local_apply" | "wire_observation";
+      samples?: components["schemas"]["HostedObservationSample"][];
+    };
+    HostedObservationSample: {
+      /** Format: hostname */
+      host: string;
+      member: string;
+      part: string;
+      content: string;
+      decision: string;
+      /** Format: int64 */
+      fence: number;
+      nonce: string;
+      /** Format: date-time */
+      observed_at: string;
+      /** Format: date-time */
+      valid_until: string;
+      /** Format: hostname */
+      name: string;
+      /** @enum {string} */
+      transport: "udp" | "tcp" | "https" | "tls";
+      /** Format: hostname */
+      zone?: string;
+      /** @enum {string} */
+      family?: "A" | "AAAA";
+      rrset?: string[];
+      path?: string;
+      route_digest?: string;
+      state?: string;
+      edge_id?: string;
+      group_id?: string;
+      owner_digest?: string;
+      certificate_digest?: string;
+      /** Format: date-time */
+      certificate_not_before?: string;
+      /** Format: date-time */
+      chain_valid_until?: string;
+    };
     DNSDecisionPublication: {
+      /**
+       * Format: hostname
+       * @description HTTP hostname that owns a separately selected answer or alias.
+       */
+      hosted_hostname?: string;
+      /** Format: int64 */
+      hosted_fence?: number;
+      /** @description Independent host decision. The release and child fields identify its membership parent only. */
+      hosted_decision?: string;
       release_set_id?: string;
       parent_digest?: string;
       artifact_id?: string;
@@ -9260,7 +9358,7 @@ export interface components {
       remove_paths?: string[];
     };
     ProjectHostRoutePlan: {
-      /** @description Opaque precondition over the exact route table and relevant hostname configuration. */
+      /** @description Opaque precondition over this project's target hostname, its resolved route bindings, ownership, and relevant DNS configuration. Independent edits to other hostnames do not invalidate a newly planned edit. Re-plan if an older precondition is rejected. */
       plan_id: string;
       project_id: string;
       edit: components["schemas"]["ProjectHostRouteEdit"];
@@ -9280,6 +9378,51 @@ export interface components {
       state: "pending" | "published" | "superseded";
       reason: string;
       release_id?: string;
+      /** @description Recent rejection of this exact saved hostname change on the still-current DNS parent. An observation, not a draft or decision. */
+      host_compile_conflict?: {
+        parent_release_id: string;
+        /** Format: date-time */
+        observed_at: string;
+        target: string;
+        /** @enum {string} */
+        record_type: "A" | "AAAA";
+        field: string;
+        expected_addresses: number;
+        candidate_addresses: number;
+      };
+      /** @description Read-only evidence for the current signed offer before an independent decision. It does not authorize or prove serving traffic. */
+      host_preparation?: {
+        draft_id: string;
+        /** Format: int64 */
+        sequence: number;
+        parent_release_id: string;
+        blockers?: {
+            code: string;
+            node_id?: string;
+            artifact_kind?: string;
+            capability?: string;
+          }[];
+      };
+      /** @description Present when this hostname owns an independent decision. Counts and expiry refer only to its current fence and signed member parts. */
+      host_selection?: {
+        decision: string;
+        /** Format: int64 */
+        fence: number;
+        /** @enum {string} */
+        phase: "prepare" | "forward" | "withdraw";
+        required: number;
+        passing: number;
+        /** Format: date-time */
+        evidence_until?: string;
+        /** @description Physical recipient parts and current receipt state for the exact decision. A missing receipt is not evidence of success or failure. */
+        members?: ({
+            node_id: string;
+            artifact_kind: string;
+            zone?: string;
+            /** @enum {string} */
+            state: "waiting" | "failed" | "expired" | "passed";
+          })[];
+      };
       apply_preflight?: {
         /** @enum {string} */
         state: "ready" | "blocked" | "not_applicable";
@@ -19087,6 +19230,101 @@ export interface operations {
     };
   };
   /**
+   * Discover current host decisions addressed to this enrolled receiver
+   * @description Private keyset page of at most 32 hostname and revision hints for the exact authoritative full child and expected set. A hint is not a serving instruction or evidence. Fetch and verify the signed per-host decision separately. Absence never revokes a previous selection.
+   */
+  listPlatformConsumerHostedSelections: {
+    parameters: {
+      query: {
+        expected_consumer_set_id: string;
+        after?: string;
+      };
+      path: {
+        artifact_id: string;
+      };
+    };
+    responses: {
+      /** @description Sorted page. next_after is present only if another page was observed. */
+      200: {
+        content: {
+          "application/json": {
+            selections: {
+                /** Format: hostname */
+                hostname: string;
+                /** Format: int64 */
+                fence: number;
+                decision: string;
+              }[];
+            /** Format: hostname */
+            next_after?: string;
+          };
+        };
+      };
+      400: components["responses"]["ErrorResponse"];
+      401: components["responses"]["ErrorResponse"];
+      403: components["responses"]["ErrorResponse"];
+      404: components["responses"]["ErrorResponse"];
+      503: components["responses"]["ErrorResponse"];
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
+  /**
+   * Read one selected hostname revision for an enrolled physical recipient
+   * @description Requires the authenticated component's exact selected global full child and current expected set. Returns only the signed route, TLS ownership, or DNS zone inputs for this receiver. A staged offer alone is never a selection. Original authority expiry, persisted host fence, business intent and component ownership are checked independently. No state or receipt is written. Responses are private and not cacheable.
+   */
+  getPlatformConsumerHostedSelection: {
+    parameters: {
+      query: {
+        expected_consumer_set_id: string;
+      };
+      path: {
+        artifact_id: string;
+        hostname: string;
+      };
+    };
+    responses: {
+      /** @description Signed host decision for the exact enrolled receiver, not an application acknowledgment. */
+      200: {
+        content: {
+          "application/json": components["schemas"]["PlatformArtifact"];
+        };
+      };
+      400: components["responses"]["ErrorResponse"];
+      401: components["responses"]["ErrorResponse"];
+      403: components["responses"]["ErrorResponse"];
+      404: components["responses"]["ErrorResponse"];
+      503: components["responses"]["ErrorResponse"];
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
+  /**
+   * Record an enrolled executor's observations for the current host decision
+   * @description Acknowledges only this member's exact selected parts. DNS requires every signed query key over UDP and TCP from the serving backend; Worker route requires every path, and TLS requires the selected owner and a fresh verified SNI observation. A failed attempt invalidates this member's earlier success. Never publishes, renews the host lease, or credits global full. Maximum request body 2 MiB.
+   */
+  recordPlatformConsumerHostedReceipt: {
+    parameters: {
+      query: {
+        expected_consumer_set_id: string;
+      };
+      path: {
+        artifact_id: string;
+        hostname: string;
+      };
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["HostedMemberObservation"];
+      };
+    };
+    responses: {
+      /** @description Recorded for the still-current host decision; an exact duplicate does not renew evidence. */
+      204: {
+        content: never;
+      };
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
+  /**
    * Read a custom-domain certificate authorized by a serving cell publication
    * @description A verified Edge Worker identity can read one existing certificate only when its exact current gray or full cell assignment includes the signed TLS reference and locally owned route for that hostname. The exact serving publication requires its complete signed input closure and current verified local evidence before credentials can be disclosed. Cold, missing or changed dependencies return 503 without restoration, fallback or credential authority delegation. The expected set, authority, route/TLS parent, publication fence, tenant and app ownership are independently rechecked before disclosure. Shadow, foreign cells, stale assignments, unverified domains and missing certificates are denied. This read never issues certificates, modifies domain status, reports readiness or changes LKG. Responses are private and no-store.
    */
@@ -20046,7 +20284,7 @@ export interface operations {
       default: components["responses"]["ErrorResponse"];
     };
   };
-  /** Check whether the planned hostname routes match the verified global publication (platform admin) */
+  /** Check the selected publication and fresh physical evidence for the planned hostname routes (platform admin) */
   getProjectHostRoutePublicationStatus: {
     parameters: {
       query?: {
@@ -26700,6 +26938,37 @@ export interface operations {
       200: {
         content: {
           "application/json": components["schemas"]["BackupArtifactResponse"];
+        };
+      };
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
+  /**
+   * Preview or retire one recovered Longhorn backup artifact
+   * @description Platform administrators only. Applies only to protected recovered control-plane Longhorn backups from failed or canceled runs. Without a confirmation digest this is a read-only preview. Confirmation must match current eligibility and the reviewed replacement and operator restore evidence. Execution atomically marks the artifact deleted, releases its hold and records an audit event. This does not perform a restore, verify the operator's evidence contents, physically remove remote objects or purge the local source snapshot.
+   */
+  retireRecoveredBackupArtifact: {
+    parameters: {
+      path: {
+        id: components["parameters"]["IdPathParam"];
+      };
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["RecoveredBackupRetirementRequest"];
+      };
+    };
+    responses: {
+      /** @description Preview or committed logical retirement */
+      200: {
+        content: {
+          "application/json": components["schemas"]["RecoveredBackupRetirementResponse"];
+        };
+      };
+      /** @description Execution blocked; no retirement committed */
+      409: {
+        content: {
+          "application/json": components["schemas"]["RecoveredBackupRetirementResponse"] | components["schemas"]["ErrorResponse"];
         };
       };
       default: components["responses"]["ErrorResponse"];
