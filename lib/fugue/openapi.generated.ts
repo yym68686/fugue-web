@@ -749,13 +749,22 @@ export interface paths {
     get: operations["dnsTrafficOverrideFeed"];
   };
   "/v1/dns/acme-challenges": {
-    /** List DNS ACME Challenges */
+    /**
+     * List DNS ACME Challenges
+     * @description Platform administrators can list all records. A delegated certificate identity must select its exact authorized domain and sees only challenges for that certificate name.
+     */
     get: operations["listDNSACMEChallenges"];
-    /** Upsert DNS ACME Challenge */
+    /**
+     * Upsert DNS ACME Challenge
+     * @description Requires platform administration or an explicit dns.acme:<domain> grant for the exact certificate domain. General tenant DNS permissions cannot manage certificate challenges.
+     */
     post: operations["upsertDNSACMEChallenge"];
   };
   "/v1/dns/acme-challenges/{challenge_id}": {
-    /** Delete DNS ACME Challenge */
+    /**
+     * Delete DNS ACME Challenge
+     * @description Platform administrators may clean up any record. Delegated certificate identities may clean up records only for their exact authorized certificate names.
+     */
     delete: operations["deleteDNSACMEChallenge"];
   };
   "/v1/dns/zones": {
@@ -763,7 +772,7 @@ export interface paths {
     get: operations["listHostedDNSZones"];
     /**
      * Create Hosted DNS Zone
-     * @description Expected nameservers come from the signed intent and DNS authority policy references bound to the verified TrafficReleaseSet LKG. A new zone uses that release's explicit hosted-zone templates. Missing or invalid verified configuration returns 503 before creating a zone; environment nameservers cannot supply a fallback.
+     * @description Expected nameservers come from the signed intent and DNS authority policy references bound to the verified TrafficReleaseSet LKG. A new zone uses that release's explicit hosted-zone templates. Missing or invalid verified configuration returns 503 before creating a zone; environment nameservers cannot supply a fallback. Registration is idempotent within the same tenant and project; another owner receives 409. New tenant registrations must publish a TXT record at _fugue-ownership.<zone> containing the returned zone ID at the existing DNS provider, then run preflight before delegation.
      */
     post: operations["createHostedDNSZone"];
   };
@@ -2506,11 +2515,17 @@ export interface paths {
   "/v1/data/backends/{backend_id}": {
     /** Get Data Backend */
     get: operations["getDataBackend"];
-    /** Delete Data Backend */
+    /**
+     * Delete Data Backend
+     * @description Requires management authority over the resolved backend. Shared backends require platform administration. Default and referenced backends are protected.
+     */
     delete: operations["deleteDataBackend"];
   };
   "/v1/data/backends/{backend_id}/credentials": {
-    /** Rotate Data Backend Credentials */
+    /**
+     * Rotate Data Backend Credentials
+     * @description Requires management authority over the resolved backend. Only platform administrators may rotate shared backend credentials.
+     */
     post: operations["rotateDataBackendCredentials"];
   };
   "/v1/data/workspaces": {
@@ -6840,7 +6855,7 @@ export interface components {
       project_id?: string;
       zone_name: string;
       /** @enum {string} */
-      status: "pending_delegation" | "active" | "degraded" | "suspended" | "deleted";
+      status: "pending_ownership" | "pending_delegation" | "active" | "degraded" | "suspended" | "deleted";
       /** @enum {string} */
       delegation_status: "pending" | "ready" | "error";
       parent_nameservers?: string[];
@@ -19560,7 +19575,10 @@ export interface operations {
       default: components["responses"]["ErrorResponse"];
     };
   };
-  /** List DNS ACME Challenges */
+  /**
+   * List DNS ACME Challenges
+   * @description Platform administrators can list all records. A delegated certificate identity must select its exact authorized domain and sees only challenges for that certificate name.
+   */
   listDNSACMEChallenges: {
     parameters: {
       query?: {
@@ -19578,7 +19596,10 @@ export interface operations {
       default: components["responses"]["ErrorResponse"];
     };
   };
-  /** Upsert DNS ACME Challenge */
+  /**
+   * Upsert DNS ACME Challenge
+   * @description Requires platform administration or an explicit dns.acme:<domain> grant for the exact certificate domain. General tenant DNS permissions cannot manage certificate challenges.
+   */
   upsertDNSACMEChallenge: {
     requestBody: {
       content: {
@@ -19595,7 +19616,10 @@ export interface operations {
       default: components["responses"]["ErrorResponse"];
     };
   };
-  /** Delete DNS ACME Challenge */
+  /**
+   * Delete DNS ACME Challenge
+   * @description Platform administrators may clean up any record. Delegated certificate identities may clean up records only for their exact authorized certificate names.
+   */
   deleteDNSACMEChallenge: {
     parameters: {
       path: {
@@ -19626,7 +19650,7 @@ export interface operations {
   };
   /**
    * Create Hosted DNS Zone
-   * @description Expected nameservers come from the signed intent and DNS authority policy references bound to the verified TrafficReleaseSet LKG. A new zone uses that release's explicit hosted-zone templates. Missing or invalid verified configuration returns 503 before creating a zone; environment nameservers cannot supply a fallback.
+   * @description Expected nameservers come from the signed intent and DNS authority policy references bound to the verified TrafficReleaseSet LKG. A new zone uses that release's explicit hosted-zone templates. Missing or invalid verified configuration returns 503 before creating a zone; environment nameservers cannot supply a fallback. Registration is idempotent within the same tenant and project; another owner receives 409. New tenant registrations must publish a TXT record at _fugue-ownership.<zone> containing the returned zone ID at the existing DNS provider, then run preflight before delegation.
    */
   createHostedDNSZone: {
     requestBody: {
@@ -27712,7 +27736,10 @@ export interface operations {
       default: components["responses"]["ErrorResponse"];
     };
   };
-  /** Delete Data Backend */
+  /**
+   * Delete Data Backend
+   * @description Requires management authority over the resolved backend. Shared backends require platform administration. Default and referenced backends are protected.
+   */
   deleteDataBackend: {
     parameters: {
       path: {
@@ -27731,7 +27758,10 @@ export interface operations {
       default: components["responses"]["ErrorResponse"];
     };
   };
-  /** Rotate Data Backend Credentials */
+  /**
+   * Rotate Data Backend Credentials
+   * @description Requires management authority over the resolved backend. Only platform administrators may rotate shared backend credentials.
+   */
   rotateDataBackendCredentials: {
     parameters: {
       path: {
