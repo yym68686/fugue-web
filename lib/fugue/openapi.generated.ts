@@ -14723,6 +14723,13 @@ export interface components {
     PlatformDynamicQualityPolicy: {
       /** @enum {string} */
       mode: "all_dynamic";
+      /**
+       * @description Platform fleet ranking for the default answer when exact service evidence cannot rank the eligible nodes. Omission is shadow. Active mode may change only an automatic single-address order, not membership, readiness, or an explicit pin.
+       * @enum {string}
+       */
+      fleet_default?: "shadow" | "active";
+      /** @description Optional source-only scope for fleet default decisions. Omit to cover all eligible automatic hostnames. */
+      fleet_default_hosts?: string[];
       policy: components["schemas"]["PhysicalEdgeQualityPolicy"] & ({
         /** @enum {string} */
         version?: "physical-network-delivery-v4" | "physical-network-failure-aware-v5" | "physical-network-comparable-delivery-v6" | "physical-network-paired-continuity-v7";
