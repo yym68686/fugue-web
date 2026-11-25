@@ -19293,7 +19293,7 @@ export interface operations {
       };
     };
     responses: {
-      /** @description Signed host decision for the exact enrolled receiver, not an application acknowledgment. */
+      /** @description Signed host decision for the exact enrolled receiver, not an application acknowledgment. Legacy decisions use hosted_recipient_selection_v1. Decisions with an independently compiled member baseline use hosted_recipient_selection_v2; the receiver must understand this version and verify the precise predecessor before changing parents. Receipts never transfer between decisions. */
       200: {
         content: {
           "application/json": components["schemas"]["PlatformArtifact"];
