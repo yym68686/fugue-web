@@ -134,6 +134,9 @@ test("mobile service routes, secrets and files reflow with real content", async 
   await expect(panel.getByText("verify-this-long-domain-for-visual-regression.example.invalid", { exact: true })).toBeVisible();
   await panel.getByText("DNS TXT", { exact: true }).click();
   await expect(panel.getByText("synthetic-txt-value", { exact: true })).toBeVisible();
+  await expect(panel.getByLabel("More actions")).toBeInViewport();
+  await panel.getByLabel("More actions").click();
+  await expect(panel.getByRole("button", { name: "Verify", exact: true })).toBeInViewport();
   await noPageOverflow(page);
   await page.screenshot({ path: info.outputPath("390-service-route.png") });
 
@@ -154,7 +157,14 @@ test("mobile service routes, secrets and files reflow with real content", async 
   await expect(panel.locator("textarea")).toHaveValue(/visual-fixture/);
   await noPageOverflow(page);
   await page.screenshot({ path: info.outputPath("390-service-files.png") });
+  await panel.locator("textarea").fill("name = \"not-saved\"");
   await panel.getByRole("button", { name: "Back to files" }).click();
+  const warning = page.getByRole("dialog", { name: "Discard unsaved edits?" });
+  await expect(warning).toBeVisible();
+  await warning.getByRole("button", { name: "Cancel" }).click();
+  await expect(panel.locator("textarea")).toHaveValue(/not-saved/);
+  await panel.getByRole("button", { name: "Back to files" }).click();
+  await warning.getByRole("button", { name: "Discard edits" }).click();
   await expect(panel.getByRole("treeitem", { name: /config.toml/ })).toBeVisible();
 
   await page.getByRole("tab", { name: "Images", exact: true }).click();
@@ -162,6 +172,7 @@ test("mobile service routes, secrets and files reflow with real content", async 
   await noPageOverflow(page);
 
   await page.getByRole("tab", { name: "Observability", exact: true }).click();
+  await expect(panel.getByRole("button", { name: "24 hours" })).toBeVisible();
   await expect(panel.getByText("/long-audit-route/isolated-browser-fixture", { exact: true })).toBeVisible();
   await noPageOverflow(page);
   await page.screenshot({ path: info.outputPath("390-service-observability.png") });

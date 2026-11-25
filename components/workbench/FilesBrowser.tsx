@@ -365,6 +365,7 @@ function FileViewer({
   const [draft, setDraft] = useState("");
   const [dirty, setDirty] = useState(false);
   const [confirming, setConfirming] = useState(false);
+  const [discarding, setDiscarding] = useState(false);
 
   const fileUrl = useMemo(() => {
     const params = new URLSearchParams({ path });
@@ -390,6 +391,16 @@ function FileViewer({
       });
     return () => ctrl.abort();
   }, [fileUrl, t]);
+
+  useEffect(() => {
+    if (!dirty) return;
+    function warn(event: BeforeUnloadEvent) {
+      event.preventDefault();
+      event.returnValue = "";
+    }
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [dirty]);
 
   const isBinary = file?.encoding === "base64";
   const isTruncated = Boolean(file?.truncated);
@@ -432,7 +443,7 @@ function FileViewer({
               {t("Save")}
             </button>
           )}
-          <button type="button" className="btn ghost sm" onClick={onClose}>
+          <button type="button" className="btn ghost sm" onClick={() => dirty ? setDiscarding(true) : onClose()}>
             {t("Back to files")}
           </button>
         </div>
@@ -470,7 +481,7 @@ function FileViewer({
                   readOnly={!canEdit}
                   onChange={(e) => {
                     setDraft(e.target.value);
-                    setDirty(true);
+                    setDirty(e.target.value !== (file.content ?? ""));
                   }}
                 />
               </>
@@ -495,6 +506,14 @@ function FileViewer({
           onCancel={() => setConfirming(false)}
         />
       )}
+      {discarding && <ConfirmDialog
+        title={t("Discard unsaved edits?")}
+        body={<p><code>{path}</code></p>}
+        confirmLabel={t("Discard edits")}
+        danger
+        onCancel={() => setDiscarding(false)}
+        onConfirm={async () => { setDiscarding(false); onClose(); }}
+      />}
     </>
   );
 }

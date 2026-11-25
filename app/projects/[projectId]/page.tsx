@@ -150,7 +150,7 @@ export default async function ProjectDetailPage({
         </div>
 
         <details id={`project-overview-${detail.project_id}`} className="project-overview" open={!initialServiceId}>
-          <summary><h1>{projectName}</h1></summary>
+          <summary><h1><span className="project-overview-name">{projectName}</span><span className="project-overview-short">{t("Project overview")}</span></h1></summary>
           <div className="pstat">
           <div className="pstat-item">
             <span className="pstat-k">{t("Apps")}</span>

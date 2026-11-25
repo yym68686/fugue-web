@@ -236,6 +236,7 @@
 .project-overview { margin-bottom: var(--space-8); }
 .project-overview > summary { cursor: pointer; margin-bottom: var(--space-4); }
 .project-overview h1 { display: inline; font-size: 18px; font-weight: 600; overflow-wrap: anywhere; }
+.project-overview-short { display: none; }
 .project-overview .pstat { margin-bottom: var(--space-4); }
 .workbench-tabs.tabs { flex-wrap: wrap; gap: var(--space-1) var(--space-2); overflow: visible; border: 0; }
 .workbench-tabs .tab { color: var(--muted); font: 500 14px var(--sans); min-height: 44px; padding: var(--space-2); border: 0; border-radius: var(--radius-sm); white-space: normal; }
@@ -325,6 +326,8 @@ button.services-stat[aria-pressed="true"] .services-stat-label { text-decoration
 .domains-table td { min-width: 96px; }
 .domains-table td:first-child { min-width: 144px; }
 .domains-table summary { cursor: pointer; }
+.obs-toolbar { flex-wrap: wrap; gap: var(--space-2); }
+.obs-toolbar .inline-modes { flex: 1 1 236px; }
 
 @media (hover: hover) and (pointer: fine) {
   .intent-row:not(:hover):not(:focus-within) .intent-action:not([open]),
@@ -396,8 +399,21 @@ button.services-stat[aria-pressed="true"] .services-stat-label { text-decoration
   .billing-mobile-detail { display: block; }
   .server-card .server-resource-summary { grid-template-columns: minmax(0, 1fr); }
   .server-card .server-heading { flex-basis: calc(100% - 124px); }
+  .domains-table, .domains-table tbody { display: block; }
+  .domains-table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  .domains-table tbody tr { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, auto) auto; align-items: start; gap: var(--space-2); padding: var(--space-3) 0; border-top: 1px solid var(--line); }
+  .domains-table tbody td { min-width: 0; padding: 0; border: 0; }
+  .domains-table tbody td:first-child { grid-column: 1 / -1; min-width: 0; }
+  .domains-table .chip { white-space: normal; overflow-wrap: anywhere; }
+  .domains-table .domain-actions { white-space: normal; }
+  .domains-table .domain-actions .btn { max-width: 100%; overflow-wrap: anywhere; }
 }
 
+@media (max-width: 768px) {
+  .project-overview:has(+ .workbench-detail) .project-overview-name { display: none; }
+  .project-overview:has(+ .workbench-detail) .project-overview-short { display: inline; }
+  .project-overview:not([open]):has(+ .workbench-detail) { margin-bottom: var(--space-4); }
+}
 @media (max-width: 860px) {
   .fs-split:not(.fs-selected) .fs-main, .fs-split.fs-selected .fs-side { display: none; }
   .fs-split { display: block; min-height: 0; }

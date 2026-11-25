@@ -494,12 +494,14 @@ export function ObservabilityTab({ app }: { app: ConsoleAppDetail }) {
 
   return (
     <>
-      <div className="toolbar">
-        <div className="tabs" style={{ margin: 0 }}>
+      <div className="toolbar obs-toolbar">
+        <div className="inline-modes" role="group" aria-label={t("Time window")}>
           {WINDOWS.map((w) => (
             <button
               key={w.value}
-              className={`tab ${since === w.value ? "active" : ""}`}
+              type="button"
+              className="btn ghost"
+              aria-pressed={since === w.value}
               onClick={() => setSince(w.value)}
             >
               {t(w.label)}
@@ -508,7 +510,7 @@ export function ObservabilityTab({ app }: { app: ConsoleAppDetail }) {
         </div>
         {source && (
           <span className={`chip ${source.available ? "ok" : "warn"}`}>
-            {source.status || (source.available ? "available" : "disabled")}
+            {source.status ? t(source.status) : t(source.available ? "Available" : "Unavailable")}
           </span>
         )}
         <div className="toolbar-sp" />
