@@ -612,7 +612,7 @@ export interface paths {
   "/v1/platform-state/artifacts/{artifact_kind}": {
     /**
      * Pull Platform State Artifact
-     * @description By default messages is a bounded recent feed. Set include_current_rollback_message=true with channel=full to request the unique original rollback ledger entry of the selected active full release, independently of feed age or pagination. A missing entry is omitted; ambiguous evidence or a changed selection conflicts. This read does not verify serving or grant traffic authority.
+     * @description Requires platform administration or the explicitly delegated artifact.read scope. By default messages is a bounded recent feed. Set include_current_rollback_message=true with channel=full to request the unique original rollback ledger entry of the selected active full release, independently of feed age or pagination. A missing entry is omitted; ambiguous evidence or a changed selection conflicts. This read does not verify serving or grant traffic authority.
      */
     get: operations["getPlatformStateArtifact"];
   };
@@ -18990,7 +18990,7 @@ export interface operations {
   };
   /**
    * Pull Platform State Artifact
-   * @description By default messages is a bounded recent feed. Set include_current_rollback_message=true with channel=full to request the unique original rollback ledger entry of the selected active full release, independently of feed age or pagination. A missing entry is omitted; ambiguous evidence or a changed selection conflicts. This read does not verify serving or grant traffic authority.
+   * @description Requires platform administration or the explicitly delegated artifact.read scope. By default messages is a bounded recent feed. Set include_current_rollback_message=true with channel=full to request the unique original rollback ledger entry of the selected active full release, independently of feed age or pagination. A missing entry is omitted; ambiguous evidence or a changed selection conflicts. This read does not verify serving or grant traffic authority.
    */
   getPlatformStateArtifact: {
     parameters: {
