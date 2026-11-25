@@ -324,6 +324,10 @@ export async function claimBillingTopupForCompletion(
 
     const current = toTopupRecord(row);
 
+    if ((current.checkoutId && current.checkoutId !== next.checkoutId) ||
+        (current.orderId && current.orderId !== next.orderId)) {
+      throw new Error("Payment provider IDs do not match the stored checkout.");
+    }
     if (row.status === "completed") {
       return { state: "completed", topup: current };
     }
@@ -332,7 +336,7 @@ export async function claimBillingTopupForCompletion(
       return { state: "failed", topup: current };
     }
 
-    if (row.status === "processing") {
+    if (row.status === "processing" && Date.now() - new Date(row.updated_at).getTime() < 300_000) {
       return { state: "processing", topup: current };
     }
 

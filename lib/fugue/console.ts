@@ -1767,29 +1767,14 @@ export async function getBillingSummary(
   return data.billing;
 }
 
-/**
- * Update the tenant's managed resource cap. `storage_gibibytes` is only sent
- * when provided, so we never overwrite the backend's storage default when the
- * caller isn't managing storage.
- */
-export async function updateBillingCap(
-  adminKey: string,
-  cap: BillingResourceSpec,
-): Promise<BillingSummary> {
-  const managed_cap: BillingResourceSpec = {
-    cpu_millicores: cap.cpu_millicores ?? 0,
-    memory_mebibytes: cap.memory_mebibytes ?? 0,
-  };
-  if (cap.storage_gibibytes !== undefined) {
-    managed_cap.storage_gibibytes = cap.storage_gibibytes;
-  }
-  const data = await fugueSend<{ billing: BillingSummary }>(
-    adminKey,
-    "PATCH",
-    "/v1/billing",
-    { managed_cap },
+
+
+export async function setWorkspaceControlPlaneHold(tenantId: string, held: boolean) {
+  const result = await fugueSend<{ tenant_id: string; held: boolean }>(
+    readBootstrapKey(), "PUT", `/v1/tenants/${encodeURIComponent(tenantId)}/access-hold`,
+    { held }, { signal: AbortSignal.timeout(5000) },
   );
-  return data.billing;
+  if (result.tenant_id !== tenantId || result.held !== held) throw new Error("Workspace access hold was not acknowledged.");
 }
 
 /**
@@ -1801,7 +1786,7 @@ export async function updateBillingCap(
  */
 export async function topUpTenantBilling(
   tenantId: string,
-  payload: { amountCents: number; note?: string },
+  payload: { amountCents: number; note?: string; paymentReference: string },
 ): Promise<BillingSummary> {
   const data = await fugueSend<{ billing: BillingSummary }>(
     readBootstrapKey(),
@@ -1810,6 +1795,7 @@ export async function topUpTenantBilling(
     {
       tenant_id: tenantId,
       amount_cents: payload.amountCents,
+      payment_reference: payload.paymentReference,
       ...(payload.note ? { note: payload.note } : {}),
     },
   );

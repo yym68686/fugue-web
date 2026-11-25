@@ -823,6 +823,10 @@ export interface paths {
     /** Create Tenant */
     post: operations["createTenant"];
   };
+  "/v1/tenants/{id}/access-hold": {
+    /** Set or release an incident access hold for one workspace (platform administrator) */
+    put: operations["setTenantAccessHold"];
+  };
   "/v1/tenants/{id}": {
     /** Delete Tenant */
     delete: operations["deleteTenant"];
@@ -935,7 +939,7 @@ export interface paths {
   "/v1/billing": {
     /** Get Billing */
     get: operations["getBilling"];
-    /** Update Billing */
+    /** Update managed capacity limits (platform administrator) */
     patch: operations["updateBilling"];
   };
   "/v1/billing/balance": {
@@ -943,7 +947,7 @@ export interface paths {
     patch: operations["setBillingBalance"];
   };
   "/v1/billing/top-ups": {
-    /** Top Up Billing */
+    /** Credit a verified payment or administrative adjustment (platform administrator) */
     post: operations["topUpBilling"];
   };
   "/v1/api-keys": {
@@ -983,7 +987,7 @@ export interface paths {
   "/v1/node-keys": {
     /** List Node Keys */
     get: operations["listNodeKeys"];
-    /** Create Node Key */
+    /** Create a tenant runtime key or a platform administrator's unscoped platform-node key */
     post: operations["createNodeKey"];
   };
   "/v1/node-keys/{id}/usages": {
@@ -1775,7 +1779,7 @@ export interface paths {
     get: operations["diagnoseAppSSH"];
   };
   "/v1/apps/{id}/database/query": {
-    /** Query App Database */
+    /** Query the managed database authorized by the application's recorded binding */
     post: operations["queryAppDatabase"];
   };
   "/v1/apps/{id}/database/import": {
@@ -1802,7 +1806,10 @@ export interface paths {
     delete: operations["revokeAppDatabaseAccessGrant"];
   };
   "/v1/apps/{id}/database/access/{grant_id}/tunnel": {
-    /** Connect App Database Access Tunnel */
+    /**
+     * Connect App Database Access Tunnel
+     * @description Only the managed database currently authorized by the app's service binding is reachable.
+     */
     get: operations["connectAppDatabaseAccessTunnel"];
   };
   "/v1/apps/{id}/request": {
@@ -10136,6 +10143,8 @@ export interface components {
       note?: string;
     };
     TopUpBillingRequest: {
+      /** @description Stable payment identity for idempotent settlement across callback retries. */
+      payment_reference?: string;
       tenant_id?: string;
       /** Format: int64 */
       amount_cents: number;
@@ -19914,6 +19923,33 @@ export interface operations {
       default: components["responses"]["ErrorResponse"];
     };
   };
+  /** Set or release an incident access hold for one workspace (platform administrator) */
+  setTenantAccessHold: {
+    parameters: {
+      path: {
+        id: components["parameters"]["IdPathParam"];
+      };
+    };
+    requestBody: {
+      content: {
+        "application/json": {
+          held: boolean;
+        };
+      };
+    };
+    responses: {
+      /** @description Effective control-plane access hold */
+      200: {
+        content: {
+          "application/json": {
+            held: boolean;
+            tenant_id: string;
+          };
+        };
+      };
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
   /** Delete Tenant */
   deleteTenant: {
     parameters: {
@@ -20469,7 +20505,7 @@ export interface operations {
       default: components["responses"]["ErrorResponse"];
     };
   };
-  /** Update Billing */
+  /** Update managed capacity limits (platform administrator) */
   updateBilling: {
     requestBody?: {
       content: {
@@ -20503,7 +20539,7 @@ export interface operations {
       default: components["responses"]["ErrorResponse"];
     };
   };
-  /** Top Up Billing */
+  /** Credit a verified payment or administrative adjustment (platform administrator) */
   topUpBilling: {
     requestBody?: {
       content: {
@@ -20702,7 +20738,7 @@ export interface operations {
       default: components["responses"]["ErrorResponse"];
     };
   };
-  /** Create Node Key */
+  /** Create a tenant runtime key or a platform administrator's unscoped platform-node key */
   createNodeKey: {
     requestBody?: {
       content: {
@@ -24425,7 +24461,7 @@ export interface operations {
       default: components["responses"]["ErrorResponse"];
     };
   };
-  /** Query App Database */
+  /** Query the managed database authorized by the application's recorded binding */
   queryAppDatabase: {
     parameters: {
       path: {
@@ -24616,7 +24652,10 @@ export interface operations {
       default: components["responses"]["ErrorResponse"];
     };
   };
-  /** Connect App Database Access Tunnel */
+  /**
+   * Connect App Database Access Tunnel
+   * @description Only the managed database currently authorized by the app's service binding is reachable.
+   */
   connectAppDatabaseAccessTunnel: {
     parameters: {
       query: {

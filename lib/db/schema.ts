@@ -7,7 +7,7 @@ declare global {
   var __fugueDbSchemaVersion: string | undefined;
 }
 
-export const SCHEMA_VERSION = "2026-11-19-integration-credentials";
+export const SCHEMA_VERSION = "2026-11-26-workspace-access-holds";
 
 const SCHEMA_SQL = `
 CREATE TABLE IF NOT EXISTS app_integration_credentials (
@@ -195,6 +195,17 @@ CREATE TABLE IF NOT EXISTS app_workspaces (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+CREATE TABLE IF NOT EXISTS app_workspace_access_holds (
+  tenant_id TEXT PRIMARY KEY REFERENCES app_workspaces(tenant_id) ON DELETE CASCADE,
+  held BOOLEAN NOT NULL,
+  applied BOOLEAN NOT NULL DEFAULT FALSE,
+  retry_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+INSERT INTO app_workspace_access_holds (tenant_id, held)
+  SELECT w.tenant_id, TRUE FROM app_workspaces w JOIN app_users u ON u.email=w.user_email
+  WHERE u.status='blocked' AND NOT u.is_admin
+  ON CONFLICT (tenant_id) DO NOTHING;
 
 CREATE TABLE IF NOT EXISTS app_api_keys (
   fugue_key_id TEXT PRIMARY KEY,

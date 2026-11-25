@@ -6,6 +6,8 @@ export async function register() {
     // A database outage must not block Web startup. The normal request path
     // retains its error handling while connection warm-up is best effort.
     void warmDbPool();
+    const { startWorkspaceHoldWorker } = await import("@/lib/workspace/access-holds");
+    startWorkspaceHoldWorker();
     const { startGitHubAppWorker } = await import("@/lib/github/app-worker");
     startGitHubAppWorker();
   }

@@ -414,6 +414,9 @@ export async function processCreemWebhookRequest(
 
   const creemEnv = getCreemEnv();
 
+  if (!checkoutId || !orderId) {
+    throw readStatusError(422, "Completed payment is missing its checkout or order ID.");
+  }
   if (!productId || productId !== creemEnv.productId) {
     await markBillingTopupFailed(requestId, {
       checkoutId,
@@ -522,7 +525,9 @@ export async function processCreemWebhookRequest(
     throw readStatusError(409, "Top-up is already being processed.");
   }
 
-  if (amountCents !== null && amountCents !== claim.topup.amountCents) {
+  if (amountCents !== claim.topup.amountCents ||
+      metadata.tenantId !== claim.topup.tenantId ||
+      metadata.userEmail !== claim.topup.userEmail) {
     await markBillingTopupFailed(requestId, {
       checkoutId,
       currency,
@@ -547,6 +552,7 @@ export async function processCreemWebhookRequest(
 
   try {
     await topUpTenantBilling(claim.topup.tenantId, {
+      paymentReference: `creem:${claim.topup.requestId}`,
       amountCents: claim.topup.amountCents,
       note: buildTopupNote({
         ...claim.topup,

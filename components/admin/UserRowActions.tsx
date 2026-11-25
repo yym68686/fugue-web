@@ -364,7 +364,7 @@ export default function UserRowActions({
             <div className="modal-b">
               <p style={{ margin: 0 }}>
                 {t(
-                  "Ban “{label}”? They will be signed out immediately and cannot sign in until unbanned.",
+                  "Ban “{label}”? Active sessions will end. Their workspace credentials and managed app deployments will be suspended.",
                   { label },
                 )}
               </p>

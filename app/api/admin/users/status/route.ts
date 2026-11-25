@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { requireAdminRoute } from "@/lib/admin/route";
 import { setAppUserStatus } from "@/lib/app-users/store";
+import { deliverWorkspaceHold } from "@/lib/workspace/access-holds";
 import {
   jsonError,
   readErrorMessage,
@@ -10,9 +11,8 @@ import {
 } from "@/lib/fugue/product-route";
 
 /**
- * Ban / unban a user. Local-only: flips app_users.status between 'active' and
- * 'blocked' (and bumps session_version to force re-auth). The store guards
- * against blocking admins and restoring deleted users. Platform-admin only.
+ * Save the Web session revocation and workspace hold intent atomically.
+ * The worker retries control-plane delivery after outages.
  */
 export async function POST(request: Request) {
   const auth = await requireAdminRoute();
@@ -35,6 +35,9 @@ export async function POST(request: Request) {
     const updated = await setAppUserStatus(email, status, {
       actorEmail: auth.session.email,
     });
+    if (!await deliverWorkspaceHold(updated.email)) {
+      return jsonError(503, "Web account status saved. Control-plane access update is pending and will retry.");
+    }
     return NextResponse.json({
       ok: true,
       result: { email: updated.email, status: updated.status },

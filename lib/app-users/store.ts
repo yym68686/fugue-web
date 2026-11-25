@@ -879,6 +879,13 @@ export async function setAppUserStatus(
       throw new Error("400 Deleted users cannot be restored.");
     }
 
+    if (nextStatus === "blocked" || (current.status === "blocked" && nextStatus === "active")) {
+      await client.query(`INSERT INTO app_workspace_access_holds(tenant_id,held)
+        SELECT tenant_id,$2 FROM app_workspaces WHERE user_email=$1
+        ON CONFLICT (tenant_id) DO UPDATE SET held=EXCLUDED.held,applied=FALSE,retry_at=NOW()
+        WHERE app_workspace_access_holds.held IS DISTINCT FROM EXCLUDED.held`,
+        [normalizedEmail, nextStatus === "blocked"]);
+    }
     if (current.status === nextStatus) {
       return current;
     }

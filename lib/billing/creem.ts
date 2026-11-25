@@ -129,20 +129,8 @@ export function extractCreemProductId(object: CreemObject) {
 }
 
 function parseInteger(value: unknown) {
-  if (
-    typeof value === "number" &&
-    Number.isFinite(value) &&
-    Number.isInteger(value)
-  ) {
-    return value;
-  }
-
-  if (typeof value === "string" && value.trim()) {
-    const parsed = Number.parseInt(value.trim(), 10);
-    return Number.isFinite(parsed) ? parsed : null;
-  }
-
-  return null;
+  const cents = typeof value === "string" && /^\d+$/.test(value.trim()) ? Number(value) : value;
+  return typeof cents === "number" && Number.isSafeInteger(cents) && cents >= 0 ? cents : null;
 }
 
 export function extractCreemAmountTotalCents(object: CreemObject) {
@@ -150,9 +138,9 @@ export function extractCreemAmountTotalCents(object: CreemObject) {
   const order = asObject(object.order);
 
   return (
-    parseInteger(object.amount_total) ??
     parseInteger(transaction?.amount_paid) ??
-    parseInteger(order?.amount_paid)
+    parseInteger(order?.amount_paid) ??
+    parseInteger(object.amount_total)
   );
 }
 

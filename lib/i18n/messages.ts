@@ -1180,8 +1180,8 @@ export const zhCN = {
   "Managed cap for {label}.": "{label} 的托管资源上限。",
   "Set the prepaid balance for {label}. This overwrites the current balance.":
     "设置 {label} 的预付余额。此操作将覆盖当前余额。",
-  "Ban “{label}”? They will be signed out immediately and cannot sign in until unbanned.":
-    "确认封禁「{label}」？该用户将立即退出登录，且在解封前无法再次登录。",
+  "Ban “{label}”? Active sessions will end. Their workspace credentials and managed app deployments will be suspended.":
+    "确认封禁「{label}」？该用户将立即退出登录，其工作区凭证和托管应用也将暂停使用。",
 
   // --- billing ---
   Completed: "已完成",

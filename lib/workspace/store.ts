@@ -806,6 +806,11 @@ export async function saveWorkspaceAccess(record: WorkspaceAccess) {
   return withDbTransaction(async (client) => {
     await ensureUserStub(client, normalizedEmail);
 
+    // Serialize provisioning with a concurrent admin ban on the same account.
+    const owner = await client.query<{ status: string }>(
+      "SELECT status FROM app_users WHERE email = $1 FOR UPDATE",
+      [normalizedEmail],
+    );
     const result = await client.query<WorkspaceRow>(
       `
         INSERT INTO app_workspaces (
@@ -883,6 +888,13 @@ export async function saveWorkspaceAccess(record: WorkspaceAccess) {
       ],
     );
 
+    if (owner.rows[0]?.status !== "active") {
+      await client.query(
+        `INSERT INTO app_workspace_access_holds (tenant_id, held) VALUES ($1, TRUE)
+         ON CONFLICT (tenant_id) DO UPDATE SET held = TRUE, applied = FALSE, retry_at = NOW()`,
+        [record.tenantId],
+      );
+    }
     await upsertWorkspaceAdminKey(client, {
       ...record,
       createdAt,
