@@ -7,6 +7,8 @@ const ERROR_MESSAGES: Record<string, string> = {
   "invalid-credentials": "Incorrect email or password.",
   "invalid-token":
     "This sign-in link is invalid or has expired. Please request a new one.",
+  "signup-browser-required":
+    "Open this link in the browser you used to sign up, or start a new registration.",
   "session-open-failed": "Couldn't open a session. Please try again.",
   "handoff-failed": "Sign-in couldn't be completed. Please try again.",
   "auth-required": "Please sign in to continue.",

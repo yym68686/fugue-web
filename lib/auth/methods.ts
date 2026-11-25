@@ -8,11 +8,6 @@ import { writeSecurityAuditEvent } from "@/lib/security/audit";
 
 export type AuthMethodKind = "email_link" | "password" | "google" | "github";
 
-export type PasswordRegistrationResult = {
-  created: boolean;
-  sessionVersion: number | null;
-};
-
 type AuthMethodRow = {
   created_at: Date | string;
   method: string;
@@ -384,61 +379,81 @@ export async function getPasswordHashByEmail(email: string) {
   return readOptionalString(result.rows[0]?.secret_hash);
 }
 
-/**
- * Atomically creates a non-admin password account and its first auth method.
- * Existing identities are deliberately left untouched so public registration
- * can return the same response without becoming an account-takeover path.
- */
-export async function registerPasswordAuthMethod(input: {
+export async function stagePasswordRegistration(input: {
+  id: string;
   email: string;
-  name?: string | null;
+  name: string;
   passwordHash: string;
-}): Promise<PasswordRegistrationResult> {
+  browserHash: string;
+  maxAgeSeconds: number;
+}) {
   await ensureDbSchema();
+  await queryDb(`
+    WITH expired AS (
+      SELECT id FROM app_pending_password_registrations
+      WHERE expires_at <= NOW()
+      ORDER BY expires_at
+      LIMIT 200 FOR UPDATE SKIP LOCKED
+    ), prune AS (
+      DELETE FROM app_pending_password_registrations p
+      USING expired WHERE p.id = expired.id
+    )
+    INSERT INTO app_pending_password_registrations (id, email, name, password_hash, browser_hash, expires_at)
+    VALUES ($1, $2, $3, $4, $5, NOW() + $6::int * INTERVAL '1 second')
+  `, [input.id, normalizeEmail(input.email), input.name || null, input.passwordHash,
+    input.browserHash, input.maxAgeSeconds]);
+}
 
+export async function discardPasswordRegistration(id: string) {
+  await queryDb("DELETE FROM app_pending_password_registrations WHERE id = $1", [id]);
+}
+
+// The matching pending row is a one-use claim. Account activation and
+// installing this exact password either commit together or neither does.
+export async function completePasswordRegistration(input: {
+  id: string;
+  email: string;
+  browserHash: string;
+}) {
+  await ensureDbSchema();
   return withDbTransaction(async (client) => {
     const normalizedEmail = normalizeEmail(input.email);
-    const name = readOptionalString(input.name)?.slice(0, 80) ?? null;
-    const now = new Date().toISOString();
-    const inserted = await client.query<{ session_version: number | string }>(
+    const claim = await client.query<{ name: string | null; password_hash: string }>(
       `
-        INSERT INTO app_users (
-          email,
-          name,
-          picture_url,
-          provider,
-          provider_id,
-          verified,
-          status,
-          last_login_at,
-          created_at,
-          updated_at
-        )
-        VALUES ($1, $2, NULL, 'email', NULL, FALSE, 'active', NULL, $3, $3)
-        ON CONFLICT (email) DO NOTHING
-        RETURNING session_version
+        DELETE FROM app_pending_password_registrations
+        WHERE id = $1 AND email = $2 AND browser_hash = $3 AND expires_at > NOW()
+        RETURNING name, password_hash
       `,
-      [normalizedEmail, name, now],
+      [input.id, normalizedEmail, input.browserHash],
     );
-    const rawSessionVersion = inserted.rows[0]?.session_version;
+    const attempt = claim.rows[0];
+    if (!attempt) return null;
 
-    if (rawSessionVersion === undefined) {
-      return { created: false, sessionVersion: null };
-    }
-
-    const sessionVersion =
-      typeof rawSessionVersion === "number"
-        ? rawSessionVersion
-        : Number.parseInt(rawSessionVersion, 10);
-
-    if (!Number.isSafeInteger(sessionVersion) || sessionVersion < 1) {
-      throw new Error("500 Invalid password registration session version.");
-    }
+    // Only a new account or an active, never-verified legacy signup qualifies.
+    // In particular, don't change a verified, blocked, deleted, or privileged user.
+    const activated = await client.query(
+      `
+        INSERT INTO app_users (email, name, provider, verified, status)
+        VALUES ($1, $2, 'email', TRUE, 'active')
+        ON CONFLICT (email) DO UPDATE
+        SET name = EXCLUDED.name, verified = TRUE, updated_at = NOW()
+        WHERE NOT app_users.verified AND app_users.status = 'active'
+          AND app_users.provider = 'email' AND NOT app_users.is_admin
+          AND app_users.last_login_at IS NULL
+        RETURNING email
+      `,
+      [normalizedEmail, attempt.name],
+    );
+    if (!activated.rowCount) return null;
 
     await upsertAuthMethodRow(client, {
       email: normalizedEmail,
       method: "password",
-      secretHash: input.passwordHash,
+      secretHash: attempt.password_hash,
+    });
+    await upsertAuthMethodRow(client, {
+      email: normalizedEmail,
+      method: "email_link",
     });
     await writeSecurityAuditEvent(client, {
       action: "user.password.registered",
@@ -449,7 +464,7 @@ export async function registerPasswordAuthMethod(input: {
       },
     });
 
-    return { created: true, sessionVersion };
+    return { name: attempt.name };
   });
 }
 

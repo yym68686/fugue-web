@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { AuthPanel } from "@/components/auth/auth-panel";
 import { AuthShell } from "@/components/auth/auth-shell";
 import { readAuthErrorMessage } from "@/lib/auth/error-messages";
+import { readConfiguredCanonicalOrigin } from "@/lib/auth/origin";
 import { sanitizeReturnTo } from "@/lib/auth/validation";
 import { getRequestI18n } from "@/lib/i18n/server";
 
@@ -27,6 +28,7 @@ export default async function SignUpPage({
     <AuthShell>
       <AuthPanel
         mode="sign-up"
+        signUpOrigin={readConfiguredCanonicalOrigin() ?? undefined}
         returnTo={returnTo}
         initialError={errorKey ? t(errorKey) : undefined}
       />

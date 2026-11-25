@@ -1,6 +1,6 @@
 "use client";
 
-import { type FormEvent, useRef, useState } from "react";
+import { type FormEvent, useEffect, useRef, useState } from "react";
 
 import {
   checkPasswordPolicy,
@@ -78,10 +78,12 @@ export function AuthPanel({
   initialError,
   mode,
   returnTo,
+  signUpOrigin,
 }: {
   initialError?: string;
   mode: AuthMode;
   returnTo: string;
+  signUpOrigin?: string;
 }) {
   const t = useT();
   const requestInFlightRef = useRef(false);
@@ -95,6 +97,16 @@ export function AuthPanel({
   const [notice, setNotice] = useState<string | null>(null);
 
   const isSignUp = mode === "sign-up";
+
+  useEffect(() => {
+    if (isSignUp && signUpOrigin && window.location.origin !== signUpOrigin) {
+      // The verification link and its host-only browser proof must share the
+      // same public origin. Keep links to the sign-up page on aliases usable.
+      const url = new URL("/auth/sign-up", signUpOrigin);
+      url.searchParams.set("returnTo", returnTo);
+      window.location.replace(url);
+    }
+  }, [isSignUp, returnTo, signUpOrigin]);
 
   function startOAuth(provider: "github" | "google") {
     if (requestInFlightRef.current) return;
@@ -148,14 +160,13 @@ export function AuthPanel({
         window.location.assign(result.redirectTo);
         return;
       }
-      // Sign-up answers 202 with no redirect: the account exists but has no
-      // session until the emailed link is opened. Navigating to returnTo would
-      // bounce off the session guard and drop this instruction, so show it here.
+      // The request is pending until the verification link is opened.
       if (isSignUp) {
         setNotice(
-          result.message
+          (result.message
             ? translateServerMessage(result.message, t)
-            : t("Verification email sent. Check your inbox to finish signing in."),
+            : t("Verification email sent. Check your inbox to finish signing in.")) +
+          " " + t("Open the verification link in the same browser you used to sign up."),
         );
         setPassword("");
         setConfirmPassword("");

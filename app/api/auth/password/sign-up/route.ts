@@ -1,10 +1,15 @@
-import { randomUUID } from "node:crypto";
-
 import { NextResponse } from "next/server";
 
 import { sendVerificationEmail } from "@/lib/auth/email";
-import { registerPasswordAuthMethod } from "@/lib/auth/methods";
+import { discardPasswordRegistration, stagePasswordRegistration } from "@/lib/auth/methods";
 import { buildOriginUrl, readRequestOrigin } from "@/lib/auth/origin";
+import {
+  hashRegistrationBrowserSecret,
+  newPasswordRegistrationProof,
+  passwordRegistrationCookie,
+  PASSWORD_REGISTRATION_MAX_AGE,
+  PASSWORD_VERIFICATION_PATH,
+} from "@/lib/auth/password-registration-proof";
 import { hashPassword, validatePassword } from "@/lib/auth/password";
 import { enforceAuthRateLimit } from "@/lib/auth/rate-limit";
 import {
@@ -69,6 +74,12 @@ function jsonError(message: string, status: number) {
 
 export async function POST(request: Request) {
   const requestOrigin = readRequestOrigin(request);
+  // A different site must not initiate a password registration and set its
+  // browser proof in the mailbox owner's browser via a cross-origin form.
+  const fetchSite = request.headers.get("sec-fetch-site");
+  if (request.headers.get("origin") !== requestOrigin || (fetchSite && fetchSite !== "same-origin")) {
+    return jsonError("Open the Fugue sign-up page to register.", 403);
+  }
   let payload: RequestPayload;
 
   try {
@@ -114,14 +125,21 @@ export async function POST(request: Request) {
     return jsonError("Passwords do not match.", 400);
   }
 
-  let registration: Awaited<ReturnType<typeof registerPasswordAuthMethod>>;
+  const { id, browserSecret } = newPasswordRegistrationProof();
+  const token = signToken(
+    { type: "password-signup", jti: id, email, origin: requestOrigin, returnTo },
+    PASSWORD_REGISTRATION_MAX_AGE,
+  );
 
   try {
     const passwordHash = await hashPassword(password);
-    registration = await registerPasswordAuthMethod({
+    await stagePasswordRegistration({
+      id,
       email,
       name,
       passwordHash,
+      browserHash: hashRegistrationBrowserSecret(browserSecret),
+      maxAgeSeconds: PASSWORD_REGISTRATION_MAX_AGE,
     });
   } catch (error) {
     console.error("Password registration failed.", {
@@ -130,30 +148,22 @@ export async function POST(request: Request) {
     return jsonError("Account registration is temporarily unavailable.", 503);
   }
 
-  const token = signToken(
-    {
-      type: "email-verify",
-      jti: randomUUID(),
-      email,
-      mode: "signup",
-      ...(registration.created && name ? { name } : {}),
-      origin: requestOrigin,
-      returnTo,
-    },
-    60 * 15,
-  );
-  const verifyUrl = buildOriginUrl(requestOrigin, "/api/auth/email/verify");
+  const verifyUrl = buildOriginUrl(requestOrigin, PASSWORD_VERIFICATION_PATH);
   verifyUrl.searchParams.set("token", token);
 
   try {
     await sendVerificationEmail({
       email,
       mode: "signup",
-      name: registration.created ? name || undefined : undefined,
+      requiresSignupBrowser: true,
       verifyUrl: verifyUrl.toString(),
     });
     logAuthEmailDeliverySuccess({ flow: "password-signup" });
   } catch (error) {
+    await discardPasswordRegistration(id).catch(() => {
+      // Still expires even if the database is unavailable during cleanup.
+      console.warn("Failed to discard a pending password registration.");
+    });
     logAuthEmailDeliveryFailure({
       category: error instanceof Error ? error.name : "unknown",
       flow: "password-signup",
@@ -167,8 +177,13 @@ export async function POST(request: Request) {
     );
   }
 
-  return NextResponse.json(
+  const response = NextResponse.json(
     { ok: true, message: GENERIC_SIGN_UP_MESSAGE },
     { status: 202, headers: { "Cache-Control": "no-store" } },
   );
+  response.cookies.set({
+    ...passwordRegistrationCookie(id, requestOrigin.startsWith("https://")),
+    value: browserSecret,
+  });
+  return response;
 }

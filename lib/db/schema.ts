@@ -7,7 +7,7 @@ declare global {
   var __fugueDbSchemaVersion: string | undefined;
 }
 
-export const SCHEMA_VERSION = "2026-11-26-workspace-access-holds";
+export const SCHEMA_VERSION = "2026-11-26-password-registration-proof";
 
 const SCHEMA_SQL = `
 CREATE TABLE IF NOT EXISTS app_integration_credentials (
@@ -134,6 +134,44 @@ CREATE TABLE IF NOT EXISTS app_auth_methods (
     method IN ('email_link', 'password', 'google', 'github')
   )
 );
+
+CREATE TABLE IF NOT EXISTS app_pending_password_registrations (
+  id UUID PRIMARY KEY,
+  email TEXT NOT NULL,
+  name TEXT,
+  password_hash TEXT NOT NULL,
+  browser_hash TEXT NOT NULL,
+  expires_at TIMESTAMPTZ NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_app_pending_password_registrations_expiry
+  ON app_pending_password_registrations (expires_at);
+
+-- Legacy versions stored a password on an unverified user. Activation by
+-- any provider (including during a rolling deploy or rollback) must never
+-- inherit that password. The new signup flow adds its verified password
+-- after this transition, inside the same transaction.
+CREATE OR REPLACE FUNCTION discard_unverified_app_user_password()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  DELETE FROM app_auth_methods WHERE user_email = OLD.email AND method = 'password';
+  RETURN NEW;
+END;
+$$;
+
+DO $$
+BEGIN
+  CREATE TRIGGER trg_discard_unverified_app_user_password
+  BEFORE UPDATE OF verified ON app_users
+  FOR EACH ROW
+  WHEN (NOT OLD.verified AND NEW.verified)
+  EXECUTE FUNCTION discard_unverified_app_user_password();
+EXCEPTION
+  WHEN duplicate_object THEN NULL;
+END;
+$$;
 
 CREATE TABLE IF NOT EXISTS app_auth_oauth_transactions (
   id TEXT PRIMARY KEY,

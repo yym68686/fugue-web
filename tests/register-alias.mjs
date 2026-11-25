@@ -26,6 +26,10 @@ function firstExisting(basePath) {
 }
 
 export function resolve(specifier, context, nextResolve) {
+  if (specifier === "next/server") {
+    return nextResolve("next/server.js", context);
+  }
+
   if (specifier === "server-only") {
     return { format: "module", shortCircuit: true, url: SERVER_ONLY_STUB };
   }

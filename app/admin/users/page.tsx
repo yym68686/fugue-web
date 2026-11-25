@@ -2,7 +2,7 @@ import { queryDb } from '@/lib/db/pool';
 import { withPageTiming } from '@/lib/server/with-page-timing';
 import AppLayout from '@/components/AppLayout';
 import UserRowActions from '@/components/admin/UserRowActions';
-import { AdminUser } from '@/lib/types';
+import { listAppUsers } from '@/lib/app-users/store';
 import { requireActiveAdminPageSession } from '@/lib/auth/page-access';
 import { getRequestI18n } from '@/lib/i18n/server';
 import type { TranslateFn } from '@/lib/i18n/translate';
@@ -16,19 +16,6 @@ export const dynamic = 'force-dynamic';
 
 const MICRO_CENTS_PER_DOLLAR = 100_000_000;
 
-
-async function getUsers(): Promise<AdminUser[]> {
-  const result = await queryDb<AdminUser>(`
-    SELECT email, name, picture_url, provider, verified, is_admin,
-           status, last_login_at, created_at
-    FROM app_users
-    ORDER BY
-      CASE WHEN is_admin THEN 0 ELSE 1 END,
-      CASE status WHEN 'active' THEN 0 WHEN 'blocked' THEN 1 ELSE 2 END,
-      COALESCE(last_login_at, created_at) DESC
-  `);
-  return result.rows;
-}
 
 type TopupRow = { user_email: string; total_cents: string | number };
 
@@ -62,7 +49,7 @@ const statusLabel: Record<string, string> = {
   deleted: 'Deleted',
 };
 
-function relTime(d: Date | null, t: TranslateFn): string {
+function relTime(d: string | null, t: TranslateFn): string {
   if (!d) return t('Never signed in');
   const diff = Date.now() - new Date(d).getTime();
   const mins = Math.floor(diff / 60000);
@@ -99,7 +86,7 @@ export default withPageTiming('/admin/users', async function AdminUsersPage() {
   const { t } = await getRequestI18n();
 
   const [users, topups, snapshots] = await Promise.all([
-    getUsers(),
+    listAppUsers(),
     getTopupTotals(),
     listWorkspaceSnapshots(),
   ]);
@@ -120,7 +107,7 @@ export default withPageTiming('/admin/users', async function AdminUsersPage() {
     if (missingTenants.has(tenantId)) tenantByEmail.delete(email);
   }
 
-  const adminCount = users.filter((u) => u.is_admin).length;
+  const adminCount = users.filter((u) => u.isAdmin).length;
   const activeCount = users.filter((u) => u.status === 'active').length;
 
   return (
@@ -175,7 +162,7 @@ export default withPageTiming('/admin/users', async function AdminUsersPage() {
                       </div>
                     </td>
                     <td>
-                      {u.is_admin && (
+                      {u.isAdmin && (
                         <span className="chip run" style={{ marginRight: 6 }}>
                           {t('Admin')}
                         </span>
@@ -192,13 +179,13 @@ export default withPageTiming('/admin/users', async function AdminUsersPage() {
                     <td className="mono">{toppedUp ? fmtUsd(toppedUp) : '—'}</td>
                     <td className="mono">{tenantId ? serviceCount : '—'}</td>
                     <td className="faint mono">{fmtUsage(billing)}</td>
-                    <td className="faint">{relTime(u.last_login_at, t)}</td>
+                    <td className="faint">{relTime(u.lastLoginAt, t)}</td>
                     <td className="ta-r">
                       <UserRowActions
                         email={u.email}
                         name={u.name || ''}
-                        status={u.status as 'active' | 'blocked' | 'deleted'}
-                        isAdmin={u.is_admin}
+                        status={u.status}
+                        isAdmin={u.isAdmin}
                         tenantId={tenantId}
                         balanceMicrocents={billing?.balance_microcents ?? null}
                         capCpuMillicores={cap?.cpu_millicores ?? null}

@@ -640,6 +640,11 @@ export const zhCN = {
   "Could not remove. Try again.": "移除失败，请重试。",
   "If this address can be registered, check your email for a verification link.":
     "如果该邮箱可以注册，请查收邮件中的验证链接。",
+  "Open the verification link in the same browser you used to sign up.":
+    "请用发起注册的同一浏览器打开验证链接。",
+  "Open this link in the browser you used to sign up, or start a new registration.":
+    "请用发起注册的浏览器打开此链接，或重新注册。",
+  "Open the Fugue sign-up page to register.": "请打开 Fugue 注册页面完成注册。",
   "Sign in to Fugue": "登录 Fugue",
   "Sign up to deploy apps and manage secrets and billing.":
     "注册后即可部署应用、管理密钥与账单。",

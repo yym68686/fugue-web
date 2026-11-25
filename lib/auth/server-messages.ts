@@ -44,6 +44,7 @@ export const KNOWN_SERVER_MESSAGES: readonly string[] = [
   "Google sign-in is temporarily unavailable. Try again.",
   "If this address can be registered, check your email for a verification link.",
   "Invalid request payload.",
+  "Open the Fugue sign-up page to register.",
   "Keep at least one sign-in method on the account.",
   "Password added.",
   "Password updated.",

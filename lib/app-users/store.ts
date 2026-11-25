@@ -321,6 +321,9 @@ export async function getAppUserByEmail(email: string) {
   return row ? recordFromRow(row) : null;
 }
 
+// Pending legacy signups are not accounts for administrative display or counts.
+const ADMIN_VISIBLE_USER_SQL = "verified = TRUE";
+
 export async function listAppUsers() {
   const result = await withDbSchemaRetry(() =>
     queryDb<AppUserRow>(
@@ -339,6 +342,7 @@ export async function listAppUsers() {
           created_at,
           updated_at
         FROM app_users
+        WHERE ${ADMIN_VISIBLE_USER_SQL}
         ORDER BY
           is_admin DESC,
           CASE status
@@ -475,7 +479,7 @@ function decodeAppUserCursor(raw: string, scope: string): AppUserCursor {
 }
 
 function buildAppUserPageFilterSQL(query: string, status: AppUserPageFilter) {
-  const clauses: string[] = [];
+  const clauses = [ADMIN_VISIBLE_USER_SQL];
   const values: unknown[] = [];
   const addValue = (value: unknown) => {
     values.push(value);
@@ -592,6 +596,7 @@ export async function listAppUsersPage(
             COUNT(*) FILTER (WHERE status = 'blocked') AS blocked_count,
             COUNT(*) FILTER (WHERE status = 'deleted') AS deleted_count
           FROM app_users
+          WHERE ${ADMIN_VISIBLE_USER_SQL}
         `,
         filter.values,
       ),

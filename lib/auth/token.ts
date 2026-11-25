@@ -53,7 +53,7 @@ export function verifyToken<T extends BaseTokenPayload>(token: string) {
 
   const [header, body, signature] = segments;
 
-  if (!header || !body || !signature) {
+  if (!header || !body || !/^[A-Za-z0-9_-]{43}$/.test(signature)) {
     return null;
   }
 

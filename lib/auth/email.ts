@@ -7,13 +7,14 @@ type SendVerificationEmailArgs = {
   verifyUrl: string;
   mode: "signin" | "signup";
   name?: string;
+  requiresSignupBrowser?: boolean;
 };
 
 function buildSubject(mode: "signin" | "signup") {
   return mode === "signup" ? "Verify your Fugue account" : "Sign in to Fugue";
 }
 
-function buildHtml({ verifyUrl, mode, name }: SendVerificationEmailArgs) {
+function buildHtml({ verifyUrl, mode, name, requiresSignupBrowser }: SendVerificationEmailArgs) {
   const action = mode === "signup" ? "verify your email" : "finish signing in";
   const actionTitle = mode === "signup" ? "Verify your email" : "Finish signing in";
   const greeting = name ? `Hi ${escapeHtmlText(name)},` : "Hi,";
@@ -29,6 +30,7 @@ function buildHtml({ verifyUrl, mode, name }: SendVerificationEmailArgs) {
         <div style="padding:20px 28px 28px;color:#646b73;font-size:16px;line-height:1.65;">
           <p style="margin:0 0 16px;">${greeting}</p>
           <p style="margin:0 0 20px;">Use the secure link below to ${action}. This link expires in 15 minutes.</p>
+          ${requiresSignupBrowser ? '<p style="margin:0 0 20px;">Open the link in the same browser you used to sign up.</p>' : ""}
           <p style="margin:0 0 24px;">
             <a href="${safeVerifyUrl}" style="display:inline-block;padding:11px 16px;border:1px solid #1463ff;border-radius:6px;background:#1463ff;color:#ffffff;font-weight:700;text-decoration:none;">
               Continue
@@ -41,7 +43,7 @@ function buildHtml({ verifyUrl, mode, name }: SendVerificationEmailArgs) {
   `;
 }
 
-function buildText({ verifyUrl, mode, name }: SendVerificationEmailArgs) {
+function buildText({ verifyUrl, mode, name, requiresSignupBrowser }: SendVerificationEmailArgs) {
   const action = mode === "signup" ? "verify your email" : "finish signing in";
   const greeting = name ? `Hi ${name},` : "Hi,";
 
@@ -52,6 +54,7 @@ Use the link below to ${action} with Fugue:
 ${verifyUrl}
 
 This link expires in 15 minutes. If you did not request this, you can ignore this email.
+${requiresSignupBrowser ? "Open the link in the same browser you used to sign up.\n" : ""}
 `;
 }
 

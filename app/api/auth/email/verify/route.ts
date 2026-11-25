@@ -1,18 +1,24 @@
-import { NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 
 import { ensureAppUserRecord } from "@/lib/app-users/store";
 import {
   AUTH_ERROR_ACCOUNT_BLOCKED,
   AUTH_ERROR_ACCOUNT_DELETED,
   AUTH_ERROR_INVALID_TOKEN,
+  AUTH_ERROR_SIGNUP_BROWSER_REQUIRED,
   AUTH_ERROR_SESSION_OPEN_FAILED,
   type AuthErrorCode,
   buildSignInErrorUrl,
 } from "@/lib/auth/errors";
 import { buildSessionHandoffUrl } from "@/lib/auth/finalize";
 import { consumeSessionHandoff } from "@/lib/auth/handoff-store";
-import { syncAuthMethodOnSignIn } from "@/lib/auth/methods";
+import { completePasswordRegistration, syncAuthMethodOnSignIn } from "@/lib/auth/methods";
 import { normalizeAuthOrigin, readRequestOrigin } from "@/lib/auth/origin";
+import {
+  hashRegistrationBrowserSecret,
+  isPasswordRegistrationId,
+  passwordRegistrationCookie,
+} from "@/lib/auth/password-registration-proof";
 import { enforceAuthRateLimit } from "@/lib/auth/rate-limit";
 import { verifyToken } from "@/lib/auth/token";
 import {
@@ -31,16 +37,16 @@ type EmailVerifyPayload = {
   name?: string;
   origin?: string;
   returnTo?: string;
-  type: "email-verify";
+  type: "email-verify" | "password-signup";
 };
 
 function redirectWithError(origin: string, error: AuthErrorCode) {
   return NextResponse.redirect(buildSignInErrorUrl(origin, error), {
-    status: 303,
+    status: 303, headers: { "Cache-Control": "no-store", "Referrer-Policy": "no-referrer" },
   });
 }
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   const limited = await enforceAuthRateLimit(request, "email-verify");
 
   if (limited) {
@@ -60,7 +66,7 @@ export async function GET(request: Request) {
 
   if (
     !payload ||
-    payload.type !== "email-verify" ||
+    (payload.type !== "email-verify" && payload.type !== "password-signup") ||
     payloadOrigin !== requestOrigin ||
     !isValidEmail(payload.email) ||
     typeof payload.jti !== "string"
@@ -68,8 +74,26 @@ export async function GET(request: Request) {
     return redirectWithError(requestOrigin, AUTH_ERROR_INVALID_TOKEN);
   }
 
+  const passwordSignup = payload.type === "password-signup";
+  const cookie = passwordSignup && isPasswordRegistrationId(payload.jti)
+    ? passwordRegistrationCookie(payload.jti, requestOrigin.startsWith("https://"))
+    : null;
+  let displayName = payload.name;
   try {
-    if (!(await consumeSessionHandoff(payload.jti, payload.exp))) {
+    if (passwordSignup) {
+      if (!cookie) return redirectWithError(payloadOrigin, AUTH_ERROR_INVALID_TOKEN);
+      const browserSecret = request.cookies.get(cookie.name)?.value;
+      if (!browserSecret || !/^[A-Za-z0-9_-]{43}$/.test(browserSecret)) {
+        return redirectWithError(payloadOrigin, AUTH_ERROR_SIGNUP_BROWSER_REQUIRED);
+      }
+      const activated = await completePasswordRegistration({
+        id: payload.jti,
+        email: payload.email,
+        browserHash: hashRegistrationBrowserSecret(browserSecret),
+      });
+      if (!activated) return redirectWithError(payloadOrigin, AUTH_ERROR_INVALID_TOKEN);
+      displayName = activated.name ?? undefined;
+    } else if (!(await consumeSessionHandoff(payload.jti, payload.exp))) {
       return redirectWithError(requestOrigin, AUTH_ERROR_INVALID_TOKEN);
     }
   } catch (error) {
@@ -85,7 +109,7 @@ export async function GET(request: Request) {
   const sessionUser = {
     email: payload.email,
     name:
-      typeof payload.name === "string" ? sanitizeDisplayName(payload.name) : undefined,
+      typeof displayName === "string" ? sanitizeDisplayName(displayName) : undefined,
     provider: "email" as const,
     verified: true,
     authMethod: "email_link" as const,
@@ -97,10 +121,9 @@ export async function GET(request: Request) {
     appUser = await ensureAppUserRecord(sessionUser, {
       markSignedIn: true,
     });
-    await syncAuthMethodOnSignIn({
-      email: payload.email,
-      method: "email_link",
-    });
+    if (!passwordSignup) {
+      await syncAuthMethodOnSignIn({ email: payload.email, method: "email_link" });
+    }
     await ensureWorkspaceAccessForSignIn(sessionUser);
   } catch (error) {
     if (error instanceof Error && error.message.includes("blocked")) {
@@ -119,14 +142,16 @@ export async function GET(request: Request) {
 
   const returnTo = sanitizeReturnTo(payload.returnTo, requestOrigin);
 
-  return NextResponse.redirect(
+  const response = NextResponse.redirect(
     buildSessionHandoffUrl(
       payloadOrigin,
       { ...sessionUser, sessionVersion: appUser.sessionVersion },
       returnTo,
     ),
     {
-      status: 303,
+      status: 303, headers: { "Cache-Control": "no-store", "Referrer-Policy": "no-referrer" },
     },
   );
+  if (cookie) response.cookies.set({ ...cookie, value: "", maxAge: 0 });
+  return response;
 }
