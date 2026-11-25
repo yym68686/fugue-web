@@ -16,6 +16,36 @@ bun dev
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
+### Browser regression tests
+
+Run `npx playwright install chromium` once, then set `FUGUE_VISUAL_URL` to a
+running development instance (default: `http://127.0.0.1:3318`) and run
+`npm run test:visual`. To use installed Chrome instead, set
+`FUGUE_VISUAL_CHROME=1`. Screenshots are saved in `test-results/visual`.
+
+To include the authenticated cases, use a disposable PostgreSQL instance
+listening on `127.0.0.1:55461` with a database named `fugue_visual`. In each
+of the three local processes below, use only synthetic values:
+
+```bash
+export DATABASE_URL=postgresql://127.0.0.1:55461/fugue_visual
+export AUTH_SESSION_SECRET=local-test-signing-secret
+export WORKSPACE_STORE_SECRET=local-test-sealing-secret
+export FUGUE_BOOTSTRAP_KEY=fixture-operator
+export FUGUE_API_URL=http://127.0.0.1:3319
+export FUGUE_INTERNAL_API_URL=http://127.0.0.1:3319
+export APP_BASE_URL=http://127.0.0.1:3318
+export FUGUE_VISUAL_FIXTURE=1
+
+# In separate terminals, with the same environment:
+node --import ./tests/register-alias.mjs tests/fixtures/visual-control-plane.ts
+npm run dev -- --hostname 127.0.0.1 --port 3318
+npm run test:visual
+```
+
+The fixture seeds member and administrator accounts only in that disposable
+database. Its mock control plane rejects writes; do not point it at live services.
+
 ### Fugue API endpoints
 
 Set `FUGUE_API_URL` to the public control-plane URL reachable from users' VPS

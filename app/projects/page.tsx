@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Icon from "@/components/ui/Icon";
 import { withPageTiming } from '@/lib/server/with-page-timing';
 import AppLayout from '@/components/AppLayout';
 import TechLogo from '@/components/TechLogo';
@@ -70,20 +71,16 @@ export default withPageTiming('/projects', async function ProjectsPage() {
       <div className="page">
         <div className="phead">
           <div>
-            <div className="eyebrow">Projects</div>
             <h1>{t("Projects")}</h1>
             <div className="meta">
               <span>
-                <span className="dot ok"></span>{' '}
                 {t("{count} projects", { count: projects.length })}
               </span>
             </div>
           </div>
           <div className="actions">
             <Link href="/projects/new" className="btn primary">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M12 5v14M5 12h14" />
-              </svg>
+              <Icon name="Plus" />
               {t("New project")}
             </Link>
           </div>
@@ -122,7 +119,6 @@ export default withPageTiming('/projects', async function ProjectsPage() {
                     <span className={`dot ${tone}`}></span>
                     <div className="proj-card-title">
                       <div className="nm">{p.name}</div>
-                      <div className="id">{p.id}</div>
                     </div>
                     {p.lifecycle?.label && (
                       <span className={`chip ${tone}`}>{p.lifecycle.label}</span>
@@ -180,7 +176,7 @@ export default withPageTiming('/projects', async function ProjectsPage() {
                     </div>
                     {p.service_badges?.length > 0 && (
                       <div className="proj-card-logos">
-                        {p.service_badges.slice(0, 5).map((b, i) => (
+                        {p.service_badges.slice(0, 3).map((b, i) => (
                           <TechLogo key={`${b.kind}-${i}`} kind={b.kind} label={b.label} />
                         ))}
                       </div>

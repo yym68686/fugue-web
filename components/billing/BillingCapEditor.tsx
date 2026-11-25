@@ -101,7 +101,6 @@ export function BillingCapEditor({ initial }: { initial: BillingSummary }) {
     <div className="panel">
       <div className="panel-h">
         <h3>{t("Resource caps")}</h3>
-        <div className="tail eyebrow">{t("Billed hourly")}</div>
       </div>
       <form
         className="form"
@@ -151,13 +150,13 @@ export function BillingCapEditor({ initial }: { initial: BillingSummary }) {
             />
           </div>
         )}
-        <div className="wb-alert ok" style={{ marginBottom: 0 }}>
+        <p className="form-hint">
           {t("At the current caps, an estimated {hourly}/hr · {monthly}/month ({hours} hr/month). Actual charges accrue hourly from your credit balance based on the caps.", {
             hourly: fmtMoney(estimate.hourly, currency),
             monthly: fmtMoney(estimate.monthly, currency),
             hours: book.hours_per_month,
           })}
-        </div>
+        </p>
         {error && (
           <div className="wb-alert err" style={{ marginBottom: 0 }}>
             {error}

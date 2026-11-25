@@ -2,7 +2,9 @@
 
 import { Fragment, useMemo, useState } from "react";
 
-import { useT } from "@/lib/i18n/client";
+import { useI18n, useT } from "@/lib/i18n/client";
+import Icon from "@/components/ui/Icon";
+import CopyValue from "@/components/ui/CopyValue";
 import type { TranslateFn } from "@/lib/i18n/translate";
 import { isObservedReady, observedFailureSummary, observedStatusTone } from "@/lib/fugue/observed-status";
 import { useObservedStatusNow } from "@/lib/fugue/use-observed-status-now";
@@ -54,6 +56,7 @@ function ColumnFilter({
   allLabel,
   options,
   ariaLabel,
+  optionLabel = (option: string) => option,
   onChange,
 }: {
   label: string;
@@ -61,33 +64,34 @@ function ColumnFilter({
   allLabel: string;
   options: string[];
   ariaLabel: string;
+  optionLabel?: (value: string) => string;
   onChange: (value: string) => void;
 }) {
-  const selected = value ? options.find((option) => option === value) : undefined;
   return (
-    <label className={`column-filter${value ? " is-active" : ""}`} title={selected ? `${label}: ${selected}` : allLabel}>
+    <label className="service-filter-control">
       <span>{label}</span>
-      {value && <i aria-hidden="true" />}
-      <span className="column-filter-chevron" aria-hidden="true">⌄</span>
-      <select aria-label={ariaLabel} value={value} onChange={(event) => onChange(event.target.value)}>
+      <select className="input" aria-label={ariaLabel} value={value} onChange={(event) => onChange(event.target.value)}>
         <option value="">{allLabel}</option>
-        {options.map((option) => <option key={option} value={option}>{option}</option>)}
+        {options.map((option) => <option key={option} value={option}>{optionLabel(option)}</option>)}
       </select>
     </label>
   );
 }
 
-export function ServicesRuntimeSummary({
+function ServicesRuntimeSummary({
   rows,
   tenantCount,
-  initialObservedNow,
+  now,
+  issuesSelected,
+  onIssues,
 }: {
   rows: ServiceRow[];
   tenantCount: number;
-  initialObservedNow: number;
+  now: number;
+  issuesSelected: boolean;
+  onIssues: () => void;
 }) {
   const t = useT();
-  const now = useObservedStatusNow(initialObservedNow);
   const running = rows.filter((row) => rowIsObservedReady(row, now)).length;
   const issues = Math.max(0, rows.length - running);
 
@@ -96,22 +100,18 @@ export function ServicesRuntimeSummary({
       <div className="services-stat services-stat-total">
         <span className="services-stat-label">{t("Total services")}</span>
         <strong>{rows.length}</strong>
-        <span className="services-stat-note">{t("Across the platform")}</span>
       </div>
       <div className="services-stat services-stat-running">
         <span className="services-stat-label"><span className="dot ok" />{t("Running")}</span>
         <strong>{running}</strong>
-        <span className="services-stat-note">{t("of {total} services", { total: rows.length })}</span>
       </div>
-      <div className="services-stat services-stat-issues">
+      {issues > 0 ? <button type="button" className="services-stat services-stat-issues" aria-pressed={issuesSelected} onClick={onIssues}>
         <span className="services-stat-label"><span className={`dot ${issues ? "err" : "ok"}`} />{t("Issues")}</span>
         <strong>{issues}</strong>
-        <span className="services-stat-note">{issues ? t("Need attention") : t("Everything looks good")}</span>
-      </div>
+      </button> : <div className="services-stat"><span className="services-stat-label">{t("Issues")}</span><strong>0</strong></div>}
       <div className="services-stat">
         <span className="services-stat-label">{t("Tenants")}</span>
         <strong>{tenantCount}</strong>
-        <span className="services-stat-note">{t("Active workspaces")}</span>
       </div>
     </div>
   );
@@ -119,12 +119,14 @@ export function ServicesRuntimeSummary({
 
 export default function ServicesTable({
   rows,
+  tenantCount,
   initialObservedNow,
 }: {
   rows: ServiceRow[];
+  tenantCount: number;
   initialObservedNow: number;
 }) {
-  const t = useT();
+  const { t, locale } = useI18n();
   const now = useObservedStatusNow(initialObservedNow);
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
@@ -182,12 +184,17 @@ export default function ServicesTable({
 
   return (
     <>
+      <ServicesRuntimeSummary rows={rows} tenantCount={tenantCount} now={now} issuesSelected={statusFilter === "issues"} onIssues={() => {
+        clearFilters();
+        setStatusFilter(statusFilter === "issues" ? "all" : "issues");
+      }} />
+      {rows.length > 0 ? <section className="panel services-panel">
       <div className="services-controls">
         <div className="services-list-title">
           <strong>{t("Deployed services")}</strong>
         </div>
         <label className="services-search">
-          <span className="services-search-icon" aria-hidden="true">⌕</span>
+          <span className="services-search-icon"><Icon name="Search" /></span>
           <span className="sr-only">{t("Search services")}</span>
           <input
             className="input"
@@ -204,6 +211,15 @@ export default function ServicesTable({
           </button>
         )}
       </div>
+      <details className="services-filters">
+        <summary>{locale === "zh-CN" ? "筛选" : "Filters"}{activeFilterCount ? ` (${activeFilterCount})` : ""}</summary>
+        <div className="services-filter-grid">
+          <ColumnFilter label={t("Owner")} value={ownerFilter} allLabel={t("All owners")} options={filterOptions.owners} ariaLabel={t("Filter by owner")} onChange={setOwnerFilter} />
+          <ColumnFilter label={t("Status")} value={statusFilter === "all" ? "" : statusFilter} allLabel={t("All statuses")} options={["running", "issues"]} optionLabel={(value) => t(value === "running" ? "Running" : "Issues")} ariaLabel={t("Filter by status")} onChange={(value) => setStatusFilter((value || "all") as StatusFilter)} />
+          <ColumnFilter label={t("Tech stack")} value={stackFilter} allLabel={t("All stacks")} options={filterOptions.stacks} ariaLabel={t("Filter by tech stack")} onChange={setStackFilter} />
+          <ColumnFilter label={t("Node")} value={nodeFilter} allLabel={t("All nodes")} options={filterOptions.nodes} ariaLabel={t("Filter by node")} onChange={setNodeFilter} />
+        </div>
+      </details>
 
       <div className="table-scroll" role="region" aria-label={t("Services table")} tabIndex={0}>
         <table className="tbl tbl-services">
@@ -211,11 +227,11 @@ export default function ServicesTable({
           <tr>
             <th style={{ width: 28 }}></th>
             <th><span className="table-head-label">{t("Service")}</span></th>
-            <th><ColumnFilter label={t("Owner")} value={ownerFilter} allLabel={t("All owners")} options={filterOptions.owners} ariaLabel={t("Filter by owner")} onChange={setOwnerFilter} /></th>
-            <th><ColumnFilter label={t("Status")} value={statusFilter === "all" ? "" : statusFilter} allLabel={t("All statuses")} options={["running", "issues"]} ariaLabel={t("Filter by status")} onChange={(value) => setStatusFilter((value || "all") as StatusFilter)} /></th>
-            <th><ColumnFilter label={t("Tech stack")} value={stackFilter} allLabel={t("All stacks")} options={filterOptions.stacks} ariaLabel={t("Filter by tech stack")} onChange={setStackFilter} /></th>
+            <th>{t("Owner")}</th>
+            <th>{t("Status")}</th>
+            <th>{t("Tech stack")}</th>
             <th><span className="table-head-label">{t("Deploy method")}</span></th>
-            <th><ColumnFilter label={t("Node")} value={nodeFilter} allLabel={t("All nodes")} options={filterOptions.nodes} ariaLabel={t("Filter by node")} onChange={setNodeFilter} /></th>
+            <th>{t("Node")}</th>
           </tr>
         </thead>
         <tbody>
@@ -225,28 +241,20 @@ export default function ServicesTable({
               <Fragment key={r.id}>
                 <tr
                   className={`row-toggle${isOpen ? " open" : ""}`}
-                  tabIndex={0}
-                  aria-expanded={isOpen}
                   onClick={() => toggle(r.id)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                      e.preventDefault();
-                      toggle(r.id);
-                    }
-                  }}
                 >
                   <td>
                     <button
                       type="button"
                       className="caret-btn"
                       aria-expanded={isOpen}
-                      aria-label={isOpen ? t("Collapse") : t("Expand")}
+                      aria-label={`${isOpen ? t("Collapse") : t("Expand")}: ${r.name}`}
                       onClick={(e) => {
                         e.stopPropagation();
                         toggle(r.id);
                       }}
                     >
-                      <span className={`caret${isOpen ? " down" : ""}`}>▶</span>
+                      <Icon name={isOpen ? "ChevronDown" : "ChevronRight"} />
                     </button>
                   </td>
                   <td>
@@ -341,13 +349,15 @@ export default function ServicesTable({
                           </div>
                           <div className="node-detail-item">
                             <span className="node-detail-k">{t("Tenant")}</span>
-                            <span className="node-detail-v mono faint">
-                              {r.tenantId || "—"}
-                            </span>
+                            {r.tenantId ? <CopyValue value={r.tenantId} label={t("Tenant")} /> : "—"}
+                          </div>
+                          <div className="node-detail-item">
+                            <span className="node-detail-k">{t("Owner")}</span>
+                            <span className="node-detail-v mono">{r.ownerEmail || "—"}</span>
                           </div>
                           <div className="node-detail-item">
                             <span className="node-detail-k">{t("Service ID")}</span>
-                            <span className="node-detail-v mono faint">{r.id}</span>
+                            <CopyValue value={r.id} label={t("Service ID")} />
                           </div>
                         </div>
                         {r.stack.length > 0 && (
@@ -381,6 +391,7 @@ export default function ServicesTable({
         </tbody>
         </table>
       </div>
+      </section> : <div className="empty">{t("No services deployed yet.")}</div>}
     </>
   );
 }

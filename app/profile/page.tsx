@@ -16,11 +16,7 @@ export default async function ProfilePage() {
       <div className="page">
         <div className="phead">
           <div>
-            <div className="eyebrow">Profile</div>
             <h1>{t("Profile and security")}</h1>
-            <div className="meta">
-              <span>{user.email}</span>
-            </div>
           </div>
         </div>
 

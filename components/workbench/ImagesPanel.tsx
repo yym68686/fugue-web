@@ -1,5 +1,8 @@
 "use client";
 
+import CodeBlock from "@/components/landing/CodeBlock";
+import RowActions from "@/components/ui/RowActions";
+
 import { useMemo, useState } from "react";
 
 import type { ImageInventory, ImageVersion, ConsoleAppDetail } from "@/lib/fugue/console";
@@ -244,7 +247,8 @@ function ImagesTable({
   t: TranslateFn;
 }) {
   return (
-    <table className="tbl">
+    <div className="table-scroll" tabIndex={0} role="region" aria-label={t("Images")}>
+    <table className="tbl images-table">
       <thead>
         <tr>
           <th>{t("Image")}</th>
@@ -256,17 +260,22 @@ function ImagesTable({
       </thead>
       <tbody>
         {versions.map((v) => (
-          <tr key={v.image_ref}>
-            <td className="mono">{v.runtime_image_ref || v.image_ref}</td>
-            <td
-              title={fmtImageMeasurementTitle(
+          <tr key={v.image_ref} className="intent-row">
+            <td className="mono">
+              <details><summary>{shortImageRef(v.runtime_image_ref || v.image_ref)}</summary>
+                <CodeBlock label={t("Image")}>{v.runtime_image_ref || v.image_ref}</CodeBlock>
+              </details>
+            </td>
+            <td>
+              {fmtImageUsage(v.size_bytes, v.size_measurement_status)}
+              {v.size_measurement_status !== "complete" && <details>
+                <summary>{t("Details")}</summary>
+                <p>{fmtImageMeasurementTitle(
                 v.size_measurement_status,
                 v.size_measurement_reasons,
                 inv?.measurement_note,
                 t,
-              )}
-            >
-              {fmtImageUsage(v.size_bytes, v.size_measurement_status)}
+              )}</p></details>}
             </td>
             <td>
               {v.current ? (
@@ -276,7 +285,8 @@ function ImagesTable({
               )}
             </td>
             <td>{fmtDate(v.last_deployed_at)}</td>
-            <td style={{ textAlign: "right", whiteSpace: "nowrap" }}>
+            <td>
+              {!v.current && (v.redeploy_supported || v.delete_supported) && <RowActions inline>
               {!v.current && v.redeploy_supported && (
                 <ActionButton
                   className="btn ghost"
@@ -301,10 +311,17 @@ function ImagesTable({
                   {t("Delete")}
                 </ActionButton>
               )}
+              </RowActions>}
             </td>
           </tr>
         ))}
       </tbody>
     </table>
+    </div>
   );
+}
+
+function shortImageRef(ref: string) {
+  const name = ref.slice(ref.lastIndexOf("/") + 1);
+  return name.length > 40 ? `${name.slice(0, 28)}…${name.slice(-8)}` : name;
 }

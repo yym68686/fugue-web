@@ -2,6 +2,7 @@ import { queryDb } from '@/lib/db/pool';
 import { withPageTiming } from '@/lib/server/with-page-timing';
 import AppLayout from '@/components/AppLayout';
 import UserRowActions from '@/components/admin/UserRowActions';
+import RowActions from '@/components/ui/RowActions';
 import { listAppUsers } from '@/lib/app-users/store';
 import { requireActiveAdminPageSession } from '@/lib/auth/page-access';
 import { getRequestI18n } from '@/lib/i18n/server';
@@ -83,7 +84,7 @@ function fmtUsage(summary: BillingSummary | null): string {
 
 export default withPageTiming('/admin/users', async function AdminUsersPage() {
   await requireActiveAdminPageSession();
-  const { t } = await getRequestI18n();
+  const { t, locale } = await getRequestI18n();
 
   const [users, topups, snapshots] = await Promise.all([
     listAppUsers(),
@@ -100,7 +101,8 @@ export default withPageTiming('/admin/users', async function AdminUsersPage() {
   // The platform aggregates complete ledger and usage snapshots in one request.
   const tenantIds = [...new Set([...tenantByEmail.values()])];
   const billingByTenant = new Map<string, BillingSummary>();
-  const { billings, missingTenantIds } = await listTenantBillingSummaries(tenantIds, true);
+  const snapshot = await listTenantBillingSummaries(tenantIds, true).catch(() => null);
+  const { billings, missingTenantIds } = snapshot ?? { billings: [], missingTenantIds: [] };
   for (const summary of billings) billingByTenant.set(summary.tenant_id, summary);
   const missingTenants = new Set(missingTenantIds);
   for (const [email, tenantId] of tenantByEmail) {
@@ -115,7 +117,6 @@ export default withPageTiming('/admin/users', async function AdminUsersPage() {
       <div className="page">
         <div className="phead">
           <div>
-            <div className="eyebrow">Platform · Users</div>
             <h1>{t('User management')}</h1>
             <div className="meta">
               <span>{t('{count} users', { count: users.length })}</span>
@@ -128,9 +129,10 @@ export default withPageTiming('/admin/users', async function AdminUsersPage() {
         <div className="panel">
           <div className="panel-h">
             <h3>{t('All users')}</h3>
-            <div className="tail eyebrow">{users.length} total</div>
           </div>
-          <table className="tbl">
+          {!snapshot && <p className="form-hint" role="status">{locale === 'zh-CN' ? '暂时无法读取账单和资源用量。' : 'Billing and usage data are temporarily unavailable.'}</p>}
+          <div className="table-scroll" role="region" aria-label={t('All users')} tabIndex={0}>
+          <table className="tbl admin-users-table">
             <thead>
               <tr>
                 <th>{t('User')}</th>
@@ -154,18 +156,27 @@ export default withPageTiming('/admin/users', async function AdminUsersPage() {
                 const cap = billing?.managed_cap;
 
                 return (
-                  <tr key={u.email}>
+                  <tr key={u.email} className="intent-row">
                     <td>
                       <div className="user-cell">
                         <span className="user-name">{u.name || '—'}</span>
                         <span className="user-email">{u.email}</span>
+                        <details className="user-mobile-detail">
+                          <summary>{t('Details')}</summary>
+                          <dl>
+                            <dt>{t('Topped up')}</dt><dd>{toppedUp ? fmtUsd(toppedUp) : '—'}</dd>
+                            <dt>{t('Services')}</dt><dd>{serviceCount ?? '—'}</dd>
+                            <dt>{t('Current usage')}</dt><dd>{fmtUsage(billing)}</dd>
+                            <dt>{t('Last sign-in')}</dt><dd>{relTime(u.lastLoginAt, t)}</dd>
+                          </dl>
+                        </details>
                       </div>
                     </td>
                     <td>
                       {u.isAdmin && (
-                        <span className="chip run" style={{ marginRight: 6 }}>
+                        <div className="role-label">
                           {t('Admin')}
-                        </span>
+                        </div>
                       )}
                       <span className={`chip ${statusChip[u.status] || 'idle'}`}>
                         {statusLabel[u.status] ? t(statusLabel[u.status]) : u.status}
@@ -177,27 +188,30 @@ export default withPageTiming('/admin/users', async function AdminUsersPage() {
                         : '—'}
                     </td>
                     <td className="mono">{toppedUp ? fmtUsd(toppedUp) : '—'}</td>
-                    <td className="mono">{tenantId ? serviceCount : '—'}</td>
+                    <td className="mono">{serviceCount ?? '—'}</td>
                     <td className="faint mono">{fmtUsage(billing)}</td>
                     <td className="faint">{relTime(u.lastLoginAt, t)}</td>
                     <td className="ta-r">
+                      {u.status !== 'deleted' && (!u.isAdmin || billing) && <RowActions inline>
                       <UserRowActions
                         email={u.email}
                         name={u.name || ''}
                         status={u.status}
                         isAdmin={u.isAdmin}
-                        tenantId={tenantId}
+                        tenantId={billing ? tenantId : null}
                         balanceMicrocents={billing?.balance_microcents ?? null}
                         capCpuMillicores={cap?.cpu_millicores ?? null}
                         capMemoryMebibytes={cap?.memory_mebibytes ?? null}
                         capStorageGibibytes={cap?.storage_gibibytes ?? null}
                       />
+                      </RowActions>}
                     </td>
                   </tr>
                 );
               })}
             </tbody>
           </table>
+          </div>
         </div>
       </div>
     </AppLayout>

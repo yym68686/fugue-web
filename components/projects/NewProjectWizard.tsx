@@ -1,5 +1,7 @@
 "use client";
 
+import { hasSourceArchiveExtension, SOURCE_ARCHIVE_MAX_BYTES, SOURCE_ARCHIVE_MAX_MIB } from "@/lib/deploy/source-archive";
+
 import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { RuntimeView } from "@/lib/servers/model";
@@ -59,6 +61,7 @@ export default function NewProjectWizard({ runtimes, runtimeError }: { runtimes:
 
   // upload
   const [file, setFile] = useState<File | null>(null);
+  const [fileError, setFileError] = useState("");
   const [dragging, setDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -107,6 +110,12 @@ export default function NewProjectWizard({ runtimes, runtimeError }: { runtimes:
   }
 
   function pickFile(f: File | null) {
+    if (fileInputRef.current) fileInputRef.current.value = "";
+    setFileError("");
+    if (f && (!hasSourceArchiveExtension(f.name) || f.size > SOURCE_ARCHIVE_MAX_BYTES || f.size === 0)) {
+      setFileError(t("Choose a non-empty .zip, .tgz, or .tar.gz archive up to {limit} MiB.", { limit: SOURCE_ARCHIVE_MAX_MIB }));
+      return;
+    }
     setFile(f);
   }
 
@@ -228,10 +237,9 @@ export default function NewProjectWizard({ runtimes, runtimeError }: { runtimes:
       {/* source selector */}
       <section className="panel wizard-block">
         <div className="wizard-block-h">
-          <span className="eyebrow">{t("Source")}</span>
-          <h2>{t("Where to deploy from")}</h2>
+          <h2 id="deploy-source">{t("Source")}</h2>
         </div>
-        <div className="wizard-src">
+        <div className="wizard-src" role="group" aria-labelledby="deploy-source">
           {SOURCES.map((s) => (
             <button
               key={s.id}
@@ -241,7 +249,6 @@ export default function NewProjectWizard({ runtimes, runtimeError }: { runtimes:
               aria-pressed={source === s.id}
             >
               <span className="src-card-label">{t(s.label)}</span>
-              <span className="src-card-hint">{t(s.hint)}</span>
             </button>
           ))}
         </div>
@@ -249,24 +256,13 @@ export default function NewProjectWizard({ runtimes, runtimeError }: { runtimes:
 
       {/* per-source fields */}
       <section className="panel wizard-block">
-        <div className="wizard-block-h">
-          <span className="eyebrow">{t("Source configuration")}</span>
-          <h2>
-            {source === "github"
-              ? t("GitHub repository")
-              : source === "image"
-                ? t("Container image")
-                : t("Source archive")}
-          </h2>
-        </div>
-
         {source === "github" && (
           <div className="form">
             <div className="form-row">
-              <label>{t("Repository URL *")}</label>
+              <label htmlFor="project-repo-url">{t("Repository URL *")}</label>
               <input
+                id="project-repo-url"
                 className="input mono"
-                autoFocus
                 value={repoUrl}
                 placeholder={t("https://github.com/owner/repo or owner/repo")}
                 onChange={(e) => setRepoUrl(e.target.value)}
@@ -278,10 +274,10 @@ export default function NewProjectWizard({ runtimes, runtimeError }: { runtimes:
         {source === "image" && (
           <div className="form">
             <div className="form-row">
-              <label>{t("Image reference *")}</label>
+              <label htmlFor="project-image-ref">{t("Image reference *")}</label>
               <input
+                id="project-image-ref"
                 className="input mono"
-                autoFocus
                 value={imageRef}
                 placeholder={t("docker.io/library/nginx:1.27 or ghcr.io/owner/app:tag")}
                 onChange={(e) => setImageRef(e.target.value)}
@@ -294,10 +290,9 @@ export default function NewProjectWizard({ runtimes, runtimeError }: { runtimes:
           <div className="form">
             <div
               className={`file-drop${dragging ? " dragging" : ""}${file ? " has-file" : ""}`}
-              onClick={() => fileInputRef.current?.click()}
               onDragOver={(e) => {
                 e.preventDefault();
-                setDragging(true);
+                setDragging(e.dataTransfer.types.includes("Files"));
               }}
               onDragLeave={() => setDragging(false)}
               onDrop={(e) => {
@@ -318,24 +313,24 @@ export default function NewProjectWizard({ runtimes, runtimeError }: { runtimes:
                 <div className="file-drop-file">
                   <span className="nm">{file.name}</span>
                   <span className="sz">{(file.size / 1024 / 1024).toFixed(2)} MB</span>
-                  <button
-                    type="button"
-                    className="btn ghost sm"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      pickFile(null);
-                    }}
-                  >
-                    {t("Remove")}
+                  <button type="button" className="btn ghost sm" onClick={() => fileInputRef.current?.click()}>
+                    {t("Replace")}
                   </button>
+                  <button type="button" className="btn ghost sm" onClick={() => {
+                    if (fileInputRef.current) fileInputRef.current.value = "";
+                    pickFile(null);
+                  }}>{t("Remove")}</button>
                 </div>
               ) : (
                 <div className="file-drop-empty">
-                  <div className="file-drop-title">{t("Drop or click to select an archive")}</div>
-                  <div className="form-hint">{t("Supports .zip / .tgz / .tar.gz, up to 64 MB")}</div>
+                  <button type="button" className="btn" onClick={() => fileInputRef.current?.click()}>
+                    {t("Select a source archive to upload")}
+                  </button>
+                  <div className="form-hint">{t("Supports .zip / .tgz / .tar.gz, up to {limit} MiB", { limit: SOURCE_ARCHIVE_MAX_MIB })}</div>
                 </div>
               )}
             </div>
+            {fileError && <p className="wb-alert err" role="alert">{fileError}</p>}
           </div>
         )}
       </section>
@@ -350,7 +345,6 @@ export default function NewProjectWizard({ runtimes, runtimeError }: { runtimes:
         >
           <span className={`chev${advOpen ? " open" : ""}`}>›</span>
           {t("Advanced configuration")}
-          <span className="form-hint">{t("Runtime, port, build strategy, environment variables")}</span>
         </button>
 
         {advOpen && (
@@ -437,17 +431,20 @@ export default function NewProjectWizard({ runtimes, runtimeError }: { runtimes:
                                   </svg>
                                   {t("Connect GitHub account")}
                                 </a>
-                                <span className="form-hint">{t("Or paste an access token directly below")}</span>
                               </>
                             )}
-                            <input
+                            <details open={!connectEnabled || Boolean(manualToken) || undefined}>
+                              <summary>{t("Use an access token")}</summary>
+                              <input
                               className="input mono"
                               type="password"
                               value={manualToken}
                               placeholder={t("ghp_... access token (used only for this deploy)")}
+                              aria-label={t("Access token")}
                               onChange={(e) => setManualToken(e.target.value)}
                               autoComplete="off"
-                            />
+                              />
+                            </details>
                           </div>
                         )}
                         {gh.error && <div className="form-hint err">{gh.error}</div>}

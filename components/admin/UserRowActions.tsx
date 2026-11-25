@@ -1,5 +1,7 @@
 "use client";
 
+import Modal from "@/components/ui/Modal";
+
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -208,192 +210,186 @@ export default function UserRowActions({
       </div>
 
       {modal === "limits" && (
-        <div className="modal-scrim" onClick={closeAll}>
-          <div className="modal-card" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-h">
-              <h3>{t("Adjust resource limits")}</h3>
-            </div>
-            <div className="modal-b">
-              <p className="faint" style={{ marginTop: 0, marginBottom: 14 }}>
-                {t("Managed cap for {label}.", { label })}
-              </p>
-              <div className="field" style={{ marginBottom: 12 }}>
-                <label htmlFor={`lim-cpu-${email}`}>{t("CPU (cores)")}</label>
-                <input
-                  id={`lim-cpu-${email}`}
-                  className="input mono"
-                  type="number"
-                  min={0}
-                  step={0.1}
-                  autoFocus
-                  value={cpuCores}
-                  disabled={busy}
-                  onChange={(e) => setCpuCores(Number(e.target.value))}
-                />
-              </div>
-              <div className="field" style={{ marginBottom: hasStorageCap ? 12 : 0 }}>
-                <label htmlFor={`lim-mem-${email}`}>{t("Memory (GiB)")}</label>
-                <input
-                  id={`lim-mem-${email}`}
-                  className="input mono"
-                  type="number"
-                  min={0}
-                  step={0.5}
-                  value={memoryGiB}
-                  disabled={busy}
-                  onChange={(e) => setMemoryGiB(Number(e.target.value))}
-                />
-              </div>
-              {hasStorageCap && (
-                <div className="field">
-                  <label htmlFor={`lim-sto-${email}`}>{t("Storage (GiB)")}</label>
-                  <input
-                    id={`lim-sto-${email}`}
-                    className="input mono"
-                    type="number"
-                    min={0}
-                    step={1}
-                    value={storageGiB}
-                    disabled={busy}
-                    onChange={(e) => setStorageGiB(Number(e.target.value))}
-                  />
-                </div>
-              )}
-              {error && (
-                <div className="wb-alert err" style={{ marginTop: 12, marginBottom: 0 }}>
-                  {error}
-                </div>
-              )}
-            </div>
-            <div className="modal-f">
-              <button
-                type="button"
-                className="btn ghost"
-                onClick={closeAll}
-                disabled={busy}
-              >
-                {t("Cancel")}
-              </button>
-              <button
-                type="button"
-                className="btn primary"
-                onClick={submitLimits}
-                disabled={busy}
-              >
-                {busy ? t("Working…") : t("Save changes")}
-              </button>
-            </div>
+        <Modal title={t("Adjust resource limits")} onDismiss={closeAll} dismissDisabled={busy}>
+          <div className="modal-h">
+            <h3>{t("Adjust resource limits")}</h3>
           </div>
-        </div>
+          <div className="modal-b">
+            <p className="faint" style={{ marginTop: 0, marginBottom: 14 }}>
+              {t("Managed cap for {label}.", { label })}
+            </p>
+            <div className="field" style={{ marginBottom: 12 }}>
+              <label htmlFor={`lim-cpu-${email}`}>{t("CPU (cores)")}</label>
+              <input
+                id={`lim-cpu-${email}`}
+                className="input mono"
+                type="number"
+                min={0}
+                step={0.1}
+                autoFocus
+                value={cpuCores}
+                disabled={busy}
+                onChange={(e) => setCpuCores(Number(e.target.value))}
+              />
+            </div>
+            <div className="field" style={{ marginBottom: hasStorageCap ? 12 : 0 }}>
+              <label htmlFor={`lim-mem-${email}`}>{t("Memory (GiB)")}</label>
+              <input
+                id={`lim-mem-${email}`}
+                className="input mono"
+                type="number"
+                min={0}
+                step={0.5}
+                value={memoryGiB}
+                disabled={busy}
+                onChange={(e) => setMemoryGiB(Number(e.target.value))}
+              />
+            </div>
+            {hasStorageCap && (
+              <div className="field">
+                <label htmlFor={`lim-sto-${email}`}>{t("Storage (GiB)")}</label>
+                <input
+                  id={`lim-sto-${email}`}
+                  className="input mono"
+                  type="number"
+                  min={0}
+                  step={1}
+                  value={storageGiB}
+                  disabled={busy}
+                  onChange={(e) => setStorageGiB(Number(e.target.value))}
+                />
+              </div>
+            )}
+            {error && (
+              <div className="wb-alert err" style={{ marginTop: 12, marginBottom: 0 }}>
+                {error}
+              </div>
+            )}
+          </div>
+          <div className="modal-f">
+            <button
+              type="button"
+              className="btn ghost"
+              onClick={closeAll}
+              disabled={busy}
+            >
+              {t("Cancel")}
+            </button>
+            <button
+              type="button"
+              className="btn primary"
+              onClick={submitLimits}
+              disabled={busy}
+            >
+              {busy ? t("Working…") : t("Save changes")}
+            </button>
+          </div>
+        </Modal>
       )}
 
       {modal === "balance" && (
-        <div className="modal-scrim" onClick={closeAll}>
-          <div className="modal-card" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-h">
-              <h3>{t("Adjust balance")}</h3>
-            </div>
-            <div className="modal-b">
-              <p className="faint" style={{ marginTop: 0, marginBottom: 14 }}>
-                {t(
-                  "Set the prepaid balance for {label}. This overwrites the current balance.",
-                  { label },
-                )}
-              </p>
-              <div className="field" style={{ marginBottom: 12 }}>
-                <label htmlFor={`bal-amt-${email}`}>{t("Balance (USD)")}</label>
-                <input
-                  id={`bal-amt-${email}`}
-                  className="input mono"
-                  type="number"
-                  min={0}
-                  step={0.01}
-                  autoFocus
-                  value={dollars}
-                  disabled={busy}
-                  onChange={(e) => setDollars(Number(e.target.value))}
-                />
-              </div>
-              <div className="field">
-                <label htmlFor={`bal-note-${email}`}>{t("Note (optional)")}</label>
-                <input
-                  id={`bal-note-${email}`}
-                  className="input"
-                  type="text"
-                  maxLength={200}
-                  value={note}
-                  disabled={busy}
-                  placeholder={t("Reason for the adjustment")}
-                  onChange={(e) => setNote(e.target.value)}
-                />
-              </div>
-              {error && (
-                <div className="wb-alert err" style={{ marginTop: 12, marginBottom: 0 }}>
-                  {error}
-                </div>
-              )}
-            </div>
-            <div className="modal-f">
-              <button
-                type="button"
-                className="btn ghost"
-                onClick={closeAll}
-                disabled={busy}
-              >
-                {t("Cancel")}
-              </button>
-              <button
-                type="button"
-                className="btn primary"
-                onClick={submitBalance}
-                disabled={busy}
-              >
-                {busy ? t("Working…") : t("Set balance")}
-              </button>
-            </div>
+        <Modal title={t("Adjust balance")} onDismiss={closeAll} dismissDisabled={busy}>
+          <div className="modal-h">
+            <h3>{t("Adjust balance")}</h3>
           </div>
-        </div>
+          <div className="modal-b">
+            <p className="faint" style={{ marginTop: 0, marginBottom: 14 }}>
+              {t(
+                "Set the prepaid balance for {label}. This overwrites the current balance.",
+                { label },
+              )}
+            </p>
+            <div className="field" style={{ marginBottom: 12 }}>
+              <label htmlFor={`bal-amt-${email}`}>{t("Balance (USD)")}</label>
+              <input
+                id={`bal-amt-${email}`}
+                className="input mono"
+                type="number"
+                min={0}
+                step={0.01}
+                autoFocus
+                value={dollars}
+                disabled={busy}
+                onChange={(e) => setDollars(Number(e.target.value))}
+              />
+            </div>
+            <div className="field">
+              <label htmlFor={`bal-note-${email}`}>{t("Note (optional)")}</label>
+              <input
+                id={`bal-note-${email}`}
+                className="input"
+                type="text"
+                maxLength={200}
+                value={note}
+                disabled={busy}
+                placeholder={t("Reason for the adjustment")}
+                onChange={(e) => setNote(e.target.value)}
+              />
+            </div>
+            {error && (
+              <div className="wb-alert err" style={{ marginTop: 12, marginBottom: 0 }}>
+                {error}
+              </div>
+            )}
+          </div>
+          <div className="modal-f">
+            <button
+              type="button"
+              className="btn ghost"
+              onClick={closeAll}
+              disabled={busy}
+            >
+              {t("Cancel")}
+            </button>
+            <button
+              type="button"
+              className="btn primary"
+              onClick={submitBalance}
+              disabled={busy}
+            >
+              {busy ? t("Working…") : t("Set balance")}
+            </button>
+          </div>
+        </Modal>
       )}
 
       {confirming && (
-        <div className="modal-scrim" onClick={closeAll}>
-          <div className="modal-card" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-h">
-              <h3>{t("Ban user")}</h3>
-            </div>
-            <div className="modal-b">
-              <p style={{ margin: 0 }}>
-                {t(
-                  "Ban “{label}”? Active sessions will end. Their workspace credentials and managed app deployments will be suspended.",
-                  { label },
-                )}
-              </p>
-              {error && (
-                <div className="wb-alert err" style={{ marginTop: 12, marginBottom: 0 }}>
-                  {error}
-                </div>
-              )}
-            </div>
-            <div className="modal-f">
-              <button
-                type="button"
-                className="btn ghost"
-                onClick={closeAll}
-                disabled={busy}
-              >
-                {t("Cancel")}
-              </button>
-              <button
-                type="button"
-                className="btn danger"
-                onClick={() => runStatus("blocked")}
-                disabled={busy}
-              >
-                {busy ? t("Working…") : t("Ban")}
-              </button>
-            </div>
+        <Modal title={t("Ban user")} onDismiss={closeAll} dismissDisabled={busy}>
+          <div className="modal-h">
+            <h3>{t("Ban user")}</h3>
           </div>
-        </div>
+          <div className="modal-b">
+            <p style={{ margin: 0 }}>
+              {t(
+                "Ban “{label}”? Active sessions will end. Their workspace credentials and managed app deployments will be suspended.",
+                { label },
+              )}
+            </p>
+            {error && (
+              <div className="wb-alert err" style={{ marginTop: 12, marginBottom: 0 }}>
+                {error}
+              </div>
+            )}
+          </div>
+          <div className="modal-f">
+            <button
+              type="button"
+              className="btn ghost"
+              onClick={closeAll}
+              disabled={busy}
+            >
+              {t("Cancel")}
+            </button>
+            <button
+              type="button"
+              className="btn danger"
+              onClick={() => runStatus("blocked")}
+              disabled={busy}
+            >
+              {busy ? t("Working…") : t("Ban")}
+            </button>
+          </div>
+        </Modal>
       )}
     </>
   );

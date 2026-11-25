@@ -27,9 +27,9 @@ async function getClusterData(): Promise<ClusterData> {
   }
 }
 
-function avg(nums: number[]): number {
-  if (nums.length === 0) return 0;
-  return nums.reduce((a, b) => a + b, 0) / nums.length;
+function avg(nums: (number | undefined | null)[]): string {
+  const measured = nums.filter((value): value is number => typeof value === 'number' && Number.isFinite(value));
+  return measured.length ? fmtPercent(measured.reduce((a, b) => a + b, 0) / measured.length) : '—';
 }
 
 export default withPageTiming('/admin/cluster', async function AdminClusterPage() {
@@ -44,16 +44,15 @@ export default withPageTiming('/admin/cluster', async function AdminClusterPage(
   const regions = Array.from(
     new Set(nodes.map((n) => n.region).filter((r): r is string => Boolean(r))),
   );
-  const avgCpu = avg(nodes.map((n) => n.cpu?.usage_percent ?? 0));
-  const avgMem = avg(nodes.map((n) => n.memory?.usage_percent ?? 0));
-  const avgDisk = avg(nodes.map((n) => n.ephemeral_storage?.usage_percent ?? 0));
+  const avgCpu = avg(nodes.map((n) => n.cpu?.usage_percent));
+  const avgMem = avg(nodes.map((n) => n.memory?.usage_percent));
+  const avgDisk = avg(nodes.map((n) => n.ephemeral_storage?.usage_percent));
 
   return (
     <AppLayout>
       <div className="page">
         <div className="phead">
           <div>
-            <div className="eyebrow">Platform · Cluster</div>
             <h1>{t('Cluster')}</h1>
             <div className="meta">
               <span>
@@ -64,7 +63,7 @@ export default withPageTiming('/admin/cluster', async function AdminClusterPage(
           </div>
         </div>
 
-        <div className="kpi-row" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
+        <div className="kpi-row">
           <div className="kpi">
             <div className="k">{t('Nodes')}</div>
             <div className="v">
@@ -75,25 +74,21 @@ export default withPageTiming('/admin/cluster', async function AdminClusterPage(
           </div>
           <div className="kpi">
             <div className="k">{t('Cluster CPU')}</div>
-            <div className="v">{fmtPercent(avgCpu)}</div>
-            <div className="d">{t('Average usage')}</div>
+            <div className="v">{avgCpu}</div>
           </div>
           <div className="kpi">
             <div className="k">{t('Cluster memory')}</div>
-            <div className="v">{fmtPercent(avgMem)}</div>
-            <div className="d">{t('Average usage')}</div>
+            <div className="v">{avgMem}</div>
           </div>
           <div className="kpi">
             <div className="k">{t('Cluster disk')}</div>
-            <div className="v">{fmtPercent(avgDisk)}</div>
-            <div className="d">{t('Average usage')}</div>
+            <div className="v">{avgDisk}</div>
           </div>
         </div>
 
         <div className="panel">
           <div className="panel-h">
             <h3>{t('Cluster nodes')}</h3>
-            <div className="tail eyebrow">{nodes.length} nodes</div>
           </div>
           {nodes.length > 0 && <ClusterNodeTable nodes={nodes} />}
           {nodes.length === 0 && !loadError && (

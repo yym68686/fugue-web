@@ -13,17 +13,21 @@
     "openapi:sync:check": "node ./scripts/sync-fugue-openapi.mjs --check",
     "start": "next start",
     "test": "node --import ./tests/register-alias.mjs --test tests/**/*.test.ts",
+    "test:visual": "playwright test",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@types/pg": "^8.20.0",
+    "geist": "1.9.2",
     "next": "16.4.6",
     "pg": "^8.22.0",
     "react": "19.2.4",
     "react-dom": "19.2.4",
+    "reicon-react": "1.2.6",
     "server-only": "^0.0.1"
   },
   "devDependencies": {
+    "@playwright/test": "1.65.1",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",

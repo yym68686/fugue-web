@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import AppLayout from '@/components/AppLayout';
+import CopyValue from '@/components/ui/CopyValue';
 import ProjectWorkbench, {
   type WorkbenchService,
 } from '@/components/workbench/ProjectWorkbench';
@@ -148,26 +149,9 @@ export default async function ProjectDetailPage({
           <span>{projectName}</span>
         </div>
 
-        <div className="phead">
-          <div>
-            <div className="eyebrow">Project</div>
-            <h1>{projectName}</h1>
-            <div className="meta">
-              <span className="mono">{detail.project_id}</span>
-              {detail.project?.slug && <span>· {detail.project.slug}</span>}
-            </div>
-          </div>
-          <div className="actions">
-            <Link href="/projects" className="btn">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M15 18l-6-6 6-6" />
-              </svg>
-              {t("Back to projects")}
-            </Link>
-          </div>
-        </div>
-
-        <div className="pstat">
+        <details id={`project-overview-${detail.project_id}`} className="project-overview" open={!initialServiceId}>
+          <summary><h1>{projectName}</h1></summary>
+          <div className="pstat">
           <div className="pstat-item">
             <span className="pstat-k">{t("Apps")}</span>
             <span className="pstat-v">{apps.length}</span>
@@ -212,11 +196,10 @@ export default async function ProjectDetailPage({
               )}
             </span>
           </div>
-          <div className="pstat-item">
-            <span className="pstat-k">{t("Updated")}</span>
-            <span className="pstat-v">{fmtDate(detail.project?.updated_at)}</span>
           </div>
-        </div>
+          <p className="muted">{t("Updated")}: {fmtDate(detail.project?.updated_at)}</p>
+          <details><summary>{t("Project ID")}</summary><CopyValue value={detail.project_id} label={t("Project ID")} /></details>
+        </details>
 
         <ProjectWorkbench
           services={services}

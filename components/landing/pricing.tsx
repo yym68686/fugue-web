@@ -14,13 +14,11 @@ export function PricingDetails({ locale }: { locale: Locale }) {
   return <div className="pricing-details">
     <div className="pricing-intro">
       <div>
-        <div className="lp-eyebrow">{text("PREPAID HOSTING", "预付费托管")}</div>
-        <h2>{text("Start with $5 in credits", "$5 起充值")}</h2>
         <p className="doc-p">{text("Buy credits once. Hosting charges are deducted hourly from your balance. No automatic renewal or automatic top-up.", "一次性购买额度，托管费用逐小时从余额扣除。没有自动续订或自动充值。")}</p>
       </div>
       <div className="pricing-topups">
         <span>{text("Preset credit amounts", "预设充值金额")}</span>
-        <div className="pricing-amounts">{TOPUP_PRESETS.map((amount) => <span key={amount}>${amount}</span>)}</div>
+        <div className="pricing-amounts">{TOPUP_PRESETS.map((amount) => `$${amount}`).join(" · ")}</div>
         <p>{text(`Custom top-ups: $${MIN_TOPUP_USD}–$${MAX_TOPUP_USD.toLocaleString("en-US")} in whole USD.`, `自定义充值：$${MIN_TOPUP_USD}–$${MAX_TOPUP_USD.toLocaleString("en-US")}，以整数美元为单位。`)}</p>
         <p>{text("These are credit purchases, not monthly plans. Applicable taxes are shown at checkout.", "以上为额度购买金额，不是包月套餐。适用税费在收银台展示。")}</p>
       </div>
@@ -28,7 +26,7 @@ export function PricingDetails({ locale }: { locale: Locale }) {
     {book ? <>
       <h3>{text("Standard managed resource rates", "标准托管资源单价")}</h3>
       <p className="doc-p">{text(`USD · Published ${book.effective_date} · Monthly estimates use ${book.hours_per_month} hours.`, `美元计价 · 公示日期 ${book.effective_date} · 月度估算按 ${book.hours_per_month} 小时计算。`)}</p>
-      <div className="pricing-table-wrap">
+      <div className="pricing-table-wrap" tabIndex={0} role="region" aria-label={text("Resource prices", "资源单价")}>
         <table className="pricing-table">
           <caption className="sr-only">{text("Managed hosting resource prices in USD", "托管资源价格，单位美元")}</caption>
           <thead><tr><th scope="col">{text("Resource", "资源")}</th><th scope="col">{text("Per hour", "每小时")}</th><th scope="col">{text("Monthly estimate", "月度估算")}</th></tr></thead>

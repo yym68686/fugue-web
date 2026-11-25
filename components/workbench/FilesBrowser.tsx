@@ -10,6 +10,7 @@ import type {
 } from "@/lib/fugue/console";
 import { fmtBytes, fmtDate } from "@/lib/format";
 import { useT } from "@/lib/i18n/client";
+import CopyValue from "@/components/ui/CopyValue";
 import type { TranslateFn } from "@/lib/i18n/translate";
 
 import {
@@ -78,6 +79,8 @@ export default function FilesBrowser({ app }: { app: ConsoleAppDetail }) {
   const [selected, setSelected] = useState<string | null>(null);
 
   const reqId = useRef(0);
+  const tree = useRef<HTMLDivElement>(null);
+  const directoryScroll = useRef(0);
 
   const treeUrl = useCallback(
     (path: string) => {
@@ -96,6 +99,8 @@ export default function FilesBrowser({ app }: { app: ConsoleAppDetail }) {
     const ctrl = new AbortController();
     setRootLoading(true);
     setRootError(null);
+    setRoot(null);
+    setPod(null);
     fsGet<FilesystemTree>(`${base}/filesystem/tree`, ctrl.signal)
       .then((data) => {
         if (id !== reqId.current) return;
@@ -116,17 +121,20 @@ export default function FilesBrowser({ app }: { app: ConsoleAppDetail }) {
   // Fetch (or refetch) one directory's children.
   const loadDir = useCallback(
     async (path: string) => {
+      const id = reqId.current;
       setDirs((prev) => ({
         ...prev,
         [path]: { entries: prev[path]?.entries ?? [], loading: true, error: null },
       }));
       try {
         const data = await fsGet<FilesystemTree>(treeUrl(path));
+        if (id !== reqId.current) return;
         setDirs((prev) => ({
           ...prev,
           [path]: { entries: data.entries ?? [], loading: false, error: null },
         }));
       } catch (err) {
+        if (id !== reqId.current) return;
         setDirs((prev) => ({
           ...prev,
           [path]: {
@@ -161,8 +169,21 @@ export default function FilesBrowser({ app }: { app: ConsoleAppDetail }) {
     setDirs({});
     setExpanded(new Set());
     setSelected(null);
+    directoryScroll.current = 0;
     loadRoot();
   }, [loadRoot]);
+
+  function selectFile(path: string) {
+    directoryScroll.current = tree.current?.scrollTop ?? 0;
+    setSelected(path);
+  }
+
+  function closeFile() {
+    setSelected(null);
+    requestAnimationFrame(() => {
+      if (tree.current) tree.current.scrollTop = directoryScroll.current;
+    });
+  }
 
   // Flatten the lazily-loaded tree into ordered, indented rows for rendering.
   const rows = useMemo(
@@ -179,7 +200,7 @@ export default function FilesBrowser({ app }: { app: ConsoleAppDetail }) {
             {root.pod}
           </span>
         )}
-        {root?.workspace_root && <span className="fs-root">{root.workspace_root}</span>}
+        {root?.workspace_root && <span className="fs-root"><CopyValue value={root.workspace_root} label={t("Workspace path")} /></span>}
         <div className="tail">
           <RefreshButton onClick={refreshAll} />
         </div>
@@ -193,8 +214,8 @@ export default function FilesBrowser({ app }: { app: ConsoleAppDetail }) {
       )}
 
       {!rootLoading && !rootError && root && (
-        <div className="fs-split">
-          <div className="fs-side">
+        <div className={`fs-split${selected ? " fs-selected" : ""}`}>
+          <div className="fs-side" ref={tree}>
             {rows.length === 0 ? (
               <EmptyState message={t("No files")} />
             ) : (
@@ -208,7 +229,7 @@ export default function FilesBrowser({ app }: { app: ConsoleAppDetail }) {
                     loading={dirs[r.entry.path]?.loading ?? false}
                     selected={selected === r.entry.path}
                     onToggle={toggleDir}
-                    onSelect={setSelected}
+                    onSelect={selectFile}
                     t={t}
                   />
                 ))}
@@ -219,11 +240,11 @@ export default function FilesBrowser({ app }: { app: ConsoleAppDetail }) {
           <div className="fs-main">
             {selected ? (
               <FileViewer
-                key={selected}
+                key={`${pod ?? ""}:${selected}`}
                 base={base}
                 path={selected}
                 pod={pod}
-                onClose={() => setSelected(null)}
+                onClose={closeFile}
                 t={t}
               />
             ) : (
@@ -375,7 +396,7 @@ function FileViewer({
   // Editing is only safe for whole, text files. A truncated buffer would drop
   // the file's tail on save; binary content cannot round-trip through the
   // utf-8 textarea. Both disable Save.
-  const canEdit = !loading && !error && !isBinary && !isTruncated;
+  const canEdit = Boolean(file && pod && !loading && !error && !isBinary && !isTruncated);
 
   async function save() {
     await callConsole(`${base.replace("/api/console", "")}/filesystem/file`, {
@@ -412,7 +433,7 @@ function FileViewer({
             </button>
           )}
           <button type="button" className="btn ghost sm" onClick={onClose}>
-            {t("Close")}
+            {t("Back to files")}
           </button>
         </div>
       </div>
@@ -442,6 +463,7 @@ function FileViewer({
                   </div>
                 )}
                 <textarea
+                  aria-label={path}
                   className="fs-code mono"
                   value={draft}
                   spellCheck={false}
@@ -465,6 +487,7 @@ function FileViewer({
               {t('Write changes to "{path}" in the live container? This overwrites the current file.', {
                 path,
               })}
+              {pod && <><br />Pod: <code>{pod}</code></>}
             </p>
           }
           confirmLabel={t("Save")}

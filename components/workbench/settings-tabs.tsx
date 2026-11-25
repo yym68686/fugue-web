@@ -151,10 +151,8 @@ export function SettingsTab({
         </div>
       </div>
 
-      <div className="panel danger-zone">
-        <div className="panel-h">
-          <h3>{t("Danger zone")}</h3>
-        </div>
+      <details className="panel danger-zone">
+        <summary>{t("Service actions")}</summary>
         <div className="danger-row">
           <div className="danger-txt">
             <div className="nm">{t("Restart service")}</div>
@@ -162,7 +160,7 @@ export function SettingsTab({
           </div>
           <ActionButton
             className="btn"
-            confirm={t("Restart this service?")}
+            confirm={`${app.name} — ${t("Restart this service?")}`}
             onAction={() => callConsole(`${APP(app.id)}/restart`)}
             onDone={() => router.refresh()}
           >
@@ -189,7 +187,7 @@ export function SettingsTab({
           ) : (
             <ActionButton
               className="btn"
-              confirm={t("Pause this service? External traffic will stop.")}
+              confirm={`${app.name} — ${t("Pause this service? External traffic will stop.")}`}
               onAction={() => callConsole(`${APP(app.id)}/disable`)}
               onDone={() => router.refresh()}
             >
@@ -206,7 +204,7 @@ export function SettingsTab({
             {t("Delete")}
           </button>
         </div>
-      </div>
+      </details>
 
       {confirmDelete && (
         <ConfirmDialog
@@ -262,7 +260,9 @@ function NodeLossSettings({ app }: { app: ConsoleAppDetail }) {
         <p className="muted">{t("Applying this policy deploys the app and may replace Pods. It does not add replicas, standby resources, or failover. Authorized resource consumption is billed normally. Existing Pod deletions cannot be undone.")}</p>
       </div>
       <div className="form-foot">
-        <ActionButton className="btn primary" disabled={!changed} onAction={() => {
+        <ActionButton className="btn primary" disabled={!changed}
+          confirm={`${app.name}: ${t(configured?.mode === "replace" ? "Allow replacement" : configured?.mode === "wait" ? "Wait for the original node" : "Legacy Kubernetes behavior")} → ${t(mode === "replace" ? "Allow replacement" : mode === "legacy" ? "Legacy Kubernetes behavior" : "Wait for the original node")}. ${t("Applying this policy deploys the app and may replace Pods. It does not add replicas, standby resources, or failover. Authorized resource consumption is billed normally. Existing Pod deletions cannot be undone.")}`}
+          onAction={() => {
           const delay = Number(seconds);
           if (mode === "replace" && (!seconds.trim() || !Number.isInteger(delay) || delay < 0 || delay > 86400)) throw new Error(t("Replacement delay must be an integer from 0 to 86400."));
           return callConsole(APP(app.id), { method: "PATCH", body: { node_loss: { mode, ...(mode === "replace" ? { toleration_seconds: delay } : {}) } } });

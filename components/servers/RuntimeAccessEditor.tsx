@@ -329,7 +329,9 @@ export default function RuntimeAccessEditor({
                 <PublicPrice offer={runtime.public_offer} />
               </p>
               {capabilities.sharing && (
-                <PricingForm runtime={runtime} onSaved={refresh} />
+                <details className="runtime-edit"><summary>{t("Edit public pricing")}</summary>
+                  <PricingForm runtime={runtime} onSaved={refresh} />
+                </details>
               )}
             </>
           )}

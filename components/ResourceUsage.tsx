@@ -16,15 +16,11 @@ export default function ResourceUsage({
 }) {
   const usage = Number.isFinite(usagePct) ? usagePct : undefined;
   const request = Number.isFinite(requestPct) ? requestPct : undefined;
-  const tone = (usage ?? 0) >= 85 ? "crit" : (usage ?? 0) >= 70 ? "hot" : "";
   return (
     <span className="usage-cell">
       {label && <span className="usage-label">{label}</span>}
       <span className="bar bar-wide" aria-hidden="true">
-        <i
-          className={tone}
-          style={{ width: `${Math.max(0, Math.min(100, usage ?? 0))}%` }}
-        />
+        {usage != null && <i style={{ width: `${Math.max(0, Math.min(100, usage))}%` }} />}
         {request != null && (
           <span
             className="req-mark"
@@ -34,7 +30,7 @@ export default function ResourceUsage({
         )}
       </span>
       <span className="usage-meta">
-        <span className="bar-val">{fmtPercent(usage)}</span>
+        <span className="bar-val">{usage == null ? t("Not measured") : fmtPercent(usage)}</span>
         {request != null && (
           <span className="usage-req">
             {t("Requested {pct}", { pct: fmtPercent(request) })}

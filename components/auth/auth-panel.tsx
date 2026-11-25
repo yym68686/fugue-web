@@ -225,11 +225,6 @@ export function AuthPanel({
     <div className="auth-card">
       <div className="auth-head">
         <h1>{isSignUp ? t("Create account") : t("Sign in to Fugue")}</h1>
-        <p>
-          {isSignUp
-            ? t("Sign up to deploy apps and manage secrets and billing.")
-            : t("Use your account to continue to the console.")}
-        </p>
       </div>
 
       <p className="auth-policy">
@@ -264,12 +259,11 @@ export function AuthPanel({
         </button>
       </div>
 
-      <div className="auth-sep">{t("Or use email")}</div>
-
       <div className="auth-tabs">
         <button
           type="button"
           className={method === "password" ? "active" : ""}
+          aria-pressed={method === "password"}
           onClick={() => {
             setMethod("password");
             setError(null);
@@ -281,6 +275,7 @@ export function AuthPanel({
         <button
           type="button"
           className={method === "email" ? "active" : ""}
+          aria-pressed={method === "email"}
           onClick={() => {
             setMethod("email");
             setError(null);

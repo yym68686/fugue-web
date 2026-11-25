@@ -19,6 +19,8 @@ import {
 import { callConsole } from "@/components/workbench/shared";
 import { copyText } from "@/lib/ui/clipboard";
 import RuntimeAccessEditor, { PublicPrice } from "./RuntimeAccessEditor";
+import Icon from "@/components/ui/Icon";
+import RowActions from "@/components/ui/RowActions";
 import NodeKeyRowActions from "./NodeKeyRowActions";
 
 function ResourceTable({ node }: { node: NodeView }) {
@@ -122,17 +124,8 @@ function ServerCard({ server, now }: { server: ServerView; now: number }) {
             {[r.country, node?.region, r.cluster_node_name]
               .filter(Boolean)
               .join(" · ")}
+            {r.country || node?.region || r.cluster_node_name ? " · " : ""}{t(kind)}
           </small>
-        </span>
-        <span className="chip">{t(kind)}</span>
-        <span className="chip">
-          {t(
-            r.cluster_scope === "internal"
-              ? "Internal cluster"
-              : r.sharing === "public"
-                ? "Public"
-                : "Private",
-          )}
         </span>
         <span className={`chip ${health === "ready" ? "ok" : "idle"}`}>
           {t(
@@ -146,7 +139,7 @@ function ServerCard({ server, now }: { server: ServerView; now: number }) {
           )}
         </span>
         <span className="server-expand" aria-hidden="true">
-          {open ? "−" : "+"}
+          <Icon name={open ? "ChevronDown" : "ChevronRight"} />
         </span>
         <span className="server-resource-summary">
           <ResourceUsage
@@ -381,6 +374,7 @@ export default function ServersPanel({
   return (
     <>
       <div className="server-toolbar">
+        <h2>{t("Nodes")}</h2>
         <div className="meta">
           <span>
             {t("{count} servers", { count: snapshot.servers.length })}
@@ -400,15 +394,7 @@ export default function ServersPanel({
         >
           {t(refreshing ? "Refreshing…" : "Refresh")}
         </button>
-      </div>
-      {snapshot.errors.map((e) => (
-        <div className="wb-alert err" role="alert" key={e}>
-          {t(e)}
-        </div>
-      ))}
-      <div className="panel">
-        <div className="panel-h server-toolbar">
-          <h3>{t("Nodes")}</h3>
+        <div className="server-filters">
           <input
             className="input server-search"
             type="search"
@@ -428,6 +414,11 @@ export default function ServersPanel({
             <option value="shared">{t("Shared and internal servers")}</option>
           </select>
         </div>
+      </div>
+      {snapshot.errors.map((e) => (
+        <div className="wb-alert err" role="alert" key={e}>{t(e)}</div>
+      ))}
+      <div className="panel">
         {servers.map((s) => (
           <ServerCard key={s.runtime.id} server={s} now={now} />
         ))}
@@ -441,7 +432,7 @@ export default function ServersPanel({
         </div>
         <div className="list">
           {snapshot.keys.map((k) => (
-            <div className="row-item server-key-row" key={k.id}>
+            <div className="row-item server-key-row intent-row" key={k.id}>
               <div className="main-col">
                 <div className="nm">
                   {k.label}
@@ -451,19 +442,20 @@ export default function ServersPanel({
                     {t(k.status === "active" ? "Active" : "Revoked")}
                   </span>
                 </div>
-                <div className="id">{k.id}</div>
                 <div className="sub">
                   {t("Last used")}:{" "}
                   {k.lastUsedAt ? fmtDate(k.lastUsedAt) : t("Never used")} ·{" "}
                   {t("Connected servers")}: {k.attachedCount ?? "—"}
                 </div>
               </div>
+              <RowActions>
               <CopyNodeKey id={k.id} available={k.hasSecret} />
               <NodeKeyRowActions
                 keyId={k.id}
                 label={k.label}
                 status={k.status}
               />
+              </RowActions>
             </div>
           ))}
           {!snapshot.keys.length && (

@@ -7,10 +7,8 @@ export const metadata: Metadata = { title: "Support — Fugue", description: "Co
 export default async function SupportPage() {
   const { locale } = await getRequestI18n();
   const text = (en: string, zh: string) => publicText(locale, en, zh);
-  return <PublicPage locale={locale} title={text("How can we help?", "需要什么帮助？")}
-    intro={text("Contact the Fugue operator for product help, billing questions or privacy requests.", "如需产品帮助、账单支持或提出隐私请求，请联系 Fugue 运营者。") }>
+  return <PublicPage locale={locale} title={text("Support", "支持")}>
     <section className="support-card">
-      <h2>{text("Email support", "邮件支持")}</h2>
       <a className="support-email" href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</a>
       <p className="doc-p">{text("Include your account email, the affected project or application, and a short description of the issue. For payments, include your order reference and purchase date. Never send passwords, API keys or full card details.", "请提供账户邮箱、相关项目或应用，以及问题的简要描述。支付问题请附上订单编号与购买日期。请勿发送密码、API 密钥或完整银行卡信息。")}</p>
     </section>

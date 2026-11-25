@@ -1,5 +1,7 @@
 "use client";
 
+import Modal from "@/components/ui/Modal";
+
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -173,147 +175,143 @@ export default function KeyRowActions({
       </div>
 
       {editing && (
-        <div className="modal-scrim" onClick={closeAll}>
-          <div className="modal-card" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-h">
-              <h3>{t("Edit API key")}</h3>
-            </div>
-            <div className="modal-b">
-              <div className="field" style={{ marginBottom: 14 }}>
-                <label htmlFor={`edit-key-label-${keyId}`}>{t("Key name")}</label>
-                <input
-                  id={`edit-key-label-${keyId}`}
-                  className="input"
-                  autoFocus
-                  value={editLabel}
-                  maxLength={120}
-                  onChange={(e) => setEditLabel(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") submitEdit();
-                  }}
-                />
-              </div>
-
-              <div className="field">
-                <label>{t("Scopes")}</label>
-                <div className="newkey-scope-bar">
-                  <span>{t("{count} selected", { count: editScopes.size })}</span>
-                  <div className="newkey-scope-acts">
-                    <button
-                      type="button"
-                      onClick={() => setEditScopes(new Set(availableScopes))}
-                    >
-                      {t("Select all")}
-                    </button>
-                    <button type="button" onClick={() => setEditScopes(new Set())}>
-                      {t("Clear")}
-                    </button>
-                  </div>
-                </div>
-                <div className="newkey-scopes">
-                  {availableScopes.map((scope) => {
-                    const on = editScopes.has(scope);
-                    return (
-                      <button
-                        key={scope}
-                        type="button"
-                        className={`scope-pick${on ? " on" : ""}`}
-                        aria-pressed={on}
-                        onClick={() => toggleScope(scope)}
-                      >
-                        {scope}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {error && (
-                <div
-                  className="wb-alert err"
-                  style={{ marginTop: 12, marginBottom: 0 }}
-                >
-                  {error}
-                </div>
-              )}
-            </div>
-            <div className="modal-f">
-              <button
-                type="button"
-                className="btn ghost"
-                onClick={closeAll}
-                disabled={busy}
-              >
-                {t("Cancel")}
-              </button>
-              <button
-                type="button"
-                className="btn primary"
-                onClick={submitEdit}
-                disabled={busy}
-              >
-                {busy ? t("Working…") : t("Save changes")}
-              </button>
-            </div>
+        <Modal title={t("Edit API key")} onDismiss={closeAll} dismissDisabled={busy}>
+          <div className="modal-h">
+            <h3>{t("Edit API key")}</h3>
           </div>
-        </div>
+          <div className="modal-b">
+            <div className="field" style={{ marginBottom: 14 }}>
+              <label htmlFor={`edit-key-label-${keyId}`}>{t("Key name")}</label>
+              <input
+                id={`edit-key-label-${keyId}`}
+                className="input"
+                autoFocus
+                value={editLabel}
+                maxLength={120}
+                onChange={(e) => setEditLabel(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") submitEdit();
+                }}
+              />
+            </div>
+
+            <div className="field">
+              <label>{t("Scopes")}</label>
+              <div className="newkey-scope-bar">
+                <span>{t("{count} selected", { count: editScopes.size })}</span>
+                <div className="newkey-scope-acts">
+                  <button
+                    type="button"
+                    onClick={() => setEditScopes(new Set(availableScopes))}
+                  >
+                    {t("Select all")}
+                  </button>
+                  <button type="button" onClick={() => setEditScopes(new Set())}>
+                    {t("Clear")}
+                  </button>
+                </div>
+              </div>
+              <div className="newkey-scopes">
+                {availableScopes.map((scope) => {
+                  const on = editScopes.has(scope);
+                  return (
+                    <button
+                      key={scope}
+                      type="button"
+                      className={`scope-pick${on ? " on" : ""}`}
+                      aria-pressed={on}
+                      onClick={() => toggleScope(scope)}
+                    >
+                      {scope}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {error && (
+              <div
+                className="wb-alert err"
+                style={{ marginTop: 12, marginBottom: 0 }}
+              >
+                {error}
+              </div>
+            )}
+          </div>
+          <div className="modal-f">
+            <button
+              type="button"
+              className="btn ghost"
+              onClick={closeAll}
+              disabled={busy}
+            >
+              {t("Cancel")}
+            </button>
+            <button
+              type="button"
+              className="btn primary"
+              onClick={submitEdit}
+              disabled={busy}
+            >
+              {busy ? t("Working…") : t("Save changes")}
+            </button>
+          </div>
+        </Modal>
       )}
 
       {confirming && (
-        <div className="modal-scrim" onClick={closeAll}>
-          <div className="modal-card" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-h">
-              <h3>
-                {confirming === "delete"
-                  ? t("Delete API key")
-                  : t("Disable API key")}
-              </h3>
-            </div>
-            <div className="modal-b">
-              <p style={{ margin: 0 }}>
-                {confirming === "delete"
-                  ? t(
-                      "Permanently delete “{label}”? Any client using this key will immediately lose access. This cannot be undone.",
-                      { label },
-                    )
-                  : t(
-                      "Disable “{label}”? Clients using this key will lose access until you enable it again.",
-                      { label },
-                    )}
-              </p>
-              {error && (
-                <div
-                  className="wb-alert err"
-                  style={{ marginTop: 12, marginBottom: 0 }}
-                >
-                  {error}
-                </div>
-              )}
-            </div>
-            <div className="modal-f">
-              <button
-                type="button"
-                className="btn ghost"
-                onClick={closeAll}
-                disabled={busy}
-              >
-                {t("Cancel")}
-              </button>
-              <button
-                type="button"
-                className={confirming === "delete" ? "btn danger" : "btn primary"}
-                onClick={confirmAction}
-                disabled={busy}
-              >
-                {busy
-                  ? t("Working…")
-                  : confirming === "delete"
-                    ? t("Delete")
-                    : t("Disable")}
-              </button>
-            </div>
+        <Modal title={confirming === "delete" ? t("Delete API key") : t("Disable API key")} onDismiss={closeAll} dismissDisabled={busy}>
+          <div className="modal-h">
+            <h3>
+              {confirming === "delete"
+                ? t("Delete API key")
+                : t("Disable API key")}
+            </h3>
           </div>
-        </div>
+          <div className="modal-b">
+            <p style={{ margin: 0 }}>
+              {confirming === "delete"
+                ? t(
+                    "Permanently delete “{label}”? Any client using this key will immediately lose access. This cannot be undone.",
+                    { label },
+                  )
+                : t(
+                    "Disable “{label}”? Clients using this key will lose access until you enable it again.",
+                    { label },
+                  )}
+            </p>
+            {error && (
+              <div
+                className="wb-alert err"
+                style={{ marginTop: 12, marginBottom: 0 }}
+              >
+                {error}
+              </div>
+            )}
+          </div>
+          <div className="modal-f">
+            <button
+              type="button"
+              className="btn ghost"
+              onClick={closeAll}
+              disabled={busy}
+            >
+              {t("Cancel")}
+            </button>
+            <button
+              type="button"
+              className={confirming === "delete" ? "btn danger" : "btn primary"}
+              onClick={confirmAction}
+              disabled={busy}
+            >
+              {busy
+                ? t("Working…")
+                : confirming === "delete"
+                  ? t("Delete")
+                  : t("Disable")}
+            </button>
+          </div>
+        </Modal>
       )}
     </>
   );

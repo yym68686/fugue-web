@@ -66,6 +66,7 @@ export default function RuntimeTargetPicker({
           ) : null;
         })}
       </select>
+      {!available.length && !allowAuto && <p className="form-hint">{t("No eligible servers.")} <a className="text-link" href="/servers">{t("Servers")}</a></p>}
       {selected && (
         <p className="form-hint">
           {selected.owned

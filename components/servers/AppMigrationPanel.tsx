@@ -121,7 +121,7 @@ export default function AppMigrationPanel({
             )}
             <div className="server-inline">
               <button
-                className="btn ghost"
+                className={impact?.pass ? "btn" : "btn primary"}
                 disabled={
                   !target || busy || running || !settings.data.canMigrate
                 }
@@ -146,7 +146,7 @@ export default function AppMigrationPanel({
               >
                 {t(busy ? "Working…" : "Preview migration")}
               </button>
-              <button
+              {impact?.pass && impact.target_runtime_id === target && <button
                 className="btn primary"
                 disabled={
                   busy ||
@@ -158,7 +158,7 @@ export default function AppMigrationPanel({
                 onClick={() => setConfirming(true)}
               >
                 {t("Move service")}
-              </button>
+              </button>}
             </div>
           </>
         )}

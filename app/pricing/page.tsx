@@ -8,8 +8,7 @@ export const metadata: Metadata = { title: "Pricing — Fugue", description: "Pr
 
 export default async function PricingPage() {
   const { locale } = await getRequestI18n();
-  return <PublicPage locale={locale} title={publicText(locale, "Hosting with clear pricing", "清晰透明的托管价格")}
-    intro={publicText(locale, "Choose your resources. See the cost before you deploy.", "选择所需资源，部署前了解费用。") }>
+  return <PublicPage locale={locale} title={publicText(locale, "Pricing", "价格")}>
     <PricingDetails locale={locale} />
   </PublicPage>;
 }

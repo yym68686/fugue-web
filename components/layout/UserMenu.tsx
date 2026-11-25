@@ -1,10 +1,12 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 
 import { useI18n } from "@/lib/i18n/client";
+import Icon from "@/components/ui/Icon";
+import { followsSubmenu, type Point } from "@/lib/ui/menu-intent";
 import {
   SUPPORTED_LOCALES,
   type Locale,
@@ -22,6 +24,10 @@ type UserMenuProps = {
   themePreference: ThemePreference;
   localePreference: LocalePreference;
 };
+
+type Section = "theme" | "locale";
+const OPEN_DELAY = 160;
+const CLOSE_DELAY = 240;
 
 function initials(name: string | null, email: string): string {
   const source = (name ?? email ?? "").trim();
@@ -73,30 +79,161 @@ export default function UserMenu({
   themePreference,
   localePreference,
 }: UserMenuProps) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const router = useRouter();
-  const [open, setOpen] = useState(false);
+  const pathname = usePathname();
+  const popoverId = useId();
+  const [openPath, setOpenPath] = useState<string | null>(null);
+  const open = openPath === pathname;
+  const [submenu, setSubmenu] = useState<Section | null>(null);
   const [theme, setTheme] = useState<ThemePreference>(themePreference);
   const [signingOut, setSigningOut] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const trigger = useRef<HTMLButtonElement>(null);
+  const panel = useRef<HTMLDivElement>(null);
+  const submenuPanel = useRef<HTMLDivElement>(null);
+  const timers = useRef<{ open?: ReturnType<typeof setTimeout>; close?: ReturnType<typeof setTimeout> }>({});
+  const corridor = useRef<{ origin: Point; until: number } | null>(null);
+  const pending = useRef<Section | null>(null);
+
+  function stopTimer(key: "open" | "close") {
+    clearTimeout(timers.current[key]);
+    delete timers.current[key];
+  }
+
+  const clearIntent = useCallback(() => {
+    const state = timers.current;
+    clearTimeout(state.open);
+    clearTimeout(state.close);
+    timers.current = {};
+    corridor.current = null;
+    pending.current = null;
+  }, []);
+
+  const closeMenu = useCallback((restoreFocus = false) => {
+    clearIntent();
+    setSubmenu(null);
+    setOpenPath(null);
+    if (restoreFocus) trigger.current?.focus();
+  }, [clearIntent]);
 
   useEffect(() => {
-    if (!open) return;
-    function onDown(event: MouseEvent) {
+    if (!open) {
+      clearIntent();
+      return;
+    }
+    function onDown(event: PointerEvent) {
       if (ref.current && !ref.current.contains(event.target as Node)) {
-        setOpen(false);
+        closeMenu();
       }
     }
     function onKey(event: KeyboardEvent) {
-      if (event.key === "Escape") setOpen(false);
+      if (event.key !== "Escape") return;
+      if (submenu && submenuPanel.current?.contains(document.activeElement)) {
+        event.preventDefault();
+        clearIntent();
+        ref.current?.querySelector<HTMLButtonElement>(`[data-submenu-trigger="${submenu}"]`)?.focus();
+        setSubmenu(null);
+        return;
+      }
+      event.preventDefault();
+      closeMenu(true);
     }
-    document.addEventListener("mousedown", onDown);
+    document.addEventListener("pointerdown", onDown);
     document.addEventListener("keydown", onKey);
     return () => {
-      document.removeEventListener("mousedown", onDown);
+      document.removeEventListener("pointerdown", onDown);
       document.removeEventListener("keydown", onKey);
     };
-  }, [open]);
+  }, [open, submenu, closeMenu, clearIntent]);
+
+  useEffect(() => clearIntent, [clearIntent]);
+
+  function inCorridor(event: ReactPointerEvent) {
+    const intent = corridor.current;
+    return intent && intent.until > performance.now() && submenuPanel.current
+      && followsSubmenu({ x: event.clientX, y: event.clientY }, intent.origin, submenuPanel.current.getBoundingClientRect());
+  }
+
+  function queueOpen(section: Section) {
+    if (timers.current.open && pending.current === section) return;
+    stopTimer("open");
+    pending.current = section;
+    timers.current.open = setTimeout(() => {
+      clearIntent();
+      setSubmenu(section);
+    }, OPEN_DELAY);
+  }
+
+  function queueClose(origin?: Point) {
+    stopTimer("close");
+    corridor.current = origin ? { origin, until: performance.now() + CLOSE_DELAY } : null;
+    timers.current.close = setTimeout(() => {
+      corridor.current = null;
+      if (pending.current) {
+        const next = pending.current;
+        clearIntent();
+        setSubmenu(next);
+      } else if (!submenuPanel.current?.contains(document.activeElement)) {
+        setSubmenu(null);
+      }
+    }, CLOSE_DELAY);
+  }
+
+  function renderSection(section: Section, label: string, activeLabel: string, children: React.ReactNode) {
+    const expanded = submenu === section;
+    const sectionId = `${popoverId}-${section}`;
+    return (
+      <div className="account-section">
+        <button
+          type="button"
+          className="usermenu-item"
+          data-submenu-trigger={section}
+          aria-expanded={expanded}
+          aria-controls={sectionId}
+          onPointerEnter={(event) => {
+            if (event.pointerType !== "mouse") return;
+            if (expanded) clearIntent();
+            else if (inCorridor(event)) pending.current = section;
+            else queueOpen(section);
+          }}
+          onPointerMove={(event) => {
+            if (event.pointerType === "mouse" && !expanded && !inCorridor(event)) queueOpen(section);
+          }}
+          onPointerLeave={(event) => {
+            if (event.pointerType !== "mouse") return;
+            if (pending.current === section) {
+              pending.current = null;
+              stopTimer("open");
+            }
+            if (expanded) queueClose({ x: event.clientX, y: event.clientY });
+          }}
+          onClick={(event) => {
+            clearIntent();
+            setSubmenu(expanded ? null : section);
+            if (!expanded && event.detail === 0) {
+              requestAnimationFrame(() => submenuPanel.current?.querySelector("button")?.focus());
+            }
+          }}
+        >
+          <span>{label}</span>
+          <span className="account-current">{activeLabel}</span>
+          <Icon name="ChevronRight" />
+        </button>
+        {expanded && (
+          <div
+            id={sectionId}
+            ref={submenuPanel}
+            className="account-submenu"
+            role="group"
+            aria-label={label}
+            onPointerEnter={(event) => { if (event.pointerType === "mouse") clearIntent(); }}
+            onPointerLeave={(event) => { if (event.pointerType === "mouse") queueClose(); }}
+          >{children}</div>
+        )}
+      </div>
+    );
+  }
 
   function chooseTheme(next: ThemePreference) {
     setTheme(next);
@@ -106,7 +243,7 @@ export default function UserMenu({
 
   async function chooseLocale(next: LocalePreference) {
     if (next === localePreference) {
-      setOpen(false);
+      closeMenu(true);
       return;
     }
     // Persist the cookie FIRST, then refresh so the server render reads the new
@@ -114,7 +251,7 @@ export default function UserMenu({
     // refresh request (see persistPreference).
     await persistPreference({ locale: next });
     router.refresh();
-    setOpen(false);
+    closeMenu(true);
   }
 
   async function signOut() {
@@ -142,11 +279,21 @@ export default function UserMenu({
   return (
     <div className="usermenu" ref={ref}>
       <button
+        ref={trigger}
         type="button"
         className="avatar"
-        aria-haspopup="menu"
+        aria-label={locale === "zh-CN" ? "账户菜单" : "Account menu"}
         aria-expanded={open}
-        onClick={() => setOpen((value) => !value)}
+        aria-controls={popoverId}
+        onClick={(event) => {
+          if (open) closeMenu();
+          else {
+            clearIntent();
+            setSubmenu(null);
+            setOpenPath(pathname);
+            if (event.detail === 0) requestAnimationFrame(() => panel.current?.querySelector("button")?.focus());
+          }
+        }}
         title={name || email}
       >
         {pictureUrl ? (
@@ -158,56 +305,55 @@ export default function UserMenu({
       </button>
 
       {open && (
-        <div className="usermenu-pop" role="menu">
+        <div
+          id={popoverId}
+          ref={panel}
+          className="usermenu-pop"
+          onBlur={(event) => {
+            if (event.relatedTarget && !ref.current?.contains(event.relatedTarget)) closeMenu();
+          }}
+        >
           <div className="usermenu-id">
             <div className="usermenu-nm">{name || email.split("@")[0]}</div>
             <div className="usermenu-em">{email}</div>
           </div>
 
-          <div className="usermenu-sec">
-            <div className="usermenu-lbl">{t("Theme")}</div>
-            <div className="seg">
+          {renderSection("theme", t("Theme"), themeLabels[theme],
+            <>
               {THEME_PREFERENCE_VALUES.map((value) => (
                 <button
                   key={value}
                   type="button"
-                  className={`seg-btn${theme === value ? " active" : ""}`}
+                  className="usermenu-item"
+                  aria-pressed={theme === value}
                   onClick={() => chooseTheme(value)}
                 >
                   {themeLabels[value]}
+                  {theme === value && <Icon name="Check" />}
                 </button>
               ))}
-            </div>
-          </div>
+            </>
+          )}
 
-          <div className="usermenu-sec">
-            <div className="usermenu-lbl">{t("Language")}</div>
-            <div className="usermenu-list">
+          {renderSection("locale", t("Language"), localeLabels[localePreference],
+            <>
               {localeOptions.map((value) => (
                 <button
                   key={value}
                   type="button"
-                  className={`usermenu-item${localePreference === value ? " active" : ""}`}
+                  className="usermenu-item"
+                  aria-pressed={localePreference === value}
                   onClick={() => chooseLocale(value)}
                 >
                   <span>{localeLabels[value]}</span>
-                  {localePreference === value && (
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" width="14" height="14">
-                      <path d="M20 6L9 17l-5-5" />
-                    </svg>
-                  )}
+                  {localePreference === value && <Icon name="Check" />}
                 </button>
               ))}
-            </div>
-          </div>
+            </>
+          )}
 
-          <div className="usermenu-div" />
-
-          <Link href="/profile" className="usermenu-item" onClick={() => setOpen(false)}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" width="15" height="15">
-              <circle cx="12" cy="8" r="4" />
-              <path d="M4 21v-1a6 6 0 016-6h4a6 6 0 016 6v1" />
-            </svg>
+          <Link href="/profile" className="usermenu-item" onClick={() => closeMenu()}>
+            <Icon name="Profile" />
             {t("Profile")}
           </Link>
 
@@ -217,9 +363,7 @@ export default function UserMenu({
             onClick={signOut}
             disabled={signingOut}
           >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" width="15" height="15">
-              <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9" />
-            </svg>
+            <Icon name="SignOut" />
             {signingOut ? t("Signing out…") : t("Sign out")}
           </button>
         </div>

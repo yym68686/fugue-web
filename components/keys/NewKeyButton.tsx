@@ -1,5 +1,8 @@
 "use client";
 
+import Modal from "@/components/ui/Modal";
+import Icon from "@/components/ui/Icon";
+
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -13,9 +16,7 @@ type CreatedResult = {
 };
 
 const PLUS_ICON = (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <path d="M12 5v14M5 12h14" />
-  </svg>
+  <Icon name="Plus" />
 );
 
 /**
@@ -99,122 +100,120 @@ export default function NewKeyButton({
       </button>
 
       {open && (
-        <div className="modal-scrim" onClick={close}>
-          <div className="modal-card" onClick={(e) => e.stopPropagation()}>
-            {created ? (
-              <>
-                <div className="modal-h">
-                  <h3>{t("API key created")}</h3>
-                </div>
-                <div className="modal-b">
-                  <p style={{ marginBottom: 10 }}>
-                    {t(
-                      "Copy your key now. You can copy it again from the Access keys page.",
-                    )}
-                  </p>
-                  <SecretCopyField secret={created.secret} />
-                  <div className="newkey-secret-meta">
-                    <span className="mono">{created.key.label}</span>
-                    {created.key.prefix && (
-                      <span className="mono">{created.key.prefix}••••••••</span>
-                    )}
-                  </div>
-                </div>
-                <div className="modal-f">
-                  <button type="button" className="btn primary" onClick={close}>
-                    {t("Done")}
-                  </button>
-                </div>
-              </>
-            ) : (
-              <>
-                <div className="modal-h">
-                  <h3>{t("Create API key")}</h3>
-                </div>
-                <div className="modal-b">
-                  <div className="field" style={{ marginBottom: 14 }}>
-                    <label htmlFor="newkey-label">{t("Key name")}</label>
-                    <input
-                      id="newkey-label"
-                      className="input"
-                      autoFocus
-                      value={label}
-                      placeholder={t("e.g. ci-deploy")}
-                      maxLength={120}
-                      onChange={(e) => setLabel(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") submit();
-                      }}
-                    />
-                  </div>
-
-                  <div className="field">
-                    <label>{t("Scopes")}</label>
-                    <div className="newkey-scope-bar">
-                      <span>
-                        {t("{count} selected", { count: selected.size })}
-                      </span>
-                      <div className="newkey-scope-acts">
-                        <button
-                          type="button"
-                          onClick={() => setSelected(new Set(availableScopes))}
-                        >
-                          {t("Select all")}
-                        </button>
-                        <button type="button" onClick={() => setSelected(new Set())}>
-                          {t("Clear")}
-                        </button>
-                      </div>
-                    </div>
-                    <div className="newkey-scopes">
-                      {availableScopes.map((scope) => {
-                        const on = selected.has(scope);
-                        return (
-                          <button
-                            key={scope}
-                            type="button"
-                            className={`scope-pick${on ? " on" : ""}`}
-                            aria-pressed={on}
-                            onClick={() => toggleScope(scope)}
-                          >
-                            {scope}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  {error && (
-                    <div
-                      className="wb-alert err"
-                      style={{ marginTop: 12, marginBottom: 0 }}
-                    >
-                      {error}
-                    </div>
+        <Modal title={created ? t("API key created") : t("Create API key")} onDismiss={close} dismissDisabled={busy || Boolean(created)}>
+          {created ? (
+            <>
+              <div className="modal-h">
+                <h3>{t("API key created")}</h3>
+              </div>
+              <div className="modal-b">
+                <p style={{ marginBottom: 10 }}>
+                  {t(
+                    "Copy your key now. You can copy it again from the Access keys page.",
+                  )}
+                </p>
+                <SecretCopyField secret={created.secret} />
+                <div className="newkey-secret-meta">
+                  <span className="mono">{created.key.label}</span>
+                  {created.key.prefix && (
+                    <span className="mono">{created.key.prefix}••••••••</span>
                   )}
                 </div>
-                <div className="modal-f">
-                  <button
-                    type="button"
-                    className="btn ghost"
-                    onClick={close}
-                    disabled={busy}
-                  >
-                    {t("Cancel")}
-                  </button>
-                  <button
-                    type="button"
-                    className="btn primary"
-                    onClick={submit}
-                    disabled={busy}
-                  >
-                    {busy ? t("Creating…") : t("Create key")}
-                  </button>
+              </div>
+              <div className="modal-f">
+                <button type="button" className="btn primary" onClick={close}>
+                  {t("Done")}
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="modal-h">
+                <h3>{t("Create API key")}</h3>
+              </div>
+              <div className="modal-b">
+                <div className="field" style={{ marginBottom: 14 }}>
+                  <label htmlFor="newkey-label">{t("Key name")}</label>
+                  <input
+                    id="newkey-label"
+                    className="input"
+                    autoFocus
+                    value={label}
+                    placeholder={t("e.g. ci-deploy")}
+                    maxLength={120}
+                    onChange={(e) => setLabel(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") submit();
+                    }}
+                  />
                 </div>
-              </>
-            )}
-          </div>
-        </div>
+
+                <div className="field">
+                  <label>{t("Scopes")}</label>
+                  <div className="newkey-scope-bar">
+                    <span>
+                      {t("{count} selected", { count: selected.size })}
+                    </span>
+                    <div className="newkey-scope-acts">
+                      <button
+                        type="button"
+                        onClick={() => setSelected(new Set(availableScopes))}
+                      >
+                        {t("Select all")}
+                      </button>
+                      <button type="button" onClick={() => setSelected(new Set())}>
+                        {t("Clear")}
+                      </button>
+                    </div>
+                  </div>
+                  <div className="newkey-scopes">
+                    {availableScopes.map((scope) => {
+                      const on = selected.has(scope);
+                      return (
+                        <button
+                          key={scope}
+                          type="button"
+                          className={`scope-pick${on ? " on" : ""}`}
+                          aria-pressed={on}
+                          onClick={() => toggleScope(scope)}
+                        >
+                          {scope}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {error && (
+                  <div
+                    className="wb-alert err"
+                    style={{ marginTop: 12, marginBottom: 0 }}
+                  >
+                    {error}
+                  </div>
+                )}
+              </div>
+              <div className="modal-f">
+                <button
+                  type="button"
+                  className="btn ghost"
+                  onClick={close}
+                  disabled={busy}
+                >
+                  {t("Cancel")}
+                </button>
+                <button
+                  type="button"
+                  className="btn primary"
+                  onClick={submit}
+                  disabled={busy}
+                >
+                  {busy ? t("Creating…") : t("Create key")}
+                </button>
+              </div>
+            </>
+          )}
+        </Modal>
       )}
     </>
   );

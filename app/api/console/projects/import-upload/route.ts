@@ -2,14 +2,13 @@ import { importUploadApp, listProjectSlugs } from "@/lib/fugue/console";
 import { isObject, jsonError, readOptionalString, readStringMap } from "@/lib/fugue/product-route";
 import { withWorkspaceKey } from "@/lib/console/route-helpers";
 import { archiveNameCandidate, resolveUniqueProjectName } from "@/lib/deploy/project-name";
+import { hasSourceArchiveExtension, SOURCE_ARCHIVE_MAX_BYTES } from "@/lib/deploy/source-archive";
 
 // Cap the upload we accept from the browser. The backend enforces its own
 // (larger) archive limit; this is a first-line guard.
 // Keep the web guard aligned with Fugue's source-import contract: archives may
 // be up to 128 MiB (the backend also caps the complete multipart request at
 // 160 MiB).
-const MAX_UPLOAD_BYTES = 128 * 1024 * 1024;
-
 export async function POST(request: Request) {
   let form: FormData;
   try {
@@ -28,12 +27,11 @@ export async function POST(request: Request) {
   }
   const upload = file as File;
   if (upload.size <= 0) return jsonError(400, "Source file is empty.");
-  if (upload.size > MAX_UPLOAD_BYTES) {
+  if (upload.size > SOURCE_ARCHIVE_MAX_BYTES) {
     return jsonError(413, "Source file is too large.");
   }
   // The backend only accepts source archives (name + magic bytes must match).
-  const lower = upload.name.trim().toLowerCase();
-  if (!(lower.endsWith(".zip") || lower.endsWith(".tgz") || lower.endsWith(".tar.gz"))) {
+  if (!hasSourceArchiveExtension(upload.name)) {
     return jsonError(400, "Upload must be a .zip, .tgz, or .tar.gz archive.");
   }
 

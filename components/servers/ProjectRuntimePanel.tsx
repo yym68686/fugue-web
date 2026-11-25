@@ -54,6 +54,11 @@ export default function ProjectRuntimePanel({
         {notice && <p role="status">{notice}</p>}
         {data.data && (
           <>
+            <section className="runtime-settings-group">
+            <h4>{t("Default project server")}</h4>
+            <p>{data.data.targets.find((target) => target.id === data.data?.defaultRuntimeId)?.name || data.data.defaultRuntimeId || t("Auto-assign")}</p>
+            {data.data.canChangeDefault && <details className="runtime-edit">
+            <summary>{t("Change")}</summary>
             <RuntimeTargetPicker
               targets={data.data.targets}
               value={defaultId}
@@ -61,11 +66,6 @@ export default function ProjectRuntimePanel({
               disabled={!data.data.canChangeDefault}
               label="Default project server"
             />
-            <p className="form-hint">
-              {t(
-                "The default applies to future deployments. Existing services are not moved.",
-              )}
-            </p>
             <div>
               <button
                 className="btn sm primary"
@@ -80,12 +80,10 @@ export default function ProjectRuntimePanel({
                 {t("Save default server")}
               </button>
             </div>
+            </details>}
+            </section>
+            <section className="runtime-settings-group">
             <h4>{t("Exclusive server reservations")}</h4>
-            <p className="form-hint">
-              {t(
-                "Reserve a server for this project's placement. The backend checks existing workloads and conflicting reservations.",
-              )}
-            </p>
             <ul className="server-grants">
               {data.data.reservations.map((r) => (
                 <li key={r.runtime_id}>
@@ -113,7 +111,8 @@ export default function ProjectRuntimePanel({
               )}
             </ul>
             {data.data.canReserve && (
-              <>
+              <details className="runtime-edit">
+                <summary>{t("Reserve server")}</summary>
                 <RuntimeTargetPicker
                   targets={data.data.targets.filter(
                     (r) =>
@@ -138,8 +137,9 @@ export default function ProjectRuntimePanel({
                     {t("Reserve server")}
                   </button>
                 </div>
-              </>
+              </details>
             )}
+            </section>
           </>
         )}
         {pending && (
@@ -152,15 +152,18 @@ export default function ProjectRuntimePanel({
                   : "Release reservation",
             )}
             body={
+              <>
+              <p className="mono">{data.data?.targets.find((target) => target.id === pending.runtimeId)?.name || pending.runtimeId || t("Auto-assign")}</p>
               <p>
                 {t(
                   pending.action === "default"
-                    ? "Update the default placement target for future deployments?"
+                    ? "The default applies to future deployments. Existing services are not moved."
                     : pending.action === "reserve"
                       ? "Reserve this server exclusively for this project? Conflicting workloads or reservations will block the change."
                       : "Release this project's exclusive reservation? The backend will check dependencies before accepting.",
                 )}
               </p>
+              </>
             }
             onCancel={() => setPending(null)}
             onConfirm={async () => {

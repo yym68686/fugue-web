@@ -1,5 +1,8 @@
 "use client";
 
+import Modal from "@/components/ui/Modal";
+import Icon from "@/components/ui/Icon";
+
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { useT } from "@/lib/i18n/client";
@@ -83,10 +86,7 @@ export function RefreshButton({ onClick }: { onClick: () => void }) {
   const t = useT();
   return (
     <button type="button" className="btn ghost" onClick={onClick}>
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-        <path d="M23 4v6h-6M1 20v-6h6" />
-        <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
-      </svg>
+      <Icon name="Refresh" />
       {t("Refresh")}
     </button>
   );
@@ -111,25 +111,34 @@ export function ActionButton({
 }) {
   const t = useT();
   const [busy, setBusy] = useState(false);
+  const [confirming, setConfirming] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   async function run() {
     if (busy || disabled) return;
-    if (confirm && !window.confirm(confirm)) return;
     setBusy(true);
+    setError(null);
     try {
       await onAction();
+      setConfirming(false);
       onDone?.();
     } catch (err) {
-      window.alert(err instanceof Error ? err.message : t("Action failed."));
+      if (confirming) throw err;
+      setError(err instanceof Error ? err.message : t("Action failed."));
     } finally {
       setBusy(false);
     }
   }
 
   return (
-    <button type="button" className={className} disabled={busy || disabled} onClick={run}>
-      {busy ? t("Working…") : children}
-    </button>
+    <>
+      <button type="button" className={className} disabled={busy || disabled} onClick={() => confirm ? setConfirming(true) : void run()}>
+        {busy ? t("Working…") : children}
+      </button>
+      {error && <span className="form-hint err action-error" role="alert">{error}</span>}
+      {confirming && confirm && <ConfirmDialog title={t("Confirm")} body={<p>{confirm}</p>} onConfirm={run}
+        danger={className.includes("danger")} onCancel={() => setConfirming(false)} />}
+    </>
   );
 }
 
@@ -167,34 +176,32 @@ export function ConfirmDialog({
   }
 
   return (
-    <div className="modal-scrim" onClick={onCancel}>
-      <div className="modal-card" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-h">
-          <h3>{title}</h3>
-        </div>
-        <div className="modal-b">
-          {body}
-          {error && (
-            <div className="wb-alert err" style={{ marginTop: 12, marginBottom: 0 }}>
-              {error}
-            </div>
-          )}
-        </div>
-        <div className="modal-f">
-          <button type="button" className="btn ghost" onClick={onCancel} disabled={busy}>
-            {t("Cancel")}
-          </button>
-          <button
-            type="button"
-            className={danger ? "btn danger" : "btn primary"}
-            onClick={confirm}
-            disabled={busy}
-          >
-            {busy ? t("Working…") : resolvedConfirmLabel}
-          </button>
-        </div>
+    <Modal title={title} onDismiss={onCancel} dismissDisabled={busy}>
+      <div className="modal-h">
+        <h3>{title}</h3>
       </div>
-    </div>
+      <div className="modal-b">
+        {body}
+        {error && (
+          <div className="wb-alert err" style={{ marginTop: 12, marginBottom: 0 }}>
+            {error}
+          </div>
+        )}
+      </div>
+      <div className="modal-f">
+          <button type="button" className="btn ghost" onClick={onCancel} disabled={busy} autoFocus>
+          {t("Cancel")}
+        </button>
+        <button
+          type="button"
+          className={danger ? "btn danger" : "btn primary"}
+          onClick={confirm}
+          disabled={busy}
+        >
+          {busy ? t("Working…") : resolvedConfirmLabel}
+        </button>
+      </div>
+    </Modal>
   );
 }
 

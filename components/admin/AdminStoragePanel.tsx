@@ -7,6 +7,12 @@ import { useI18n } from '@/lib/i18n/client';
 import './admin-storage.css';
 import StorageMaintenancePanel from './StorageMaintenancePanel';
 
+const cleanupLabels: Record<string, string> = {
+  active: 'Active', protected: 'Protected', grace: 'Grace period', blocked: 'Blocked',
+  pending: 'Pending', deleting: 'Engine deleting', legacy_receipt: 'Legacy receipt',
+  confirmed: 'Confirmed', missing: 'Remote record missing', unavailable: 'Unavailable',
+};
+
 export default function AdminStoragePanel({ initial }: { initial: AdminStorageOverview | null }) {
   const { t, locale } = useI18n();
   const [data, setData] = useState(initial);
@@ -30,11 +36,11 @@ export default function AdminStoragePanel({ initial }: { initial: AdminStorageOv
   const namespaces = data?.namespaces.filter(row => !bucket || row.bucket === bucket) ?? [];
   const entries = data?.longhorn.filter(row => !state || row.cleanup_state === state) ?? [];
   const states = [...new Set(data?.longhorn.map(row => row.cleanup_state) ?? [])].sort();
+  const cleanupLabel = (value: string) => locale === 'zh-CN' ? t(`cleanup.${value}`) : cleanupLabels[value] ?? value;
 
   return <div className="page admin-storage-page">
-    <div className="phead"><div><div className="eyebrow">PLATFORM · R2 / S3</div><h1>{t('Platform object storage')}</h1><p className="muted">{t('Account inventory, namespace ownership and safe maintenance jobs.')}</p></div><button className="btn" disabled={busy} onClick={() => void refresh()}>{t(busy ? 'Loading…' : 'Refresh inventory')}</button></div>
+    <div className="phead"><h1>{t('Platform object storage')}</h1><div className="actions"><button className="btn" disabled={busy} onClick={() => void refresh()}>{t(busy ? 'Loading…' : 'Refresh inventory')}</button></div></div>
     {error && <div className="panel storage-warning" role="alert">{t(error)}</div>}
-    <StorageMaintenancePanel />
     {data && <>
       <p className="muted">{t('Observed at')} {date(data.observed_at)} (UTC+8) · {t('Account')} {data.account_id || '—'}</p>
       <div className="admin-storage-summary">
@@ -48,13 +54,32 @@ export default function AdminStoragePanel({ initial }: { initial: AdminStorageOv
       <section className="panel admin-storage-section"><div className="admin-storage-heading"><h2>{t('Buckets and namespace ownership')}</h2><label>{t('Bucket')}<select value={bucket} onChange={event => setBucket(event.target.value)}><option value="">{t('All buckets')}</option>{data.buckets.map(row => <option key={row.name}>{row.name}</option>)}</select></label></div>
         <details><summary>{t('Provider bucket inventory')}</summary><ul>{data.buckets.map(row => <li key={row.name}><code>{row.name}</code> · {t(row.source === 'provider' ? 'Provider observed' : 'Configuration only')}</li>)}</ul></details>
         <div className="admin-storage-table"><table><thead><tr>{['Kind / name', 'Bucket / prefix', 'Tenant / project', 'Status', 'Measured usage', 'Measured at'].map(label => <th key={label}>{t(label)}</th>)}</tr></thead><tbody>{namespaces.map(row => <tr key={`${row.kind}/${row.resource_id}`}><td><strong>{row.name}</strong><small>{row.kind} · {row.resource_id}</small>{row.provider && <small>{row.provider}</small>}</td><td><code>{row.bucket}</code><small>{row.prefix || '/'}</small></td><td>{row.tenant_id || t('Platform')}<small>{row.project_id || '—'}</small></td><td>{row.status}</td><td>{storageBytes(measuredStorageBytes(row))}<small>{row.measured_at && row.object_count !== undefined ? `${row.object_count.toLocaleString()} ${t(row.provider === 'backblaze-b2' ? 'object versions' : 'objects')}` : t('Not measured')}</small></td><td>{date(row.measured_at)}{row.stale && row.measured_at && <small className="storage-stale">{t('Stale measurement')}</small>}</td></tr>)}</tbody></table></div>
+        <div className="admin-storage-mobile">{namespaces.map(row => <details key={`${row.kind}/${row.resource_id}`}>
+          <summary><strong>{row.name}</strong><span>{row.tenant_id || t('Platform')} · {row.status}</span></summary>
+          <dl><dt>{t('Bucket / prefix')}</dt><dd><code>{row.bucket} / {row.prefix || '/'}</code></dd>
+            <dt>{t('Tenant / project')}</dt><dd>{row.project_id || '—'}</dd>
+            <dt>{t('Measured usage')}</dt><dd>{storageBytes(measuredStorageBytes(row))}</dd>
+            <dt>{t('Measured at')}</dt><dd>{row.measured_at ? date(row.measured_at) : t('Not measured')}{row.stale && row.measured_at ? ` · ${t('Stale measurement')}` : ''}</dd></dl>
+        </details>)}</div>
         {namespaces.length === 0 && <p className="muted">{t('No matching namespaces.')}</p>}
       </section>
       <section className="panel admin-storage-section"><div className="admin-storage-heading"><h2>{t('Longhorn retention and historical receipts')}</h2><label>{t('Cleanup state')}<select value={state} onChange={event => setState(event.target.value)}><option value="">{t('All states')}</option>{states.map(value => <option key={value} value={value}>{t(`cleanup.${value}`)}</option>)}</select></label></div>
         <p className="muted">{t('Only expired or deleted, unprotected artifacts are collected after the grace period. Longhorn owns remote deletion and shared-block reclamation. Untracked backups are never automatically removed.')}</p>
         <div className="admin-storage-table"><table><thead><tr>{['Remote backup / volume', 'Artifact / run', 'Logical status', 'Cleanup state', 'Engine / last attempt'].map(label => <th key={label}>{t(label)}</th>)}</tr></thead><tbody>{entries.map((row, index) => <tr key={`${row.artifact_id}/${row.backup_name}/${index}`}><td><code>{row.backup_name || '—'}</code><small>{row.volume_name} · {row.target_name}</small></td><td>{row.artifact_id || t('Untracked')}<small>{row.run_id || '—'}</small></td><td>{row.status}{row.protected && <small>{t('Protected')}</small>}</td><td><span className={`storage-state storage-state-${row.cleanup_state}`}>{t(`cleanup.${row.cleanup_state}`)}</span>{row.physical_deleted_at && <small>{t('Receipt')}: {date(row.physical_deleted_at)}</small>}</td><td>{row.remote_state || '—'}<small>{date(row.attempted_at)}</small>{row.error && <small className="storage-stale">{row.error}</small>}</td></tr>)}</tbody></table></div>
+        <div className="admin-storage-mobile">{entries.map((row, index) => <details key={`${row.artifact_id}/${row.backup_name}/${index}`}>
+          <summary><strong>{row.backup_name || row.volume_name || '—'}</strong><span>{row.artifact_id || t('Untracked')} · {cleanupLabel(row.cleanup_state)}</span></summary>
+          <dl><dt>{t('Artifact / run')}</dt><dd>{row.run_id || '—'}</dd>
+            <dt>{t('Logical status')}</dt><dd>{row.status}{row.protected ? ` · ${t('Protected')}` : ''}</dd>
+            <dt>{t('Engine / last attempt')}</dt><dd>{row.remote_state || '—'} · {date(row.attempted_at)}</dd>
+            <dt>{t('Receipt')}</dt><dd>{date(row.physical_deleted_at)}</dd>
+            {row.error && <><dt>{t('Error')}</dt><dd>{row.error}</dd></>}</dl>
+        </details>)}</div>
         {entries.length === 0 && <p className="muted">{t('No matching records.')}</p>}
       </section>
     </>}
+    <details className="admin-maintenance">
+      <summary>{t('Storage maintenance jobs')}</summary>
+      <StorageMaintenancePanel />
+    </details>
   </div>;
 }

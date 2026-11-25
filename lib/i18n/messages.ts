@@ -804,8 +804,14 @@ export const zhCN = {
     "docker.io/library/nginx:1.27 或 ghcr.io/owner/app:tag",
   Remove: "移除",
   "Drop or click to select an archive": "拖入或点击选择归档",
-  "Supports .zip / .tgz / .tar.gz, up to 64 MB":
-    "支持 .zip / .tgz / .tar.gz，最大 64 MB",
+  "Supports .zip / .tgz / .tar.gz, up to {limit} MiB":
+    "支持 .zip / .tgz / .tar.gz，最大 {limit} MiB",
+  "Choose a non-empty .zip, .tgz, or .tar.gz archive up to {limit} MiB.":
+    "请选择非空的 .zip、.tgz 或 .tar.gz 文件，最大 {limit} MiB。",
+  "Disconnect {provider}?": "解除与 {provider} 的绑定？",
+  "Edit public pricing": "编辑公开价格",
+  "Sign in with one of your remaining methods.": "解绑后，请通过其他已启用的方式登录。",
+  "Private repository access through this GitHub connection will be removed.": "解绑后，将无法通过此连接访问 GitHub 私有仓库。",
   "Advanced configuration": "高级配置",
   "Runtime, port, build strategy, environment variables":
     "运行时、端口、构建策略、环境变量",

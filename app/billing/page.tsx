@@ -1,4 +1,5 @@
 import { Suspense } from 'react';
+import Icon from "@/components/ui/Icon";
 import { withPageTiming } from '@/lib/server/with-page-timing';
 import { queryDb } from '@/lib/db/pool';
 import AppLayout from '@/components/AppLayout';
@@ -115,7 +116,7 @@ function eventDetail(meta: Record<string, string> | null | undefined, t: Transla
 
 export default withPageTiming('/billing', async function BillingPage() {
   const { session } = await requireActivePageSession();
-  const { t } = await getRequestI18n();
+  const { t, locale } = await getRequestI18n();
   const [topups, billing] = await Promise.all([
     getTopups(session.email),
     getBilling(session.email),
@@ -136,19 +137,12 @@ export default withPageTiming('/billing', async function BillingPage() {
       <div className="page">
         <div className="phead">
           <div>
-            <div className="eyebrow">Billing</div>
             <h1>{t('Billing & credits')}</h1>
-            <div className="meta">
-              <span>{billing ? t('{count} balance changes', { count: events.length }) : t('{count} top-up records', { count: topups.length })}</span>
-              <span>provider · creem</span>
-            </div>
           </div>
           <div className="actions">
             <Suspense fallback={
               <button className="btn primary" disabled>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M12 5v14M5 12h14" />
-                </svg>
+                <Icon name="Plus" />
                 {t('Add credits')}
               </button>
             }>
@@ -157,13 +151,13 @@ export default withPageTiming('/billing', async function BillingPage() {
           </div>
         </div>
 
-        <div className="kpi-row" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
+        <div className="kpi-row">
           <div className="kpi">
-            <div className="k">{t('Credit balance')}</div>
+            <div className="k">{billing ? t('Credit balance') : t('Total purchased')}</div>
             <div className="v">
               {billing ? fmtMicro(billing.balance_microcents, currency) : fmtMoney(totalCents)}
             </div>
-            <div className="d up">{billing ? t('Available balance') : t('Total purchased')}</div>
+            <div className="d">{billing ? t('Available balance') : (locale === 'zh-CN' ? '余额暂不可用' : 'Balance unavailable')}</div>
           </div>
           <div className="kpi">
             <div className="k">{t('Current rate')}</div>
@@ -240,9 +234,9 @@ export default withPageTiming('/billing', async function BillingPage() {
           <div className="panel">
             <div className="panel-h">
               <h3>{t('Balance changes')}</h3>
-              <div className="tail eyebrow">{t('{count} total · includes admin adjustments', { count: events.length })}</div>
             </div>
-            <table className="tbl">
+            <div className="table-scroll" tabIndex={0} role="region" aria-label={t('Balance changes')}>
+            <table className="tbl billing-events">
               <thead>
                 <tr>
                   <th>{t('Type')}</th>
@@ -259,6 +253,11 @@ export default withPageTiming('/billing', async function BillingPage() {
                       <span className={`chip ${eventChip[e.type] || 'idle'}`}>
                         {eventLabel[e.type] ? t(eventLabel[e.type]) : e.type}
                       </span>
+                      <details className="billing-mobile-detail">
+                        <summary>{t('Details')}</summary>
+                        <dl><dt>{t('Balance after')}</dt><dd>{fmtMicro(e.balance_after_microcents, currency)}</dd></dl>
+                        {eventDetail(e.metadata, t) || '—'}
+                      </details>
                     </td>
                     <td>
                       {e.amount_microcents === 0
@@ -269,7 +268,7 @@ export default withPageTiming('/billing', async function BillingPage() {
                     <td className="faint">{eventDetail(e.metadata, t) || '—'}</td>
                     <td className="faint">
                       {e.created_at
-                        ? new Date(e.created_at).toLocaleString('zh-CN', {
+                        ? new Date(e.created_at).toLocaleString(locale, {
                             year: '2-digit',
                             month: '2-digit',
                             day: '2-digit',
@@ -282,6 +281,7 @@ export default withPageTiming('/billing', async function BillingPage() {
                 ))}
               </tbody>
             </table>
+            </div>
             {events.length === 0 && <div className="empty">{t('No balance changes')}</div>}
           </div>
         ) : (

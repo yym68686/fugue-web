@@ -10,6 +10,8 @@ import {
 } from "@/lib/auth/password-policy";
 import { translateServerMessage } from "@/lib/auth/server-messages";
 import { useT } from "@/lib/i18n/client";
+import RowActions from "@/components/ui/RowActions";
+import { ConfirmDialog } from "@/components/workbench/shared";
 
 type AuthMethodKind = "email_link" | "password" | "google" | "github";
 
@@ -395,6 +397,7 @@ function ProviderBindings({
 }) {
   const t = useT();
   const [busy, setBusy] = useState<string | null>(null);
+  const [confirm, setConfirm] = useState<"google" | "github" | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const googleConnected = hasMethod(methods, "google");
@@ -460,7 +463,7 @@ function ProviderBindings({
       <div className="prof-body">
         {error && <div className="prof-alert err">{error}</div>}
 
-        <div className="prov-row">
+        <div className="prov-row intent-row">
           <div className="prov-ico" aria-hidden>
             <svg viewBox="0 0 24 24" width="20" height="20">
               <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.76h3.56c2.08-1.92 3.28-4.74 3.28-8.09z" />
@@ -479,32 +482,26 @@ function ProviderBindings({
                   : t("Unavailable")}
             </div>
           </div>
-          {googleConnected ? (
+          {googleConnected && !googleLast ? <RowActions label="Google" inline>
             <button
               type="button"
-              className="btn"
-              disabled={busy !== null || googleLast}
-              title={googleLast ? t("Keep at least one sign-in method.") : undefined}
-              onClick={disconnectGoogle}
+              className="btn danger"
+              disabled={busy !== null}
+              onClick={() => setConfirm("google")}
             >
               {busy === "google" ? t("Working…") : t("Disconnect")}
             </button>
-          ) : (
+          </RowActions> : !googleConnected && googleEnabled ? <RowActions label="Google" inline>
             <a
-              className={`btn primary${googleEnabled ? "" : " disabled"}`}
-              aria-disabled={!googleEnabled}
-              href={
-                googleEnabled
-                  ? `/api/auth/google/connect/start?returnTo=${returnTo}`
-                  : undefined
-              }
+              className="btn"
+              href={`/api/auth/google/connect/start?returnTo=${returnTo}`}
             >
               {t("Connect")}
             </a>
-          )}
+          </RowActions> : null}
         </div>
 
-        <div className="prov-row">
+        <div className="prov-row intent-row">
           <div className="prov-ico" aria-hidden>
             <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
               <path d="M12 1C5.37 1 0 6.37 0 13c0 5.3 3.44 9.8 8.2 11.39.6.11.82-.26.82-.58v-2.03c-3.34.73-4.04-1.61-4.04-1.61-.55-1.39-1.34-1.76-1.34-1.76-1.09-.75.08-.73.08-.73 1.2.09 1.84 1.24 1.84 1.24 1.07 1.83 2.81 1.3 3.5.99.11-.78.42-1.3.76-1.6-2.67-.3-5.47-1.33-5.47-5.93 0-1.31.47-2.38 1.24-3.22-.13-.3-.54-1.52.11-3.18 0 0 1.01-.32 3.3 1.23a11.5 11.5 0 016 0c2.29-1.55 3.3-1.23 3.3-1.23.65 1.66.24 2.88.12 3.18.77.84 1.23 1.91 1.23 3.22 0 4.61-2.8 5.63-5.48 5.92.43.37.81 1.1.81 2.22v3.29c0 .32.22.7.83.58A12 12 0 0024 13c0-6.63-5.37-12-12-12z" />
@@ -522,30 +519,38 @@ function ProviderBindings({
                   : t("Unavailable")}
             </div>
           </div>
-          {githubConnected ? (
+          {githubConnected ? <RowActions label="GitHub" inline>
             <button
               type="button"
-              className="btn"
+              className="btn danger"
               disabled={busy !== null}
-              onClick={disconnectGitHub}
+              onClick={() => setConfirm("github")}
             >
               {busy === "github" ? t("Working…") : t("Disconnect")}
             </button>
-          ) : (
+          </RowActions> : github?.authEnabled ? <RowActions label="GitHub" inline>
             <a
-              className={`btn primary${github?.authEnabled ? "" : " disabled"}`}
-              aria-disabled={!github?.authEnabled}
-              href={
-                github?.authEnabled
-                  ? `/api/auth/github/connect/start?returnTo=${returnTo}`
-                  : undefined
-              }
+              className="btn"
+              href={`/api/auth/github/connect/start?returnTo=${returnTo}`}
             >
               {t("Connect")}
             </a>
-          )}
+          </RowActions> : null}
         </div>
       </div>
+      {confirm && <ConfirmDialog
+        title={t("Disconnect {provider}?", { provider: confirm === "google" ? "Google" : "GitHub" })}
+        confirmLabel={t("Disconnect")}
+        onCancel={() => setConfirm(null)}
+        danger
+        body={<p>{confirm === "google" ? t("Sign in with one of your remaining methods.") : t("Private repository access through this GitHub connection will be removed.")}</p>}
+        onConfirm={async () => {
+          const provider = confirm;
+          if (provider === "google") { if (!googleLast) await disconnectGoogle(); }
+          else await disconnectGitHub();
+          setConfirm(null);
+        }}
+      />}
     </section>
   );
 }

@@ -1,6 +1,6 @@
 import AppLayout from '@/components/AppLayout';
 import { withPageTiming } from '@/lib/server/with-page-timing';
-import ServicesTable, { ServicesRuntimeSummary } from '@/components/admin/ServicesTable';
+import ServicesTable from '@/components/admin/ServicesTable';
 import { requireActiveAdminPageSession } from '@/lib/auth/page-access';
 import {
   listAllAppsWithStatus,
@@ -146,24 +146,16 @@ export default withPageTiming('/admin/services', async function AdminServicesPag
       <div className="page services-page">
         <div className="phead">
           <div>
-            <div className="eyebrow">Platform · Services</div>
             <h1>{t('All services')}</h1>
           </div>
         </div>
 
-        <ServicesRuntimeSummary
+        <ServicesTable
           rows={rows}
           tenantCount={tenantIds.length}
           initialObservedNow={initialObservedNow}
         />
 
-        <div className="panel services-panel">
-          {rows.length > 0 ? (
-            <ServicesTable rows={rows} initialObservedNow={initialObservedNow} />
-          ) : (
-            <div className="empty">{t('No services deployed yet.')}</div>
-          )}
-        </div>
       </div>
     </AppLayout>
   );

@@ -1,5 +1,7 @@
 "use client";
 
+import Modal from "@/components/ui/Modal";
+
 import { useEffect, useRef, useState } from "react";
 
 import { callConsole } from "@/components/workbench/shared";
@@ -75,21 +77,19 @@ export default function CopyKeyButton({ keyId, label, available }: {
         {busy ? t("Copying…") : copied ? t("Copied") : t("Copy")}
       </button>
       {(fallbackSecret || error) && (
-        <div className="modal-scrim" onClick={close}>
-          <div className="modal-card" role="dialog" aria-modal="true" aria-label={t("Copy key {label}", { label })} onClick={(event) => event.stopPropagation()} onKeyDown={(event) => { if (event.key === "Escape") close(); }}>
-            <div className="modal-h"><h3>{t("Copy key {label}", { label })}</h3></div>
-            <div className="modal-b">
-              {error && <p role="alert">{error}</p>}
-              {fallbackSecret && (
-                <>
-                  <p>{t("Automatic copy failed. Select the key and copy it manually.")}</p>
-                  <SecretCopyField secret={fallbackSecret} />
-                </>
-              )}
-            </div>
-            <div className="modal-f"><button type="button" className="btn primary" autoFocus onClick={close}>{t("Done")}</button></div>
+        <Modal title={t("Copy key {label}", { label })} onDismiss={close} dismissDisabled={false}>
+          <div className="modal-h"><h3>{t("Copy key {label}", { label })}</h3></div>
+          <div className="modal-b">
+            {error && <p role="alert">{error}</p>}
+            {fallbackSecret && (
+              <>
+                <p>{t("Automatic copy failed. Select the key and copy it manually.")}</p>
+                <SecretCopyField secret={fallbackSecret} />
+              </>
+            )}
           </div>
-        </div>
+          <div className="modal-f"><button type="button" className="btn primary" autoFocus onClick={close}>{t("Done")}</button></div>
+        </Modal>
       )}
     </>
   );

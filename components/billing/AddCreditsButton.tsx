@@ -1,5 +1,8 @@
 "use client";
 
+import Modal from "@/components/ui/Modal";
+import Icon from "@/components/ui/Icon";
+
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
@@ -13,9 +16,7 @@ const STATUS_POLL_INTERVAL_MS = 2500;
 const STATUS_POLL_TIMEOUT_MS = 90_000;
 
 const PLUS_ICON = (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <path d="M12 5v14M5 12h14" />
-  </svg>
+  <Icon name="Plus" />
 );
 
 type CheckoutResult = { checkoutUrl: string; requestId: string };
@@ -260,100 +261,94 @@ export function AddCreditsButton() {
       )}
 
       {open && (
-        <div className="modal-scrim" onClick={close}>
-          <div className="modal-card" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-h">
-              <h3>{t("Add credits")}</h3>
-            </div>
-            <div className="modal-b">
-              <p style={{ marginBottom: 12 }}>
-                {t(
-                  "Choose an amount to add to your prepaid balance. You'll be redirected to our payment provider to complete the purchase.",
-                )}
-              </p>
-
-              <div className="field">
-                <label>{t("Amount (USD)")}</label>
-                <div className="topup-presets">
-                  {PRESET_AMOUNTS.map((value) => {
-                    const on = !customValue.trim() && amount === value;
-                    return (
-                      <button
-                        key={value}
-                        type="button"
-                        className={`topup-preset${on ? " on" : ""}`}
-                        aria-pressed={on}
-                        onClick={() => pickPreset(value)}
-                      >
-                        ${value}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <div className="field" style={{ marginTop: 12 }}>
-                <label htmlFor="topup-custom">{t("Or enter a custom amount")}</label>
-                <div className="topup-custom">
-                  <span className="topup-custom-prefix">$</span>
-                  <input
-                    id="topup-custom"
-                    className="input mono"
-                    type="number"
-                    inputMode="numeric"
-                    min={MIN_UNITS}
-                    max={MAX_UNITS}
-                    step={1}
-                    value={customValue}
-                    placeholder={String(amount)}
-                    onChange={(e) => {
-                      setCustomValue(e.target.value);
-                      setError(null);
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" && amountValid) startCheckout();
-                    }}
-                  />
-                </div>
-                <div className="form-hint">
-                  {t("Whole dollars, ${min}–${max}.", {
-                    min: MIN_UNITS,
-                    max: MAX_UNITS,
-                  })}
-                </div>
-              </div>
-
-              {error && (
-                <div
-                  className="wb-alert err"
-                  style={{ marginTop: 12, marginBottom: 0 }}
-                >
-                  {error}
-                </div>
-              )}
-            </div>
-            <div className="modal-f">
-              <button
-                type="button"
-                className="btn ghost"
-                onClick={close}
-                disabled={redirecting}
-              >
-                {t("Cancel")}
-              </button>
-              <button
-                type="button"
-                className="btn primary"
-                onClick={startCheckout}
-                disabled={redirecting || !amountValid}
-              >
-                {redirecting
-                  ? t("Redirecting…")
-                  : t("Continue to payment · ${amount}", { amount: effectiveAmount })}
-              </button>
-            </div>
+        <Modal title={t("Add credits")} onDismiss={close} dismissDisabled={redirecting}>
+          <div className="modal-h">
+            <h3>{t("Add credits")}</h3>
           </div>
-        </div>
+          <div className="modal-b">
+
+            <div className="field">
+              <label>{t("Amount (USD)")}</label>
+              <div className="topup-presets">
+                {PRESET_AMOUNTS.map((value) => {
+                  const on = !customValue.trim() && amount === value;
+                  return (
+                    <button
+                      key={value}
+                      type="button"
+                      className={`topup-preset${on ? " on" : ""}`}
+                      aria-pressed={on}
+                      onClick={() => pickPreset(value)}
+                    >
+                      ${value}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="field" style={{ marginTop: 12 }}>
+              <label htmlFor="topup-custom">{t("Or enter a custom amount")}</label>
+              <div className="topup-custom">
+                <span className="topup-custom-prefix">$</span>
+                <input
+                  id="topup-custom"
+                  className="input mono"
+                  type="number"
+                  inputMode="numeric"
+                  min={MIN_UNITS}
+                  max={MAX_UNITS}
+                  step={1}
+                  value={customValue}
+                  placeholder={String(amount)}
+                  onChange={(e) => {
+                    setCustomValue(e.target.value);
+                    setError(null);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && amountValid) startCheckout();
+                  }}
+                />
+              </div>
+              <div className="form-hint">
+                {t("Whole dollars, ${min}–${max}.", {
+                  min: MIN_UNITS,
+                  max: MAX_UNITS,
+                })}
+              </div>
+            </div>
+
+            {error && (
+              <div
+                className="wb-alert err"
+                style={{ marginTop: 12, marginBottom: 0 }}
+              >
+                {error}
+              </div>
+            )}
+          </div>
+          <div className="modal-f">
+            <p className="form-hint payment-disclosure">{t("Applicable taxes are shown at checkout.")} · Creem</p>
+            <button
+              type="button"
+              className="btn ghost"
+              onClick={close}
+              disabled={redirecting}
+            >
+              {t("Cancel")}
+            </button>
+            <button
+              type="button"
+              className="btn primary"
+              onClick={startCheckout}
+              disabled={redirecting || !amountValid}
+            >
+              {redirecting
+                ? t("Redirecting…")
+                : t("Continue to payment · ${amount}", { amount: effectiveAmount })}
+            </button>
+          </div>
+        </Modal>
       )}
     </>
   );

@@ -2,12 +2,14 @@
 
 import { usePathname } from "next/navigation";
 import Link from "next/link";
+import { useEffect, useId, useRef, useState } from "react";
 
 import { I18nProvider, useI18n } from "@/lib/i18n/client";
 import type { Locale, LocalePreference } from "@/lib/i18n/core";
 import type { ThemePreference } from "@/lib/theme";
 import { PublicFooter } from "@/components/landing/public-shell";
 import UserMenu from "@/components/layout/UserMenu";
+import Icon, { type IconName } from "@/components/ui/Icon";
 
 export type AppShellUser = {
   name: string | null;
@@ -16,90 +18,22 @@ export type AppShellUser = {
   isAdmin: boolean;
 };
 
-type NavDef = { href: string; labelKey: string; icon: React.ReactNode };
+type NavDef = { href: string; labelKey: string; icon: IconName };
 
 const consoleNav: NavDef[] = [
-  { href: "/storage", labelKey: "Object storage", icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 4 16 4 16 0V5M4 12c0 4 16 4 16 0"/></svg> },
-  {
-    href: "/projects",
-    labelKey: "Projects",
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-        <rect x="3" y="3" width="7" height="7" rx="1" />
-        <rect x="14" y="3" width="7" height="7" rx="1" />
-        <rect x="3" y="14" width="7" height="7" rx="1" />
-        <rect x="14" y="14" width="7" height="7" rx="1" />
-      </svg>
-    ),
-  },
-  {
-    href: "/billing",
-    labelKey: "Billing",
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-        <rect x="2" y="5" width="20" height="14" rx="2" />
-        <path d="M2 10h20M6 15h4" />
-      </svg>
-    ),
-  },
-  {
-    href: "/keys",
-    labelKey: "Access keys",
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-        <circle cx="8" cy="8" r="5" />
-        <path d="M11.5 11.5L21 21M18 18l-2 2M15 15l-2 2" />
-      </svg>
-    ),
-  },
-  {
-    href: "/servers",
-    labelKey: "Servers",
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-        <rect x="3" y="4" width="18" height="7" rx="1" />
-        <rect x="3" y="13" width="18" height="7" rx="1" />
-        <path d="M7 7.5v.01M7 16.5v.01" />
-      </svg>
-    ),
-  },
+  { href: "/storage", labelKey: "Object storage", icon: "Storage" },
+  { href: "/projects", labelKey: "Projects", icon: "Projects" },
+  { href: "/billing", labelKey: "Billing", icon: "Billing" },
+  { href: "/keys", labelKey: "Access keys", icon: "Keys" },
+  { href: "/servers", labelKey: "Servers", icon: "Servers" },
 ];
 
 const platformNav: NavDef[] = [
-  { href: "/admin/settings", labelKey: "Platform settings", icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M4 6h16M4 12h16M4 18h16M8 3v6m8 0v6m-6 0v6"/></svg> },
-  { href: "/admin/storage", labelKey: "Platform object storage", icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 4 16 4 16 0V5M4 12c0 4 16 4 16 0"/></svg> },
-  {
-    href: "/admin/users",
-    labelKey: "Users",
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-        <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
-        <circle cx="9" cy="7" r="4" />
-        <path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" />
-      </svg>
-    ),
-  },
-  {
-    href: "/admin/cluster",
-    labelKey: "Cluster",
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-        <path d="M12 12v.01" />
-        <path d="M8.5 8.5a5 5 0 000 7M15.5 8.5a5 5 0 010 7M5.5 5.5a9 9 0 000 13M18.5 5.5a9 9 0 010 13" />
-      </svg>
-    ),
-  },
-  {
-    href: "/admin/services",
-    labelKey: "Services",
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-        <ellipse cx="12" cy="6" rx="8" ry="3" />
-        <path d="M4 6v12c0 1.7 3.6 3 8 3s8-1.3 8-3V6" />
-        <path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3" />
-      </svg>
-    ),
-  },
+  { href: "/admin/settings", labelKey: "Platform settings", icon: "Settings" },
+  { href: "/admin/storage", labelKey: "Platform object storage", icon: "Storage" },
+  { href: "/admin/users", labelKey: "Users", icon: "Users" },
+  { href: "/admin/cluster", labelKey: "Cluster", icon: "Cluster" },
+  { href: "/admin/services", labelKey: "Services", icon: "Services" },
 ];
 
 function ShellInner({
@@ -115,14 +49,68 @@ function ShellInner({
 }) {
   const pathname = usePathname();
   const { t, locale } = useI18n();
+  const navId = useId();
+  const [openPath, setOpenPath] = useState<string | null>(null);
+  const navOpen = openPath === pathname;
+  const menuButton = useRef<HTMLButtonElement>(null);
+  const navigation = useRef<HTMLElement>(null);
+  const labels = locale === "zh-CN"
+    ? { navigation: "主导航", workspace: "工作区" }
+    : { navigation: "Main navigation", workspace: "Workspace" };
+
+  useEffect(() => {
+    if (!navOpen) return;
+    function closeOutside(event: PointerEvent) {
+      const target = event.target as Node;
+      if (!menuButton.current?.contains(target) && !navigation.current?.contains(target)) {
+        setOpenPath(null);
+      }
+    }
+    document.addEventListener("pointerdown", closeOutside);
+    return () => document.removeEventListener("pointerdown", closeOutside);
+  }, [navOpen]);
 
   const isActive = (href: string) =>
     pathname === href || pathname.startsWith(href + "/");
 
+  function renderGroup(items: NavDef[], label: string) {
+    return (
+      <div className="rail-group">
+        <div className="rail-label">{label}</div>
+        {items.map((item) => (
+          <Link
+            key={item.href}
+            href={item.href}
+            className={`nav-item${isActive(item.href) ? " active" : ""}`}
+            aria-current={isActive(item.href) ? "page" : undefined}
+            onClick={() => setOpenPath(null)}
+          >
+            <Icon name={item.icon} />
+            {t(item.labelKey)}
+          </Link>
+        ))}
+      </div>
+    );
+  }
+
   return (
     <div className="app">
       <header className="topbar">
-        <div className="brand">
+        <button
+          ref={menuButton}
+          type="button"
+          className="mobile-nav-trigger"
+          aria-label={labels.navigation}
+          aria-expanded={navOpen}
+          aria-controls={navId}
+          onClick={() => {
+            setOpenPath(navOpen ? null : pathname);
+            if (!navOpen) requestAnimationFrame(() => navigation.current?.querySelector("a")?.focus());
+          }}
+        >
+          <Icon name={navOpen ? "Close" : "Menu"} />
+        </button>
+        <Link href="/projects" className="brand">
           <svg width="26" height="26" viewBox="0 0 26 26" fill="none" aria-hidden="true">
             <path d="M2 8 H14" stroke="#326CE5" strokeWidth="2" strokeLinecap="round" />
             <path d="M8 13 H24" stroke="#7DA8F5" strokeWidth="2" strokeLinecap="round" />
@@ -131,8 +119,7 @@ function ShellInner({
           <span className="name">
             <b>fugue</b>
           </span>
-          <span className="badge">CLOUD</span>
-        </div>
+        </Link>
         <div className="top-spacer"></div>
         <UserMenu
           name={user.name}
@@ -143,43 +130,26 @@ function ShellInner({
         />
       </header>
 
-      <aside className="rail">
-        <div className="rail-group">
-          <div className="eyebrow">
-            {t("Console")} <span className="role">{t("Developer")}</span>
-          </div>
-          {consoleNav.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`nav-item${isActive(item.href) ? " active" : ""}`}
-            >
-              {item.icon}
-              {t(item.labelKey)}
-            </Link>
-          ))}
-        </div>
+      <nav
+        id={navId}
+        ref={navigation}
+        className={`rail${navOpen ? " rail-open" : ""}`}
+        aria-label={labels.navigation}
+        onKeyDown={(event) => {
+          if (event.key === "Escape" && navOpen) {
+            setOpenPath(null);
+            menuButton.current?.focus();
+          }
+        }}
+      >
+        {renderGroup(consoleNav, labels.workspace)}
+        {user.isAdmin && renderGroup(platformNav, t("Platform"))}
+      </nav>
 
-        {user.isAdmin && (
-          <div className="rail-group">
-            <div className="eyebrow">
-              {t("Platform")} <span className="role">{t("Platform admin")}</span>
-            </div>
-            {platformNav.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`nav-item${isActive(item.href) ? " active" : ""}`}
-              >
-                {item.icon}
-                {t(item.labelKey)}
-              </Link>
-            ))}
-          </div>
-        )}
-      </aside>
-
-      <main className="main">{children}<PublicFooter locale={locale} compact /></main>
+      <main className="main">
+        {children}
+        <PublicFooter locale={locale} compact />
+      </main>
     </div>
   );
 }

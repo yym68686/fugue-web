@@ -1,34 +1,21 @@
 import type { ReactNode } from "react";
 import { PublicHeader, PublicFooter } from "@/components/landing/public-shell";
+import CopyableCode from "@/components/landing/CodeBlock";
 
 import { getRequestI18n } from "@/lib/i18n/server";
 
-function CodeBlock({ label, children }: { label?: string; children: ReactNode }) {
-  return (
-    <div className="doc-code-wrap">
-      {label ? <div className="doc-code-label">{label}</div> : null}
-      <pre className="doc-code">
-        <code>{children}</code>
-      </pre>
-    </div>
-  );
-}
-
 export default async function Docs() {
   const { t, locale } = await getRequestI18n();
+  const CodeBlock = ({ label, children }: { label?: string; children: ReactNode }) => (
+    <CopyableCode label={label} chinese={locale === "zh-CN"}>{children}</CopyableCode>
+  );
   return (
     <div className="lp">
       <PublicHeader locale={locale} />
 
       <main className="lp-main doc-main">
         <section className="doc-hero">
-          <div className="lp-eyebrow">Docs</div>
-          <h1>{t("Deploy from your terminal")}</h1>
-          <p className="lp-lede">
-            {t(
-              "Install the fugue CLI, create your first API key, and ship a service from your terminal in a few minutes.",
-            )}
-          </p>
+          <h1>{locale === "zh-CN" ? "文档" : "Documentation"}</h1>
           <nav className="doc-toc" aria-label={t("On this page")}>
             <a href="#install">{t("Install the CLI")}</a>
             <a href="#key">{t("Get your first API key")}</a>

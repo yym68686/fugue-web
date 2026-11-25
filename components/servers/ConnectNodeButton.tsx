@@ -1,5 +1,8 @@
 "use client";
 
+import Modal from "@/components/ui/Modal";
+import Icon from "@/components/ui/Icon";
+
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -13,9 +16,7 @@ type CreatedResult = {
 };
 
 const PLUS_ICON = (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <path d="M12 5v14M5 12h14" />
-  </svg>
+  <Icon name="Plus" />
 );
 
 /**
@@ -91,96 +92,94 @@ export default function ConnectNodeButton() {
       </button>
 
       {open && (
-        <div className="modal-scrim" onClick={close}>
-          <div className="modal-card" onClick={(e) => e.stopPropagation()}>
-            {created ? (
-              <>
-                <div className="modal-h">
-                  <h3>{t("Enroll your server")}</h3>
-                </div>
-                <div className="modal-b">
-                  <p style={{ marginBottom: 10 }}>
-                    {t(
-                      "Run this on the server you want to connect (as root). You can copy this command again from Node keys.",
-                    )}
-                  </p>
-                  <div className="newkey-secret">
-                    <code>{created.joinCommand}</code>
-                    <button type="button" className="btn ghost" onClick={copyCommand}>
-                      {copied ? t("Copied") : t("Copy")}
-                    </button>
-                  </div>
-                  <div className="newkey-secret-meta">
-                    <span className="mono">{created.key.label}</span>
-                    {created.key.prefix && (
-                      <span className="mono">{created.key.prefix}••••••••</span>
-                    )}
-                  </div>
-                  <p className="form-hint" style={{ marginTop: 10 }}>
-                    {t(
-                      "The node appears above once it finishes joining the cluster (usually under a minute).",
-                    )}
-                  </p>
-                </div>
-                <div className="modal-f">
-                  <button type="button" className="btn primary" onClick={close}>
-                    {t("Done")}
+        <Modal title={created ? t("Enroll your server") : t("Connect a server")} onDismiss={close} dismissDisabled={busy || Boolean(created)}>
+          {created ? (
+            <>
+              <div className="modal-h">
+                <h3>{t("Enroll your server")}</h3>
+              </div>
+              <div className="modal-b">
+                <p style={{ marginBottom: 10 }}>
+                  {t(
+                    "Run this on the server you want to connect (as root). You can copy this command again from Node keys.",
+                  )}
+                </p>
+                <div className="newkey-secret">
+                  <code>{created.joinCommand}</code>
+                  <button type="button" className="btn ghost" onClick={copyCommand}>
+                    {copied ? t("Copied") : t("Copy")}
                   </button>
                 </div>
-              </>
-            ) : (
-              <>
-                <div className="modal-h">
-                  <h3>{t("Connect a server")}</h3>
-                </div>
-                <div className="modal-b">
-                  <div className="field">
-                    <label htmlFor="connect-node-label">{t("Node name")}</label>
-                    <input
-                      id="connect-node-label"
-                      className="input"
-                      autoFocus
-                      value={label}
-                      placeholder={t("e.g. hk-edge-1")}
-                      maxLength={120}
-                      onChange={(e) => setLabel(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") submit();
-                      }}
-                    />
-                  </div>
-
-                  {error && (
-                    <div
-                      className="wb-alert err"
-                      style={{ marginTop: 12, marginBottom: 0 }}
-                    >
-                      {error}
-                    </div>
+                <div className="newkey-secret-meta">
+                  <span className="mono">{created.key.label}</span>
+                  {created.key.prefix && (
+                    <span className="mono">{created.key.prefix}••••••••</span>
                   )}
                 </div>
-                <div className="modal-f">
-                  <button
-                    type="button"
-                    className="btn ghost"
-                    onClick={close}
-                    disabled={busy}
-                  >
-                    {t("Cancel")}
-                  </button>
-                  <button
-                    type="button"
-                    className="btn primary"
-                    onClick={submit}
-                    disabled={busy}
-                  >
-                    {busy ? t("Working…") : t("Generate join command")}
-                  </button>
+                <p className="form-hint" style={{ marginTop: 10 }}>
+                  {t(
+                    "The node appears above once it finishes joining the cluster (usually under a minute).",
+                  )}
+                </p>
+              </div>
+              <div className="modal-f">
+                <button type="button" className="btn primary" onClick={close}>
+                  {t("Done")}
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="modal-h">
+                <h3>{t("Connect a server")}</h3>
+              </div>
+              <div className="modal-b">
+                <div className="field">
+                  <label htmlFor="connect-node-label">{t("Node name")}</label>
+                  <input
+                    id="connect-node-label"
+                    className="input"
+                    autoFocus
+                    value={label}
+                    placeholder={t("e.g. hk-edge-1")}
+                    maxLength={120}
+                    onChange={(e) => setLabel(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") submit();
+                    }}
+                  />
                 </div>
-              </>
-            )}
-          </div>
-        </div>
+
+                {error && (
+                  <div
+                    className="wb-alert err"
+                    style={{ marginTop: 12, marginBottom: 0 }}
+                  >
+                    {error}
+                  </div>
+                )}
+              </div>
+              <div className="modal-f">
+                <button
+                  type="button"
+                  className="btn ghost"
+                  onClick={close}
+                  disabled={busy}
+                >
+                  {t("Cancel")}
+                </button>
+                <button
+                  type="button"
+                  className="btn primary"
+                  onClick={submit}
+                  disabled={busy}
+                >
+                  {busy ? t("Working…") : t("Generate join command")}
+                </button>
+              </div>
+            </>
+          )}
+        </Modal>
       )}
     </>
   );

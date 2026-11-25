@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { BackingService, ConsoleAppDetail } from "@/lib/fugue/console";
 import {
@@ -14,6 +14,7 @@ import { fmtBytes, fmtMillicores, fmtStorageUsage } from "@/lib/format";
 import { readRuntimeCountryCode } from "@/lib/geo/country";
 import CountryLabel from "@/components/geo/CountryLabel";
 import { useT } from "@/lib/i18n/client";
+import Icon from "@/components/ui/Icon";
 import ProjectSettings from "./ProjectSettings";
 import {
   EnvTab,
@@ -55,21 +56,11 @@ function servicePhase(service: WorkbenchService): string {
 }
 
 function AppIcon() {
-  return (
-    <svg className="svc-card-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-      <rect x="3" y="3" width="18" height="18" rx="2" />
-      <path d="M3 9h18M9 21V9" />
-    </svg>
-  );
+  return <Icon name="Services" />;
 }
 
 function DbIcon() {
-  return (
-    <svg className="svc-card-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-      <ellipse cx="12" cy="5" rx="8" ry="3" />
-      <path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3" />
-    </svg>
-  );
+  return <Icon name="Storage" />;
 }
 
 export default function ProjectWorkbench({
@@ -92,6 +83,7 @@ export default function ProjectWorkbench({
   const t = useT();
   const router = useRouter();
   const observedNow = useObservedStatusNow(initialObservedNow);
+  const tabListId = useId();
 
   // selectedId: null = overview grid; PROJECT_KEY = project settings; else a service id.
   const [selectedId, setSelectedId] = useState<string | null>(() => {
@@ -131,6 +123,13 @@ export default function ProjectWorkbench({
     window.history.replaceState(null, "", qs ? `${window.location.pathname}?${qs}` : window.location.pathname);
   }, [selectedId, tab]);
 
+  useEffect(() => {
+    const overview = document.getElementById(`project-overview-${projectId}`);
+    if (!(overview instanceof HTMLDetailsElement)) return;
+    if (selectedId === null) overview.open = true;
+    else if (window.matchMedia("(max-width: 768px)").matches) overview.open = false;
+  }, [projectId, selectedId]);
+
   function openService(id: string, initialTabName?: string) {
     const svc = services.find((s) => s.id === id);
     if (!svc) return;
@@ -146,12 +145,10 @@ export default function ProjectWorkbench({
   // ---- Level 2: project settings ----
   if (selectedId === PROJECT_KEY) {
     return (
-      <div className="wb-main">
+      <div className="wb-main workbench-detail">
         <div className="svc-detail-head">
           <button type="button" className="back" onClick={() => setSelectedId(null)}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M15 18l-6-6 6-6" />
-            </svg>
+            <Icon name="ChevronLeft" />
             {t("Back")}
           </button>
           <h2>{t("Project settings")}</h2>
@@ -168,12 +165,10 @@ export default function ProjectWorkbench({
   // ---- Level 2: a single service ----
   if (selected) {
     return (
-      <div className="wb-main">
+      <div className="wb-main workbench-detail">
         <div className="svc-detail-head">
           <button type="button" className="back" onClick={() => setSelectedId(null)}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M15 18l-6-6 6-6" />
-            </svg>
+            <Icon name="ChevronLeft" />
             {t("Back")}
           </button>
           <h2>{selected.name}</h2>
@@ -183,10 +178,25 @@ export default function ProjectWorkbench({
           <span className="kind">{selected.kind === "db" ? t("Database") : t("App")}</span>
         </div>
 
-        <div className="tabs">
-          {tabs.map((t_) => (
+        <div className="tabs workbench-tabs" role="tablist" aria-label={t("Services")} onKeyDown={(event) => {
+          const current = tabs.findIndex((name) => name === tab);
+          const target = event.key === "ArrowRight" ? (current + 1) % tabs.length
+            : event.key === "ArrowLeft" ? (current + tabs.length - 1) % tabs.length
+            : event.key === "Home" ? 0 : event.key === "End" ? tabs.length - 1 : -1;
+          if (target < 0) return;
+          event.preventDefault();
+          setTab(tabs[target]);
+          event.currentTarget.querySelectorAll("button")[target]?.focus();
+        }}>
+          {tabs.map((t_, index) => (
             <button
               key={t_}
+              type="button"
+              role="tab"
+              id={`${tabListId}-${index}`}
+              aria-selected={t_ === tab}
+              aria-controls={`${tabListId}-panel`}
+              tabIndex={t_ === tab ? 0 : -1}
               className={`tab ${t_ === tab ? "active" : ""}`}
               onClick={() => setTab(t_)}
             >
@@ -199,8 +209,10 @@ export default function ProjectWorkbench({
             or inside a single tab. */}
         {selected.kind === "app" && <AppFailureNotice app={selected.app} />}
 
-        {selected.kind === "app" && renderAppTab(tab, selected.app, () => router.push("/projects"), observedNow)}
-        {selected.kind === "db" && renderDbTab(tab, selected.svc)}
+        <div id={`${tabListId}-panel`} role="tabpanel" tabIndex={0} aria-labelledby={`${tabListId}-${tabs.findIndex((name) => name === tab)}`}>
+          {selected.kind === "app" && renderAppTab(tab, selected.app, () => router.push("/projects"), observedNow)}
+          {selected.kind === "db" && renderDbTab(tab, selected.svc)}
+        </div>
       </div>
     );
   }
@@ -209,17 +221,14 @@ export default function ProjectWorkbench({
   return (
     <div>
       <div className="wb-sec">
-        <span className="eyebrow">{t("Services")}</span>
+        <h2>{t("Services")}</h2>
         <span className="wb-sec-n">{services.length}</span>
         <button
           type="button"
           className="btn ghost wb-sec-act"
           onClick={() => setSelectedId(PROJECT_KEY)}
         >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-            <circle cx="12" cy="12" r="3" />
-            <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 008 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H2a2 2 0 010-4h.09A1.65 1.65 0 004.6 8a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V2a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H22a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z" />
-          </svg>
+          <Icon name="Settings" />
           {t("Project settings")}
         </button>
       </div>
@@ -272,7 +281,7 @@ function ServiceCard({
   const cardFailure = svc.kind === "app" ? observedFailureNotice(svc.app) : null;
 
   return (
-    <div className="svc-card">
+    <div className="svc-card intent-row">
       <button type="button" className="svc-card-body" onClick={() => onOpen(svc.id)}>
         <div className="svc-card-top">
           {isDb ? <DbIcon /> : <AppIcon />}
@@ -316,16 +325,13 @@ function ServiceCard({
           </div>
         )}
       </button>
-      <div className="svc-card-foot">
-        <button type="button" className="btn primary" onClick={() => onOpen(svc.id)}>
-          {t("Manage")}
-        </button>
-        {svc.kind === "app" && (
+      {svc.kind === "app" && (
+        <div className="svc-card-foot">
           <button type="button" className="btn" onClick={() => onOpen(svc.id, "Logs")}>
             {t("Logs")}
           </button>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -333,7 +339,7 @@ function ServiceCard({
 function renderAppTab(tab: string, app: ConsoleAppDetail, onDeleted: () => void, observedNow: number) {
   switch (tab) {
     case "Route":
-      return <RouteTab app={app} />;
+      return <RouteTab app={app} observedNow={observedNow} />;
     case "Environment variables":
       return <EnvTab app={app} />;
     case "Logs":

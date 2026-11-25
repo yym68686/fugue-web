@@ -72,3 +72,6 @@ __pycache__/
 /ops/
 /.agents/
 /skills-lock.json
+# Playwright diagnostics and screenshots
+/test-results/
+/playwright-report/

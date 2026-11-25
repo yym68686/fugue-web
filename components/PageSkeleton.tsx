@@ -7,7 +7,6 @@ import AppLayout from '@/components/AppLayout';
  */
 export default function PageSkeleton({
   title,
-  eyebrow,
   variant = 'list',
 }: {
   title: string;
@@ -16,14 +15,10 @@ export default function PageSkeleton({
 }) {
   return (
     <AppLayout>
-      <div className="page">
+      <div className="page page-skeleton" aria-busy="true">
         <div className="phead">
           <div>
-            {eyebrow && <div className="eyebrow">{eyebrow}</div>}
             <h1>{title}</h1>
-            <div className="meta">
-              <span className="sk sk-line" style={{ width: 80 }}></span>
-            </div>
           </div>
         </div>
 
@@ -39,18 +34,14 @@ export default function PageSkeleton({
           </div>
         ) : (
           <div className="panel">
-            <div className="panel-h">
-              <span className="sk sk-line" style={{ width: 100 }}></span>
-            </div>
             <div className="list">
               {Array.from({ length: 5 }).map((_, i) => (
                 <div key={i} className="row-item">
-                  <span className="dot idle dot-lead"></span>
                   <div className="main-col">
                     <div className="sk sk-line" style={{ width: '30%' }}></div>
                     <div
                       className="sk sk-line"
-                      style={{ width: '50%', marginTop: 6 }}
+                      style={{ width: '50%', marginTop: 8 }}
                     ></div>
                   </div>
                 </div>

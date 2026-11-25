@@ -1,6 +1,7 @@
 import { queryDb } from '@/lib/db/pool';
 import { withPageTiming } from '@/lib/server/with-page-timing';
 import AppLayout from '@/components/AppLayout';
+import RowActions from '@/components/ui/RowActions';
 import NewKeyButton from '@/components/keys/NewKeyButton';
 import KeyRowActions from '@/components/keys/KeyRowActions';
 import CopyKeyButton from '@/components/keys/CopyKeyButton';
@@ -109,7 +110,6 @@ export default withPageTiming('/keys', async function KeysPage() {
       <div className="page">
         <div className="phead">
           <div>
-            <div className="eyebrow">Access Keys</div>
             <h1>{t("Access keys")}</h1>
             <div className="meta">
               <span>
@@ -134,10 +134,7 @@ export default withPageTiming('/keys', async function KeysPage() {
           <div className="list">
             {keys.length === 0 && <div className="empty">{t("No keys yet")}</div>}
             {keys.map((k) => (
-              <div key={k.fugue_key_id} className="row-item">
-                <span
-                  className={`dot ${k.status === 'active' ? 'ok' : 'idle'} dot-lead`}
-                ></span>
+              <div key={k.fugue_key_id} className="row-item key-row intent-row">
                 <div className="main-col">
                   <div className="nm">
                     {k.label}
@@ -166,6 +163,7 @@ export default withPageTiming('/keys', async function KeysPage() {
                   <span className={`chip ${statusChip[k.status] || 'idle'}`}>
                     {statusLabel(t, k.status)}
                   </span>
+                  <RowActions>
                   <CopyKeyButton keyId={k.fugue_key_id} label={k.label} available={k.has_secret} />
                   {!k.is_workspace_admin && (
                     <KeyRowActions
@@ -176,6 +174,7 @@ export default withPageTiming('/keys', async function KeysPage() {
                       availableScopes={grantableScopes}
                     />
                   )}
+                  </RowActions>
                 </div>
               </div>
             ))}

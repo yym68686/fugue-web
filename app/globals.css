@@ -1,87 +1,47 @@
 @import "tailwindcss";
 
 :root {
-  --bg: #0B0B0E;
-  --bg-2: #0E0E12;
-  --surface: #16171A;
-  --surface-2: #1B1C20;
-  --surface-3: #212228;
-  --line: #232427;
-  --line-2: #313239;
-  --fg: #E8E9EC;
-  --muted: #9A9CA4;
-  --faint: #666973;
-  --accent: #326CE5;
-  --accent-ink: #FFFFFF;
-  --accent-fg: #60A5FA;
-  --accent-dim: rgba(50, 108, 229, 0.16);
-  --accent-line: rgba(50, 108, 229, 0.42);
-  --ok: #3FCF8E;
-  --warn: #F5B13D;
-  --err: #FF5D6B;
-  --scrim: rgba(11, 11, 14, 0.72);
-  --scrim-strong: rgba(11, 11, 14, 0.94);
-  --shadow: rgba(0, 0, 0, 0.55);
-  --radius: 6px;
-  --radius-sm: 4px;
-  --mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
-  --sans: 'Space Grotesk', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
-  --rail-w: 252px;
-  --top-h: 54px;
+  color-scheme: light dark;
+  --bg: light-dark(#fff, #141414);
+  --bg-2: var(--bg);
+  --surface: var(--bg);
+  --surface-2: light-dark(#f5f5f5, #202020);
+  --surface-3: light-dark(#ededed, #2a2a2a);
+  --line: light-dark(#e8e8e8, #303030);
+  --line-2: light-dark(#d5d5d5, #454545);
+  --fg: light-dark(#181818, #f2f2f2);
+  --muted: light-dark(#6a6a6a, #b4b4b4);
+  --faint: var(--muted);
+  --accent: #415e80;
+  --accent-ink: #fff;
+  --accent-fg: light-dark(#415e80, #a2bddb);
+  --accent-dim: color-mix(in srgb, var(--accent-fg) 12%, transparent);
+  --accent-line: color-mix(in srgb, var(--accent-fg) 44%, transparent);
+  --ok: var(--fg);
+  --warn: var(--fg);
+  --err: var(--fg);
+  --scrim: rgb(0 0 0 / 42%);
+  --scrim-strong: rgb(0 0 0 / 64%);
+  --shadow: transparent;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-12: 48px;
+  --radius-sm: 8px;
+  --radius: 8px;
+  --radius-panel: 16px;
+  --radius-dialog: 24px;
+  --mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, monospace;
+  --sans: var(--font-geist-sans), "PingFang SC", "Noto Sans CJK SC", "Microsoft YaHei", system-ui, sans-serif;
+  --rail-w: 240px;
+  --top-h: 64px;
 }
 
-/* ---- light palette ---- */
-/* Applied explicitly via [data-theme="light"], and via the auto (no explicit
-   data-theme) branch when the OS prefers light. Dark stays the :root default. */
-:root[data-theme="light"] {
-  --bg: #FBFBFD;
-  --bg-2: #FFFFFF;
-  --surface: #FFFFFF;
-  --surface-2: #F5F6F8;
-  --surface-3: #ECEEF2;
-  --line: #E2E4E9;
-  --line-2: #D2D5DC;
-  --fg: #16171A;
-  --muted: #5B5E68;
-  --faint: #8A8D97;
-  --accent: #326CE5;
-  --accent-ink: #FFFFFF;
-  --accent-fg: #2159C8;
-  --accent-dim: rgba(50, 108, 229, 0.10);
-  --accent-line: rgba(50, 108, 229, 0.36);
-  --ok: #17935B;
-  --warn: #B87503;
-  --err: #D9384B;
-  --scrim: rgba(15, 18, 25, 0.32);
-  --scrim-strong: rgba(15, 18, 25, 0.5);
-  --shadow: rgba(15, 23, 42, 0.12);
-}
-
-@media (prefers-color-scheme: light) {
-  :root:not([data-theme="dark"]):not([data-theme="light"]) {
-    --bg: #FBFBFD;
-    --bg-2: #FFFFFF;
-    --surface: #FFFFFF;
-    --surface-2: #F5F6F8;
-    --surface-3: #ECEEF2;
-    --line: #E2E4E9;
-    --line-2: #D2D5DC;
-    --fg: #16171A;
-    --muted: #5B5E68;
-    --faint: #8A8D97;
-    --accent: #326CE5;
-    --accent-ink: #FFFFFF;
-    --accent-fg: #2159C8;
-    --accent-dim: rgba(50, 108, 229, 0.10);
-    --accent-line: rgba(50, 108, 229, 0.36);
-    --ok: #17935B;
-    --warn: #B87503;
-    --err: #D9384B;
-    --scrim: rgba(15, 18, 25, 0.32);
-    --scrim-strong: rgba(15, 18, 25, 0.5);
-    --shadow: rgba(15, 23, 42, 0.12);
-  }
-}
+:root[data-theme="light"] { color-scheme: light; }
+:root[data-theme="dark"] { color-scheme: dark; }
 
 * {
   box-sizing: border-box;
@@ -94,7 +54,7 @@ body {
   font-family: var(--sans);
   background: var(--bg);
   color: var(--fg);
-  font-size: 13.5px;
+  font-size: 14px;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
@@ -121,7 +81,7 @@ button {
 :focus-visible {
   outline: 2px solid var(--accent-fg);
   outline-offset: 2px;
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
 }
 
 .eyebrow {
@@ -200,7 +160,7 @@ button {
   display: grid;
   grid-template-columns: var(--rail-w) 1fr;
   grid-template-rows: var(--top-h) 1fr;
-  height: 100vh;
+  height: 100dvh;
   overflow: hidden;
 }
 
@@ -208,10 +168,9 @@ button {
   grid-column: 1 / -1;
   display: flex;
   align-items: center;
-  gap: 18px;
-  padding: 0 16px 0 18px;
-  border-bottom: 1px solid var(--line);
-  background: linear-gradient(180deg, var(--bg-2), var(--bg));
+  gap: var(--space-4);
+  padding: 0 var(--space-6);
+  background: var(--bg);
   z-index: 20;
 }
 
@@ -284,8 +243,8 @@ button {
   height: 28px;
   border-radius: 50%;
   flex: none;
-  background: linear-gradient(135deg, var(--accent), var(--accent-fg));
-  color: var(--accent-ink);
+  background: var(--surface-3);
+  color: var(--fg);
   font-family: var(--mono);
   font-weight: 600;
   font-size: 11px;
@@ -327,7 +286,6 @@ button {
   background: var(--surface);
   border: 1px solid var(--line-2);
   border-radius: var(--radius);
-  box-shadow: 0 16px 44px var(--shadow);
   padding: 8px;
   z-index: 60;
   animation: fade 0.12s ease;
@@ -529,20 +487,9 @@ button {
   color: var(--fg);
 }
 
-.nav-item.active::before {
-  content: "";
-  position: absolute;
-  left: -10px;
-  top: 6px;
-  bottom: 6px;
-  width: 2px;
-  background: var(--accent-fg);
-  border-radius: 2px;
-}
-
 .nav-item.active svg {
   opacity: 1;
-  color: var(--accent-fg);
+  color: currentColor;
 }
 
 .rail-foot {
@@ -561,33 +508,19 @@ button {
   gap: 8px;
 }
 
-/* ---- main scroll area with score-paper grid ---- */
+/* ---- main scroll area ---- */
 .main {
   grid-row: 2;
   overflow-y: auto;
   position: relative;
-  background:
-    linear-gradient(var(--line) 1px, transparent 1px) 0 0/100% 30px,
-    linear-gradient(90deg, var(--line) 1px, transparent 1px) 0 0/30px 100%,
-    radial-gradient(120% 80% at 80% -10%, rgba(50, 108, 229, 0.06), transparent 60%),
-    var(--bg);
-}
-
-.main::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background: linear-gradient(
-    180deg,
-    color-mix(in srgb, var(--bg) 72%, transparent),
-    color-mix(in srgb, var(--bg) 94%, transparent)
-  );
+  background: var(--bg);
+  min-width: 0;
+  min-height: 0;
 }
 
 .page {
   position: relative;
-  padding: 26px 30px 60px;
+  padding: var(--space-8) var(--space-12);
   max-width: 1180px;
   margin: 0 auto;
 }
@@ -595,14 +528,14 @@ button {
 /* ---- page header ---- */
 .phead {
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   gap: 16px;
-  margin-bottom: 22px;
+  margin-bottom: var(--space-8);
 }
 
 .phead h1 {
-  margin: 6px 0 0;
-  font-size: 27px;
+  margin: 0;
+  font-size: 18px;
   font-weight: 700;
   letter-spacing: -0.02em;
 }
@@ -1251,9 +1184,7 @@ button {
   position: relative;
   padding: 48px 52px;
   border-right: 1px solid var(--line);
-  background:
-    linear-gradient(180deg, rgba(50, 108, 229, 0.05), transparent 40%),
-    repeating-linear-gradient(0deg, transparent, transparent 27px, rgba(255, 255, 255, 0.014) 27px, rgba(255, 255, 255, 0.014) 28px);
+  background: var(--bg);
   display: flex;
   flex-direction: column;
 }
@@ -1502,9 +1433,7 @@ button {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  background:
-    radial-gradient(1200px 600px at 78% -8%, rgba(50, 108, 229, 0.13), transparent 60%),
-    linear-gradient(180deg, var(--bg-2), var(--bg));
+  background: var(--bg);
   color: var(--fg);
 }
 
@@ -1708,7 +1637,7 @@ button {
   bottom: -4px;
   left: 66%;
   width: 1px;
-  background: linear-gradient(180deg, transparent, var(--accent-fg), transparent);
+  background: var(--line);
 }
 /* ---- how it works ---- */
 .lp-how {
@@ -1782,9 +1711,7 @@ button {
   padding: clamp(40px, 6vw, 72px) 20px;
   border: 1px solid var(--line);
   border-radius: var(--radius);
-  background:
-    radial-gradient(600px 300px at 50% 0%, rgba(50, 108, 229, 0.1), transparent 70%),
-    var(--surface);
+  background: var(--surface);
 }
 .lp-final h2 {
   font-family: var(--sans);
@@ -2380,15 +2307,8 @@ button {
    ============================================================ */
 .sk {
   display: inline-block;
-  border-radius: 4px;
-  background: linear-gradient(
-    90deg,
-    var(--line) 25%,
-    var(--line-2) 37%,
-    var(--line) 63%
-  );
-  background-size: 400% 100%;
-  animation: sk-shimmer 1.4s ease infinite;
+  border-radius: var(--radius-sm);
+  background: var(--surface-3);
 }
 
 .sk-line {
@@ -3330,7 +3250,6 @@ button {
   background: var(--surface);
   border: 1px solid var(--line-2);
   border-radius: var(--radius);
-  box-shadow: 0 18px 50px var(--shadow);
 }
 
 .modal-card .modal-h {
@@ -3518,7 +3437,6 @@ button {
   border-radius: var(--radius);
   border: 1px solid var(--line-2);
   background: var(--surface);
-  box-shadow: 0 12px 34px var(--shadow);
   animation: fade 0.16s ease;
 }
 
@@ -3689,15 +3607,9 @@ button {
 
 /* select uses the .input shell; add a caret + reset appearance */
 select.input {
-  appearance: none;
-  -webkit-appearance: none;
+  appearance: auto;
   cursor: pointer;
-  background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%),
-    linear-gradient(135deg, var(--muted) 50%, transparent 50%);
-  background-position: calc(100% - 16px) center, calc(100% - 11px) center;
-  background-size: 5px 5px, 5px 5px;
-  background-repeat: no-repeat;
-  padding-right: 32px;
+  padding-right: 12px;
 }
 
 /* small helper text under a field */

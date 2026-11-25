@@ -1,5 +1,7 @@
 "use client";
 
+import Modal from "@/components/ui/Modal";
+
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -129,113 +131,102 @@ export default function NodeKeyRowActions({
       </div>
 
       {editing && (
-        <div className="modal-scrim" onClick={closeAll}>
-          <div className="modal-card" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-h">
-              <h3>{t("Rename node")}</h3>
-            </div>
-            <div className="modal-b">
-              <div className="field">
-                <label htmlFor={`edit-node-label-${keyId}`}>{t("Node name")}</label>
-                <input
-                  id={`edit-node-label-${keyId}`}
-                  className="input"
-                  autoFocus
-                  value={editLabel}
-                  maxLength={120}
-                  onChange={(e) => setEditLabel(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") submitEdit();
-                  }}
-                />
-              </div>
-              {error && (
-                <div
-                  className="wb-alert err"
-                  style={{ marginTop: 12, marginBottom: 0 }}
-                >
-                  {error}
-                </div>
-              )}
-            </div>
-            <div className="modal-f">
-              <button
-                type="button"
-                className="btn ghost"
-                onClick={closeAll}
-                disabled={busy}
-              >
-                {t("Cancel")}
-              </button>
-              <button
-                type="button"
-                className="btn primary"
-                onClick={submitEdit}
-                disabled={busy}
-              >
-                {busy ? t("Working…") : t("Save changes")}
-              </button>
-            </div>
+        <Modal title={t("Rename node")} onDismiss={closeAll} dismissDisabled={busy}>
+          <div className="modal-h">
+            <h3>{t("Rename node")}</h3>
           </div>
-        </div>
+          <div className="modal-b">
+            <div className="field">
+              <label htmlFor={`edit-node-label-${keyId}`}>{t("Node name")}</label>
+              <input
+                id={`edit-node-label-${keyId}`}
+                className="input"
+                autoFocus
+                value={editLabel}
+                maxLength={120}
+                onChange={(e) => setEditLabel(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") submitEdit();
+                }}
+              />
+            </div>
+            {error && (
+              <div
+                className="wb-alert err"
+                style={{ marginTop: 12, marginBottom: 0 }}
+              >
+                {error}
+              </div>
+            )}
+          </div>
+          <div className="modal-f">
+            <button
+              type="button"
+              className="btn ghost"
+              onClick={closeAll}
+              disabled={busy}
+            >
+              {t("Cancel")}
+            </button>
+            <button
+              type="button"
+              className="btn primary"
+              onClick={submitEdit}
+              disabled={busy}
+            >
+              {busy ? t("Working…") : t("Save changes")}
+            </button>
+          </div>
+        </Modal>
       )}
 
       {confirming && (
-        <div className="modal-scrim" onClick={closeAll}>
-          <div
-            className="modal-card"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby={`node-key-confirm-${keyId}`}
-            onClick={(e) => e.stopPropagation()}
-            onKeyDown={(e) => { if (e.key === "Escape") closeAll(); }}
-          >
-            <div className="modal-h">
-              <h3 id={`node-key-confirm-${keyId}`}>{confirming === "delete" ? t("Delete node key") : t("Disable node key")}</h3>
-            </div>
-            <div className="modal-b">
-              <p style={{ margin: 0 }}>
-                {confirming === "delete" ? t(
-                  status === "revoked"
-                    ? "Delete “{label}” from your node keys? The key will remain revoked. This cannot be undone."
-                    : "Delete “{label}”? This revokes the key, disconnects servers enrolled with it, and removes it from your node keys. This cannot be undone.",
-                  { label },
-                ) : t(
-                  "Disable “{label}”? Any server enrolled with this key will be disconnected and it can no longer be used to join.",
-                  { label },
-                )}
-              </p>
-              {error && (
-                <div
-                  className="wb-alert err"
-                  role="alert"
-                  style={{ marginTop: 12, marginBottom: 0 }}
-                >
-                  {error}
-                </div>
-              )}
-            </div>
-            <div className="modal-f">
-              <button
-                type="button"
-                className="btn ghost"
-                onClick={closeAll}
-                disabled={busy}
-                autoFocus
-              >
-                {t("Cancel")}
-              </button>
-              <button
-                type="button"
-                className="btn danger"
-                onClick={confirmAction}
-                disabled={busy}
-              >
-                {busy ? t("Working…") : confirming === "delete" ? t("Delete") : t("Disable")}
-              </button>
-            </div>
+        <Modal title={confirming === "delete" ? t("Delete node key") : t("Disable node key")} onDismiss={closeAll} dismissDisabled={busy}>
+          <div className="modal-h">
+            <h3 id={`node-key-confirm-${keyId}`}>{confirming === "delete" ? t("Delete node key") : t("Disable node key")}</h3>
           </div>
-        </div>
+          <div className="modal-b">
+            <p style={{ margin: 0 }}>
+              {confirming === "delete" ? t(
+                status === "revoked"
+                  ? "Delete “{label}” from your node keys? The key will remain revoked. This cannot be undone."
+                  : "Delete “{label}”? This revokes the key, disconnects servers enrolled with it, and removes it from your node keys. This cannot be undone.",
+                { label },
+              ) : t(
+                "Disable “{label}”? Any server enrolled with this key will be disconnected and it can no longer be used to join.",
+                { label },
+              )}
+            </p>
+            {error && (
+              <div
+                className="wb-alert err"
+                role="alert"
+                style={{ marginTop: 12, marginBottom: 0 }}
+              >
+                {error}
+              </div>
+            )}
+          </div>
+          <div className="modal-f">
+            <button
+              type="button"
+              className="btn ghost"
+              onClick={closeAll}
+              disabled={busy}
+              autoFocus
+            >
+              {t("Cancel")}
+            </button>
+            <button
+              type="button"
+              className="btn danger"
+              onClick={confirmAction}
+              disabled={busy}
+            >
+              {busy ? t("Working…") : confirming === "delete" ? t("Delete") : t("Disable")}
+            </button>
+          </div>
+        </Modal>
       )}
     </>
   );

@@ -28,10 +28,11 @@ export default function AppFailureNotice({ app }: { app: ConsoleAppDetail }) {
     .join(" · ");
 
   return (
-    <div className={`wb-failure ${notice.superseded ? "past" : "live"}`} role="status">
+    <div className={`wb-failure ${notice.superseded ? "past" : "live"}`} role={notice.superseded ? undefined : "status"}>
       <div className="wb-failure-row">
         <span className="wb-failure-dot" aria-hidden="true" />
         <span className="wb-failure-lead">
+          <strong>{app.name} · </strong>
           {notice.superseded
             ? t("An earlier operation failed. A later release has since deployed successfully.")
             : t("The last operation failed.")}

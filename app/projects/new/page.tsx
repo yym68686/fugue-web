@@ -38,15 +38,7 @@ export default async function NewProjectPage() {
       <div className="page">
         <div className="phead">
           <div>
-            <div className="eyebrow">Projects / New</div>
             <h1>{t("New project")}</h1>
-            <div className="meta">
-              <span>
-                {t(
-                  "Create a project from GitHub, a container image, or a source archive and deploy your first app",
-                )}
-              </span>
-            </div>
           </div>
           <div className="actions">
             <Link className="btn ghost" href="/projects">

@@ -5,6 +5,7 @@ import { Fragment, useState } from "react";
 import type { ClusterNode, ClusterNodeWorkload } from "@/lib/fugue/console";
 import { fmtBytes, fmtMillicores } from "@/lib/format";
 import UsageCell from "@/components/ResourceUsage";
+import Icon from "@/components/ui/Icon";
 import { useT } from "@/lib/i18n/client";
 import type { TranslateFn } from "@/lib/i18n/translate";
 
@@ -107,6 +108,15 @@ function NodeDetail({ node, t }: { node: ClusterNode; t: TranslateFn }) {
   };
   return (
     <div className="node-detail">
+      <div className="cluster-mobile-usage">
+        <span>{roleChips(node, t).map((role) => role.label).join(" · ")}</span>
+        <UsageCell label="CPU" t={t} usagePct={node.cpu?.usage_percent} requestPct={node.cpu?.request_percent}
+          detail={node.cpu?.capacity_millicores ? `${fmtMillicores(node.cpu.used_millicores)} / ${fmtMillicores(node.cpu.capacity_millicores)}` : ""} />
+        <UsageCell label={t("Memory")} t={t} usagePct={node.memory?.usage_percent} requestPct={node.memory?.request_percent}
+          detail={node.memory?.capacity_bytes ? `${fmtBytes(node.memory.used_bytes)} / ${fmtBytes(node.memory.capacity_bytes)}` : ""} />
+        <UsageCell label={t("Disk")} t={t} usagePct={node.ephemeral_storage?.usage_percent} requestPct={undefined}
+          detail={node.ephemeral_storage?.capacity_bytes ? `${fmtBytes(node.ephemeral_storage.used_bytes)} / ${fmtBytes(node.ephemeral_storage.capacity_bytes)}` : ""} />
+      </div>
       <div className="node-detail-grid">
         {(node.policy?.effective_edge || observation) && (
           <div className="node-detail-item">
@@ -211,6 +221,7 @@ export default function ClusterNodeTable({ nodes }: { nodes: ClusterNode[] }) {
   }
 
   return (
+    <div className="table-scroll" tabIndex={0} role="region" aria-label={t("Cluster nodes")}>
     <table className="tbl tbl-cluster">
       <thead>
         <tr>
@@ -238,13 +249,13 @@ export default function ClusterNodeTable({ nodes }: { nodes: ClusterNode[] }) {
                     type="button"
                     className="caret-btn"
                     aria-expanded={isOpen}
-                    aria-label={isOpen ? t("Collapse") : t("Expand")}
+                    aria-label={`${isOpen ? t("Collapse") : t("Expand")}: ${n.name}`}
                     onClick={(e) => {
                       e.stopPropagation();
                       toggle(n.name);
                     }}
                   >
-                    <span className={`caret${isOpen ? " down" : ""}`}>▶</span>
+                    <Icon name={isOpen ? "ChevronDown" : "ChevronRight"} />
                   </button>
                 </td>
                 <td>
@@ -259,7 +270,7 @@ export default function ClusterNodeTable({ nodes }: { nodes: ClusterNode[] }) {
                 <td>
                   <div className="role-chips">
                     {roleChips(n, t).map((c, i) => (
-                      <span key={i} className={`chip ${c.tone}`}>
+                      <span key={i} className="role-label">
                         {c.label}
                       </span>
                     ))}
@@ -317,5 +328,6 @@ export default function ClusterNodeTable({ nodes }: { nodes: ClusterNode[] }) {
         })}
       </tbody>
     </table>
+    </div>
   );
 }

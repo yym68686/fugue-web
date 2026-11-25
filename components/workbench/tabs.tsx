@@ -13,11 +13,16 @@ import type {
 } from "@/lib/fugue/console";
 import { fmtDate, fmtMillicores } from "@/lib/format";
 import { normalizeHostname } from "@/lib/fugue/hostname";
-import { useT } from "@/lib/i18n/client";
+import { useI18n, useT } from "@/lib/i18n/client";
+import CodeBlock from "@/components/landing/CodeBlock";
+import Icon from "@/components/ui/Icon";
+import CopyValue from "@/components/ui/CopyValue";
+import RowActions from "@/components/ui/RowActions";
 import { isObservedReady, observedUnreadyReason } from "@/lib/fugue/observed-status";
 import { unreadyReasonText } from "@/lib/fugue/unready-reason";
 import {
   ActionButton,
+  ConfirmDialog,
   callConsole,
   EmptyState,
   RefreshButton,
@@ -103,14 +108,14 @@ function AddDomainForm({
 
 /* ============================ Route tab ============================ */
 
-export function RouteTab({ app }: { app: ConsoleAppDetail }) {
-  const t = useT();
+export function RouteTab({ app, observedNow }: { app: ConsoleAppDetail; observedNow?: number }) {
+  const { t, locale } = useI18n();
   const router = useRouter();
   const route = app.route ?? {};
   const [hostname, setHostname] = useState(route.hostname ?? "");
   const [pathPrefix, setPathPrefix] = useState(route.path_prefix ?? "");
   const publicUrl = route.public_url || (route.hostname ? `https://${route.hostname}` : "");
-  const routeUnavailable = Boolean(publicUrl) && !isObservedReady(app);
+  const routeUnavailable = Boolean(publicUrl) && !isObservedReady(app, observedNow);
   const unreadyReason = unreadyReasonText(observedUnreadyReason(app), t);
 
   const domains = useEndpointData<AppDomain[]>(
@@ -127,7 +132,6 @@ export function RouteTab({ app }: { app: ConsoleAppDetail }) {
         <div className="panel" role="status">
           <div className="panel-h">
             <h3>{t("Route unavailable")}</h3>
-            <span className="chip warn">{t("runtime evidence required")}</span>
           </div>
           {/* The app's last failed operation is deliberately not repeated here;
               AppFailureNotice owns it at app level. */}
@@ -136,7 +140,7 @@ export function RouteTab({ app }: { app: ConsoleAppDetail }) {
       )}
       <div className="panel">
         <div className="panel-h">
-          <h3>{t("Primary route")}</h3>
+              <h3>{locale === "zh-CN" ? "路由配置" : "Route configuration"}</h3>
         </div>
         <div className="form">
           <div className="form-row">
@@ -160,9 +164,9 @@ export function RouteTab({ app }: { app: ConsoleAppDetail }) {
           {publicUrl && (
             <div className="form-row">
               <label>{t("Current address")}</label>
-              <a href={publicUrl} target="_blank" rel="noreferrer" className="mono">
-                {publicUrl.replace(/^https?:\/\//, "")}
-              </a>
+              {routeUnavailable
+                ? <span className="mono">{publicUrl.replace(/^https?:\/\//, "")}</span>
+                : <a href={publicUrl} target="_blank" rel="noreferrer" className="mono">{publicUrl.replace(/^https?:\/\//, "")}</a>}
             </div>
           )}
         </div>
@@ -201,7 +205,8 @@ export function RouteTab({ app }: { app: ConsoleAppDetail }) {
             {(domains.data?.length ?? 0) === 0 ? (
               <EmptyState message={t("No custom domains yet")} />
             ) : (
-              <table className="tbl">
+              <div className="table-scroll" role="region" aria-label={t("Custom domains")} tabIndex={0}>
+              <table className="tbl domains-table">
                 <thead>
                   <tr>
                     <th>{t("Hostname")}</th>
@@ -212,8 +217,15 @@ export function RouteTab({ app }: { app: ConsoleAppDetail }) {
                 </thead>
                 <tbody>
                   {domains.data!.map((d) => (
-                    <tr key={d.hostname}>
-                      <td className="mono">{d.hostname}</td>
+                    <tr key={d.hostname} className="intent-row">
+                      <td>
+                        <CopyValue value={d.hostname} label={t("Hostname")} />
+                        {d.verification_txt_name && d.verification_txt_value && <details>
+                          <summary>DNS TXT</summary>
+                          <CopyValue value={d.verification_txt_name} label="TXT hostname" />
+                          <CopyValue value={d.verification_txt_value} label="TXT value" />
+                        </details>}
+                      </td>
                       <td>
                         <span className={`chip ${d.verified_at ? "ok" : "warn"}`}>
                           {d.verified_at ? t("Verified") : t("Pending verification")}
@@ -224,7 +236,8 @@ export function RouteTab({ app }: { app: ConsoleAppDetail }) {
                           {d.tls_status || "pending"}
                         </span>
                       </td>
-                      <td style={{ textAlign: "right", whiteSpace: "nowrap" }}>
+                      <td className="domain-actions">
+                        <RowActions inline>
                         {!d.verified_at && (
                           <ActionButton
                             className="btn ghost"
@@ -251,11 +264,13 @@ export function RouteTab({ app }: { app: ConsoleAppDetail }) {
                         >
                           {t("Delete")}
                         </ActionButton>
+                        </RowActions>
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
+              </div>
             )}
           </>
         )}
@@ -269,11 +284,13 @@ export function RouteTab({ app }: { app: ConsoleAppDetail }) {
 type EnvRow = { id: number; key: string; value: string };
 
 export function EnvTab({ app }: { app: ConsoleAppDetail }) {
-  const t = useT();
+  const { t, locale } = useI18n();
   const url = `/api/console/apps/${encodeURIComponent(app.id)}/env`;
   const state = useEndpointData<AppEnv>(url);
   const [rows, setRows] = useState<EnvRow[] | null>(null);
   const [saved, setSaved] = useState(false);
+  const [confirming, setConfirming] = useState(false);
+  const [revealed, setRevealed] = useState<Set<number>>(new Set());
   const nextId = useMemo(() => ({ n: 0 }), []);
 
   // Seed editable rows from fetched env once (or after refresh clears them).
@@ -288,6 +305,10 @@ export function EnvTab({ app }: { app: ConsoleAppDetail }) {
 
   const current = rows ?? seed ?? [];
   const original = state.data?.env ?? {};
+  const next = Object.fromEntries(current.filter((r) => r.key.trim()).map((r) => [r.key.trim(), r.value]));
+  const added = Object.keys(next).filter((k) => !Object.hasOwn(original, k));
+  const changed = Object.keys(next).filter((k) => Object.hasOwn(original, k) && next[k] !== original[k]);
+  const deleted = Object.keys(original).filter((k) => !Object.hasOwn(next, k));
 
   function update(id: number, patch: Partial<EnvRow>) {
     setSaved(false);
@@ -303,12 +324,12 @@ export function EnvTab({ app }: { app: ConsoleAppDetail }) {
   }
 
   async function save() {
-    const set: Record<string, string> = {};
-    for (const r of current) {
-      if (r.key.trim()) set[r.key.trim()] = r.value;
-    }
-    const del = Object.keys(original).filter((k) => !(k in set));
-    await callConsole(url, { method: "PATCH", body: { set, delete: del } });
+    await callConsole(url, { method: "PATCH", body: { set: next, delete: deleted } });
+    setConfirming(false);
+    setRows(null);
+    setRevealed(new Set());
+    setSaved(true);
+    state.refresh();
   }
 
   if (state.loading) return <TabLoading />;
@@ -322,6 +343,7 @@ export function EnvTab({ app }: { app: ConsoleAppDetail }) {
           <RefreshButton
             onClick={() => {
               setRows(null);
+              setRevealed(new Set());
               state.refresh();
             }}
           />
@@ -331,29 +353,40 @@ export function EnvTab({ app }: { app: ConsoleAppDetail }) {
       <div className="kvedit">
         {current.length === 0 && <EmptyState message={t("No environment variables")} />}
         {current.map((r) => (
-          <div className="kvedit-row" key={r.id}>
+          <div className="kvedit-row intent-row" key={r.id}>
             <input
               className="input mono"
+              aria-label={locale === "zh-CN" ? "变量名" : "Variable name"}
               value={r.key}
               placeholder="KEY"
               onChange={(e) => update(r.id, { key: e.target.value })}
             />
             <input
               className="input mono"
+              type={revealed.has(r.id) ? "text" : "password"}
+              aria-label={locale === "zh-CN" ? "变量值" : "Variable value"}
+              autoComplete="off"
               value={r.value}
               placeholder="value"
               onChange={(e) => update(r.id, { value: e.target.value })}
             />
+            <div className="env-row-actions">
+            <button type="button" className="btn ghost" aria-pressed={revealed.has(r.id)} onClick={() => setRevealed((previous) => {
+              const next = new Set(previous);
+              if (next.has(r.id)) next.delete(r.id); else next.add(r.id);
+              return next;
+            })}>
+              {locale === "zh-CN" ? (revealed.has(r.id) ? "隐藏" : "显示") : (revealed.has(r.id) ? "Hide" : "Show")}
+            </button>
             <button
               type="button"
-              className="icon-btn"
+              className="icon-btn intent-action"
               aria-label={t("Delete")}
               onClick={() => remove(r.id)}
             >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M18 6L6 18M6 6l12 12" />
-              </svg>
+              <Icon name="Close" />
             </button>
+            </div>
           </div>
         ))}
       </div>
@@ -362,10 +395,15 @@ export function EnvTab({ app }: { app: ConsoleAppDetail }) {
           {t("+ Add variable")}
         </button>
         <div className="toolbar-sp" />
-        <ActionButton className="btn primary" onAction={save} onDone={() => setSaved(true)}>
-          {t("Save")}
-        </ActionButton>
+        <button type="button" className="btn primary" disabled={!added.length && !changed.length && !deleted.length} onClick={() => setConfirming(true)}>{t("Save")}</button>
       </div>
+      {confirming && <ConfirmDialog title={t("Environment variables")} confirmLabel={t("Save")} onCancel={() => setConfirming(false)} onConfirm={save} body={
+        <div className="env-change-summary">
+          <p>{locale === "zh-CN" ? "变更在下次部署时生效。" : "Changes take effect on the next deploy."}</p>
+          {[[locale === "zh-CN" ? "新增" : "Added", added], [locale === "zh-CN" ? "修改" : "Changed", changed], [locale === "zh-CN" ? "删除" : "Removed", deleted]].map(([label, keys]) =>
+            keys.length ? <p key={String(label)}>{label}: <code>{(keys as string[]).join(", ")}</code></p> : null)}
+        </div>
+      } />}
     </div>
   );
 }
@@ -373,8 +411,9 @@ export function EnvTab({ app }: { app: ConsoleAppDetail }) {
 /* ============================ Logs tab ============================= */
 
 export function LogsTab({ app }: { app: ConsoleAppDetail }) {
-  const t = useT();
+  const { t, locale } = useI18n();
   const [mode, setMode] = useState<"runtime" | "build">("runtime");
+  const [wrap, setWrap] = useState(false);
   const base = `/api/console/apps/${encodeURIComponent(app.id)}`;
   const runtime = useEndpointData<RuntimeLogs>(
     mode === "runtime" ? `${base}/logs/runtime` : null,
@@ -388,28 +427,33 @@ export function LogsTab({ app }: { app: ConsoleAppDetail }) {
       <div className="panel-h">
         <h3>{t("Logs")}</h3>
         <div className="tail" style={{ gap: 8 }}>
-          <div className="tabs" style={{ margin: 0 }}>
+          <div className="inline-modes" role="group" aria-label={t("Logs")}>
             <button
-              className={`tab ${mode === "runtime" ? "active" : ""}`}
+              className="btn ghost"
+              aria-pressed={mode === "runtime"}
               onClick={() => setMode("runtime")}
             >
               {t("Runtime")}
             </button>
             <button
-              className={`tab ${mode === "build" ? "active" : ""}`}
+              className="btn ghost"
+              aria-pressed={mode === "build"}
               onClick={() => setMode("build")}
             >
               {t("Build")}
             </button>
           </div>
+          <button type="button" className="btn ghost" aria-pressed={wrap} onClick={() => setWrap(!wrap)}>
+            {locale === "zh-CN" ? "自动换行" : "Wrap lines"}
+          </button>
           <RefreshButton onClick={active.refresh} />
         </div>
       </div>
       {active.loading && <TabLoading />}
       {active.error && <TabError message={active.error} />}
       {!active.loading && !active.error && (
-        <div style={{ padding: 14 }}>
-          {logs ? <pre className="logbox">{logs}</pre> : <EmptyState message={t("No logs yet")} />}
+        <div>
+          {logs ? <pre className={`logbox${wrap ? " log-wrap" : ""}`} tabIndex={0} aria-label={t("Logs")}>{logs}</pre> : <EmptyState message={t("No logs yet")} />}
         </div>
       )}
     </div>
@@ -486,7 +530,7 @@ export function ObservabilityTab({ app }: { app: ConsoleAppDetail }) {
           (metrics.data?.metrics.length ?? 0) === 0 ? (
             <EmptyState message={t("No metrics yet")} />
           ) : (
-            <div className="kpi-row" style={{ margin: 14, gridTemplateColumns: "repeat(4,1fr)" }}>
+            <div className="kpi-row">
               {metrics.data!.metrics.slice(0, 8).map((m) => (
                 <div className="kpi" key={m.name}>
                   <div className="k">{m.name}</div>
@@ -511,30 +555,31 @@ export function ObservabilityTab({ app }: { app: ConsoleAppDetail }) {
           (requests.data?.requests.length ?? 0) === 0 ? (
             <EmptyState message={t("No requests yet")} />
           ) : (
-            <table className="tbl">
+            <table className="tbl request-table">
               <thead>
                 <tr>
                   <th>{t("Request")}</th>
                   <th>{t("Status")}</th>
                   <th>{t("Duration")}</th>
-                  <th>Trace</th>
                 </tr>
               </thead>
               <tbody>
                 {requests.data!.requests.map((r, i) => (
                   <tr key={r.request_id || r.trace_id || i}>
                     <td className="mono">
-                      {(r.method || "").toUpperCase()} {r.route || "—"}
+                      <span>{(r.method || "").toUpperCase()}</span>
+                      <details><summary>{r.route || "—"}</summary>
+                        {r.trace_id && <CodeBlock label="Trace ID">{r.trace_id}</CodeBlock>}
+                      </details>
                     </td>
                     <td>
                       <span
-                        className={`chip ${(r.status_code ?? 0) >= 500 ? "err" : "ok"}`}
+                        className={`chip ${r.status_code == null ? "idle" : r.status_code >= 500 ? "err" : r.status_code >= 400 ? "warn" : "ok"}`}
                       >
                         {r.status_code ?? "—"}
                       </span>
                     </td>
                     <td>{r.duration_ms != null ? `${r.duration_ms} ms` : "—"}</td>
-                    <td className="mono">{r.trace_id || "—"}</td>
                   </tr>
                 ))}
               </tbody>
