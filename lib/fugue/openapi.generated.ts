@@ -5207,10 +5207,10 @@ export interface components {
       recovery_capacity_elapsed_milliseconds?: number;
       recovery_capacity_evidence_digest?: string;
       /**
-       * @description On a single-node read, excluded_from_verified_full means the signed, currently selected global full and its DNS readiness plan both exclude this endpoint. Other values do not authorize excluding a release participant.
+       * @description On a single-node read, excluded_from_verified_full means the signed, verified global full and its DNS plan exclude this endpoint. excluded_across_full_transition means both the signed in-flight gray/full candidate and its pinned verified rollback exclude this endpoint. Neither value replaces Node identity, endpoint isolation, or heartbeat checks.
        * @enum {string}
        */
-      serving_evidence: "not_evaluated" | "excluded_from_verified_full";
+      serving_evidence: "not_evaluated" | "excluded_from_verified_full" | "excluded_across_full_transition";
       /** @enum {string} */
       reason?: "quota_exhausted" | "maintenance" | "network_unavailable";
       /** Format: date */
