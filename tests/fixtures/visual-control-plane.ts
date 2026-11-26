@@ -2,6 +2,7 @@ import { createServer } from "node:http";
 import { ensureDbSchema } from "@/lib/db/schema";
 import { queryDb, withDbTransaction } from "@/lib/db/pool";
 import { sealText } from "@/lib/security/seal";
+import type { BillingEvent, BillingResourceSpec } from "@/lib/fugue/console";
 
 if (process.env.DATABASE_URL !== "postgresql://127.0.0.1:55461/fugue_visual" ||
     process.env.FUGUE_VISUAL_FIXTURE !== "1") {
@@ -17,10 +18,26 @@ const app = { id: "fixture-app", project_id: project.id, tenant_id: "fixture-ten
 };
 const node = { name: "node-abcdefghij-0123456789-production-ipv6", region: "Asia Pacific", roles: ["control-plane", "app-runtime"], status: "Ready", cpu: { usage_percent: 72, request_percent: 80, capacity_millicores: 4000, used_millicores: 2880 }, memory: { usage_percent: 90, request_percent: 92, capacity_bytes: 17000000000, used_bytes: 15300000000 } };
 const store = { id: "fixture-storage", project_id: project.id, name: "release-artifacts-and-object-storage", bucket: "fixture-bucket", endpoint: "https://objects.example.invalid", status: "active" };
-const billing = (tenant: number) => ({ tenant_id: `fixture-tenant-${tenant}`, status: "active", app_count: 1, managed_cap: { cpu_millicores: 1000, memory_mebibytes: 4096, storage_gibibytes: 20 },
-  managed_committed: {}, balance_microcents: 2314099888872, hourly_rate_microcents: 1929000, monthly_estimate_microcents: 231432100, runway_hours: 12000,
-  price_book: { currency: "USD", hours_per_month: 730, cpu_microcents_per_millicore_hour: 14, memory_microcents_per_mib_hour: 12, storage_microcents_per_gib_hour: 140 }, events: [],
-});
+const mutableBilling = process.env.FUGUE_TEST_BILLING_WRITE === "1";
+const priceBook = { currency: "USD", hours_per_month: 730, cpu_microcents_per_millicore_hour: 154, memory_microcents_per_mib_hour: 53, storage_microcents_per_gib_hour: 760 };
+const caps: Record<number, Required<BillingResourceSpec>> = {
+  0: { cpu_millicores: 1000, memory_mebibytes: 4096, storage_gibibytes: 20 },
+  1: { cpu_millicores: 550, memory_mebibytes: 1600, storage_gibibytes: 5 },
+};
+const events: Record<number, BillingEvent[]> = { 0: [], 1: [] };
+const balance = 2314099888872;
+function billing(tenant: number) {
+  const cap = caps[tenant];
+  const hourly = cap.cpu_millicores * priceBook.cpu_microcents_per_millicore_hour +
+    cap.memory_mebibytes * priceBook.memory_microcents_per_mib_hour +
+    cap.storage_gibibytes * priceBook.storage_microcents_per_gib_hour;
+  return {
+    tenant_id: `fixture-tenant-${tenant}`, status: "active", app_count: 1, managed_cap: cap,
+    managed_committed: {}, balance_microcents: balance, hourly_rate_microcents: hourly,
+    monthly_estimate_microcents: hourly * priceBook.hours_per_month, runway_hours: balance / hourly,
+    price_book: priceBook, events: events[tenant],
+  };
+}
 const snapshot = { ...project, app_count: 1, service_count: 0, service_badges: [], resource_usage_snapshot: app.current_resource_usage };
 const imageUsage = { projects: [{ project_id: project.id, measurement_status: "unavailable", measurement_reasons: ["no_storage_evidence"], total_size_bytes: 0 }], measurement_status: "unavailable" };
 const worktree = { pod: "fixture-app-0123456789-abcde", workspace_root: "/workspace/long-directory-name/fixture-service" };
@@ -36,11 +53,35 @@ for (let i = 0; i < 2; i++) {
   await queryDb("INSERT INTO app_api_keys(fugue_key_id,user_email,tenant_id,label,prefix,status,source,scopes,secret_sealed) VALUES($1,$2,$3,$4,'fg_preview','active','managed',$5,$6) ON CONFLICT DO NOTHING", [`fixture-managed-${i}`,email,`fixture-tenant-${i}`,"Deploy automation token with a long name",JSON.stringify(scopes),sealText("fake-visual-secret-not-a-credential")]);
 }
 
-createServer((req, res) => {
+createServer(async (req, res) => {
   const path = new URL(req.url ?? "/", "http://127.0.0.1").pathname;
   const tenant = req.headers.authorization?.endsWith("-1") ? 1 : 0;
   let body: unknown;
   res.setHeader("content-type","application/json");
+  if (mutableBilling && req.method === "PATCH" && path === "/v1/billing") {
+    if (req.headers.authorization !== "Bearer fixture-operator") {
+      return res.writeHead(403).end('{"error":"platform administrator required"}');
+    }
+    try {
+      let content = "";
+      for await (const chunk of req) content += chunk;
+      const { tenant_id, managed_cap } = JSON.parse(content);
+      if (tenant_id !== "fixture-tenant-1") {
+        return res.writeHead(403).end('{"error":"unexpected fixture write target"}');
+      }
+      if (managed_cap.storage_gibibytes < 5) {
+        return res.writeHead(409).end('{"error":"Requested storage is below the committed 5 GiB."}');
+      }
+      caps[1] = managed_cap;
+      events[1].push({
+        id: `fixture-cap-${events[1].length}`, type: "config-updated",
+        amount_microcents: 0, balance_after_microcents: balance, created_at: new Date().toISOString(),
+      });
+      return res.end(JSON.stringify({ billing: billing(1) }));
+    } catch {
+      return res.writeHead(400).end('{"error":"Invalid fixture write"}');
+    }
+  }
   if (req.method !== "GET") return res.writeHead(405).end('{"error":"Synthetic test data are read-only"}');
   switch (path) {
     case "/v1/auth/context": body = { principal: { scopes, tenant_id: `fixture-tenant-${tenant}`, actor_type: "api_key", actor_id: `fixture-key-${tenant}` } }; break;
@@ -81,4 +122,4 @@ createServer((req, res) => {
     default: return res.writeHead(404).end(JSON.stringify({ error: `No synthetic data for ${path}` }));
   }
   res.end(JSON.stringify(body));
-}).listen(3319, "127.0.0.1", () => console.log("Read-only demo control plane ready"));
+}).listen(3319, "127.0.0.1", () => console.log("Synthetic demo control plane ready"));

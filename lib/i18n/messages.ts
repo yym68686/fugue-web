@@ -1267,6 +1267,11 @@ export const zhCN = {
     "按当前上限，预计 {hourly}/小时 · {monthly}/月（{hours} 小时/月）。实际扣费按上限从额度余额中逐小时累计。",
   "Saved.": "已保存。",
   "Save caps": "保存上限",
+  "A same-origin JSON request is required.": "请求来源或格式无效，请刷新页面后重试。",
+  "Resource caps must be non-negative whole numbers in millicores, MiB, and GiB.": "请输入有效额度：CPU 精确到 0.001 核，内存精确到 1 MiB，存储为整数 GiB；均不能为负。",
+  "The estimated cost exceeds the supported range.": "预计费用超出支持范围。",
+  "Workspace billing could not be verified. Refresh and try again.": "无法核对工作区的账单，请刷新后重试。",
+  "This changes the workspace quota, not the size of an existing app volume.": "这里调整的是工作区资源上限，不会改变现有应用磁盘的大小。",
 
   // --- access keys: new-key modal ---
   "Create API key": "创建 API 密钥",

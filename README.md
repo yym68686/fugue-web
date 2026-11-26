@@ -45,6 +45,9 @@ npm run test:visual
 
 The fixture seeds member and administrator accounts only in that disposable
 database. Its mock control plane rejects writes; do not point it at live services.
+Set `FUGUE_TEST_BILLING_WRITE=1` in the mock server and test process to run the
+cap-save regression; the only enabled write changes the member's in-memory
+fixture cap and does not contact any live service.
 
 ### Fugue API endpoints
 

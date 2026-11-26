@@ -22,6 +22,58 @@ async function signIn(page: Page, admin: boolean, locale: "en" | "zh-CN", theme:
   ]);
 }
 
+test("members can save a storage cap only for their own workspace", async ({ page, browser }) => {
+  test.skip(!hasFixture || process.env.FUGUE_TEST_BILLING_WRITE !== "1", "Requires the local mutable billing fixture");
+  const headers = { origin: fixtureOrigin.origin, "sec-fetch-site": "same-origin" };
+  const cap = { cpuMillicores: 550, memoryMebibytes: 1600, storageGibibytes: 256 };
+  const path = "/api/console/billing";
+  expect((await page.request.patch(path, { data: cap, headers })).status()).toBe(401);
+  await signIn(page, false, "en", "light");
+  expect((await page.request.patch(path, {
+    data: cap, headers: { origin: "https://other.invalid", "sec-fetch-site": "same-site" },
+  })).status()).toBe(403);
+  expect((await page.request.patch(path, { data: { ...cap, tenantId: "fixture-tenant-0" }, headers })).status()).toBe(400);
+  expect((await page.request.patch(path, { data: { ...cap, storageGibibytes: 4 }, headers })).status()).toBe(409);
+
+  await page.goto("/billing");
+  await expect(page.getByLabel("CPU (cores)")).toHaveValue("0.55");
+  await expect(page.getByLabel("Memory (GiB)")).toHaveValue("1.5625");
+  const storage = page.getByLabel("Storage (GiB)");
+  await expect(storage).toHaveValue("5");
+  const save = page.getByRole("button", { name: "Save caps" });
+  const capEvents = page.getByText("Cap change", { exact: true });
+  const eventCount = await capEvents.count();
+  await expect(save).toBeDisabled();
+  await storage.fill("");
+  await expect(save).toBeDisabled();
+  await storage.fill("256");
+  try {
+    await save.click();
+    await expect(page.getByText("Saved.", { exact: true })).toBeVisible();
+    await expect(page.locator(".kpi-row").getByText("$2.66", { exact: true })).toBeVisible();
+    await expect(capEvents).toHaveCount(eventCount + 1);
+    expect((await page.request.patch(path, { data: cap, headers })).status()).toBe(200);
+    await page.reload();
+    await expect(storage).toHaveValue("256");
+    await expect(capEvents).toHaveCount(eventCount + 1);
+    const memberBilling = await (await page.request.get(path)).json();
+    expect(memberBilling.result.managed_cap).toEqual({
+      cpu_millicores: 550, memory_mebibytes: 1600, storage_gibibytes: 256,
+    });
+
+    const other = await browser.newPage({ baseURL: url });
+    try {
+      await signIn(other, true, "en", "light");
+      const otherBilling = await (await other.request.get(path)).json();
+      expect(otherBilling.result.managed_cap.storage_gibibytes).toBe(20);
+    } finally {
+      await other.close();
+    }
+  } finally {
+    await page.request.patch(path, { data: { ...cap, storageGibibytes: 5 }, headers });
+  }
+});
+
 for (const width of widths) {
   test(`public pages reflow at ${width}px`, async ({ page }, info) => {
     await page.setViewportSize({ width, height: width < 500 ? 568 : 900 });

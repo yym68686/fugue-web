@@ -3,6 +3,7 @@ import "server-only";
 import type { PoolClient } from "pg";
 
 import { normalizeEmail } from "@/lib/auth/validation";
+import type { ManagedCap } from "@/lib/billing/managed-cap";
 import { withDbClient } from "@/lib/db/pool";
 
 export type SecurityAuditAction =
@@ -26,6 +27,8 @@ export type SecurityAuditAction =
   | "admin.user.billing.requested"
   | "user.admin-role.changed"
   | "user.password.registered"
+  | "user.billing-cap.completed"
+  | "user.billing-cap.requested"
   | "user.session.revoked"
   | "user.status.changed";
 
@@ -47,6 +50,12 @@ export type OutboundAdminMutationRequest =
       hasNote: boolean;
       kind: "user.billing";
       targetEmail: string;
+    }
+  | {
+      actorEmail: string;
+      cap: ManagedCap;
+      kind: "workspace.billing-cap";
+      tenantId: string;
     }
   | {
       actorEmail: string;
@@ -99,6 +108,10 @@ export const OUTBOUND_ADMIN_MUTATION_ACTIONS = {
   "user.billing": {
     completed: "admin.user.billing.completed",
     requested: "admin.user.billing.requested",
+  },
+  "workspace.billing-cap": {
+    completed: "user.billing-cap.completed",
+    requested: "user.billing-cap.requested",
   },
 } as const satisfies Record<
   OutboundAdminMutationRequest["kind"],
@@ -172,6 +185,12 @@ function buildOutboundAdminMutationAuditEvent(
           stage,
         },
         targetEmail: input.targetEmail,
+      };
+    case "workspace.billing-cap":
+      return {
+        action,
+        actorEmail: input.actorEmail,
+        metadata: { tenantId: input.tenantId, ...input.cap, stage },
       };
     case "cluster.node-policy":
       return {

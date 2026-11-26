@@ -1,7 +1,14 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { callConsole } from "@/components/workbench/shared";
+import {
+  estimateManagedCap,
+  managedCapFromSummary,
+  readManagedCapDraft,
+  sameManagedCap,
+} from "@/lib/billing/managed-cap";
 import type { BillingSummary } from "@/lib/fugue/console";
 import { useT } from "@/lib/i18n/client";
 
@@ -18,80 +25,47 @@ function fmtMoney(microcents: number, currency = "USD"): string {
   }).format(amount);
 }
 
-/** Compute the hourly accrual (microcents/hr) for a cap under a price book. */
-function hourlyRate(
-  book: BillingSummary["price_book"],
-  cpuMillicores: number,
-  memoryMebibytes: number,
-  storageGibibytes: number,
-): number {
-  return (
-    cpuMillicores * book.cpu_microcents_per_millicore_hour +
-    memoryMebibytes * book.memory_microcents_per_mib_hour +
-    storageGibibytes * book.storage_microcents_per_gib_hour
-  );
-}
-
 export function BillingCapEditor({ initial }: { initial: BillingSummary }) {
   const t = useT();
-  const [summary, setSummary] = useState<BillingSummary>(initial);
-  // Whether the tenant's cap tracks storage at all — if the backend never
-  // reported a storage cap, we leave storage out of the PATCH entirely.
-  const hasStorageCap = initial.managed_cap.storage_gibibytes !== undefined;
-
-  const [cpuCores, setCpuCores] = useState(
-    (summary.managed_cap.cpu_millicores ?? 0) / 1000,
-  );
-  const [memoryGiB, setMemoryGiB] = useState(
-    (summary.managed_cap.memory_mebibytes ?? 0) / 1024,
-  );
-  const [storageGiB, setStorageGiB] = useState(
-    summary.managed_cap.storage_gibibytes ?? 0,
-  );
-  const [dirty, setDirty] = useState(false);
+  const router = useRouter();
+  const [savedCap, setSavedCap] = useState(() => managedCapFromSummary(initial.managed_cap));
+  const [cpuCores, setCpuCores] = useState(() => String(savedCap.cpuMillicores / 1000));
+  const [memoryGiB, setMemoryGiB] = useState(() => String(savedCap.memoryMebibytes / 1024));
+  const [storageGiB, setStorageGiB] = useState(() => String(savedCap.storageGibibytes));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
 
-  const book = summary.price_book;
+  const book = initial.price_book;
   const currency = book.currency || "USD";
+  const draft = readManagedCapDraft(cpuCores, memoryGiB, storageGiB);
+  const estimate = draft && estimateManagedCap(draft, book);
+  const dirty = !draft || !sameManagedCap(draft, savedCap);
 
-  // Live estimate from the edited cap — this is what the tenant will accrue.
-  const estimate = useMemo(() => {
-    const cpuMillicores = Math.round(cpuCores * 1000);
-    const memoryMebibytes = Math.round(memoryGiB * 1024);
-    const storageGibibytes = hasStorageCap ? Math.round(storageGiB) : 0;
-    const hourly = hourlyRate(book, cpuMillicores, memoryMebibytes, storageGibibytes);
-    return { hourly, monthly: hourly * book.hours_per_month };
-  }, [cpuCores, memoryGiB, storageGiB, hasStorageCap, book]);
-
-  function edit(setter: (v: number) => void, value: number) {
-    setter(Number.isFinite(value) ? value : 0);
-    setDirty(true);
+  function edit(setter: (value: string) => void, value: string) {
+    setter(value);
     setSaved(false);
+    setError(null);
   }
 
   async function save() {
-    if (saving) return;
+    if (saving || !dirty || !draft || !estimate) return;
     setSaving(true);
     setError(null);
     try {
       const next = await callConsole<BillingSummary>("/billing", {
         method: "PATCH",
-        body: {
-          cpuMillicores: Math.round(cpuCores * 1000),
-          memoryMebibytes: Math.round(memoryGiB * 1024),
-          ...(hasStorageCap ? { storageGibibytes: Math.round(storageGiB) } : {}),
-        },
+        body: draft,
       });
-      setSummary(next);
-      setCpuCores((next.managed_cap.cpu_millicores ?? 0) / 1000);
-      setMemoryGiB((next.managed_cap.memory_mebibytes ?? 0) / 1024);
-      setStorageGiB(next.managed_cap.storage_gibibytes ?? 0);
-      setDirty(false);
+      const confirmed = managedCapFromSummary(next.managed_cap);
+      setSavedCap(confirmed);
+      setCpuCores(String(confirmed.cpuMillicores / 1000));
+      setMemoryGiB(String(confirmed.memoryMebibytes / 1024));
+      setStorageGiB(String(confirmed.storageGibibytes));
       setSaved(true);
+      router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : t("Save failed"));
+      setError(err instanceof Error ? t(err.message) : t("Save failed"));
     } finally {
       setSaving(false);
     }
@@ -116,10 +90,11 @@ export function BillingCapEditor({ initial }: { initial: BillingSummary }) {
             className="input mono"
             type="number"
             min={0}
-            step={0.1}
+            step={0.001}
+            required
             value={cpuCores}
             disabled={saving}
-            onChange={(e) => edit(setCpuCores, Number(e.target.value))}
+            onChange={(e) => edit(setCpuCores, e.target.value)}
           />
         </div>
         <div className="form-row">
@@ -129,44 +104,49 @@ export function BillingCapEditor({ initial }: { initial: BillingSummary }) {
             className="input mono"
             type="number"
             min={0}
-            step={0.5}
+            step={1 / 1024}
+            required
             value={memoryGiB}
             disabled={saving}
-            onChange={(e) => edit(setMemoryGiB, Number(e.target.value))}
+            onChange={(e) => edit(setMemoryGiB, e.target.value)}
           />
         </div>
-        {hasStorageCap && (
-          <div className="form-row">
-            <label htmlFor="cap-storage">{t("Storage (GiB)")}</label>
-            <input
-              id="cap-storage"
-              className="input mono"
-              type="number"
-              min={0}
-              step={1}
-              value={storageGiB}
-              disabled={saving}
-              onChange={(e) => edit(setStorageGiB, Number(e.target.value))}
-            />
-          </div>
-        )}
+        <div className="form-row">
+          <label htmlFor="cap-storage">{t("Storage (GiB)")}</label>
+          <input
+            id="cap-storage"
+            className="input mono"
+            type="number"
+            min={0}
+            step={1}
+            required
+            value={storageGiB}
+            disabled={saving}
+            onChange={(e) => edit(setStorageGiB, e.target.value)}
+          />
+        </div>
         <p className="form-hint">
-          {t("At the current caps, an estimated {hourly}/hr · {monthly}/month ({hours} hr/month). Actual charges accrue hourly from your credit balance based on the caps.", {
+          {estimate ? t("At the current caps, an estimated {hourly}/hr · {monthly}/month ({hours} hr/month). Actual charges accrue hourly from your credit balance based on the caps.", {
             hourly: fmtMoney(estimate.hourly, currency),
             monthly: fmtMoney(estimate.monthly, currency),
             hours: book.hours_per_month,
-          })}
+          }) : t(draft
+            ? "The estimated cost exceeds the supported range."
+            : "Resource caps must be non-negative whole numbers in millicores, MiB, and GiB.")}
+        </p>
+        <p className="form-hint">
+          {t("This changes the workspace quota, not the size of an existing app volume.")}
         </p>
         {error && (
-          <div className="wb-alert err" style={{ marginBottom: 0 }}>
+          <div role="alert" className="wb-alert err" style={{ marginBottom: 0 }}>
             {error}
           </div>
         )}
         {saved && !dirty && !error && (
-          <div className="form-hint">{t("Saved.")}</div>
+          <div role="status" className="form-hint">{t("Saved.")}</div>
         )}
         <div className="form-foot" style={{ padding: 0, border: "none" }}>
-          <button type="submit" className="btn primary" disabled={saving || !dirty}>
+          <button type="submit" className="btn primary" disabled={saving || !dirty || !estimate}>
             {saving ? t("Saving…") : t("Save caps")}
           </button>
         </div>

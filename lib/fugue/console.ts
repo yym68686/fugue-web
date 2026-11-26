@@ -1759,10 +1759,9 @@ export async function getBillingSummary(
   adminKey: string,
   includeCurrentUsage = false,
 ): Promise<BillingSummary> {
-  const query = includeCurrentUsage ? "?include_current_usage=true" : "";
   const data = await fugueGet<{ billing: BillingSummary }>(
     adminKey,
-    `/v1/billing${query}`,
+    `/v1/billing?include_current_usage=${includeCurrentUsage}`,
   );
   return data.billing;
 }
@@ -1861,9 +1860,8 @@ export async function listTenantBillingSummaries(
 }
 
 /**
- * Update any tenant's managed resource cap as a platform admin. Like
- * updateBillingCap but names the tenant in the body. storage_gibibytes is only
- * sent when provided, so we never clobber the backend's storage default.
+ * Replace a tenant's managed resource cap through the administrator-only API.
+ * The caller must authorize the specific tenant and all three dimensions.
  */
 export async function updateTenantBillingCap(
   tenantId: string,
