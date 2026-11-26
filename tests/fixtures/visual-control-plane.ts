@@ -15,7 +15,7 @@ const app = { id: "fixture-app", project_id: project.id, tenant_id: "fixture-ten
   spec: { replicas: 1 }, build_source: { repo_url: "https://example.invalid/a-long-owner/a-long-service", type: "git" }, tech_stack: [{ name: "Next.js" }],
   current_resource_usage: { cpu_millicores: 100, memory_bytes: 129000000, persistent_storage_used_bytes: 11600000000, persistent_storage_capacity_bytes: 20000000000 },
 };
-const node = { name: "node-abcdefghij-0123456789-production-ipv6", region: "Asia Pacific", roles: ["control-plane", "app-runtime"], status: "Ready", cpu: { usage_percent: 42, request_percent: 60, capacity_millicores: 4000, used_millicores: 1680 }, memory: { usage_percent: 60, request_percent: 72, capacity_bytes: 17000000000, used_bytes: 10200000000 } };
+const node = { name: "node-abcdefghij-0123456789-production-ipv6", region: "Asia Pacific", roles: ["control-plane", "app-runtime"], status: "Ready", cpu: { usage_percent: 72, request_percent: 80, capacity_millicores: 4000, used_millicores: 2880 }, memory: { usage_percent: 90, request_percent: 92, capacity_bytes: 17000000000, used_bytes: 15300000000 } };
 const store = { id: "fixture-storage", project_id: project.id, name: "release-artifacts-and-object-storage", bucket: "fixture-bucket", endpoint: "https://objects.example.invalid", status: "active" };
 const billing = (tenant: number) => ({ tenant_id: `fixture-tenant-${tenant}`, status: "active", app_count: 1, managed_cap: { cpu_millicores: 1000, memory_mebibytes: 4096, storage_gibibytes: 20 },
   managed_committed: {}, balance_microcents: 2314099888872, hourly_rate_microcents: 1929000, monthly_estimate_microcents: 231432100, runway_hours: 12000,
@@ -58,7 +58,11 @@ createServer((req, res) => {
     case "/v1/apps/fixture-app/images": body = { app_id: app.id, registry_configured: true, measurement_status: "unavailable", measurement_reasons: ["no_storage_evidence"], versions: [{ image_ref: "registry.example.invalid/long-owner/long-repository@sha256:" + "abc123".repeat(10), current: true, size_measurement_status: "unavailable", size_measurement_reasons: ["no_storage_evidence"] }] }; break;
     case "/v1/apps/fixture-app/observability/metrics/summary": body = { source: { available: false, reason: "No synthetic metrics for this interval" }, metrics: [] }; break;
     case "/v1/apps/fixture-app/observability/requests": body = { source: { available: true }, requests: [{ method: "GET", route: "/long-audit-route/isolated-browser-fixture", status: 200, request_id: "fixture-request-01", trace_id: "fixture-trace-01", duration_ms: 72 }] }; break;
-    case "/v1/cluster/nodes": body = { cluster_nodes: [node] }; break;
+    case "/v1/cluster/nodes": body = { cluster_nodes: [
+      node,
+      { name: "node-draining", region: node.region, roles: [], status: "Draining" },
+      { name: "node-unavailable", region: node.region, roles: [], status: "NotReady" },
+    ] }; break;
     case "/v1/projects/image-usage": body = imageUsage; break;
     case "/v1/projects": body = { projects: [project] }; break;
     case "/v1/runtimes": body = { runtimes: [] }; break;

@@ -56,7 +56,7 @@ export default withPageTiming('/admin/cluster', async function AdminClusterPage(
             <h1>{t('Cluster')}</h1>
             <div className="meta">
               <span>
-                <span className="dot ok"></span> {t('{ready}/{total} ready', { ready, total: nodes.length })}
+                <span className={`dot ${!nodes.length ? 'idle' : ready === nodes.length ? 'ok' : 'warn'}`} aria-hidden="true" /> {t('{ready}/{total} ready', { ready, total: nodes.length })}
               </span>
               <span>{t('{count} regions', { count: regions.length })}</span>
             </div>

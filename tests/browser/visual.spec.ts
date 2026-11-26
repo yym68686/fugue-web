@@ -177,3 +177,74 @@ test("mobile service routes, secrets and files reflow with real content", async 
   await noPageOverflow(page);
   await page.screenshot({ path: info.outputPath("390-service-observability.png") });
 });
+
+for (const theme of ["light", "dark"] as const) {
+  test(`status colors remain distinct and readable in ${theme} mode`, async ({ page }, info) => {
+    test.skip(!hasFixture, "Requires the local visual fixture");
+    await page.setViewportSize({ width: theme === "light" ? 390 : 1440, height: 900 });
+    // Use the opposite OS preference to verify that the explicit theme wins.
+    await page.emulateMedia({ colorScheme: theme === "light" ? "dark" : "light" });
+    await signIn(page, true, "en", theme);
+    await page.goto("/admin/cluster");
+    const table = page.locator(".tbl-cluster");
+    const colors: Record<string, string> = {};
+    for (const [label, tone] of [["Ready", "ok"], ["Draining", "warn"], ["NotReady", "err"]]) {
+      const chip = table.getByText(label, { exact: true });
+      await expect(chip).toBeVisible();
+      await expect(chip).toHaveClass(new RegExp(`\\b${tone}\\b`));
+      const result = await chip.evaluate((element) => {
+        const canvas = document.createElement("canvas");
+        canvas.width = canvas.height = 1;
+        const ctx = canvas.getContext("2d")!;
+        ctx.fillStyle = getComputedStyle(document.body).backgroundColor;
+        ctx.fillRect(0, 0, 1, 1);
+        const style = getComputedStyle(element);
+        ctx.fillStyle = style.backgroundColor;
+        ctx.fillRect(0, 0, 1, 1);
+        const background = ctx.getImageData(0, 0, 1, 1).data;
+        ctx.fillStyle = style.color;
+        ctx.fillRect(0, 0, 1, 1);
+        const foreground = ctx.getImageData(0, 0, 1, 1).data;
+        const luminance = (rgba: Uint8ClampedArray) => Array.from(rgba.slice(0, 3))
+          .map(v => v / 255).map(v => v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4)
+          .reduce((sum, v, index) => sum + v * [0.2126, 0.7152, 0.0722][index], 0);
+        const levels = [luminance(background), luminance(foreground)].sort((a, b) => a - b);
+        return { color: style.color, contrast: (levels[1] + 0.05) / (levels[0] + 0.05) };
+      });
+      expect(result.contrast).toBeGreaterThanOrEqual(4.5);
+      colors[tone] = result.color;
+    }
+    expect(new Set(Object.values(colors)).size).toBe(3);
+    if (theme === "light") {
+      const toggle = table.getByRole("button", { name: /Expand: node-abcdefghij/ });
+      const nameCell = table.getByText(/node-abcdefghij/).locator("..");
+      const before = await nameCell.evaluate(element => element.getBoundingClientRect().width);
+      expect(before).toBeGreaterThan(180);
+      await page.screenshot({ path: info.outputPath("status-light-collapsed.png") });
+      await toggle.click();
+      await expect(table.locator(".row-detail")).toBeVisible();
+      expect(await nameCell.evaluate(element => element.getBoundingClientRect().width)).toBeCloseTo(before, 0);
+    }
+    await expect(table.locator(".bar-wide > i.hot:visible").first()).toHaveCSS("background-color", colors.warn);
+    await expect(table.locator(".bar-wide > i.crit:visible").first()).toHaveCSS("background-color", colors.err);
+    await noPageOverflow(page);
+    await page.screenshot({ path: info.outputPath(`status-${theme}.png`) });
+
+    await page.goto("/projects/fixture-project?service=fixture-app&tab=Images");
+    const error = page.getByRole("tabpanel").locator(".wb-alert.err").first();
+    await expect(error).toBeVisible();
+    await expect(error).toHaveCSS("color", colors.err);
+
+    if (theme === "light") {
+      await page.goto("/admin/services");
+      const services = page.locator(".tbl-services");
+      const service = services.getByText("release-verification-console-worker-with-a-very-long-service-name", { exact: true }).locator("..");
+      await expect(service).toBeVisible();
+      const before = await service.evaluate(element => element.getBoundingClientRect().width);
+      await services.getByRole("button", { name: /^Expand:/ }).first().click();
+      await expect(services.locator(".row-detail")).toBeVisible();
+      expect(await service.evaluate(element => element.getBoundingClientRect().width)).toBeCloseTo(before, 0);
+      await noPageOverflow(page);
+    }
+  });
+}

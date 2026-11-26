@@ -222,29 +222,30 @@ export default function ClusterNodeTable({ nodes }: { nodes: ClusterNode[] }) {
 
   return (
     <div className="table-scroll" tabIndex={0} role="region" aria-label={t("Cluster nodes")}>
-    <table className="tbl tbl-cluster">
-      <thead>
-        <tr>
-          <th style={{ width: 28 }}></th>
-          <th>{t("Node")}</th>
-          <th>{t("Role")}</th>
-          <th>{t("Status")}</th>
-          <th>{t("CPU (usage / request)")}</th>
-          <th>{t("Memory (usage / request)")}</th>
-          <th>{t("Disk")}</th>
+    <table className="tbl tbl-cluster" role="table">
+      <thead role="rowgroup">
+        <tr role="row">
+          <th role="columnheader" style={{ width: 28 }}></th>
+          <th role="columnheader">{t("Node")}</th>
+          <th role="columnheader">{t("Role")}</th>
+          <th role="columnheader">{t("Status")}</th>
+          <th role="columnheader">{t("CPU (usage / request)")}</th>
+          <th role="columnheader">{t("Memory (usage / request)")}</th>
+          <th role="columnheader">{t("Disk")}</th>
         </tr>
       </thead>
-      <tbody>
+      <tbody role="rowgroup">
         {nodes.map((n) => {
           const isOpen = expanded.has(n.name);
           const workloadCount = n.workloads?.length ?? 0;
           return (
             <Fragment key={n.name}>
               <tr
+                role="row"
                 className={`row-toggle${isOpen ? " open" : ""}`}
                 onClick={() => toggle(n.name)}
               >
-                <td>
+                <td role="cell">
                   <button
                     type="button"
                     className="caret-btn"
@@ -258,7 +259,7 @@ export default function ClusterNodeTable({ nodes }: { nodes: ClusterNode[] }) {
                     <Icon name={isOpen ? "ChevronDown" : "ChevronRight"} />
                   </button>
                 </td>
-                <td>
+                <td role="cell">
                   <div className="node-nm">{n.name}</div>
                   <div className="node-sub">
                     {n.region || t("Unknown region")}
@@ -267,7 +268,7 @@ export default function ClusterNodeTable({ nodes }: { nodes: ClusterNode[] }) {
                     )}
                   </div>
                 </td>
-                <td>
+                <td role="cell">
                   <div className="role-chips">
                     {roleChips(n, t).map((c, i) => (
                       <span key={i} className="role-label">
@@ -276,10 +277,10 @@ export default function ClusterNodeTable({ nodes }: { nodes: ClusterNode[] }) {
                     ))}
                   </div>
                 </td>
-                <td>
+                <td role="cell">
                   <span className={`chip ${statusChipClass(n.status)}`}>{n.status}</span>
                 </td>
-                <td>
+                <td role="cell">
                   <UsageCell
                     t={t}
                     usagePct={n.cpu?.usage_percent}
@@ -291,7 +292,7 @@ export default function ClusterNodeTable({ nodes }: { nodes: ClusterNode[] }) {
                     }
                   />
                 </td>
-                <td>
+                <td role="cell">
                   <UsageCell
                     t={t}
                     usagePct={n.memory?.usage_percent}
@@ -303,7 +304,7 @@ export default function ClusterNodeTable({ nodes }: { nodes: ClusterNode[] }) {
                     }
                   />
                 </td>
-                <td>
+                <td role="cell">
                   <UsageCell
                     t={t}
                     usagePct={n.ephemeral_storage?.usage_percent}
@@ -317,8 +318,8 @@ export default function ClusterNodeTable({ nodes }: { nodes: ClusterNode[] }) {
                 </td>
               </tr>
               {isOpen && (
-                <tr className="row-detail">
-                  <td colSpan={7}>
+                <tr className="row-detail" role="row">
+                  <td colSpan={7} role="cell">
                     <NodeDetail node={n} t={t} />
                   </td>
                 </tr>

@@ -17,9 +17,16 @@
   --accent-fg: light-dark(#415e80, #a2bddb);
   --accent-dim: color-mix(in srgb, var(--accent-fg) 12%, transparent);
   --accent-line: color-mix(in srgb, var(--accent-fg) 44%, transparent);
-  --ok: var(--fg);
-  --warn: var(--fg);
-  --err: var(--fg);
+  /* Use darker text in the light theme, and the familiar status hues in dark. */
+  --ok: light-dark(#146a43, #3fcf8e);
+  --warn: light-dark(#805100, #f5b13d);
+  --err: light-dark(#aa243a, #ff5d6b);
+  --ok-dim: color-mix(in srgb, var(--ok) 8%, transparent);
+  --warn-dim: color-mix(in srgb, var(--warn) 8%, transparent);
+  --err-dim: color-mix(in srgb, var(--err) 8%, transparent);
+  --ok-line: color-mix(in srgb, var(--ok) 32%, transparent);
+  --warn-line: color-mix(in srgb, var(--warn) 32%, transparent);
+  --err-line: color-mix(in srgb, var(--err) 32%, transparent);
   --scrim: rgb(0 0 0 / 42%);
   --scrim-strong: rgb(0 0 0 / 64%);
   --shadow: transparent;
@@ -369,7 +376,7 @@ button {
 }
 
 .usermenu-item.danger:hover {
-  background: rgba(255, 93, 107, 0.1);
+  background: var(--err-dim);
   color: var(--err);
 }
 
@@ -721,8 +728,8 @@ button {
 
 .chip.ok {
   color: var(--ok);
-  border-color: rgba(63, 207, 142, 0.3);
-  background: rgba(63, 207, 142, 0.08);
+  border-color: var(--ok-line);
+  background: var(--ok-dim);
 }
 
 .chip.run {
@@ -733,14 +740,14 @@ button {
 
 .chip.warn {
   color: var(--warn);
-  border-color: rgba(245, 177, 61, 0.3);
-  background: rgba(245, 177, 61, 0.08);
+  border-color: var(--warn-line);
+  background: var(--warn-dim);
 }
 
 .chip.err {
   color: var(--err);
-  border-color: rgba(255, 93, 107, 0.3);
-  background: rgba(255, 93, 107, 0.08);
+  border-color: var(--err-line);
+  background: var(--err-dim);
 }
 
 .chip.idle {
@@ -1364,16 +1371,16 @@ button {
   gap: 9px;
   padding: 10px 12px;
   border-radius: var(--radius);
-  border: 1px solid rgba(255, 93, 107, 0.3);
-  background: rgba(255, 93, 107, 0.08);
+  border: 1px solid var(--err-line);
+  background: var(--err-dim);
   color: var(--err);
   font-size: 12.5px;
   line-height: 1.45;
 }
 
 .auth-alert.ok {
-  border-color: rgba(63, 207, 142, 0.3);
-  background: rgba(63, 207, 142, 0.08);
+  border-color: var(--ok-line);
+  background: var(--ok-dim);
   color: var(--ok);
 }
 
@@ -3165,20 +3172,20 @@ button {
 }
 
 .wb-alert.ok {
-  border-color: rgba(63, 207, 142, 0.3);
-  background: rgba(63, 207, 142, 0.08);
+  border-color: var(--ok-line);
+  background: var(--ok-dim);
   color: var(--ok);
 }
 
 .wb-alert.warn {
-  border-color: rgba(246, 190, 67, 0.3);
-  background: rgba(246, 190, 67, 0.08);
+  border-color: var(--warn-line);
+  background: var(--warn-dim);
   color: var(--warn);
 }
 
 .wb-alert.err {
-  border-color: rgba(255, 93, 107, 0.3);
-  background: rgba(255, 93, 107, 0.08);
+  border-color: var(--err-line);
+  background: var(--err-dim);
   color: var(--err);
 }
 
@@ -3223,12 +3230,12 @@ button {
 }
 
 .btn.danger {
-  border-color: rgba(255, 93, 107, 0.4);
+  border-color: var(--err-line);
   color: var(--err);
 }
 
 .btn.danger:hover {
-  background: rgba(255, 93, 107, 0.1);
+  background: var(--err-dim);
 }
 
 /* modal / confirm dialog */
@@ -3441,18 +3448,22 @@ button {
 }
 
 .topup-toast.ok {
-  border-color: var(--ok-line, var(--accent-line));
-  color: var(--fg);
+  border-color: var(--ok-line);
+  color: var(--ok);
 }
 
 .topup-toast.err {
-  border-color: var(--err-line, var(--line-2));
-  color: var(--fg);
+  border-color: var(--err-line);
+  color: var(--err);
 }
 
-.topup-toast.warn,
+.topup-toast.warn {
+  border-color: var(--warn-line);
+  color: var(--warn);
+}
+
 .topup-toast.run {
-  color: var(--fg);
+  color: var(--accent-fg);
 }
 
 .topup-toast .spin {
@@ -3830,7 +3841,7 @@ select.input {
 }
 
 .prof-state.on {
-  color: var(--ok-fg, var(--accent-fg));
+  color: var(--ok);
 }
 
 .prof-alert {
@@ -3841,15 +3852,15 @@ select.input {
 }
 
 .prof-alert.ok {
-  color: var(--accent-fg);
-  background: color-mix(in srgb, var(--accent-fg) 10%, transparent);
-  border-color: color-mix(in srgb, var(--accent-fg) 30%, transparent);
+  color: var(--ok);
+  background: var(--ok-dim);
+  border-color: var(--ok-line);
 }
 
 .prof-alert.err {
   color: var(--err);
-  background: color-mix(in srgb, var(--err) 10%, transparent);
-  border-color: color-mix(in srgb, var(--err) 30%, transparent);
+  background: var(--err-dim);
+  border-color: var(--err-line);
 }
 
 /* provider bindings */

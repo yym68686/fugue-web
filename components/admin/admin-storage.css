@@ -18,7 +18,11 @@
 .admin-storage-table th { text-align: left; opacity: .65; font-weight: 500; }
 .admin-storage-table th, .admin-storage-table td { padding: 16px 12px; border-bottom: 1px solid var(--line); vertical-align: top; min-width: 148px; max-width: 360px; overflow-wrap: anywhere; }
 .storage-state { display: inline-block; padding: 4px 8px; border: 1px solid var(--line-2); border-radius: 8px; }
-.storage-stale, .storage-state-legacy_receipt, .storage-state-blocked, .storage-state-missing { color: var(--fg); }
+.admin-storage-page :is(.storage-state-confirmed, .storage-state-active) { color: var(--ok); }
+.admin-storage-page :is(.storage-warning, .storage-stale, .storage-state-legacy_receipt, .storage-state-blocked, .storage-state-missing) { color: var(--warn); }
+.admin-storage-page :is(.storage-state-confirmed, .storage-state-active) { border-color: var(--ok-line); }
+.admin-storage-page :is(.storage-state-legacy_receipt, .storage-state-blocked, .storage-state-missing) { border-color: var(--warn-line); }
+.admin-storage-mobile .storage-state { padding: 0; border: 0; }
 .admin-storage-mobile { display: none; }
 @media (max-width: 600px) {
   .admin-storage-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }

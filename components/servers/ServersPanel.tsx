@@ -85,6 +85,8 @@ function ServerCard({ server, now }: { server: ServerView; now: number }) {
   const [open, setOpen] = useState(false);
   const { runtime: r, node } = server;
   const health = nodeHealth(node, now);
+  const offline = r.status.toLowerCase() === "offline";
+  const healthTone = offline || health === "unready" ? "err" : health === "ready" ? "ok" : "warn";
   const kind = r.owned
     ? "Your server"
     : r.kind === "internal"
@@ -117,7 +119,7 @@ function ServerCard({ server, now }: { server: ServerView; now: number }) {
       onToggle={(e) => setOpen(e.currentTarget.open)}
     >
       <summary>
-        <span className={`dot ${health === "ready" ? "ok" : "idle"}`} />
+        <span className={`dot ${healthTone}`} aria-hidden="true" />
         <span className="server-heading">
           <strong>{r.name || r.machine_name || r.id}</strong>
           <small>
@@ -127,12 +129,12 @@ function ServerCard({ server, now }: { server: ServerView; now: number }) {
             {r.country || node?.region || r.cluster_node_name ? " · " : ""}{t(kind)}
           </small>
         </span>
-        <span className={`chip ${health === "ready" ? "ok" : "idle"}`}>
+        <span className={`chip ${healthTone}`}>
           {t(
-            health === "ready"
-              ? "Ready"
-              : r.status === "offline"
-                ? "Offline"
+            offline
+              ? "Offline"
+              : health === "ready"
+                ? "Ready"
                 : health === "unknown"
                   ? "Health unknown"
                   : "Not ready",

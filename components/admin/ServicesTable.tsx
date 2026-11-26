@@ -222,28 +222,29 @@ export default function ServicesTable({
       </details>
 
       <div className="table-scroll" role="region" aria-label={t("Services table")} tabIndex={0}>
-        <table className="tbl tbl-services">
-        <thead>
-          <tr>
-            <th style={{ width: 28 }}></th>
-            <th><span className="table-head-label">{t("Service")}</span></th>
-            <th>{t("Owner")}</th>
-            <th>{t("Status")}</th>
-            <th>{t("Tech stack")}</th>
-            <th><span className="table-head-label">{t("Deploy method")}</span></th>
-            <th>{t("Node")}</th>
+        <table role="table" className="tbl tbl-services">
+        <thead role="rowgroup">
+          <tr role="row">
+            <th role="columnheader" style={{ width: 28 }}></th>
+            <th role="columnheader"><span className="table-head-label">{t("Service")}</span></th>
+            <th role="columnheader">{t("Owner")}</th>
+            <th role="columnheader">{t("Status")}</th>
+            <th role="columnheader">{t("Tech stack")}</th>
+            <th role="columnheader"><span className="table-head-label">{t("Deploy method")}</span></th>
+            <th role="columnheader">{t("Node")}</th>
           </tr>
         </thead>
-        <tbody>
+        <tbody role="rowgroup">
           {filtered.map((r) => {
             const isOpen = expanded.has(r.id);
             return (
               <Fragment key={r.id}>
                 <tr
+                  role="row"
                   className={`row-toggle${isOpen ? " open" : ""}`}
                   onClick={() => toggle(r.id)}
                 >
-                  <td>
+                  <td role="cell">
                     <button
                       type="button"
                       className="caret-btn"
@@ -257,7 +258,7 @@ export default function ServicesTable({
                       <Icon name={isOpen ? "ChevronDown" : "ChevronRight"} />
                     </button>
                   </td>
-                  <td>
+                  <td role="cell">
                     <div className="node-nm">{r.name}</div>
                     {r.routeUrl && (
                       <div className="node-sub mono">
@@ -265,14 +266,14 @@ export default function ServicesTable({
                       </div>
                     )}
                   </td>
-                  <td>
+                  <td role="cell">
                     {r.ownerEmail ? (
                       <span className="mono">{r.ownerEmail}</span>
                     ) : (
                       <span className="faint mono">{r.tenantId || "—"}</span>
                     )}
                   </td>
-                  <td>
+                  <td role="cell">
                     <span className={`chip ${rowTone(r, now)}`}>{r.phase}</span>
                     {r.replicas != null && (
                       <span className="faint" style={{ marginLeft: 6 }}>
@@ -280,7 +281,7 @@ export default function ServicesTable({
                       </span>
                     )}
                   </td>
-                  <td>
+                  <td role="cell">
                     {r.stack.length > 0 ? (
                       <div className="role-chips">
                         {r.stack.slice(0, 3).map((s, i) => (
@@ -296,8 +297,8 @@ export default function ServicesTable({
                       <span className="faint">—</span>
                     )}
                   </td>
-                  <td>{deployLabel(r.deployMethod, t)}</td>
-                  <td>
+                  <td role="cell">{deployLabel(r.deployMethod, t)}</td>
+                  <td role="cell">
                     {r.nodeName ? (
                       <span className="mono">{r.nodeName}</span>
                     ) : (
@@ -306,8 +307,8 @@ export default function ServicesTable({
                   </td>
                 </tr>
                 {isOpen && (
-                  <tr className="row-detail">
-                    <td colSpan={7}>
+                  <tr className="row-detail" role="row">
+                    <td colSpan={7} role="cell">
                       <div className="node-detail">
                         <div className="node-detail-grid">
                           <div className="node-detail-item">
@@ -382,8 +383,8 @@ export default function ServicesTable({
             );
           })}
           {filtered.length === 0 && (
-            <tr>
-              <td colSpan={7} className="faint" style={{ textAlign: "center", padding: 24 }}>
+            <tr role="row">
+              <td colSpan={7} role="cell" className="faint" style={{ textAlign: "center", padding: 24 }}>
                 {t("No services match the filter.")}
               </td>
             </tr>

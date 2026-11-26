@@ -16,11 +16,12 @@ export default function ResourceUsage({
 }) {
   const usage = Number.isFinite(usagePct) ? usagePct : undefined;
   const request = Number.isFinite(requestPct) ? requestPct : undefined;
+  const tone = usage == null ? undefined : usage >= 85 ? "crit" : usage >= 70 ? "hot" : undefined;
   return (
     <span className="usage-cell">
       {label && <span className="usage-label">{label}</span>}
       <span className="bar bar-wide" aria-hidden="true">
-        {usage != null && <i style={{ width: `${Math.max(0, Math.min(100, usage))}%` }} />}
+        {usage != null && <i className={tone} style={{ width: `${Math.max(0, Math.min(100, usage))}%` }} />}
         {request != null && (
           <span
             className="req-mark"

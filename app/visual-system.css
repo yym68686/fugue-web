@@ -88,18 +88,15 @@
 .btn.primary { border-color: transparent; }
 .input, .panel-h .hdr-form .input { font-size: 14px; }
 .form-hint, .empty { font-family: var(--sans); font-size: 14px; }
-.chip:is(.ok, .run, .warn, .err, .idle), .chip {
-  background: transparent;
-  border-color: var(--line-2);
+.chip {
   border-radius: var(--radius-sm);
-  color: var(--muted);
   font: 500 14px var(--sans);
   letter-spacing: normal;
   text-transform: none;
 }
-.chip:is(.warn, .err) { border-style: dashed; color: var(--fg); }
-.dot:is(.ok, .warn, .err, .run, .idle) { background: var(--muted); box-shadow: none; }
-.dot:is(.warn, .err) { background: transparent; border: 1px solid var(--muted); border-radius: 2px; }
+.chip:is(.warn, .err) { border-style: dashed; }
+.dot:is(.ok, .run) { box-shadow: none; }
+.dot:is(.warn, .err) { border-radius: 2px; }
 .tbl, .pricing-table { font-size: 14px; }
 .tbl th { font: 500 14px var(--sans); text-transform: none; letter-spacing: normal; }
 .tbl td { overflow-wrap: anywhere; }
@@ -275,12 +272,10 @@
 :is(.tbl-cluster, .tbl-services) .caret-btn { min-width: 32px; min-height: 40px; }
 .cluster-mobile-usage { display: none; }
 .role-chips .role-label { color: var(--muted); }
-.usage-cell .bar-wide > i { background: var(--accent); }
 .usage-cell .bar-wide .req-mark { background: var(--fg); height: 12px; }
 .usage-cell :is(.bar-val, .usage-detail, .usage-req) { overflow-wrap: normal; }
 .node-nm, .node-sub, .node-detail-v { overflow-wrap: anywhere; }
-.action-error { display: block; white-space: normal; overflow-wrap: anywhere; }
-.wb-alert:is(.ok, .warn, .err), .usermenu-item.danger:hover { border-color: var(--line-2); background: var(--surface-2); color: var(--fg); }
+.action-error { display: block; white-space: normal; overflow-wrap: anywhere; color: var(--err); }
 .payment-disclosure { flex-basis: 100%; text-align: start; }
 .app-mail :is(code, summary, .form-row > span) { overflow-wrap: anywhere; }
 .app-mail details { margin-block: var(--space-3); }
@@ -369,11 +364,17 @@ button.services-stat[aria-pressed="true"] .services-stat-label { text-decoration
   .project-overview:has(+ .workbench-detail) .pstat { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .kpi-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .ui-modal :is(.modal-h, .modal-b, .modal-f) { padding-inline: var(--space-4); }
-  .tbl-services, .tbl-cluster { min-width: 0; width: 100%; table-layout: fixed; }
-  .tbl-services :is(thead tr, .row-toggle) > :is(:nth-child(3), :nth-child(n+5)),
-  .tbl-cluster :is(thead tr, .row-toggle) > :is(:nth-child(3), :nth-child(n+5)) { display: none; }
-  :is(.tbl-services, .tbl-cluster) thead :is(th:nth-child(1), th:nth-child(4)) { width: 32px !important; }
-  :is(.tbl-services, .tbl-cluster) thead th:nth-child(4) { width: 96px !important; }
+  /* Expanded rows must not reintroduce the columns hidden on mobile via colspan. */
+  :is(.tbl-services, .tbl-cluster) { display: grid; min-width: 0; width: 100%; }
+  :is(.tbl-services, .tbl-cluster) :is(thead, tbody) { display: block; }
+  :is(.tbl-services, .tbl-cluster) :is(thead tr, .row-toggle) {
+    display: grid;
+    grid-template-columns: 36px minmax(0, 1fr) 100px;
+    align-items: stretch;
+  }
+  :is(.tbl-services, .tbl-cluster) :is(thead tr, .row-toggle) > :is(:nth-child(3), :nth-child(n+5)) { display: none; }
+  :is(.tbl-services, .tbl-cluster) tbody tr:not(.row-toggle), :is(.tbl-services, .tbl-cluster) tbody tr:not(.row-toggle) > td { display: block; }
+  :is(.tbl-services, .tbl-cluster) .row-toggle > td { align-content: center; min-width: 0; }
   :is(.tbl-services, .tbl-cluster) :is(td, th) { padding-inline: var(--space-1); }
   :is(.tbl-services, .tbl-cluster) .chip { white-space: normal; overflow-wrap: anywhere; }
   .tbl-services .row-toggle .node-sub { display: none; }
