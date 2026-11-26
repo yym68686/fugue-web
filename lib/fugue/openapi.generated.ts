@@ -5206,8 +5206,11 @@ export interface components {
       recovery_capacity_bytes_per_second?: number;
       recovery_capacity_elapsed_milliseconds?: number;
       recovery_capacity_evidence_digest?: string;
-      /** @enum {string} */
-      serving_evidence: "not_evaluated";
+      /**
+       * @description On a single-node read, excluded_from_verified_full means the signed, currently selected global full and its DNS readiness plan both exclude this endpoint. Other values do not authorize excluding a release participant.
+       * @enum {string}
+       */
+      serving_evidence: "not_evaluated" | "excluded_from_verified_full";
       /** @enum {string} */
       reason?: "quota_exhausted" | "maintenance" | "network_unavailable";
       /** Format: date */
